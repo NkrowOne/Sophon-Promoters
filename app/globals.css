@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Superficies derivadas del tema de Telegram.
+ *
+ * `color-mix` no existe en WebViews de Android anteriores a Chrome 111. Sin el
+ * bloque @supports de más abajo, cada superficie resolvería a un valor inválido
+ * y la app quedaría en texto sobre transparente. El respaldo estático va primero
+ * y `color-mix` lo pisa solo donde funciona.
+ */
+:root {
+  --superficie: #f7f8fa;
+  --superficie-alta: #eef0f3;
+  --borde: #dfe3e8;
+
+  --fuente-texto: system-ui;
+  --fuente-cifras: ui-monospace;
+}
+
+:root[data-luz="oscuro"] {
+  --superficie: #1c2229;
+  --superficie-alta: #262e37;
+  --borde: #333d48;
+}
+
+@supports (background: color-mix(in oklab, red, blue)) {
+  :root {
+    --superficie: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 94%, var(--tg-theme-text-color, #10151a));
+    --superficie-alta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 88%, var(--tg-theme-text-color, #10151a));
+    --borde: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 80%, var(--tg-theme-text-color, #10151a));
+  }
+}
+
+html,
+body {
+  background: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #10151a);
+  /* El cuerpo nunca hace scroll horizontal: lo que desborda scrollea en su caja. */
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--fuente-texto), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* La Mini App ocupa el alto estable, no el visual: con el teclado abierto
+     el viewport se reajusta y usar 100vh dejaría contenido bajo el teclado. */
+  min-height: var(--tg-viewport-stable-height, 100vh);
+}
+
+/* Cifras siempre tabulares: sin esto las columnas de importes bailan al cambiar de dígito. */
+.cifra {
+  font-family: var(--fuente-cifras), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Foco visible de verdad: es el suelo de calidad, no un extra. */
+:focus-visible {
+  outline: 2px solid theme("colors.fosforo");
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* El raíl del Testigo no captura eventos: compite con el gesto de retroceso
+   horizontal de Telegram si es interactivo pegado al borde. */
+.testigo-rail {
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+  }
+  /* Sobrevive la opacidad; ningún transform ni altura animada. */
+  .cabeza-sonda {
+    animation: none !important;
+    outline: 2px solid theme("colors.fosforo");
+    outline-offset: 1px;
+  }
+}
+
+/* Árabe: el layout se invierte entero, incluido el raíl del Testigo. */
+[dir="rtl"] .testigo-rail {
+  left: auto;
+  right: 0;
+}

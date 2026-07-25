@@ -1,0 +1,491 @@
+// Esquema de Sophon Promoters.
+//
+// Principio rector: el dinero se guarda SIEMPRE como BigInt en micros de dólar
+// (1 $ = 1.000.000 µ$). Ni Float ni Decimal: los importes llegan de Sophon como
+// cadena y se convierten con `lib/devengo/dinero.ts`.
+//
+// El ledger (`AsientoComision`) es append-only: una corrección se escribe como
+// una línea negativa fechada el día del ajuste, nunca mutando el asiento original.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Enumeraciones ───────────────────────────────
+
+enum EstadoAgente {
+  PENDIENTE // creado por código de activación, aún sin verificar el email
+  ACTIVO
+  SUSPENDIDO
+  BAJA
+}
+
+enum OrigenAtribucion {
+  VINCULADO_APP // el agente lo activó desde la Mini App: atribución limpia
+  ASIGNADO_MANUAL // el superadmin se lo asignó después: devengo prospectivo
+  HUERFANO // existía en Sophon antes que la app; sin agente
+}
+
+enum EstadoSophon {
+  DESCONOCIDO
+  ACTIVO
+  BLOQUEADO
+  PENDIENTE_BORRADO
+}
+
+enum PropositoOtp {
+  VINCULAR_CUENTA
+  RECUPERAR_ACCESO
+}
+
+enum EstadoConcesion {
+  RESERVADA // cupo consumido, aún sin confirmación de Sophon
+  CONFIRMADA
+  FALLIDA
+}
+
+enum TipoAsiento {
+  CPA // comisión por registro de usuario
+  CPS // comisión por compra de PRO
+  AJUSTE_REVERSO // Sophon revisó a la baja un día ya cerrado
+  AJUSTE_MANUAL
+  RETIRO // salida de saldo al pagar al agente
+}
+
+enum EstadoAsiento {
+  PROVISIONAL // el día sigue abierto y puede cambiar
+  CONSOLIDADO // el día quedó fuera de la ventana de revisión
+  ANULADO
+}
+
+enum EstadoRetiro {
+  SOLICITADO
+  APROBADO
+  RECHAZADO
+  PAGADO
+  CANCELADO
+}
+
+enum RedCripto {
+  TRC20
+  BSC
+  TON
+}
+
+enum TipoSync {
+  REGISTROS
+  WEBMASTERS
+  TESORERIA
+  CADUCIDADES
+  TARIFAS
+}
+
+enum EstadoSync {
+  EN_CURSO
+  COMPLETADA
+  PARCIAL
+  FALLIDA
+}
+
+enum ActorTipo {
+  AGENTE
+  SUPERADMIN
+  SISTEMA
+}
+
+// ──────────────────────────────── Identidad ────────────────────────────────
+
+model Agente {
+  id String @id @default(cuid())
+
+  /// El email es el identificador de acceso. Se guarda normalizado (minúsculas,
+  /// sin espacios) y es único; `emailOriginal` conserva lo que escribió la persona.
+  emailNormalizado String  @unique
+  emailOriginal    String
+  nombreVisible    String
+  telegramId       BigInt? @unique
+  telegramUsuario  String?
+
+  estado EstadoAgente @default(PENDIENTE)
+
+  /// Comisiones propias del agente. Si son null, se aplican las de configuración.
+  /// Nunca se leen para recalcular el histórico: cada asiento congela su tarifa.
+  cpaPorRegistroMicros BigInt?
+  cpsBps               Int?
+
+  // Permisos sobre la concesión de PRO, que es el vector de fraude real.
+  puedeConcederPro  Boolean  @default(false)
+  planesAutorizados String[] @default([])
+  cupoProMensual    Int      @default(0)
+
+  /// Invalidación instantánea de todas las sesiones: basta con incrementarlo.
+  epocaSesion Int @default(0)
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  webmasters    Webmaster[]
+  sesiones      SesionAgente[]
+  asientos      AsientoComision[]
+  retiros       SolicitudRetiro[]
+  concesiones   ConcesionPro[]
+  vinculaciones IntentoVinculacion[]
+  codigoUsado   CodigoActivacion?
+
+  @@index([estado])
+}
+
+model SesionAgente {
+  id       String @id @default(cuid())
+  agenteId String
+  agente   Agente @relation(fields: [agenteId], references: [id], onDelete: Cascade)
+
+  /// Solo el hash: el token opaco jamás se persiste en claro.
+  tokenHash   String @unique
+  epocaSesion Int
+
+  telegramId    BigInt
+  emitidaEn     DateTime  @default(now())
+  expiraEn      DateTime
+  ultimoUsoEn   DateTime  @default(now())
+  revocadaEn    DateTime?
+  ip            String?
+  agenteUsuario String?
+
+  @@index([agenteId, revocadaEn])
+  @@index([expiraEn])
+}
+
+/// Código que genera el superadmin desde el bot para dar de alta a un agente.
+model CodigoActivacion {
+  id     String @id @default(cuid())
+  codigo String @unique
+
+  /// Si se fija, solo ese email puede canjearlo.
+  emailDestino String?
+  usosMaximos  Int     @default(1)
+  usosActuales Int     @default(0)
+
+  expiraEn    DateTime
+  creadoPorId String
+  anuladoEn   DateTime?
+  creadoEn    DateTime  @default(now())
+
+  agenteId String? @unique
+  agente   Agente? @relation(fields: [agenteId], references: [id])
+
+  @@index([expiraEn, anuladoEn])
+}
+
+model CodigoOtp {
+  id               String       @id @default(cuid())
+  emailNormalizado String
+  /// Hash con pimienta: un volcado de la tabla no permite iniciar sesión.
+  codigoHash       String
+  proposito        PropositoOtp
+  telegramId       BigInt?
+
+  intentos    Int       @default(0)
+  maxIntentos Int       @default(5)
+  expiraEn    DateTime
+  consumidoEn DateTime?
+  creadoEn    DateTime  @default(now())
+
+  @@index([emailNormalizado, proposito, consumidoEn])
+  @@index([expiraEn])
+}
+
+// ─────────────────────── Webmasters y su atribución ───────────────────────
+
+model Webmaster {
+  id String @id @default(cuid())
+
+  /// Candado global de atribución: un email no puede pertenecer a dos agentes.
+  emailNormalizado String  @unique
+  emailOriginal    String
+  uidSophon        String? @unique
+
+  agenteId    String?
+  agente      Agente?          @relation(fields: [agenteId], references: [id], onDelete: SetNull)
+  origen      OrigenAtribucion @default(HUERFANO)
+  atribuidoEn DateTime?
+
+  /// Frontera del devengo prospectivo: no se paga nada anterior a esta fecha.
+  /// Sin esto, asignar un webmaster con historia haría cobrar al agente lo ajeno.
+  devengaDesde DateTime?
+
+  estadoSophon        EstadoSophon @default(DESCONOCIDO)
+  vistoPorUltimaVezEn DateTime?
+  desaparecidoEn      DateTime?
+
+  /// Materializado desde la respuesta de setmembership: no hay endpoint que lo consulte.
+  proVigenteHasta DateTime?
+  proPlanActual   String?
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  filasDiarias  FilaDiariaSophon[]
+  asientos      AsientoComision[]
+  concesiones   ConcesionPro[]
+  vinculaciones IntentoVinculacion[]
+
+  @@index([agenteId, estadoSophon])
+  @@index([proVigenteHasta])
+}
+
+/// Bitácora de cada llamada a bind_sub_aff. Es la prueba documental de la atribución.
+model IntentoVinculacion {
+  id               String @id @default(cuid())
+  emailNormalizado String
+
+  agenteId String
+  agente   Agente @relation(fields: [agenteId], references: [id])
+
+  webmasterId String?
+  webmaster   Webmaster? @relation(fields: [webmasterId], references: [id])
+
+  exito           Boolean   @default(false)
+  codigoRespuesta Int?
+  mensaje         String?
+  traceId         String?
+  creadoEn        DateTime  @default(now())
+  resueltoEn      DateTime?
+
+  @@index([emailNormalizado, creadoEn])
+  @@index([agenteId])
+}
+
+// ────────────────────── El hecho contable que da Sophon ──────────────────────
+
+/// Una fila de `cpacps/detail/register` agrupada por webmaster y día.
+///
+/// La clave natural (webmaster, fecha) hace que re-sincronizar sea un upsert
+/// idempotente: por muchas veces que corra el barrido, no se duplica nada.
+model FilaDiariaSophon {
+  id String @id @default(cuid())
+
+  webmasterId String
+  webmaster   Webmaster @relation(fields: [webmasterId], references: [id], onDelete: Cascade)
+  fecha       DateTime  @db.Date
+
+  countRegister   Int
+  countT1Register Int
+  countT2Register Int
+  countT3Register Int
+  countPayingUsers Int
+
+  /// Importe pagado por los usuarios, en micros.
+  paymentAmountMicros BigInt
+
+  /// `myEarning` con affiliateLevel=1: ganancia TOTAL del registro.
+  gananciaTotalMicros BigInt
+
+  /// `myEarning` con affiliateLevel=2: ganancia del WEBMASTER.
+  gananciaWebmasterMicros BigInt
+
+  /// Diferencia de las dos anteriores: lo que entra al superadmin. Es privado.
+  gananciaSuperadminMicros BigInt
+
+  /// Un día sigue abierto mientras Sophon pueda revisarlo.
+  cerrado      Boolean  @default(false)
+  primeraVezEn DateTime @default(now())
+  ultimaVezEn  DateTime @updatedAt
+
+  asientos AsientoComision[]
+
+  @@unique([webmasterId, fecha])
+  @@index([fecha])
+  @@index([cerrado, fecha])
+}
+
+// ───────────────────────────────── El ledger ─────────────────────────────────
+
+/// Tarifa vigente en un intervalo. Cada asiento apunta a la suya, de modo que
+/// cambiar las comisiones nunca reescribe el histórico.
+model TarifaVersion {
+  id String @id @default(cuid())
+
+  cpaPorRegistroMicros BigInt
+  cpsBps               Int
+  /// Nivel de partner de Sophon vigente cuando se creó, solo informativo.
+  partnerLevel         Int?
+
+  validaDesde DateTime  @default(now())
+  validaHasta DateTime?
+  creadoPorId String?
+  nota        String?
+
+  asientos AsientoComision[]
+
+  @@index([validaDesde, validaHasta])
+}
+
+/// Libro mayor. Append-only: nada se actualiza salvo el paso de PROVISIONAL a
+/// CONSOLIDADO. Cualquier corrección entra como asiento nuevo de signo contrario.
+model AsientoComision {
+  id String @id @default(cuid())
+
+  agenteId String
+  agente   Agente @relation(fields: [agenteId], references: [id])
+
+  webmasterId String?
+  webmaster   Webmaster? @relation(fields: [webmasterId], references: [id])
+
+  filaId String?
+  fila   FilaDiariaSophon? @relation(fields: [filaId], references: [id])
+
+  tipo   TipoAsiento
+  estado EstadoAsiento @default(PROVISIONAL)
+
+  /// Importe devengado por el agente, en micros. Negativo en reversos y retiros.
+  importeMicros BigInt
+
+  /// Base sobre la que se calculó, para poder auditar el asiento sin recalcular.
+  baseRegistros Int?
+  baseMicros    BigInt?
+
+  tarifaId String?
+  tarifa   TarifaVersion? @relation(fields: [tarifaId], references: [id])
+
+  /// Fecha del hecho económico. Un reverso lleva la fecha del ajuste, no la del original.
+  fechaDevengo DateTime @db.Date
+
+  /// Idempotencia: el motor construye una clave estable por (fila, tipo, versión)
+  /// y la base de datos impide que un segundo barrido escriba dos veces lo mismo.
+  claveIdempotencia String @unique
+
+  retiroId String?
+  retiro   SolicitudRetiro? @relation(fields: [retiroId], references: [id])
+
+  creadoEn DateTime @default(now())
+  nota     String?
+
+  @@index([agenteId, fechaDevengo])
+  @@index([agenteId, estado])
+  @@index([fechaDevengo])
+}
+
+// ──────────────────────────── Concesiones y retiros ────────────────────────────
+
+model ConcesionPro {
+  id String @id @default(cuid())
+
+  agenteId String
+  agente   Agente @relation(fields: [agenteId], references: [id])
+
+  webmasterId String
+  webmaster   Webmaster @relation(fields: [webmasterId], references: [id])
+
+  codigoMembresia   String
+  duracionSegundos  Int             @default(0)
+  estado            EstadoConcesion @default(RESERVADA)
+
+  /// Única fuente de la caducidad: la respuesta de setmembership.
+  vigenteHasta DateTime?
+  uidSophon    String?
+
+  /// Mes al que se imputa el cupo, en formato YYYY-MM.
+  periodoCupo String
+
+  /// Impide que un doble toque gaste dos veces el cupo.
+  claveIdempotencia String @unique
+
+  traceId  String?
+  mensaje  String?
+  creadoEn DateTime @default(now())
+
+  @@index([agenteId, periodoCupo])
+  @@index([webmasterId])
+}
+
+model SolicitudRetiro {
+  id String @id @default(cuid())
+
+  agenteId String
+  agente   Agente @relation(fields: [agenteId], references: [id])
+
+  importeMicros BigInt
+  red           RedCripto
+  wallet        String
+
+  estado EstadoRetiro @default(SOLICITADO)
+
+  solicitadoEn DateTime  @default(now())
+  resueltoEn   DateTime?
+  resueltoPor  String?
+  motivo       String?
+  /// Hash de la transacción, cuando el superadmin la marca como pagada.
+  referenciaPago String?
+
+  claveIdempotencia String @unique
+
+  asientos AsientoComision[]
+
+  @@index([agenteId, estado])
+  @@index([estado, solicitadoEn])
+}
+
+// ──────────────────────────── Operación del sistema ────────────────────────────
+
+model EjecucionSync {
+  id     String     @id @default(cuid())
+  tipo   TipoSync
+  estado EstadoSync @default(EN_CURSO)
+
+  desde DateTime?
+  hasta DateTime?
+
+  filasLeidas    Int @default(0)
+  filasEscritas  Int @default(0)
+  asientosCreados Int @default(0)
+
+  iniciadaEn  DateTime  @default(now())
+  terminadaEn DateTime?
+  error       String?
+
+  @@index([tipo, iniciadaEn])
+}
+
+/// Resultado de cuadrar nuestro ledger contra las cifras de Sophon.
+/// Un descuadre no se ignora: se registra y alerta.
+model Conciliacion {
+  id    String   @id @default(cuid())
+  fecha DateTime @default(now())
+
+  totalSophonMicros BigInt
+  totalLocalMicros  BigInt
+  descuadreMicros   BigInt
+
+  cuadra Boolean
+  detalle String?
+
+  @@index([fecha])
+}
+
+model Auditoria {
+  id String @id @default(cuid())
+
+  actorTipo ActorTipo
+  actorId   String?
+  accion    String
+  recurso   String?
+  detalle   Json?
+  ip        String?
+
+  creadoEn DateTime @default(now())
+
+  @@index([actorTipo, actorId, creadoEn])
+  @@index([accion, creadoEn])
+}
+
+model Configuracion {
+  clave         String   @id
+  valor         String
+  actualizadoEn DateTime @updatedAt
+}
