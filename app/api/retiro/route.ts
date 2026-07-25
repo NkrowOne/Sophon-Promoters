@@ -1,0 +1,223 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { db } from "@/lib/db";
+import { claveIdempotencia } from "@/lib/cripto";
+import { dinero, esRespuesta, exigirAgente, saldos } from "@/lib/api/agente";
+import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
+import { avisarRetiroAlSuperadmin } from "@/lib/bot/avisos";
+
+/**
+ * Solicitud de retiro.
+ *
+ * Dos defensas que no son opcionales:
+ *
+ *  1. **Una sola solicitud viva por agente.** Sin esto, la sesión persistente en
+ *     móvil y escritorio —que el producto exige— permite pulsar dos veces y
+ *     generar dos solicitudes del mismo saldo, que el superadmin aprobaría a
+ *     mano sin ver que son la misma.
+ *  2. **El importe se valida contra el saldo recalculado en el servidor**, nunca
+ *     contra lo que manda el cliente. El disponible solo cuenta días
+ *     CONSOLIDADOS: pagar sobre un día aún abierto obligaría a reclamar dinero
+ *     ya entregado si Sophon lo revisa a la baja.
+ */
+
+export const dynamic = "force-dynamic";
+
+/** Mínimo por defecto; el superadmin puede cambiarlo en configuración. */
+const MINIMO_POR_DEFECTO_MICROS = 20_000_000n; // 20,00 $
+
+const Cuerpo = z.object({
+  importe: z.string().regex(/^\d+([.,]\d{1,6})?$/, "importe no válido"),
+  red: z.enum(["TRC20", "BSC", "TON"]),
+  wallet: z.string().trim().min(20).max(120),
+  idempotencia: z.string().min(8).max(64),
+});
+
+async function minimoMicros(): Promise<bigint> {
+  const cfg = await db.configuracion.findUnique({ where: { clave: "retiro.minimoMicros" } });
+  return cfg ? BigInt(cfg.valor) : MINIMO_POR_DEFECTO_MICROS;
+}
+
+export async function GET(peticion: Request): Promise<NextResponse> {
+  const ctx = await exigirAgente(peticion);
+  if (esRespuesta(ctx)) return ctx;
+  const { agenteId } = ctx.sesion;
+
+  const [saldo, historial, minimo] = await Promise.all([
+    saldos(agenteId),
+    db.solicitudRetiro.findMany({
+      where: { agenteId },
+      orderBy: { solicitadoEn: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        importeMicros: true,
+        red: true,
+        wallet: true,
+        estado: true,
+        solicitadoEn: true,
+        resueltoEn: true,
+        motivo: true,
+        referenciaPago: true,
+      },
+    }),
+    minimoMicros(),
+  ]);
+
+  return NextResponse.json({
+    cartera: {
+      devengado: dinero(saldo.devengadoMicros),
+      disponible: dinero(saldo.disponibleMicros),
+      solicitado: dinero(saldo.solicitadoMicros),
+      pagado: dinero(saldo.pagadoMicros),
+    },
+    minimo: dinero(minimo),
+    // La wallet se muestra recortada: el agente la reconoce sin exponerla entera
+    // en una captura de pantalla que pueda compartir.
+    historial: historial.map((h) => ({
+      id: h.id,
+      importe: dinero(h.importeMicros),
+      red: h.red,
+      wallet: `${h.wallet.slice(0, 6)}…${h.wallet.slice(-4)}`,
+      estado: h.estado,
+      solicitadoEn: h.solicitadoEn.toISOString(),
+      resueltoEn: h.resueltoEn?.toISOString() ?? null,
+      motivo: h.motivo,
+      referenciaPago: h.referenciaPago,
+    })),
+  });
+}
+
+export async function POST(peticion: Request): Promise<NextResponse> {
+  const ctx = await exigirAgente(peticion);
+  if (esRespuesta(ctx)) return ctx;
+  const { agenteId, emailNormalizado, nombreVisible } = ctx.sesion;
+
+  const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
+  if (!parseado.success) {
+    return NextResponse.json(
+      { error: "Revisa el importe y la wallet." },
+      { status: 400 },
+    );
+  }
+
+  const importeMicros = microsDesdeCadena(parseado.data.importe);
+  const [saldo, minimo] = await Promise.all([saldos(agenteId), minimoMicros()]);
+
+  if (importeMicros < minimo) {
+    return NextResponse.json(
+      {
+        error: `Pides ${formatearMicros(importeMicros)} y el mínimo son ${formatearMicros(minimo)}.`,
+        apoyo: `Te faltan ${formatearMicros(minimo - importeMicros)}.`,
+      },
+      { status: 400 },
+    );
+  }
+  if (importeMicros > saldo.disponibleMicros) {
+    return NextResponse.json(
+      {
+        error: `Pides ${formatearMicros(importeMicros)} y tienes ${formatearMicros(saldo.disponibleMicros)} disponibles.`,
+        apoyo: "Lo devengado de los últimos días aún no es retirable: puede revisarse.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const clave = claveIdempotencia(agenteId, parseado.data.idempotencia);
+
+  let solicitudId: string;
+  try {
+    solicitudId = await db.$transaction(async (tx) => {
+      const repetida = await tx.solicitudRetiro.findUnique({
+        where: { claveIdempotencia: clave },
+        select: { id: true },
+      });
+      if (repetida) throw new Error(`REPETIDA:${repetida.id}`);
+
+      // Una sola viva por agente. Se comprueba dentro de la transacción para
+      // que dos peticiones simultáneas no pasen las dos.
+      const pendiente = await tx.solicitudRetiro.findFirst({
+        where: { agenteId, estado: { in: ["SOLICITADO", "APROBADO"] } },
+        select: { importeMicros: true },
+      });
+      if (pendiente) throw new Error(`PENDIENTE:${pendiente.importeMicros}`);
+
+      const creada = await tx.solicitudRetiro.create({
+        data: {
+          agenteId,
+          importeMicros,
+          red: parseado.data.red,
+          wallet: parseado.data.wallet,
+          claveIdempotencia: clave,
+        },
+        select: { id: true },
+      });
+
+      // El retiro entra en el ledger como asiento negativo: así el disponible
+      // sale de una suma y no de restar tablas distintas, que es donde suelen
+      // aparecer los descuadres.
+      await tx.asientoComision.create({
+        data: {
+          agenteId,
+          tipo: "RETIRO",
+          estado: "CONSOLIDADO",
+          importeMicros: -importeMicros,
+          fechaDevengo: new Date(),
+          claveIdempotencia: `retiro:${clave}`,
+          retiroId: creada.id,
+        },
+      });
+
+      return creada.id;
+    });
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : "";
+    if (motivo.startsWith("REPETIDA:")) {
+      return NextResponse.json({ ok: true, repetida: true, id: motivo.split(":")[1] });
+    }
+    if (motivo.startsWith("PENDIENTE:")) {
+      const importe = formatearMicros(BigInt(motivo.split(":")[1] ?? "0"));
+      return NextResponse.json(
+        {
+          error: `Ya tienes una solicitud de retiro pendiente de ${importe}.`,
+          apoyo: "Espera a que el superadmin la resuelva o cancélala.",
+        },
+        { status: 409 },
+      );
+    }
+    console.error("[retiro] solicitud fallida", e);
+    return NextResponse.json({ error: "No se ha podido registrar la solicitud." }, { status: 500 });
+  }
+
+  await db.auditoria.create({
+    data: {
+      actorTipo: "AGENTE",
+      actorId: agenteId,
+      accion: "retiro.solicitado",
+      recurso: solicitudId,
+      detalle: {
+        importe: formatearMicros(importeMicros),
+        red: parseado.data.red,
+      },
+    },
+  });
+
+  // El aviso al superadmin es la vía por la que se entera de que hay que pagar,
+  // pero no puede tumbar la solicitud: si Telegram falla, el retiro ya está
+  // registrado y visible en el panel.
+  void avisarRetiroAlSuperadmin({
+    agente: nombreVisible,
+    email: emailNormalizado,
+    importe: formatearMicros(importeMicros),
+    red: parseado.data.red,
+    wallet: parseado.data.wallet,
+    id: solicitudId,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    id: solicitudId,
+    importe: dinero(importeMicros),
+  });
+}
