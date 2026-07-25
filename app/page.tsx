@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Testigo, TestigoVacio, type DiaTestigo } from "@/components/testigo/Testigo";
 import { useTelegram } from "@/components/TelegramProvider";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
@@ -15,6 +16,9 @@ import { es } from "@/lib/i18n";
  * de ALTO en cada pantalla: cuesta ancho y devuelve alto, que es lo escaso
  * cuando el teclado y el botón principal se comen la parte de abajo. Y responde
  * "¿estoy ganando?" sin leer, desde cualquier pantalla.
+ *
+ * La jerarquía es deliberadamente plana salvo en un punto: la cifra devengada
+ * del mes. Todo lo demás es apoyo de esa cifra.
  */
 
 interface Cartera {
@@ -33,6 +37,9 @@ const DIAS_DEMO: DiaTestigo[] = [
   { fecha: "2026-07-20", importeMicros: microsDesdeCadena("8.71"), registrosT1: 3, registrosT2: 6, registrosT3: 4, activaciones: 1 },
   { fecha: "2026-07-19", importeMicros: microsDesdeCadena("6.02"), registrosT1: 2, registrosT2: 8, registrosT3: 4 },
   { fecha: "2026-07-18", importeMicros: microsDesdeCadena("4.52"), registrosT1: 2, registrosT2: 6, registrosT3: 6 },
+  { fecha: "2026-07-17", importeMicros: microsDesdeCadena("5.31"), registrosT1: 1, registrosT2: 4, registrosT3: 8 },
+  { fecha: "2026-07-16", importeMicros: microsDesdeCadena("9.14"), registrosT1: 3, registrosT2: 11, registrosT3: 3 },
+  { fecha: "2026-07-15", importeMicros: microsDesdeCadena("7.02"), registrosT1: 4, registrosT2: 7, registrosT3: 7 },
 ];
 
 const CARTERA_DEMO: Cartera = {
@@ -43,86 +50,100 @@ const CARTERA_DEMO: Cartera = {
 };
 
 export default function Inicio() {
-  const { listo } = useTelegram();
+  // Deliberadamente NO se bloquea el render esperando a Telegram. El puente solo
+  // aporta tema y háptica; si tarda o falla —WebView antiguo, script bloqueado,
+  // la app abierta fuera de Telegram— la pantalla debe seguir siendo legible y
+  // usable con los colores de respaldo. Una versión anterior mostraba
+  // «SONDEANDO…» hasta que el puente respondía y dejaba la app en blanco.
+  useTelegram();
   const dias = DIAS_DEMO;
 
-  const { totalTiers, t1, t2, t3 } = useMemo(() => {
+  const { totalTiers, t1, t2, t3, devengadoMes } = useMemo(() => {
     const t1 = dias.reduce((a, d) => a + d.registrosT1, 0);
     const t2 = dias.reduce((a, d) => a + d.registrosT2, 0);
     const t3 = dias.reduce((a, d) => a + d.registrosT3, 0);
-    return { totalTiers: t1 + t2 + t3, t1, t2, t3 };
+    return {
+      t1,
+      t2,
+      t3,
+      totalTiers: t1 + t2 + t3,
+      devengadoMes: dias.reduce((a, d) => a + d.importeMicros, 0n),
+    };
   }, [dias]);
 
-  const devengadoMes = dias.reduce((a, d) => a + d.importeMicros, 0n);
-
-  if (!listo) {
-    return <div className="p-6 text-apoyo text-texto-apoyo">Cargando…</div>;
-  }
+  const maxCartera = CARTERA_DEMO.devengadoMicros;
+  const proporcion = (m: bigint): number =>
+    maxCartera === 0n ? 0 : Number((m * 1000n) / maxCartera) / 10;
 
   return (
     <main className="relative min-h-dvh pl-testigo">
-      {/* El raíl: identidad, gráfico y estado, en la misma pieza. */}
-      <div className="fixed inset-y-0 left-0 w-testigo overflow-hidden bg-superficie">
-        {dias.length > 0 ? (
-          <Testigo dias={dias} ancho={44} alturaBanda={18} />
-        ) : (
-          <TestigoVacio ancho={44} />
-        )}
+      {/* El raíl: identidad, gráfico principal, indicador de estado y estado
+          vacío, todo en la misma pieza. */}
+      <div className="testigo-terreno fixed inset-y-0 left-0 w-testigo overflow-hidden bg-superficie">
+        {dias.length > 0 ? <Testigo dias={dias} /> : <TestigoVacio />}
       </div>
 
-      <div className="animate-emerger px-4 pb-24 pt-6">
-        <header className="mb-6">
-          <p className="text-rotulo text-texto-apoyo">{es.devengado} · JULIO</p>
-          <p className="cifra-mayor cifra mt-1 text-[2.75rem] font-[650] leading-[2.9rem]">
-            {formatearMicros(devengadoMes)}
-          </p>
-          <p className="mt-1 text-apoyo text-texto-apoyo">
-            {totalTiers} registros en los últimos {dias.length} días
-          </p>
-        </header>
+      <div className="px-4 pb-16 pt-7">
+        <Aparece orden={0}>
+          <header className="mb-8">
+            <p className="text-rotulo text-texto-apoyo">{es.devengado} · JULIO</p>
+            <div className="mt-1.5">
+              <CifraProtagonista micros={devengadoMes} />
+            </div>
+            <p className="mt-2 text-apoyo text-texto-apoyo">
+              <span className="tabular-nums">{totalTiers}</span> registros en {dias.length} días
+            </p>
+          </header>
+        </Aparece>
 
-        {/* La Cinta: una sola marca de 10 px responde de dónde viene el volumen.
-            Sustituye a tres donuts y ocupa una décima parte. */}
-        <section aria-label="Reparto por tier" className="mb-7">
-          <div className="flex h-2.5 overflow-hidden rounded-full bg-superficie-alta">
-            <div className="bg-t1" style={{ width: `${(t1 / totalTiers) * 100}%` }} />
-            <div className="bg-t2" style={{ width: `${(t2 / totalTiers) * 100}%` }} />
-            <div className="bg-t3" style={{ width: `${(t3 / totalTiers) * 100}%` }} />
-          </div>
-          <div className="mt-2 flex gap-4 text-apoyo text-texto-apoyo">
-            <Leyenda color="bg-t1" etiqueta="T1" valor={t1} />
-            <Leyenda color="bg-t2" etiqueta="T2" valor={t2} />
-            <Leyenda color="bg-t3" etiqueta="T3" valor={t3} />
-          </div>
-        </section>
+        {/* La Cinta: una sola marca de 10 px responde «¿de dónde viene el
+            volumen?» en 200 ms. Sustituye a tres donuts y ocupa una décima parte. */}
+        <Aparece orden={1}>
+          <section aria-label="Reparto de registros por tier" className="mb-8">
+            <div className="flex h-2.5 overflow-hidden rounded-full bg-superficie-alta">
+              <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
+              <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
+              <BarraCreciente porcentaje={(t3 / totalTiers) * 100} className="bg-t3" retardoMs={120} />
+            </div>
+            <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
+              <Leyenda color="bg-t1" etiqueta="T1" valor={t1} />
+              <Leyenda color="bg-t2" etiqueta="T2" valor={t2} />
+              <Leyenda color="bg-t3" etiqueta="T3" valor={t3} />
+            </div>
+          </section>
+        </Aparece>
 
-        {/* La Escalera: el dinero no es un saldo, es un flujo con estados.
-            Cuatro tarjetas KPI perderían justo esa secuencia. */}
-        <section aria-label="Estado de tu dinero" className="mb-7">
-          <p className="text-rotulo mb-3 text-texto-apoyo">{es.cartera.toUpperCase()}</p>
-          <div className="space-y-2 rounded-pieza bg-superficie p-3">
-            <Peldano etiqueta={es.devengado} micros={CARTERA_DEMO.devengadoMicros} proporcion={1} destacado />
-            <Peldano etiqueta={es.disponible} micros={CARTERA_DEMO.disponibleMicros} proporcion={0.75} />
-            <Peldano etiqueta={es.solicitado} micros={CARTERA_DEMO.solicitadoMicros} proporcion={0.14} />
-            <Peldano etiqueta={es.pagado} micros={CARTERA_DEMO.pagadoMicros} proporcion={0.11} />
-          </div>
-          <p className="mt-2 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
-        </section>
+        {/* La Escalera: el dinero no es un saldo, es un flujo con estados
+            (devengado → disponible → solicitado → pagado). Cuatro tarjetas KPI
+            perderían justo esa secuencia, que es lo único que el agente
+            necesita entender para saber cuándo cobra. */}
+        <Aparece orden={2}>
+          <section aria-label="Estado de tu dinero" className="mb-8">
+            <p className="text-rotulo mb-3 text-texto-apoyo">{es.cartera.toUpperCase()}</p>
+            <div className="space-y-2.5 rounded-pieza bg-superficie p-3.5">
+              <Peldano etiqueta={es.devengado} micros={CARTERA_DEMO.devengadoMicros} proporcion={proporcion(CARTERA_DEMO.devengadoMicros)} destacado />
+              <Peldano etiqueta={es.disponible} micros={CARTERA_DEMO.disponibleMicros} proporcion={proporcion(CARTERA_DEMO.disponibleMicros)} retardo={70} />
+              <Peldano etiqueta={es.solicitado} micros={CARTERA_DEMO.solicitadoMicros} proporcion={proporcion(CARTERA_DEMO.solicitadoMicros)} retardo={140} />
+              <Peldano etiqueta={es.pagado} micros={CARTERA_DEMO.pagadoMicros} proporcion={proporcion(CARTERA_DEMO.pagadoMicros)} retardo={210} />
+            </div>
+            <p className="mt-2.5 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
+          </section>
+        </Aparece>
 
-        <section className="flex gap-2">
-          <a
-            href="/activar"
-            className="flex-1 rounded-pieza border border-borde px-4 py-3 text-center text-cuerpo font-medium transition-colors duration-150 hover:bg-superficie"
-          >
-            {es.activarWebmaster}
-          </a>
-          <a
-            href="/red"
-            className="flex-1 rounded-pieza border border-borde px-4 py-3 text-center text-cuerpo font-medium transition-colors duration-150 hover:bg-superficie"
-          >
-            {es.red}
-          </a>
-        </section>
+        {/* La acción principal va sola y a todo el ancho: es la única cosa que
+            el agente viene a hacer. Las tres secundarias caben en una fila de
+            iguales, en vez de una retícula de dos donde una celda envolvía a dos
+            líneas y descuadraba la altura de toda la fila. */}
+        <Aparece orden={3}>
+          <nav aria-label="Acciones" className="space-y-2.5">
+            <Accion href="/activar" etiqueta={es.activarWebmaster} principal />
+            <div className="grid grid-cols-3 gap-2.5">
+              <Accion href="/red" etiqueta={es.red} />
+              <Accion href="/historico" etiqueta={es.historico} />
+              <Accion href="/cartera" etiqueta={es.cartera} />
+            </div>
+          </nav>
+        </Aparece>
       </div>
     </main>
   );
@@ -137,28 +158,68 @@ function Leyenda({ color, etiqueta, valor }: { color: string; etiqueta: string; 
   );
 }
 
-/** Un peldaño de la Escalera: longitud = importe, posición = estado del dinero. */
+/**
+ * Un peldaño de la Escalera: longitud = importe, posición = estado del dinero.
+ *
+ * El rótulo va en su propia línea con el importe a la derecha, y la barra debajo.
+ * La versión anterior los ponía en una sola fila con el rótulo de ancho fijo, y
+ * el `letter-spacing` de los rótulos desbordaba sobre la barra: «DEVENGADO» y
+ * «SOLICITADO» aparecían cortados. Dos líneas cuestan altura pero no dependen
+ * de que ninguna palabra quepa en una medida calculada a ojo.
+ */
 function Peldano({
   etiqueta,
   micros,
   proporcion,
   destacado = false,
+  retardo = 0,
 }: {
   etiqueta: string;
   micros: bigint;
   proporcion: number;
   destacado?: boolean;
+  retardo?: number;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-rotulo w-24 shrink-0 text-texto-apoyo">{etiqueta}</span>
-      <span className="h-5 flex-1 overflow-hidden rounded-sm bg-superficie-alta">
-        <span
-          className={`block h-full ${destacado ? "bg-fosforo" : "bg-t2"}`}
-          style={{ width: `${Math.max(proporcion * 100, 2)}%` }}
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+        <span className="text-rotulo text-texto-apoyo">{etiqueta}</span>
+        <span className={`cifra text-cuerpo ${destacado ? "font-semibold" : ""}`}>
+          {formatearMicros(micros)}
+        </span>
+      </div>
+      <span className="block h-2 overflow-hidden rounded-full bg-superficie-alta">
+        <BarraCreciente
+          porcentaje={Math.max(proporcion, 1.5)}
+          className={destacado ? "bg-filon" : "bg-t2"}
+          retardoMs={retardo}
         />
       </span>
-      <span className="cifra w-24 shrink-0 text-right text-cuerpo">{formatearMicros(micros)}</span>
     </div>
+  );
+}
+
+function Accion({
+  href,
+  etiqueta,
+  principal = false,
+}: {
+  href: string;
+  etiqueta: string;
+  principal?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={[
+        "flex items-center justify-center rounded-pieza px-3 py-3.5 text-center",
+        "transition-transform duration-150 ease-sonda active:scale-[0.98]",
+        principal
+          ? "bg-filon text-cuerpo font-semibold text-white"
+          : "border border-borde text-apoyo font-medium hover:bg-superficie",
+      ].join(" ")}
+    >
+      {etiqueta}
+    </a>
   );
 }

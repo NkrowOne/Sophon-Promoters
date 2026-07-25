@@ -58,7 +58,7 @@ body {
 
 /* Foco visible de verdad: es el suelo de calidad, no un extra. */
 :focus-visible {
-  outline: 2px solid theme("colors.fosforo");
+  outline: 2px solid theme("colors.filon");
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -68,6 +68,22 @@ body {
 .testigo-rail {
   pointer-events: none;
   user-select: none;
+}
+
+/* Terreno sin perforar. Por debajo del último día la columna continúa con la
+   retícula de profundidad: sin esto el raíl se cortaba a media altura y dejaba
+   un bloque de color muerto que no significaba nada. */
+.testigo-terreno {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--borde) 0,
+    var(--borde) 1px,
+    transparent 1px,
+    transparent 24px
+  );
+  background-size: 33% 24px;
+  background-repeat: repeat-y;
+  opacity: 0.5;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -81,7 +97,7 @@ body {
   /* Sobrevive la opacidad; ningún transform ni altura animada. */
   .cabeza-sonda {
     animation: none !important;
-    outline: 2px solid theme("colors.fosforo");
+    outline: 2px solid theme("colors.filon");
     outline-offset: 1px;
   }
 }

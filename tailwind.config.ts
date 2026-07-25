@@ -30,17 +30,24 @@ const config: Config = {
         "superficie-alta": "var(--superficie-alta)",
         borde: "var(--borde)",
 
-        // Marca: la cabeza de sonda. Naranja de baliza topográfica.
-        fosforo: "#FF5C38",
-        "fosforo-suave": "#FF8A6B",
+        // Marca: el Filón, la veta valiosa. Es el índigo del T1 llevado a su
+        // expresión más brillante, no un acento decorativo traído de fuera.
+        //
+        // Se descartó un naranja de baliza: sobre el tema oscuro de Telegram
+        // reproducía el cliché de «fondo casi negro con un único acento cálido»,
+        // que aparece en cualquier interfaz generada sin mirar el tema.
+        filon: "#5B4BE8",
+        "filon-suave": "#8B80F0",
 
-        // Estratos por tier. Orden fijo T1 → T2 → T3, siempre en ese sentido.
-        t1: "#3A48B0",
-        t2: "#0E8F7E",
-        t3: "#C9862B",
+        // Estratos por tier. Orden fijo T1 → T2 → T3, siempre en ese sentido:
+        // la posición codifica el tier igual que el color, así que la lectura
+        // sobrevive a cualquier daltonismo.
+        t1: "#3B4CC0", // índigo profundo: lo más valioso está más hondo
+        t2: "#12796B", // verde mineral
+        t3: "#A8752A", // ocre sedimentario
 
-        verdin: "#2F9E5B",
-        alerta: "#D6453C",
+        verdin: "#1F8F55",
+        oxido: "#C6382F",
       },
       fontFamily: {
         // Una sola familia de texto y una mono para cifras: tres familias no
@@ -48,13 +55,23 @@ const config: Config = {
         sans: ["var(--fuente-texto)", "system-ui", "-apple-system", "sans-serif"],
         mono: ["var(--fuente-cifras)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
+      /* La escala es el punto de vista tipográfico: los rótulos van diminutos y
+         muy abiertos, como la anotación de un registro de sondeo, y las cifras
+         van enormes y muy cerradas. El contraste entre ambos —no una fuente
+         llamativa— es lo que da carácter, y cuesta cero bytes de red. */
       fontSize: {
-        rotulo: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em", fontWeight: "600" }],
-        apoyo: ["0.8125rem", { lineHeight: "1.15rem" }],
-        cuerpo: ["0.9375rem", { lineHeight: "1.4rem" }],
-        titulo: ["1.25rem", { lineHeight: "1.6rem", fontWeight: "600" }],
-        cifra: ["1.75rem", { lineHeight: "2rem", fontWeight: "600" }],
-        "cifra-mayor": ["2.75rem", { lineHeight: "2.9rem", fontWeight: "650" }],
+        rotulo: [
+          "0.6875rem",
+          { lineHeight: "1rem", letterSpacing: "0.14em", fontWeight: "600" },
+        ],
+        apoyo: ["0.8125rem", { lineHeight: "1.2rem" }],
+        cuerpo: ["0.9375rem", { lineHeight: "1.45rem" }],
+        titulo: ["1.3125rem", { lineHeight: "1.65rem", letterSpacing: "-0.015em", fontWeight: "600" }],
+        cifra: ["1.75rem", { lineHeight: "2rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+        "cifra-mayor": [
+          "3rem",
+          { lineHeight: "3rem", letterSpacing: "-0.035em", fontWeight: "620" },
+        ],
       },
       spacing: {
         // Anchos del Testigo: colapsa en las pantallas de tarea para devolver ancho.
@@ -68,10 +85,19 @@ const config: Config = {
         sonda: "cubic-bezier(.2,.8,.2,1)",
       },
       keyframes: {
-        // Solo late la banda de hoy: distingue devengado de consolidado.
-        latido: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.55" },
+        /* La carga de la app ES el depósito de los estratos: cada banda crece
+           desde cero, escalonada. Es el único momento con permiso para llamar
+           la atención, y la animación cuenta la metáfora en vez de decorarla. */
+        depositar: {
+          from: { transform: "scaleX(0)", opacity: "0" },
+          to: { transform: "scaleX(1)", opacity: "1" },
+        },
+        /* Barrido luminoso sobre la banda de hoy: dice «esto aún se está
+           formando» sin el parpadeo de un latido, que en una app de dinero
+           lee como error. */
+        veta: {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(400%)" },
         },
         emerger: {
           from: { opacity: "0", transform: "translateY(8px)" },
@@ -79,7 +105,8 @@ const config: Config = {
         },
       },
       animation: {
-        latido: "latido 2400ms ease-in-out infinite",
+        depositar: "depositar 420ms cubic-bezier(.2,.8,.2,1) both",
+        veta: "veta 3200ms cubic-bezier(.4,0,.6,1) infinite",
         // Vertical, nunca horizontal: el gesto de retroceso de Telegram es horizontal.
         emerger: "emerger 180ms ease-out both",
       },
