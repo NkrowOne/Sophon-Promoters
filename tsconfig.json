@@ -9,6 +9,9 @@
     "noImplicitOverride": true,
     "exactOptionalPropertyTypes": false,
     "noEmit": true,
+    // Los tests corren con el type-stripping nativo de Node, que exige la
+    // extensión .ts explícita en los imports. Sin esto, tsc los rechaza.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
