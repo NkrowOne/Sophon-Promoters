@@ -18,13 +18,18 @@ export interface RespuestaSophon<T> {
   data: T | null;
 }
 
-/** Nivel de agregación. Ver `docs/API-SOPHON.md`: L1 = total, L2 = webmaster. */
-export enum NivelAfiliado {
+/**
+ * Nivel de agregación de `myEarning`, resuelto empíricamente sobre datos reales:
+ * con `1` Sophon devuelve la ganancia TOTAL (CPS al 50 %) y con `2` la del
+ * WEBMASTER (CPS al 35 %). La diferencia entre ambas es lo que entra al superadmin.
+ */
+export const NivelAfiliado = {
   /** Ganancia TOTAL del registro (incluye la parte del webmaster y la del superadmin). */
-  Total = 1,
+  Total: 1,
   /** Ganancia del WEBMASTER únicamente. */
-  Webmaster = 2,
-}
+  Webmaster: 2,
+} as const;
+export type NivelAfiliado = (typeof NivelAfiliado)[keyof typeof NivelAfiliado];
 
 /** Códigos de membresía. Usan PUNTO, no guion bajo (commit 825d4c1 del repo oficial). */
 export const CODIGOS_MEMBRESIA = ["vip.day", "vip.week", "vip.month", "vip.year"] as const;
@@ -120,11 +125,12 @@ export interface Tesoreria {
   todayRevenue?: string;
 }
 
-export enum EstadoRetiro {
-  EnProceso = 1,
-  Completado = 2,
-  Fallido = 3,
-}
+export const EstadoRetiro = {
+  EnProceso: 1,
+  Completado: 2,
+  Fallido: 3,
+} as const;
+export type EstadoRetiro = (typeof EstadoRetiro)[keyof typeof EstadoRetiro];
 
 export interface RetiroSophon {
   requestedAt: string;
