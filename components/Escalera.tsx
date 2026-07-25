@@ -28,32 +28,49 @@ export interface Cartera {
   pagado: Saldo;
 }
 
-export function Escalera({ cartera, titulo }: { cartera: Cartera; titulo?: string }) {
+/** Los cuatro rótulos y el nombre accesible, ya traducidos por quien la usa. */
+export interface EtiquetasEscalera {
+  estadoDeTuDinero: string;
+  devengado: string;
+  disponible: string;
+  solicitado: string;
+  pagado: string;
+}
+
+export function Escalera({
+  cartera,
+  titulo,
+  etiquetas,
+}: {
+  cartera: Cartera;
+  titulo?: string;
+  etiquetas: EtiquetasEscalera;
+}) {
   const maximo = BigInt(cartera.devengado.micros);
   const proporcion = (m: string): number =>
     maximo === 0n ? 0 : Number((BigInt(m) * 1000n) / maximo) / 10;
 
   return (
-    <section aria-label="Estado de tu dinero">
+    <section aria-label={etiquetas.estadoDeTuDinero}>
       {titulo && (
         <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">{titulo}</p>
       )}
       <div className="divide-y divide-borde">
-        <Peldano etiqueta="DEVENGADO" saldo={cartera.devengado} proporcion={100} destacado />
+        <Peldano etiqueta={etiquetas.devengado} saldo={cartera.devengado} proporcion={100} destacado />
         <Peldano
-          etiqueta="DISPONIBLE"
+          etiqueta={etiquetas.disponible}
           saldo={cartera.disponible}
           proporcion={proporcion(cartera.disponible.micros)}
           retardo={70}
         />
         <Peldano
-          etiqueta="SOLICITADO"
+          etiqueta={etiquetas.solicitado}
           saldo={cartera.solicitado}
           proporcion={proporcion(cartera.solicitado.micros)}
           retardo={140}
         />
         <Peldano
-          etiqueta="PAGADO"
+          etiqueta={etiquetas.pagado}
           saldo={cartera.pagado}
           proporcion={proporcion(cartera.pagado.micros)}
           retardo={210}

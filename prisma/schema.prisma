@@ -43,8 +43,13 @@ enum PropositoOtp {
   RECUPERAR_ACCESO
 }
 
+enum MotivoConcesion {
+  ALTA // acompaña al alta de un webmaster nuevo
+  RENOVACION // el PRO se estaba apagando y se ha vuelto a encender
+}
+
 enum EstadoConcesion {
-  RESERVADA // cupo consumido, aún sin confirmación de Sophon
+  RESERVADA // fila escrita antes de llamar a Sophon, aún sin confirmar
   CONFIRMADA
   FALLIDA
 }
@@ -118,10 +123,14 @@ model Agente {
   cpaPorRegistroMicros BigInt?
   cpsBps               Int?
 
-  // Permisos sobre la concesión de PRO, que es el vector de fraude real.
-  puedeConcederPro  Boolean  @default(false)
-  planesAutorizados String[] @default([])
-  cupoProMensual    Int      @default(0)
+  /// Dar de alta un webmaster CONCEDE un año de PRO a costa del superadmin, así
+  /// que el permiso y el tope son sobre las altas, no sobre el PRO: no existe
+  /// un alta sin PRO ni un PRO sin alta que separar.
+  puedeActivarWebmasters Boolean @default(true)
+
+  /// Altas de webmaster permitidas al mes. 0 = bloqueado sin suspender la
+  /// cuenta, que es el freno que se quiere poder echar sin cerrarle la sesión.
+  cupoAltasMensual Int @default(20)
 
   /// Invalidación instantánea de todas las sesiones: basta con incrementarlo.
   epocaSesion Int @default(0)
@@ -255,9 +264,9 @@ model Webmaster {
   vistoPorUltimaVezEn DateTime?
   desaparecidoEn      DateTime?
 
-  /// Materializado desde la respuesta de setmembership: no hay endpoint que lo consulte.
+  /// Materializado desde la respuesta de setmembership: no hay endpoint que lo
+  /// consulte. Es la ÚNICA fuente de la caducidad del PRO.
   proVigenteHasta DateTime?
-  proPlanActual   String?
 
   creadoEn      DateTime @default(now())
   actualizadoEn DateTime @updatedAt
@@ -290,7 +299,11 @@ model IntentoVinculacion {
   resueltoEn      DateTime?
 
   @@index([emailNormalizado, creadoEn])
-  @@index([agenteId])
+  /// El tope mensual de altas se cuenta AQUÍ y no sobre `Webmaster`: al
+  /// deshacer un alta rechazada por Sophon se pone `atribuidoEn` a null, así
+  /// que contar sobre el webmaster permitiría dar de alta y desvincular en
+  /// bucle sin gastar cupo. Un intento con éxito no se borra ni se edita.
+  @@index([agenteId, exito, creadoEn])
 }
 
 // ────────────────────── El hecho contable que da Sophon ──────────────────────
@@ -414,25 +427,33 @@ model ConcesionPro {
   webmasterId String
   webmaster   Webmaster @relation(fields: [webmasterId], references: [id])
 
-  codigoMembresia   String
-  duracionSegundos  Int             @default(0)
-  estado            EstadoConcesion @default(RESERVADA)
+  /// Siempre `vip.year`. Se guarda lo que se mandó, no lo que se supone.
+  codigoMembresia String
+
+  /// Segundos pedidos a Sophon. NO es decorativo: el código de membresía no
+  /// decide el plazo —`duration: 0` da 30 días con cualquier código—, así que
+  /// esta columna es el único registro de qué se concedió de verdad.
+  duracionSegundos Int
+
+  /// Por qué se concedió. El alta y la renovación son el mismo acto técnico y
+  /// dos hechos comerciales distintos, y separarlos aquí evita tener que
+  /// deducirlo después comparando fechas.
+  motivo MotivoConcesion
+
+  estado EstadoConcesion @default(RESERVADA)
 
   /// Única fuente de la caducidad: la respuesta de setmembership.
   vigenteHasta DateTime?
   uidSophon    String?
 
-  /// Mes al que se imputa el cupo, en formato YYYY-MM.
-  periodoCupo String
-
-  /// Impide que un doble toque gaste dos veces el cupo.
+  /// Impide que un doble toque conceda dos años en vez de uno.
   claveIdempotencia String @unique
 
   traceId  String?
   mensaje  String?
   creadoEn DateTime @default(now())
 
-  @@index([agenteId, periodoCupo])
+  @@index([agenteId, creadoEn])
   @@index([webmasterId])
 }
 

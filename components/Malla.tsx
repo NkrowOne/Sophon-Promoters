@@ -19,6 +19,8 @@
 
 import { useMemo } from "react";
 
+import { useCadenas } from "./TelegramProvider";
+
 export interface DiaWebmaster {
   fecha: string;
   registros: number;
@@ -44,6 +46,9 @@ const ALTO_BARRAS = 34;
 
 /** Días sin actividad a partir de los cuales la tesela se marca como apagada. */
 export const DIAS_APAGADO = 4;
+
+/** Días de PRO por debajo de los cuales la tesela lo avisa. */
+export const DIAS_AVISO_PRO = 30;
 
 export function Malla({
   webmasters,
@@ -87,9 +92,12 @@ function Tesela({
   dias: number;
   onAbrir?: (id: string) => void;
 }) {
+  const t = useCadenas();
   const apagado = w.diasSinActividad === null || w.diasSinActividad >= DIAS_APAGADO;
   const problema = w.estado !== "ACTIVO";
-  const avisoPro = w.diasHastaCaducidad !== null && w.diasHastaCaducidad <= 7;
+  // Mismo umbral que La Mecha, y por la misma razón: con un PRO de un año,
+  // avisar con una semana no deja margen para hablar con nadie.
+  const avisoPro = w.diasHastaCaducidad !== null && w.diasHastaCaducidad <= DIAS_AVISO_PRO;
 
   // Solo se escribe lo que exige una decisión, y por orden de urgencia: una
   // cuenta bloqueada importa más que un PRO a punto de vencer, y este más que
@@ -97,21 +105,21 @@ function Tesela({
   // columna ya lo dice.
   const etiqueta = problema
     ? w.estado === "BLOQUEADO"
-      ? "BLOQUEADO"
+      ? t.bloqueado
       : w.estado === "PENDIENTE_BORRADO"
-        ? "SE VA A BORRAR"
-        : "DESAPARECIDO"
+        ? t.seVaABorrar
+        : t.desaparecido
     : avisoPro
       ? w.diasHastaCaducidad! <= 0
-        ? "PRO CADUCADO"
+        ? t.proCaducado
         : // Cabe en una tesela de media pantalla. «PRO VENCE EN 5 D» se truncaba
           // a «PRO VENCE EN …», que es peor que no decir nada: ocupa sitio y no
           // informa del plazo, que es justo el dato accionable.
-          `PRO VENCE ${w.diasHastaCaducidad} D`
+          t.proVenceEn(w.diasHastaCaducidad!)
       : apagado
         ? w.diasSinActividad === null
-          ? "SIN ACTIVIDAD"
-          : `${w.diasSinActividad} DÍAS PARADO`
+          ? t.sinActividad
+          : t.diasParado(w.diasSinActividad)
         : "";
 
   // La serie llega ordenada de reciente a antigua; se pinta al revés para que
@@ -125,7 +133,7 @@ function Tesela({
         type="button"
         onClick={() => onAbrir?.(w.id)}
         className={[
-          "w-full rounded-pieza border p-2.5 text-left",
+          "w-full rounded-pieza border p-2.5 text-start",
           "transition-transform duration-150 ease-sonda active:scale-[0.99]",
           // El estado se dibuja en el MARCO, no con un icono al lado: así el
           // problema se ve a la misma distancia que el volumen.

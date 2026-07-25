@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { Aparece } from "@/components/Animacion";
 import { Aviso } from "@/components/Pantalla";
-import { BotonPrincipalAccion, useTelegram } from "@/components/TelegramProvider";
+import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { TestigoVacio } from "@/components/testigo/Testigo";
 import { api, ErrorApi } from "@/lib/api/cliente";
-import { es } from "@/lib/i18n";
 
 /**
  * Alta del agente: código → correo → OTP.
@@ -30,6 +29,7 @@ const SEGUNDOS_REENVIO = 60;
 export default function Alta() {
   const router = useRouter();
   const { haptica } = useTelegram();
+  const t = useCadenas();
 
   const [paso, setPaso] = useState<"credenciales" | "otp">("credenciales");
   const [codigo, setCodigo] = useState("");
@@ -67,7 +67,7 @@ export default function Alta() {
       setTimeout(() => campoOtp.current?.focus(), 60);
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null));
+      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
     } finally {
       setEnviando(false);
     }
@@ -85,7 +85,7 @@ export default function Alta() {
       router.replace("/");
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null));
+      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
       setOtp("");
     } finally {
       setEnviando(false);
@@ -93,7 +93,7 @@ export default function Alta() {
   }, [otp, codigo, email, enviando, haptica, router]);
 
   return (
-    <main className="relative min-h-dvh pl-testigo">
+    <main className="relative min-h-dvh ps-testigo">
       {/* Aún no has perforado: el raíl vacío es el estado inicial del Testigo,
           no un adorno. Cuando el agente vuelva mañana estará empezando a
           llenarse con lo mismo que hoy está hueco.
@@ -101,7 +101,7 @@ export default function Alta() {
           Sin la clase `testigo-terreno`: esa trama y las marcas del propio
           TestigoVacio son la misma retícula dibujada dos veces, y superpuestas
           se veían como un rayado sucio en lugar de como profundidad. */}
-      <div className="fixed inset-y-0 left-0 w-testigo overflow-hidden bg-superficie">
+      <div className="fixed inset-y-0 start-0 w-testigo overflow-hidden bg-superficie">
         <TestigoVacio alto={900} />
       </div>
 
@@ -109,16 +109,14 @@ export default function Alta() {
         {paso === "credenciales" ? (
           <>
             <Aparece orden={0}>
-              <h1 className="text-titulo">Vincula tu cuenta</h1>
-              <p className="mt-1.5 text-apoyo text-texto-apoyo">
-                Solo se hace una vez. Después entras siempre desde este Telegram.
-              </p>
+              <h1 className="text-titulo">{t.vinculaTuCuenta}</h1>
+              <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.soloSeHaceUnaVez}</p>
             </Aparece>
 
             <Aparece orden={1}>
               <div className="mt-8">
                 <label htmlFor="codigo" className="text-rotulo block text-texto-apoyo">
-                  CÓDIGO DE ACTIVACIÓN
+                  {t.codigoDeActivacion}
                 </label>
                 <input
                   id="codigo"
@@ -134,14 +132,14 @@ export default function Alta() {
                     una línea que dice «escribe el código de activación» ocupa
                     sitio para no añadir nada. Solo se dice lo que el rótulo no
                     puede: de dónde sale. */}
-                <p className="mt-2 text-apoyo text-texto-apoyo">Te lo da el superadmin.</p>
+                <p className="mt-2 text-apoyo text-texto-apoyo">{t.teLoDaElSuperadmin}</p>
               </div>
             </Aparece>
 
             <Aparece orden={2}>
               <div className="mt-6">
                 <label htmlFor="email" className="text-rotulo block text-texto-apoyo">
-                  TU CORREO
+                  {t.tuCorreo}
                 </label>
                 <input
                   id="email"
@@ -155,10 +153,7 @@ export default function Alta() {
                   placeholder="correo@ejemplo.com"
                   className="mt-2 w-full rounded-pieza border border-borde bg-superficie px-3.5 py-3.5 text-cuerpo outline-none focus:border-tinta"
                 />
-                <p className="mt-2 text-apoyo text-texto-apoyo">
-                  Será tu identificador para entrar. Te mandaremos ahí un código de 6
-                  dígitos.
-                </p>
+                <p className="mt-2 text-apoyo text-texto-apoyo">{t.seraTuIdentificador}</p>
               </div>
             </Aparece>
 
@@ -169,7 +164,7 @@ export default function Alta() {
             )}
 
             <BotonPrincipalAccion
-              texto="ENVIARME EL CÓDIGO"
+              texto={t.enviarmeElCodigo}
               onClick={pedirOtp}
               activo={credencialesListas}
               cargando={enviando}
@@ -177,12 +172,12 @@ export default function Alta() {
           </>
         ) : (
           <>
-            <h1 className="text-titulo">Confirma que eres tú</h1>
-            <p className="mt-1.5 text-apoyo text-texto-apoyo">{es.otpEnviado(email.trim())}</p>
+            <h1 className="text-titulo">{t.confirmaQueEresTu}</h1>
+            <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.otpEnviado(email.trim())}</p>
 
             <div className="mt-8">
               <label htmlFor="otp" className="text-rotulo block text-texto-apoyo">
-                CÓDIGO DE 6 DÍGITOS
+                {t.codigoDeSeisDigitos}
               </label>
 
               {/* UN campo, no seis casillas. Seis inputs es el patrón por
@@ -231,7 +226,7 @@ export default function Alta() {
                 }}
                 className="text-apoyo text-texto-apoyo underline underline-offset-4"
               >
-                Cambiar el correo
+                {t.cambiarElCorreo}
               </button>
               <button
                 type="button"
@@ -239,12 +234,12 @@ export default function Alta() {
                 disabled={espera > 0 || enviando}
                 className="text-apoyo font-medium underline underline-offset-4 disabled:no-underline disabled:opacity-50"
               >
-                {espera > 0 ? `Reenviar en ${espera} s` : "Reenviar el código"}
+                {espera > 0 ? t.reenviarEn(espera) : t.reenviarElCodigo}
               </button>
             </div>
 
             <BotonPrincipalAccion
-              texto="ENTRAR"
+              texto={t.entrar}
               onClick={verificar}
               activo={otp.length === 6}
               cargando={enviando}

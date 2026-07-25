@@ -24,9 +24,8 @@ export async function GET(): Promise<NextResponse> {
     agente: {
       email: sesion.emailNormalizado,
       nombre: sesion.nombreVisible,
-      puedeConcederPro: sesion.puedeConcederPro,
-      planesAutorizados: sesion.planesAutorizados,
-      cupoProMensual: sesion.cupoProMensual,
+      puedeActivarWebmasters: sesion.puedeActivarWebmasters,
+      cupoAltasMensual: sesion.cupoAltasMensual,
     },
   });
 }

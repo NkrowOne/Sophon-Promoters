@@ -1,348 +1,247 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Mecha, unidadComun } from "@/components/Mecha";
 import { Aviso, Cargando, Pantalla, Vacio } from "@/components/Pantalla";
-import { BotonPrincipalAccion, useTelegram } from "@/components/TelegramProvider";
+import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
-import { es } from "@/lib/i18n";
+import type { Cadenas } from "@/lib/i18n";
 
 /**
- * Conceder PRO.
+ * Renovaciones.
  *
- * Es la única acción de la app que gasta algo escaso, así que la pantalla se
- * organiza alrededor de eso: **el cupo se ve antes de elegir nada** y el coste
- * va escrito en el botón. Nadie debería descubrir que ha gastado su último PRO
- * del mes después de pulsar.
+ * Esta pantalla era «elige a quién y elige durante cuánto». Ya no: el PRO va
+ * atado al alta del webmaster y **siempre dura un año**, así que no queda nada
+ * que elegir. Lo que queda es la única pregunta que sobrevive al cambio:
+ * **¿a quién se le está apagando?**
  *
- * El cupo se dibuja con marcas discretas, como La Mecha: la pregunta es «¿cuántos
- * me quedan?» y tres marcas se cuentan de un vistazo; «66 %» no se cuenta.
+ * Tres decisiones que salen de esa pregunta:
+ *
+ *  - **El orden es la respuesta.** Primero los que nunca tuvieron PRO —un
+ *    webmaster sin PRO casi siempre es un alta que se quedó a medias—, después
+ *    por días restantes. El agente no tiene que buscar: lo urgente está arriba.
+ *  - **Cada fila lleva su propia Mecha**, la misma pieza que su ficha. La
+ *    longitud de lo encendido es el tiempo que le queda, así que la lista se
+ *    lee de un vistazo sin comparar fechas.
+ *  - **El coste sigue escrito en el botón**, pero ahora el coste es un plazo y
+ *    no un cupo: `RENOVAR · 1 AÑO`. Renovar no gasta nada del agente, y por eso
+ *    desapareció el contador que presidía esta pantalla.
  */
+
+/** Mismo umbral que La Mecha: por debajo, renovar deja de ser previsión. */
+const DIAS_URGENTE = 30;
 
 interface WebmasterPro {
   email: string;
   id: string;
   bloqueado: boolean;
   proVigenteHasta: string | null;
-  proPlan: string | null;
   diasRestantes: number | null;
+  diasConcedidos: number | null;
+  sinPro: boolean;
 }
 
 interface EstadoPro {
   puedeConceder: boolean;
-  planes: string[];
-  cupo: { total: number; usadas: number; periodo: string };
+  diasAviso: number;
+  altas: { usadas: number; total: number };
   webmasters: WebmasterPro[];
+  urgentes: number;
 }
 
-const NOMBRE_PLAN: Record<string, string> = {
-  "vip.day": "1 día",
-  "vip.week": "1 semana",
-  "vip.month": "1 mes",
-  "vip.year": "1 año",
-};
-
-export default function ConcederProPagina() {
-  return (
-    <Suspense
-      fallback={
-        <Pantalla titulo={es.concederPro} volverA="/">
-          <Cargando />
-        </Pantalla>
-      }
-    >
-      <ConcederPro />
-    </Suspense>
-  );
-}
-
-function ConcederPro() {
-  const router = useRouter();
-  const parametros = useSearchParams();
+export default function Renovaciones() {
   const { haptica } = useTelegram();
+  const t = useCadenas();
 
   const [datos, setDatos] = useState<EstadoPro | null>(null);
   const [error, setError] = useState<ErrorApi | null>(null);
-  const [elegido, setElegido] = useState<string | null>(null);
-  const [plan, setPlan] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  const [enCurso, setEnCurso] = useState<string | null>(null);
   const [hecho, setHecho] = useState<{ email: string; vigenteHasta: string | null } | null>(null);
 
-  // La clave se genera UNA VEZ por intención, no por envío: si el agente pulsa
-  // dos veces o la red reintenta, el servidor reconoce el duplicado en vez de
-  // gastarle otra concesión.
-  const idempotencia = useRef(nuevaIdempotencia());
+  // Una clave por webmaster, generada UNA vez por intención: si el agente pulsa
+  // dos veces sobre la misma fila, el servidor reconoce el duplicado en vez de
+  // conceder dos años seguidos.
+  const claves = useRef(new Map<string, string>());
 
   const cargar = useCallback(() => {
     setError(null);
     api
       .get<EstadoPro>("/api/pro")
-      .then((d) => {
-        setDatos(d);
-        setPlan((p) => p ?? d.planes[0] ?? null);
-      })
-      .catch((e) =>
-        setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null)),
-      );
-  }, []);
+      .then(setDatos)
+      .catch((e) => setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)));
+  }, [t]);
 
   useEffect(cargar, [cargar]);
 
-  // Llegar desde la ficha de un webmaster preselecciona ese webmaster: el agente
-  // ya dijo a quién, no tiene que volver a decirlo.
-  const preseleccion = parametros.get("email");
-  useEffect(() => {
-    if (preseleccion && datos) {
-      const w = datos.webmasters.find(
-        (x) => x.email.toLowerCase() === preseleccion.toLowerCase(),
-      );
-      if (w) setElegido(w.id);
-    }
-  }, [preseleccion, datos]);
-
-  const restantes = datos ? Math.max(0, datos.cupo.total - datos.cupo.usadas) : 0;
-  const webmaster = useMemo(
-    () => datos?.webmasters.find((w) => w.id === elegido) ?? null,
-    [datos, elegido],
+  const renovar = useCallback(
+    async (w: WebmasterPro) => {
+      if (enCurso) return;
+      setEnCurso(w.id);
+      setError(null);
+      let clave = claves.current.get(w.id);
+      if (!clave) {
+        clave = nuevaIdempotencia();
+        claves.current.set(w.id, clave);
+      }
+      try {
+        const r = await api.post<{ email: string; vigenteHasta: string | null }>(
+          "/api/pro/conceder",
+          { email: w.email, idempotencia: clave },
+        );
+        haptica("exito");
+        setHecho({ email: r.email ?? w.email, vigenteHasta: r.vigenteHasta ?? null });
+        // Clave nueva la próxima vez: la renovación del año que viene es otra
+        // intención, no un reintento de esta.
+        claves.current.delete(w.id);
+        cargar();
+      } catch (e) {
+        haptica("error");
+        setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      } finally {
+        setEnCurso(null);
+      }
+    },
+    [enCurso, haptica, cargar, t],
   );
-
-  const conceder = useCallback(async () => {
-    if (!webmaster || !plan || enviando) return;
-    setEnviando(true);
-    setError(null);
-    try {
-      const r = await api.post<{ email: string; vigenteHasta: string | null }>(
-        "/api/pro/conceder",
-        { email: webmaster.email, plan, idempotencia: idempotencia.current },
-      );
-      haptica("exito");
-      setHecho({ email: r.email ?? webmaster.email, vigenteHasta: r.vigenteHasta ?? null });
-    } catch (e) {
-      haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null));
-    } finally {
-      setEnviando(false);
-    }
-  }, [webmaster, plan, enviando, haptica]);
 
   if (error && !datos) {
     return (
-      <Pantalla titulo={es.concederPro} volverA="/">
+      <Pantalla titulo={t.colaRenovaciones} volverA="/">
         <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
       </Pantalla>
     );
   }
   if (!datos) {
     return (
-      <Pantalla titulo={es.concederPro} volverA="/">
+      <Pantalla titulo={t.colaRenovaciones} volverA="/">
         <Cargando />
       </Pantalla>
     );
   }
-
-  if (hecho) {
-    return (
-      <Pantalla titulo={es.concederPro} volverA="/" tarea>
-        <p className="text-cuerpo font-medium">{hecho.email} ya tiene PRO.</p>
-        {hecho.vigenteHasta && (
-          <p className="mt-1.5 text-apoyo text-texto-apoyo">
-            Le vence el {formatoDia(hecho.vigenteHasta)}. Te avisaremos antes.
-          </p>
-        )}
-        <p className="mt-4 text-apoyo text-texto-apoyo">
-          Te {restantes - 1 === 1 ? "queda 1" : `quedan ${Math.max(0, restantes - 1)}`} de{" "}
-          {datos.cupo.total} este mes.
-        </p>
-        <div className="mt-6 flex gap-2.5">
-          <button
-            type="button"
-            onClick={() => router.push(`/red/${encodeURIComponent(elegido ?? "")}`)}
-            className="flex-1 rounded-pieza border border-borde px-4 py-3 text-cuerpo font-medium"
-          >
-            Ver su ficha
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="flex-1 rounded-pieza bg-tinta px-4 py-3 text-cuerpo font-semibold text-fondo"
-          >
-            Volver al inicio
-          </button>
-        </div>
-      </Pantalla>
-    );
-  }
-
   if (!datos.puedeConceder) {
     return (
-      <Pantalla titulo={es.concederPro} volverA="/">
+      <Pantalla titulo={t.colaRenovaciones} volverA="/">
         <Vacio
-          titulo="No tienes permiso para conceder PRO."
-          apoyo="Pídeselo al superadmin: es un permiso que se activa por agente."
-          accion={{ texto: "Volver al inicio", href: "/" }}
+          titulo={t.sinPermisoAltas}
+          apoyo={t.sinPermisoAltasApoyo}
+          accion={{ texto: t.volverAlInicio, href: "/" }}
         />
       </Pantalla>
     );
   }
   if (datos.webmasters.length === 0) {
     return (
-      <Pantalla titulo={es.concederPro} volverA="/">
+      <Pantalla titulo={t.colaRenovaciones} volverA="/">
         <Vacio
-          titulo={es.sinWebmasters}
-          apoyo="Solo puedes conceder PRO a webmasters de tu red."
-          accion={{ texto: es.activarWebmaster, href: "/activar" }}
+          titulo={t.sinWebmasters}
+          apoyo={t.sinWebmastersApoyo}
+          accion={{ texto: t.activarElPrimero, href: "/activar" }}
         />
       </Pantalla>
     );
   }
 
+  // Una sola unidad para toda la lista: ver la explicación en `Mecha`.
+  const porSemanas = unidadComun(datos.webmasters.map((w) => w.diasRestantes));
+
   return (
-    <Pantalla titulo={es.concederPro} volverA="/">
-      {/* El recurso escaso, antes de elegir nada. */}
-      <Cupo total={datos.cupo.total} usadas={datos.cupo.usadas} />
+    <Pantalla titulo={t.colaRenovaciones} volverA="/">
+      {/* Lo primero es cuántos piden actuar. Que no haya ninguno también es
+          información: confirma que hoy no hay nada que hacer aquí. */}
+      <p className={`mb-6 text-apoyo ${datos.urgentes > 0 ? "text-vivo" : "text-texto-apoyo"}`}>
+        {datos.urgentes > 0 ? t.seApagan(datos.urgentes) : t.ningunoSeApaga(datos.diasAviso)}
+      </p>
 
-      <section className="mt-7">
-        <p className="text-rotulo mb-2.5 text-texto-apoyo">A QUIÉN</p>
-        <ul className="divide-y divide-borde border-y border-borde" role="list">
-          {datos.webmasters.map((w) => (
-            <li key={w.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  haptica("seleccion");
-                  setElegido(w.id);
-                }}
-                disabled={w.bloqueado}
-                className="flex w-full items-center gap-3 py-3 text-left disabled:opacity-40"
-              >
-                {/* La selección es una marca de tinta a la izquierda, del ancho
-                    de un filete. Un check circular sería vocabulario ajeno al
-                    resto de la app, donde el estado siempre va en un canto. */}
-                <span
-                  className={`h-8 w-[3px] shrink-0 ${elegido === w.id ? "bg-tinta" : "bg-transparent"}`}
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-cuerpo">{w.email}</span>
-                  <span className="block text-apoyo text-texto-apoyo">
-                    {w.bloqueado
-                      ? "Bloqueado en Sophon"
-                      : w.diasRestantes === null
-                        ? "Sin PRO"
-                        : w.diasRestantes <= 0
-                          ? "PRO caducado"
-                          : `PRO ${w.diasRestantes} ${w.diasRestantes === 1 ? "día" : "días"}`}
-                  </span>
-                </span>
-                {elegido === w.id && (
-                  <span className="text-rotulo shrink-0 text-texto-apoyo">ELEGIDO</span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="mt-7">
-        <p className="text-rotulo mb-2.5 text-texto-apoyo">CUÁNTO TIEMPO</p>
-        {/* Retícula par, no `flex-wrap`. Con cuatro planes, envolver dejaba una
-            fila de tres y otra de uno; el bloque descuadrado leía como un
-            sobrante justo donde hay que elegir con calma. */}
-        <div className="grid grid-cols-2 gap-2">
-          {datos.planes.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => {
-                haptica("seleccion");
-                setPlan(p);
-              }}
-              className={[
-                "rounded-pieza px-4 py-2.5 text-apoyo font-medium",
-                "transition-transform duration-150 ease-sonda active:scale-[0.98]",
-                plan === p ? "bg-tinta text-fondo" : "border border-borde",
-              ].join(" ")}
-            >
-              {NOMBRE_PLAN[p] ?? p}
-            </button>
-          ))}
-        </div>
-        {datos.planes.length === 0 && (
-          <p className="text-apoyo text-texto-apoyo">
-            No tienes ningún plan autorizado todavía. Pídeselo al superadmin.
-          </p>
-        )}
-      </section>
-
-      {webmaster && plan && (
-        <p className="mt-7 border-l-2 border-borde pl-3 text-apoyo">
-          Vas a dar <span className="font-medium">{NOMBRE_PLAN[plan] ?? plan}</span> de PRO a{" "}
-          <span className="break-all font-medium">{webmaster.email}</span>. {es.quedaRegistrado}
+      {hecho && (
+        <p className="mb-6 border-s-2 border-borde ps-3 text-apoyo">
+          {t.renovado(hecho.email, hecho.vigenteHasta ? formatoDia(hecho.vigenteHasta) : "—")}
         </p>
       )}
 
       {error && (
-        <div className="mt-5">
+        <div className="mb-6">
           <Aviso error={error.message} apoyo={error.apoyo} />
         </div>
       )}
 
-      {/* El coste va EN el botón: el cupo es lo escaso y no puede quedarse en
-          una nota que se lee después de pulsar. */}
-      <BotonPrincipalAccion
-        texto={
-          restantes === 0
-            ? "SIN CUPO ESTE MES"
-            : `CONCEDER · GASTA 1 DE ${restantes}`
-        }
-        onClick={conceder}
-        activo={Boolean(webmaster && plan) && restantes > 0}
-        cargando={enviando}
-      />
+      <ul className="divide-y divide-borde border-y border-borde" role="list">
+        {datos.webmasters.map((w) => (
+          <li key={w.id} className="py-4">
+            <Fila
+              w={w}
+              t={t}
+              porSemanas={porSemanas}
+              cargando={enCurso === w.id}
+              deshabilitado={Boolean(enCurso)}
+              onRenovar={() => renovar(w)}
+            />
+          </li>
+        ))}
+      </ul>
+
+      {datos.urgentes === 0 && <p className="mt-5 text-apoyo text-texto-apoyo">{t.todoAlDia}</p>}
     </Pantalla>
   );
 }
 
-/**
- * El cupo del mes en marcas.
- *
- * Mismo vocabulario que La Mecha, y con la misma regla: **la tinta es lo que
- * todavía tienes**. Las marcas gastadas quedan huecas, a la vista, para que se
- * vea el ritmo del mes sin que compitan con lo que queda.
- *
- * El rótulo dice lo mismo que el dibujo —«quedan 3 de 8»— y no «5 usados», que
- * era lo contrario de lo que se estaba pintando.
- */
-function Cupo({ total, usadas }: { total: number; usadas: number }) {
-  const restantes = Math.max(0, total - usadas);
-  const agotado = restantes === 0;
+function Fila({
+  w,
+  t,
+  porSemanas,
+  cargando,
+  deshabilitado,
+  onRenovar,
+}: {
+  w: WebmasterPro;
+  t: Cadenas;
+  porSemanas: boolean;
+  cargando: boolean;
+  deshabilitado: boolean;
+  onRenovar: () => void;
+}) {
+  const urgente = w.sinPro || (w.diasRestantes !== null && w.diasRestantes <= DIAS_URGENTE);
 
   return (
-    <section aria-label="Cupo de PRO de este mes">
-      <div className="mb-2 flex items-baseline justify-between gap-3">
-        <span className="text-rotulo text-texto-apoyo">{es.cupoPro} · ESTE MES</span>
-        <span className={`text-apoyo ${agotado ? "text-vivo" : "text-texto-apoyo"}`}>
-          quedan <span className="cifra">{restantes}</span> de{" "}
-          <span className="cifra">{total}</span>
-        </span>
-      </div>
-      <div className="flex h-6 items-stretch gap-1" aria-hidden>
-        {Array.from({ length: Math.min(total, 40) }, (_, i) => (
-          <span
-            key={i}
-            className={`min-w-[3px] flex-1 ${
-              i < usadas ? "border border-borde bg-transparent" : "bg-tinta"
-            }`}
+    <>
+      <p className="break-all text-cuerpo">{w.email}</p>
+
+      <div className="mt-2">
+        {w.sinPro || w.proVigenteHasta === null ? (
+          // Sin PRO no hay mecha que dibujar: hay un hueco. Decirlo con palabras
+          // es más honesto que pintar un raíl vacío, que se leería como un plazo
+          // agotado en vez de como un plazo que nunca existió.
+          <p className={`text-apoyo ${w.bloqueado ? "text-texto-apoyo" : "text-vivo"}`}>
+            {t.nuncaTuvoPro}
+          </p>
+        ) : (
+          <Mecha
+            diasRestantes={w.diasRestantes ?? 0}
+            diasConcedidos={w.diasConcedidos}
+            vigenteHasta={w.proVigenteHasta}
+            etiquetas={t}
+            porSemanas={porSemanas}
           />
-        ))}
+        )}
       </div>
-      <p className={`mt-2 text-apoyo ${agotado ? "text-vivo" : "text-texto-apoyo"}`}>
-        {agotado
-          ? "Sin cupo hasta el día 1. Si lo necesitas antes, pídele ampliación al superadmin."
-          : "Se reinicia el día 1."}
-      </p>
-    </section>
+
+      <button
+        type="button"
+        onClick={onRenovar}
+        disabled={deshabilitado || w.bloqueado}
+        className={[
+          "mt-3 w-full rounded-pieza py-3 text-apoyo font-semibold",
+          "transition-transform duration-150 ease-sonda active:scale-[0.99]",
+          "disabled:opacity-40",
+          // El énfasis solo va a lo que exige acción hoy; lo demás es un filete.
+          urgente ? "bg-tinta text-fondo" : "border border-borde",
+        ].join(" ")}
+      >
+        {cargando ? "…" : w.sinPro ? t.darUnAnio : t.renovarUnAnio}
+      </button>
+
+      {w.bloqueado && <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.bloqueadoEnSophon}</p>}
+    </>
   );
 }
 

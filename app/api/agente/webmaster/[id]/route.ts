@@ -49,7 +49,6 @@ export async function GET(
       devengaDesde: true,
       origen: true,
       proVigenteHasta: true,
-      proPlanActual: true,
       filasDiarias: {
         where: { fecha: { gte: desde } },
         select: CAMPOS_FILA_VISIBLES,
@@ -87,7 +86,7 @@ export async function GET(
       where: { agenteId, webmasterId: webmaster.id, estado: "CONFIRMADA" },
       orderBy: { creadoEn: "desc" },
       take: 12,
-      select: { codigoMembresia: true, creadoEn: true, vigenteHasta: true },
+      select: { motivo: true, creadoEn: true, vigenteHasta: true },
     }),
   ]);
 
@@ -122,7 +121,6 @@ export async function GET(
   const fin = webmaster.proVigenteHasta;
   const pro = fin
     ? {
-        plan: webmaster.proPlanActual,
         vigenteHasta: isoFecha(fin),
         concedidoEn: vigente ? isoFecha(vigente.creadoEn) : null,
         diasRestantes: Math.ceil((fin.getTime() - Date.now()) / 86_400_000),
@@ -154,7 +152,7 @@ export async function GET(
       usuariosPago: suma("usuariosPago"),
     },
     concesiones: concesiones.map((c) => ({
-      plan: c.codigoMembresia,
+      motivo: c.motivo,
       concedidoEn: isoFecha(c.creadoEn),
       vigenteHasta: c.vigenteHasta ? isoFecha(c.vigenteHasta) : null,
     })),

@@ -11,6 +11,8 @@
 
 import Link from "next/link";
 
+import { useCadenas } from "./TelegramProvider";
+
 export function Pantalla({
   titulo,
   volverA,
@@ -23,10 +25,12 @@ export function Pantalla({
   tarea?: boolean;
   children: React.ReactNode;
 }) {
+  const { volver: etiquetaVolver } = useCadenas();
+
   return (
-    <main className={`relative min-h-dvh ${tarea ? "pl-testigo-min" : "pl-testigo"}`}>
+    <main className={`relative min-h-dvh ${tarea ? "ps-testigo-min" : "ps-testigo"}`}>
       <div
-        className={`testigo-terreno fixed inset-y-0 left-0 bg-superficie ${
+        className={`testigo-terreno fixed inset-y-0 start-0 bg-superficie ${
           tarea ? "w-testigo-min" : "w-testigo"
         }`}
         aria-hidden={tarea}
@@ -38,8 +42,8 @@ export function Pantalla({
             {volverA && (
               <Link
                 href={volverA}
-                className="-ml-1 shrink-0 px-1 text-titulo leading-none text-texto-apoyo"
-                aria-label="Volver"
+                className="-ms-1 shrink-0 px-1 text-titulo leading-none text-texto-apoyo"
+                aria-label={etiquetaVolver}
               >
                 ‹
               </Link>
@@ -100,27 +104,36 @@ export function Aviso({
   onReintentar?: () => void;
 }) {
   return (
-    <div role="alert" className="border-l-2 border-vivo py-2 pl-3">
+    <div role="alert" className="border-s-2 border-vivo py-2 ps-3">
       <p className="text-cuerpo">{error}</p>
       {apoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{apoyo}</p>}
       {onReintentar && (
-        <button
-          type="button"
-          onClick={onReintentar}
-          className="mt-2.5 text-apoyo font-medium underline underline-offset-4"
-        >
-          Reintentar
-        </button>
+        <BotonReintentar onReintentar={onReintentar} />
       )}
     </div>
   );
 }
 
+function BotonReintentar({ onReintentar }: { onReintentar: () => void }) {
+  const { reintentar } = useCadenas();
+  return (
+    <button
+      type="button"
+      onClick={onReintentar}
+      className="mt-2.5 text-apoyo font-medium underline underline-offset-4"
+    >
+      {reintentar}
+    </button>
+  );
+}
+
 /** Carga: una sola línea, sin esqueletos que fingen contenido que no existe. */
-export function Cargando({ que = "Cargando" }: { que?: string }) {
+export function Cargando({ que }: { que?: string }) {
+  const { cargando } = useCadenas();
+  const texto = que ?? cargando;
   return (
     <p className="py-10 text-rotulo text-texto-apoyo" aria-live="polite">
-      {que.toUpperCase()}…
+      {texto.toUpperCase()}…
     </p>
   );
 }

@@ -35,8 +35,35 @@ export type NivelAfiliado = (typeof NivelAfiliado)[keyof typeof NivelAfiliado];
 export const CODIGOS_MEMBRESIA = ["vip.day", "vip.week", "vip.month", "vip.year"] as const;
 export type CodigoMembresia = (typeof CODIGOS_MEMBRESIA)[number];
 
-/** Duración por defecto que aplica Sophon cuando `duration` es 0: 30 días. */
-export const DURACION_POR_DEFECTO_SEGUNDOS = 2_592_000;
+/**
+ * ⚠️ El código de membresía NO decide cuánto dura.
+ *
+ * Es el error más caro de esta API y está escrito en su documentación:
+ *
+ *   `uint32 duration = 3;  // Membership duration in seconds (0 = defaults to 30 days)`
+ *
+ * `membership_code` nombra el PLAN y `duration` fija el PLAZO, y son
+ * independientes. Mandar `vip.year` con `duration: 0` no concede un año:
+ * concede **30 días**. Cualquier código con duración 0 da 30 días.
+ *
+ * Por eso `concederMembresia` exige la duración explícita y no tiene valor por
+ * defecto: un cero silencioso aquí significa que el agente cree haber regalado
+ * un año y el webmaster se queda sin PRO once meses antes de lo que pone en
+ * pantalla.
+ */
+export const SEGUNDOS_POR_DIA = 86_400;
+
+/** El único plazo que concede esta aplicación. */
+export const SEGUNDOS_UN_ANIO = 365 * SEGUNDOS_POR_DIA;
+
+/**
+ * El único plan que concede esta aplicación.
+ *
+ * El agente no elige: el PRO va atado al alta del webmaster y siempre es de un
+ * año. La lista completa de códigos se conserva arriba porque es el vocabulario
+ * de la API, no porque la aplicación ofrezca cuatro opciones.
+ */
+export const PLAN_UNICO = "vip.year" satisfies CodigoMembresia;
 
 export interface TokenPartner {
   token: string;

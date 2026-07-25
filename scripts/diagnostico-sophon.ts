@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   } catch (e) {
     if (e instanceof ErrorSophon && e.esFaltaWhitelist) {
       mal("NO activa: Sophon responde «caller not in allowed list».");
-      aviso("Activar webmasters y conceder PRO fallarán hasta que soporte la habilite.");
+      aviso("Activar webmasters fallará hasta que soporte la habilite, y con ello el año\n  de PRO que va incluido en cada alta.");
       aviso("El resto de la aplicación (lecturas, devengo, panel) sí funciona.");
     } else {
       mal(`Error inesperado: ${e instanceof Error ? e.message : String(e)}`);

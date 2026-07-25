@@ -2,62 +2,93 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
+import { altasDelMes } from "@/lib/pro/conceder";
 
 /**
- * Estado del cupo de PRO y a quién se le puede conceder.
+ * La cola de renovaciones.
  *
- * El cupo consumido se cuenta con el MISMO criterio que la reserva: entran las
- * concesiones `RESERVADA` y `CONFIRMADA`, no las fallidas. Si esta pantalla
- * contara de otra forma, el agente vería «te quedan 2» y el servidor le
- * respondería que no quedan, que es la peor manera de enterarse.
+ * La pantalla dejó de ser «elige a quién y elige plan» —el PRO va atado al alta
+ * y siempre dura un año— y pasó a responder la única pregunta que queda:
+ * **¿a quién se le está apagando?**
+ *
+ * Por eso esto NO devuelve un catálogo de planes ni un estado de cupo de PRO.
+ * Devuelve la red ordenada por urgencia, con los que nunca llegaron a tener PRO
+ * arriba del todo: un webmaster sin PRO no es el caso menos urgente, es el más
+ * —normalmente significa que su alta se quedó a medias—.
  */
 
 export const dynamic = "force-dynamic";
 
-function periodoActual(): string {
-  const zona = process.env["ZONA_HORARIA"] ?? "Europe/Madrid";
-  return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(new Date()).slice(0, 7);
-}
+/** A partir de aquí, renovar deja de ser previsión y pasa a ser urgente. */
+const DIAS_AVISO = 30;
 
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId, puedeConcederPro, planesAutorizados, cupoProMensual } = ctx.sesion;
+  const { agenteId, puedeActivarWebmasters, cupoAltasMensual } = ctx.sesion;
 
-  const periodo = periodoActual();
-
-  const [usadas, webmasters] = await Promise.all([
-    db.concesionPro.count({
-      where: { agenteId, periodoCupo: periodo, estado: { in: ["RESERVADA", "CONFIRMADA"] } },
-    }),
+  const [webmasters, altas] = await Promise.all([
     db.webmaster.findMany({
       where: { agenteId, desaparecidoEn: null },
-      orderBy: [{ proVigenteHasta: "asc" }, { emailNormalizado: "asc" }],
       select: {
         emailOriginal: true,
         emailNormalizado: true,
         estadoSophon: true,
         proVigenteHasta: true,
-        proPlanActual: true,
+        atribuidoEn: true,
+        concesiones: {
+          where: { estado: "CONFIRMADA" },
+          orderBy: { creadoEn: "desc" },
+          take: 1,
+          select: { creadoEn: true, vigenteHasta: true },
+        },
       },
     }),
+    altasDelMes(agenteId),
   ]);
 
-  return NextResponse.json({
-    puedeConceder: puedeConcederPro,
-    planes: planesAutorizados,
-    cupo: { total: cupoProMensual, usadas, periodo },
-    // Ordenados por caducidad ascendente: el primero de la lista es el que más
-    // cerca está de apagarse, que es a quien se viene a renovar.
-    webmasters: webmasters.map((w) => ({
+  const ahora = Date.now();
+
+  const salida = webmasters.map((w) => {
+    const vigente = w.concesiones[0];
+    return {
       email: w.emailOriginal,
       id: w.emailNormalizado,
       bloqueado: w.estadoSophon === "BLOQUEADO" || w.estadoSophon === "PENDIENTE_BORRADO",
       proVigenteHasta: w.proVigenteHasta ? isoFecha(w.proVigenteHasta) : null,
-      proPlan: w.proPlanActual,
       diasRestantes: w.proVigenteHasta
-        ? Math.ceil((w.proVigenteHasta.getTime() - Date.now()) / 86_400_000)
+        ? Math.ceil((w.proVigenteHasta.getTime() - ahora) / 86_400_000)
         : null,
-    })),
+      // La Mecha necesita el periodo completo para dibujar lo consumido.
+      diasConcedidos:
+        vigente?.vigenteHasta && vigente.creadoEn
+          ? Math.max(
+              1,
+              Math.round((vigente.vigenteHasta.getTime() - vigente.creadoEn.getTime()) / 86_400_000),
+            )
+          : null,
+      /** Nunca tuvo PRO: su alta se quedó a medias o llegó como huérfano. */
+      sinPro: w.proVigenteHasta === null,
+    };
+  });
+
+  // Sin PRO primero, luego por días restantes ascendente: el orden ES la
+  // respuesta de la pantalla, así que se decide aquí y no en el cliente.
+  salida.sort((a, b) => {
+    if (a.sinPro !== b.sinPro) return a.sinPro ? -1 : 1;
+    return (a.diasRestantes ?? 0) - (b.diasRestantes ?? 0);
+  });
+
+  return NextResponse.json({
+    puedeConceder: puedeActivarWebmasters,
+    diasAviso: DIAS_AVISO,
+    // El cupo que se enseña ya no es de PRO sino de altas, porque es el único
+    // que existe: renovar no consume nada.
+    altas: { usadas: altas, total: cupoAltasMensual },
+    webmasters: salida,
+    /** Los que piden acción ya: sin PRO, caducados o a punto. */
+    urgentes: salida.filter(
+      (w) => w.sinPro || (w.diasRestantes !== null && w.diasRestantes <= DIAS_AVISO),
+    ).length,
   });
 }

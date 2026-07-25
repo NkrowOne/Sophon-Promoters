@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 
@@ -8,8 +8,9 @@ import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animaci
 import { Mecha, MechaApagada } from "@/components/Mecha";
 import { Aviso, Cargando, Pantalla } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
-import { useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi } from "@/lib/api/cliente";
+import { useCadenas, useTelegram } from "@/components/TelegramProvider";
+import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
+import type { Cadenas } from "@/lib/i18n";
 
 /**
  * Ficha de un webmaster.
@@ -43,7 +44,6 @@ interface Ficha {
   activadoEn: string | null;
   devengaDesde: string | null;
   pro: {
-    plan: string | null;
     vigenteHasta: string;
     concedidoEn: string | null;
     diasRestantes: number;
@@ -61,20 +61,15 @@ interface Ficha {
   };
 }
 
-const ETIQUETA_ESTADO: Record<string, string> = {
-  ACTIVO: "Activo en Sophon",
-  BLOQUEADO: "Bloqueado en Sophon",
-  PENDIENTE_BORRADO: "Pendiente de borrado",
-  DESAPARECIDO: "Ya no aparece en Sophon",
-  DESCONOCIDO: "Estado sin comprobar",
-};
-
 export default function FichaWebmaster({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { haptica } = useTelegram();
+  const t = useCadenas();
   const [datos, setDatos] = useState<Ficha | null>(null);
   const [error, setError] = useState<ErrorApi | null>(null);
+  const [renovando, setRenovando] = useState(false);
+  const clave = useRef(nuevaIdempotencia());
 
   const cargar = useCallback(() => {
     setError(null);
@@ -82,11 +77,31 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
       .get<Ficha>(`/api/agente/webmaster/${encodeURIComponent(id)}`)
       .then(setDatos)
       .catch((e) =>
-        setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null)),
+        setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)),
       );
   }, [id]);
 
   useEffect(cargar, [cargar]);
+
+  const renovar = useCallback(async () => {
+    if (!datos || renovando) return;
+    setRenovando(true);
+    setError(null);
+    try {
+      await api.post("/api/pro/conceder", {
+        email: datos.email,
+        idempotencia: clave.current,
+      });
+      haptica("exito");
+      clave.current = nuevaIdempotencia();
+      cargar();
+    } catch (e) {
+      haptica("error");
+      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+    } finally {
+      setRenovando(false);
+    }
+  }, [datos, renovando, haptica, cargar, t]);
 
   const serie: DiaAncho[] = useMemo(
     () =>
@@ -100,7 +115,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
 
   if (error) {
     return (
-      <Pantalla titulo="Webmaster" volverA="/red">
+      <Pantalla titulo={t.webmaster} volverA="/red">
         <Aviso
           error={error.message}
           apoyo={error.apoyo}
@@ -111,15 +126,15 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   }
   if (!datos) {
     return (
-      <Pantalla titulo="Webmaster" volverA="/red">
-        <Cargando que="Sondeando" />
+      <Pantalla titulo={t.webmaster} volverA="/red">
+        <Cargando que={t.sondeando} />
       </Pantalla>
     );
   }
 
   const problema = datos.estado !== "ACTIVO";
-  const t = datos.totales;
-  const conTier = t.registrosT1 + t.registrosT2 + t.registrosT3;
+  const tot = datos.totales;
+  const conTier = tot.registrosT1 + tot.registrosT2 + tot.registrosT3;
 
   return (
     <Pantalla volverA="/red">
@@ -133,8 +148,8 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             <Correo email={datos.email} />
           </h1>
           <p className={`mt-1 text-apoyo ${problema ? "text-vivo" : "text-texto-apoyo"}`}>
-            {ETIQUETA_ESTADO[datos.estado] ?? datos.estado}
-            {datos.activadoEn && ` · en tu red desde el ${formatoDia(datos.activadoEn)}`}
+            {estadoLegible(datos.estado, t)}
+            {datos.activadoEn && ` · ${t.enTuRedDesde(formatoDia(datos.activadoEn))}`}
           </p>
         </header>
       </Aparece>
@@ -147,38 +162,35 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
               diasRestantes={datos.pro.diasRestantes}
               diasConcedidos={datos.pro.diasConcedidos}
               vigenteHasta={datos.pro.vigenteHasta}
-              plan={datos.pro.plan}
+              etiquetas={t}
             />
           ) : (
-            <MechaApagada />
+            <MechaApagada etiquetas={t} />
           )}
+          {/* Se renueva AQUÍ, no en otra pantalla. El plazo es siempre un año,
+              así que no hay nada que elegir en el camino: mandar al agente a un
+              formulario intermedio para pulsar un único botón era un paso que
+              solo servía cuando había planes entre los que decidir. */}
           <button
             type="button"
-            onClick={() => {
-              haptica("seleccion");
-              router.push(`/pro?email=${encodeURIComponent(datos.email)}`);
-            }}
-            className="mt-3 w-full rounded-pieza border border-borde py-3 text-cuerpo font-medium transition-transform duration-150 ease-sonda active:scale-[0.99]"
+            onClick={renovar}
+            disabled={renovando}
+            className="mt-3 w-full rounded-pieza border border-borde py-3 text-cuerpo font-medium transition-transform duration-150 ease-sonda active:scale-[0.99] disabled:opacity-40"
           >
-            {datos.pro && datos.pro.diasRestantes > 0 ? "Renovar PRO" : "Conceder PRO"}
+            {renovando ? "…" : datos.pro ? t.renovarUnAnio : t.darUnAnio}
           </button>
         </div>
       </Aparece>
 
       <Aparece orden={2}>
         <section className="mb-7 border-t border-borde pt-5">
-          <p className="text-rotulo text-texto-apoyo">TE HA DADO</p>
+          <p className="text-rotulo text-texto-apoyo">{t.teHaDado}</p>
           <div className="mt-1.5">
-            <CifraProtagonista micros={BigInt(t.ganado.micros)} />
+            <CifraProtagonista micros={BigInt(tot.ganado.micros)} />
           </div>
-          <p className="mt-2 text-apoyo text-texto-apoyo">
-            <span className="cifra">{t.registros}</span> registros en {datos.dias} días
-            {t.usuariosPago > 0 && (
-              <>
-                {" "}
-                · <span className="cifra">{t.usuariosPago}</span> compraron PRO
-              </>
-            )}
+          <p className="mt-2 text-apoyo tabular-nums text-texto-apoyo">
+            {t.registrosEnDias(tot.registros, datos.dias)}
+            {tot.usuariosPago > 0 && <> · {t.compraronPro(tot.usuariosPago)}</>}
           </p>
 
           {/* La mezcla de tiers, como en inicio: una cinta de 8 px y los
@@ -190,24 +202,24 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             <div className="mt-4">
               <div className="flex h-2 overflow-hidden bg-superficie-alta">
                 <BarraCreciente
-                  porcentaje={(t.registrosT1 / conTier) * 100}
+                  porcentaje={(tot.registrosT1 / conTier) * 100}
                   className="bg-t1"
                 />
                 <BarraCreciente
-                  porcentaje={(t.registrosT2 / conTier) * 100}
+                  porcentaje={(tot.registrosT2 / conTier) * 100}
                   className="bg-t2"
                   retardoMs={60}
                 />
                 <BarraCreciente
-                  porcentaje={(t.registrosT3 / conTier) * 100}
+                  porcentaje={(tot.registrosT3 / conTier) * 100}
                   className="bg-t3"
                   retardoMs={120}
                 />
               </div>
               <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
-                <Tier color="bg-t1" etiqueta="T1" valor={t.registrosT1} />
-                <Tier color="bg-t2" etiqueta="T2" valor={t.registrosT2} />
-                <Tier color="bg-t3" etiqueta="T3" valor={t.registrosT3} />
+                <Tier color="bg-t1" etiqueta="T1" valor={tot.registrosT1} />
+                <Tier color="bg-t2" etiqueta="T2" valor={tot.registrosT2} />
+                <Tier color="bg-t3" etiqueta="T3" valor={tot.registrosT3} />
               </div>
             </div>
           )}
@@ -215,23 +227,20 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           {/* Atribución prospectiva: si no se dice, el agente ve registros
               antiguos sin importe y cree que falta dinero. */}
           {datos.devengaDesde && (
-            <p className="mt-4 border-l-2 border-borde pl-3 text-apoyo text-texto-apoyo">
-              Cobras por lo que registre a partir del {formatoDia(datos.devengaDesde)}. Lo
-              anterior no cuenta.
+            <p className="mt-4 border-s-2 border-borde ps-3 text-apoyo text-texto-apoyo">
+              {t.cobrasDesde(formatoDia(datos.devengaDesde))}
             </p>
           )}
         </section>
       </Aparece>
 
       <Aparece orden={3}>
-        <section aria-label="Registro de sondeo">
-          <p className="text-rotulo mb-3 text-texto-apoyo">ÚLTIMOS {datos.dias} DÍAS</p>
+        <section aria-label={t.registroDeSondeo}>
+          <p className="text-rotulo mb-3 text-texto-apoyo">{t.ultimosDias(datos.dias)}</p>
           {serie.length > 0 ? (
-            <TestigoAncho dias={serie} denso />
+            <TestigoAncho dias={serie} denso etiquetas={t} />
           ) : (
-            <p className="text-apoyo text-texto-apoyo">
-              Todavía no ha traído ningún registro.
-            </p>
+            <p className="text-apoyo text-texto-apoyo">{t.todaviaSinRegistros}</p>
           )}
         </section>
       </Aparece>
@@ -266,6 +275,29 @@ function Correo({ email }: { email: string }) {
       {email.slice(corte)}
     </span>
   );
+}
+
+/**
+ * El estado que publica Sophon, dicho en el idioma del agente.
+ *
+ * Se traduce en el cliente y no en la API: el estado es un dato del sistema
+ * —`BLOQUEADO`, `PENDIENTE_BORRADO`— y traducirlo en el servidor obligaría a
+ * que la API supiera el idioma de quien pregunta, que es una responsabilidad
+ * que no le toca.
+ */
+function estadoLegible(estado: string, t: Cadenas): string {
+  switch (estado) {
+    case "ACTIVO":
+      return t.activoEnSophon;
+    case "BLOQUEADO":
+      return t.bloqueadoEnSophon;
+    case "PENDIENTE_BORRADO":
+      return t.pendienteDeBorrado;
+    case "DESAPARECIDO":
+      return t.yaNoApareceEnSophon;
+    default:
+      return t.estadoSinComprobar;
+  }
 }
 
 function formatoDia(iso: string): string {

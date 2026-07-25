@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { formatearMicros } from "@/lib/devengo/dinero";
 import { revocarSesiones } from "@/lib/auth/sesion";
-import { CODIGOS_MEMBRESIA } from "@/lib/sophon/tipos";
 
 /**
  * Acciones del panel.
@@ -32,28 +31,33 @@ async function anotar(actorId: string, accion: string, recurso: string, detalle:
   });
 }
 
-/** Permisos de concesión de PRO: es el vector de fraude, así que va explícito. */
+/**
+ * Permiso y tope de ALTAS.
+ *
+ * Ya no hay nada de planes ni cupo de PRO que configurar: el PRO va atado al
+ * alta y siempre dura un año. Lo que se administra aquí es cuántas altas puede
+ * hacer un agente al mes, que es lo mismo que decir cuántos años de PRO puede
+ * regalar a costa del superadmin.
+ */
 export async function guardarPermisos(formulario: FormData): Promise<void> {
   const actor = await admin();
   const agenteId = String(formulario.get("agenteId") ?? "");
   if (!agenteId) return;
 
-  const puedeConcederPro = formulario.get("puedeConcederPro") === "on";
-  const cupo = Number(formulario.get("cupoProMensual") ?? 0);
-  const planes = CODIGOS_MEMBRESIA.filter((p) => formulario.get(`plan:${p}`) === "on");
+  const puedeActivarWebmasters = formulario.get("puedeActivarWebmasters") === "on";
+  const cupo = Number(formulario.get("cupoAltasMensual") ?? 0);
 
   await db.agente.update({
     where: { id: agenteId },
     data: {
-      puedeConcederPro,
-      // Un cupo negativo o absurdo no se guarda tal cual: se acota aquí, no en
+      puedeActivarWebmasters,
+      // Un tope negativo o absurdo no se guarda tal cual: se acota aquí, no en
       // el navegador, porque el formulario es solo una sugerencia.
-      cupoProMensual: Number.isFinite(cupo) ? Math.max(0, Math.min(500, Math.trunc(cupo))) : 0,
-      planesAutorizados: planes,
+      cupoAltasMensual: Number.isFinite(cupo) ? Math.max(0, Math.min(500, Math.trunc(cupo))) : 0,
     },
   });
 
-  await anotar(actor, "agente.permisos", agenteId, { puedeConcederPro, cupo, planes });
+  await anotar(actor, "agente.permisos", agenteId, { puedeActivarWebmasters, cupo });
   revalidatePath("/admin/agentes");
 }
 

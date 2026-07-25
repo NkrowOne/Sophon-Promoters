@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Importe } from "@/components/Importe";
 import { Aviso, Cargando, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
+import { useCadenas } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
-import { es } from "@/lib/i18n";
 
 /**
  * Histórico.
@@ -40,6 +40,7 @@ interface Pagina {
 }
 
 export default function Historico() {
+  const t = useCadenas();
   const [dias, setDias] = useState<DiaApi[]>([]);
   const [meses, setMeses] = useState<Record<string, string>>({});
   const [cursor, setCursor] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export default function Historico() {
       setCursor(p.siguienteCursor);
       if (!p.siguienteCursor) setAgotado(true);
     } catch (e) {
-      setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null));
+      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
     } finally {
       setCargando(false);
       enVuelo.current = false;
@@ -114,58 +115,56 @@ export default function Historico() {
 
   if (error && dias.length === 0) {
     return (
-      <Pantalla titulo={es.historico} volverA="/">
+      <Pantalla titulo={t.historico} volverA="/">
         <Aviso error={error.message} apoyo={error.apoyo} onReintentar={() => void cargar(null)} />
       </Pantalla>
     );
   }
   if (cargando && dias.length === 0) {
     return (
-      <Pantalla titulo={es.historico} volverA="/">
-        <Cargando que="Sondeando" />
+      <Pantalla titulo={t.historico} volverA="/">
+        <Cargando que={t.sondeando} />
       </Pantalla>
     );
   }
   if (dias.length === 0) {
     return (
-      <Pantalla titulo={es.historico} volverA="/">
+      <Pantalla titulo={t.historico} volverA="/">
         <Vacio
-          titulo={es.sinIngresos}
-          apoyo={es.sinIngresosApoyo}
-          accion={{ texto: es.activarWebmaster, href: "/activar" }}
+          titulo={t.sinIngresos}
+          apoyo={t.sinIngresosApoyo}
+          accion={{ texto: t.activarWebmaster, href: "/activar" }}
         />
       </Pantalla>
     );
   }
 
   return (
-    <Pantalla titulo={es.historico} volverA="/">
+    <Pantalla titulo={t.historico} volverA="/">
       <p className="mb-1 text-apoyo text-texto-apoyo">
-        <Importe micros={total} className="text-cuerpo font-semibold text-texto" /> en{" "}
-        <span className="cifra">{serie.length}</span> días
+        <Importe micros={total} className="text-cuerpo font-semibold text-texto" />{" "}
+        {t.enDias(serie.length)}
       </p>
       {/* Solo se explica lo que no se descubre solo. Que bajando se va hacia
           atrás lo enseña la propia lista en el primer gesto; que una banda se
           abre al tocarla, no. */}
-      <p className="mb-5 text-apoyo text-texto-apoyo">
-        Toca un día para ver de dónde salió.
-      </p>
+      <p className="mb-5 text-apoyo text-texto-apoyo">{t.tocaUnDia}</p>
 
       {/* Cabecera de la columna de importes: la unidad se dice una vez aquí y
           desaparece de las setenta filas de abajo. */}
       <div className="mb-1 flex items-baseline justify-between border-b border-borde pb-1.5">
-        <span className="text-rotulo text-texto-apoyo">DÍA</span>
-        <span className="text-rotulo text-texto-apoyo">DÓLARES</span>
+        <span className="text-rotulo text-texto-apoyo">{t.columnaDia}</span>
+        <span className="text-rotulo text-texto-apoyo">{t.columnaDolares}</span>
       </div>
 
-      <TestigoAncho dias={serie} meses={meses} />
+      <TestigoAncho dias={serie} meses={meses} etiquetas={t} />
 
       <div ref={centinela} className="pt-6">
         {agotado ? (
           // El fondo del sondeo tiene que verse: sin este cierre, el scroll
           // acaba en blanco y no se distingue de una carga que falló.
           <div className="border-t-2 border-borde pt-3 text-apoyo text-texto-apoyo">
-            Aquí empieza tu registro. No hay nada anterior.
+            {t.aquiEmpieza}
           </div>
         ) : error ? (
           <Aviso
@@ -175,7 +174,7 @@ export default function Historico() {
           />
         ) : (
           <p className="text-rotulo text-texto-apoyo" aria-live="polite">
-            PERFORANDO…
+            {t.perforando.toUpperCase()}…
           </p>
         )}
       </div>

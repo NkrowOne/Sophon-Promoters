@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Importe } from "@/components/Importe";
 import { Aviso, Cargando, Pantalla } from "@/components/Pantalla";
-import { BotonPrincipalAccion, useTelegram } from "@/components/TelegramProvider";
+import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 import { formatearMicros, microsACadena } from "@/lib/devengo/dinero";
-import { es } from "@/lib/i18n";
+import type { Cadenas } from "@/lib/i18n";
 
 /**
  * Cartera.
@@ -41,7 +41,7 @@ const REDES = [
     // atrapan el error caro: pegar una wallet de otra red. Un pago a la red
     // equivocada no se recupera.
     forma: /^T[1-9A-HJ-NP-Za-km-z]{33}$/,
-    pista: "Empieza por T y tiene 34 caracteres.",
+    pista: (t: Cadenas) => t.pistaTrc20,
     ejemplo: "TQn9Y2khDD95J42FQtQTdwVVR93ct…",
   },
   {
@@ -49,7 +49,7 @@ const REDES = [
     corto: "BSC",
     nombre: "BNB Smart Chain (BEP-20)",
     forma: /^0x[0-9a-fA-F]{40}$/,
-    pista: "Empieza por 0x y tiene 42 caracteres.",
+    pista: (t: Cadenas) => t.pistaBsc,
     ejemplo: "0x71C7656EC7ab88b098defB751B…",
   },
   {
@@ -57,7 +57,7 @@ const REDES = [
     corto: "TON",
     nombre: "TON",
     forma: /^[EU]Q[A-Za-z0-9_-]{46}$/,
-    pista: "Empieza por EQ o UQ y tiene 48 caracteres.",
+    pista: (t: Cadenas) => t.pistaTon,
     ejemplo: "EQBvW8Z5huBkMJYdnfAEM5JqTNk…",
   },
 ] as const;
@@ -95,16 +95,9 @@ interface Respuesta {
   historial: Solicitud[];
 }
 
-const ETIQUETA_ESTADO: Record<string, string> = {
-  SOLICITADO: "Pendiente de revisión",
-  APROBADO: "Aprobado, pendiente de pago",
-  PAGADO: "Pagado",
-  RECHAZADO: "Rechazado",
-  CANCELADO: "Cancelado",
-};
-
 export default function CarteraPagina() {
   const { haptica } = useTelegram();
+  const t = useCadenas();
   const [datos, setDatos] = useState<Respuesta | null>(null);
   const [error, setError] = useState<ErrorApi | null>(null);
   const [importe, setImporte] = useState("");
@@ -119,7 +112,7 @@ export default function CarteraPagina() {
       .get<Respuesta>("/api/retiro")
       .then(setDatos)
       .catch((e) =>
-        setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null)),
+        setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)),
       );
   }, []);
 
@@ -169,7 +162,7 @@ export default function CarteraPagina() {
       cargar();
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null));
+      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
     } finally {
       setEnviando(false);
     }
@@ -177,53 +170,50 @@ export default function CarteraPagina() {
 
   if (error && !datos) {
     return (
-      <Pantalla titulo={es.cartera} volverA="/">
+      <Pantalla titulo={t.cartera} volverA="/">
         <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
       </Pantalla>
     );
   }
   if (!datos) {
     return (
-      <Pantalla titulo={es.cartera} volverA="/">
+      <Pantalla titulo={t.cartera} volverA="/">
         <Cargando />
       </Pantalla>
     );
   }
 
   return (
-    <Pantalla titulo={es.cartera} volverA="/">
-      <Escalera cartera={datos.cartera} />
+    <Pantalla titulo={t.cartera} volverA="/">
+      <Escalera cartera={datos.cartera} etiquetas={t} />
 
       {/* Una sola línea aquí: la que explica por qué disponible < devengado, que
           es la pregunta que nace al mirar la escalera. Lo que tarda el
           superadmin se dice junto al botón de pedir, que es cuando importa. */}
-      <p className="mt-3 text-apoyo text-texto-apoyo">
-        Solo lo consolidado se puede pedir: los últimos días aún pueden revisarse.
-      </p>
+      <p className="mt-3 text-apoyo text-texto-apoyo">{t.soloConsolidado}</p>
 
       {viva ? (
-        <section className="mt-8 border-l-2 border-vivo pl-3" aria-label="Solicitud en curso">
-          <p className="text-rotulo text-texto-apoyo">SOLICITUD EN CURSO</p>
+        <section className="mt-8 border-s-2 border-vivo ps-3" aria-label={t.solicitudEnCurso}>
+          <p className="text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
           <p className="mt-1.5">
             <Importe texto={viva.importe.texto} className="text-cifra" />
           </p>
           <p className="mt-1 text-apoyo text-texto-apoyo">
-            {ETIQUETA_ESTADO[viva.estado] ?? viva.estado} · {viva.red} ·{" "}
+            {estadoLegible(viva.estado, t)} · {viva.red} ·{" "}
             <span className="cifra">{viva.wallet}</span>
           </p>
           <p className="mt-2 text-apoyo text-texto-apoyo">
-            Pedida el {formatoFecha(viva.solicitadoEn)}. Solo puedes tener una a la vez; en
-            cuanto se resuelva podrás pedir la siguiente.
+            {t.pedidaEl(formatoFecha(viva.solicitadoEn))} {t.soloUnaALaVez}
           </p>
         </section>
       ) : (
-        <section className="mt-8" aria-label={es.solicitarRetiro}>
+        <section className="mt-8" aria-label={t.solicitarRetiro}>
           <p className="text-rotulo mb-3 border-b border-borde pb-2 text-texto-apoyo">
-            {es.solicitarRetiro.toUpperCase()}
+            {t.solicitarRetiro.toUpperCase()}
           </p>
 
           <label htmlFor="importe" className="text-rotulo block text-texto-apoyo">
-            CUÁNTO
+            {t.cuanto}
           </label>
           <div className="mt-2 flex gap-2">
             <input
@@ -243,28 +233,28 @@ export default function CarteraPagina() {
               disabled={disponibleMicros < minimoMicros}
               className="shrink-0 rounded-pieza border border-borde px-4 text-apoyo font-medium disabled:opacity-40"
             >
-              Todo
+              {t.todo}
             </button>
           </div>
           <p className="mt-2 text-apoyo text-texto-apoyo">
-            Disponible <Importe texto={datos.cartera.disponible.texto} /> · mínimo{" "}
-            <Importe texto={datos.minimo.texto} />
+            {t.disponibleYMinimo} <Importe texto={datos.cartera.disponible.texto} /> ·{" "}
+            {t.minimo} <Importe texto={datos.minimo.texto} />
           </p>
           {importeMicros !== null && importeMicros > disponibleMicros && (
             <p className="mt-1 text-apoyo text-vivo">
-              Te pasas en {formatearMicros(importeMicros - disponibleMicros)}.
+              {t.tePasasEn(formatearMicros(importeMicros - disponibleMicros))}
             </p>
           )}
           {importeMicros !== null &&
             importeMicros < minimoMicros &&
             importeMicros > 0n && (
               <p className="mt-1 text-apoyo text-vivo">
-                Te faltan {formatearMicros(minimoMicros - importeMicros)} para el mínimo.
+                {t.teFaltanParaElMinimo(formatearMicros(minimoMicros - importeMicros))}
               </p>
             )}
 
           <div className="mt-6">
-            <p className="text-rotulo mb-2 text-texto-apoyo">EN QUÉ RED</p>
+            <p className="text-rotulo mb-2 text-texto-apoyo">{t.enQueRed}</p>
             <div className="grid grid-cols-3 gap-2">
               {REDES.map((r) => (
                 <button
@@ -288,7 +278,7 @@ export default function CarteraPagina() {
 
           <div className="mt-6">
             <label htmlFor="wallet" className="text-rotulo block text-texto-apoyo">
-              WALLET USDT
+              {t.walletUsdt}
             </label>
             {/* El marcador de posición es un EJEMPLO de dirección, no la
                 explicación: repetir en el hueco lo mismo que dice la línea de
@@ -310,15 +300,15 @@ export default function CarteraPagina() {
               }`}
             >
               {wallet && !walletValida
-                ? `Esa dirección no tiene forma de ${definicionRed.nombre}. ${definicionRed.pista}`
-                : `USDT en ${definicionRed.nombre}. ${definicionRed.pista} Un pago a la red equivocada no se recupera.`}
+                ? t.direccionMalFormada(definicionRed.nombre, definicionRed.pista(t))
+                : t.usdtEn(definicionRed.nombre, definicionRed.pista(t))}
             </p>
           </div>
 
           {/* Lo que tarda, junto al botón: es donde la espera se convierte en
               una expectativa concreta y no en una duda. */}
-          <p className="mt-6 border-l-2 border-borde pl-3 text-apoyo text-texto-apoyo">
-            {es.revisionManual}
+          <p className="mt-6 border-s-2 border-borde ps-3 text-apoyo text-texto-apoyo">
+            {t.revisionManual}
           </p>
 
           {error && (
@@ -329,7 +319,7 @@ export default function CarteraPagina() {
 
           <BotonPrincipalAccion
             texto={
-              importeValido ? `PEDIR ${formatearMicros(importeMicros!)}` : "PEDIR RETIRO"
+              importeValido ? t.pedirImporte(formatearMicros(importeMicros!)) : t.pedirRetiro
             }
             onClick={solicitar}
             activo={importeValido && walletValida}
@@ -344,10 +334,10 @@ export default function CarteraPagina() {
           sola viva a la vez— tiene que evitar. */}
       <section className="mt-10" aria-label="Solicitudes anteriores">
         <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">
-          ANTERIORES
+          {t.solicitudesAnteriores}
         </p>
         {resueltas.length === 0 ? (
-          <p className="py-4 text-apoyo text-texto-apoyo">{es.sinMovimientos}</p>
+          <p className="py-4 text-apoyo text-texto-apoyo">{t.sinMovimientos}</p>
         ) : (
           <ul className="divide-y divide-borde" role="list">
             {resueltas.map((h) => (
@@ -359,7 +349,7 @@ export default function CarteraPagina() {
                       h.estado === "RECHAZADO" ? "text-vivo" : "text-texto-apoyo"
                     }`}
                   >
-                    {ETIQUETA_ESTADO[h.estado] ?? h.estado}
+                    {estadoLegible(h.estado, t)}
                   </span>
                 </div>
                 <p className="mt-0.5 text-apoyo text-texto-apoyo">
@@ -390,6 +380,22 @@ export default function CarteraPagina() {
       </section>
     </Pantalla>
   );
+}
+
+/** El estado de una solicitud, dicho en el idioma del agente. */
+function estadoLegible(estado: string, t: Cadenas): string {
+  switch (estado) {
+    case "SOLICITADO":
+      return t.pendienteDeRevision;
+    case "APROBADO":
+      return t.aprobadoPendientePago;
+    case "PAGADO":
+      return t.estadoPagado;
+    case "RECHAZADO":
+      return t.estadoRechazado;
+    default:
+      return t.estadoCancelado;
+  }
 }
 
 function formatoFecha(iso: string): string {

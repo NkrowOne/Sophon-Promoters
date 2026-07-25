@@ -27,7 +27,7 @@ const DIAS = 30;
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId, puedeConcederPro } = ctx.sesion;
+  const { agenteId, puedeActivarWebmasters } = ctx.sesion;
 
   const hoy = hoyContable();
   const desde = new Date(Date.parse(`${hoy}T00:00:00Z`) - (DIAS - 1) * 86_400_000);
@@ -101,9 +101,9 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     dias,
     webmasters,
     // Inicio lo usa para no ofrecer una acción que el servidor va a rechazar:
-    // enseñar «Conceder PRO» a quien no tiene el permiso es mandarle a una
-    // pantalla que solo puede decirle que no.
-    puedeConcederPro,
+    // mandar a alguien sin permiso a una pantalla que solo puede decirle que no
+    // es peor que no ofrecerle el enlace.
+    puedeActivarWebmasters,
     cartera: {
       devengado: dinero(saldo.devengadoMicros),
       disponible: dinero(saldo.disponibleMicros),

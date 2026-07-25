@@ -36,7 +36,6 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       estadoSophon: true,
       desaparecidoEn: true,
       proVigenteHasta: true,
-      proPlanActual: true,
       atribuidoEn: true,
       filasDiarias: {
         where: { fecha: { gte: desde } },
@@ -84,7 +83,6 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       estado: w.desaparecidoEn ? "DESAPARECIDO" : w.estadoSophon,
       activadoEn: w.atribuidoEn ? isoFecha(w.atribuidoEn) : null,
       proVigenteHasta: w.proVigenteHasta ? isoFecha(w.proVigenteHasta) : null,
-      proPlan: w.proPlanActual,
       // La Mecha: días hasta que caduque el PRO. Es el único dato temporal que
       // la API de Sophon no permite consultar, solo llega al concederlo.
       diasHastaCaducidad: w.proVigenteHasta

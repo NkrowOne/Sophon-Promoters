@@ -11,6 +11,11 @@ import {
   normalizarEmail,
   verificarOtp,
 } from "../lib/cripto.ts";
+import {
+  CODIGOS_MEMBRESIA,
+  PLAN_UNICO,
+  SEGUNDOS_UN_ANIO,
+} from "../lib/sophon/tipos.ts";
 
 describe("códigos de activación", () => {
   /**
@@ -101,5 +106,33 @@ describe("claves de idempotencia", () => {
     // colisionarían, y dos acciones distintas compartirían idempotencia: la
     // segunda se descartaría como repetida y el agente perdería una concesión.
     assert.notEqual(claveIdempotencia("ab", "c"), claveIdempotencia("a", "bc"));
+  });
+});
+
+describe("duración del PRO", () => {
+  /**
+   * La trampa que hizo que «1 año» concediera 30 días.
+   *
+   * `membership_code` nombra el plan y `duration` fija el plazo, y son
+   * independientes: la documentación de Sophon dice literalmente
+   * «0 = defaults to 30 days». El cliente mandaba 0 siempre, así que los cuatro
+   * planes que ofrecía la aplicación concedían todos un mes.
+   *
+   * Nada de esto lo puede ver un typecheck: el código compilaba y la llamada
+   * era válida. Lo único que lo sostiene es esta invariante escrita.
+   */
+  it("un año son 365 días en segundos, y nunca cero", () => {
+    assert.equal(SEGUNDOS_UN_ANIO, 365 * 86_400);
+    assert.equal(SEGUNDOS_UN_ANIO, 31_536_000);
+    assert.notEqual(SEGUNDOS_UN_ANIO, 0, "un 0 aquí son 30 días, no un año");
+    assert.notEqual(SEGUNDOS_UN_ANIO, 2_592_000, "2 592 000 s son los 30 días por defecto");
+  });
+
+  it("la aplicación concede un solo plan y es el anual", () => {
+    assert.equal(PLAN_UNICO, "vip.year");
+    assert.ok(
+      (CODIGOS_MEMBRESIA as readonly string[]).includes(PLAN_UNICO),
+      "el plan tiene que seguir siendo un código válido de la API",
+    );
   });
 });

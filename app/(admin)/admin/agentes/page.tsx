@@ -1,47 +1,38 @@
 import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth/admin";
-import { CODIGOS_MEMBRESIA } from "@/lib/sophon/tipos";
 import { cambiarEstadoAgente, cortarSesiones, guardarPermisos } from "../acciones";
 import { Cerrada } from "../_piezas/Cerrada";
 import { Importe } from "../_piezas/Importe";
+import { inicioDelMes } from "@/lib/pro/conceder";
 
 /**
  * Agentes.
  *
- * Lo que se administra aquí es **lo que un agente puede gastar del superadmin**:
- * conceder PRO regala hasta un año de VIP a su costa. Por eso el permiso, los
- * planes y el cupo van juntos en un mismo bloque y no repartidos por la
- * pantalla: son una sola decisión.
+ * Lo que se administra aquí es **lo que un agente puede gastar del superadmin**.
+ * Y desde que el PRO va atado al alta, eso es una sola cifra: cada alta regala
+ * un año de VIP, así que el tope de altas ES el tope de gasto. Ya no hay planes
+ * que autorizar ni cupo de PRO aparte que cuadrar con él.
  *
- * Cada agente muestra además lo que lleva devengado y cuánto ha gastado de su
- * cupo este mes, que es el contexto sin el cual «subirle el cupo a 20» es una
- * cifra elegida a ciegas.
+ * Cada agente muestra lo que lleva devengado y las altas que ha hecho este mes,
+ * que es el contexto sin el cual «subirle el tope a 50» es una cifra elegida a
+ * ciegas.
  */
 
 export const dynamic = "force-dynamic";
 
-const NOMBRE_PLAN: Record<string, string> = {
-  "vip.day": "día",
-  "vip.week": "semana",
-  "vip.month": "mes",
-  "vip.year": "año",
-};
-
-function periodoActual(): string {
-  const zona = process.env["ZONA_HORARIA"] ?? "Europe/Madrid";
-  return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(new Date()).slice(0, 7);
-}
-
 export default async function Agentes() {
   if (!(await exigirAdmin())) return <Cerrada />;
 
-  const periodo = periodoActual();
+  const desdeElDiaUno = inicioDelMes();
 
   const sinOrdenar = await db.agente.findMany({
     include: {
       _count: { select: { webmasters: true } },
-      concesiones: {
-        where: { periodoCupo: periodo, estado: { in: ["RESERVADA", "CONFIRMADA"] } },
+      // Las altas se cuentan sobre los intentos con éxito, igual que en la ruta
+      // que las limita. Si el panel contara de otra forma, enseñaría «te quedan
+      // 3» mientras el servidor rechaza la siguiente.
+      vinculaciones: {
+        where: { exito: true, creadoEn: { gte: desdeElDiaUno } },
         select: { id: true },
       },
     },
@@ -83,7 +74,8 @@ export default async function Agentes() {
         Agentes
       </h1>
       <p className="apoyo" style={{ marginTop: "0.35rem" }}>
-        {agentes.length} en total. El cupo de PRO se cuenta sobre {periodo}.
+        {agentes.length} en total. Cada alta concede un año de PRO, así que el tope de
+        altas es el tope de gasto. Se cuenta desde el día 1.
       </p>
 
       <div style={{ marginTop: "2rem", display: "grid", gap: "1.25rem" }}>
@@ -130,14 +122,14 @@ export default async function Agentes() {
                 <p className="apoyo">
                   {a._count.webmasters}{" "}
                   {a._count.webmasters === 1 ? "webmaster" : "webmasters"} ·{" "}
-                  {a.concesiones.length} de {a.cupoProMensual} PRO este mes
+                  {a.vinculaciones.length} de {a.cupoAltasMensual} altas este mes
                 </p>
               </div>
             </div>
 
-            {/* Permiso, planes y cupo en un mismo formulario: son una sola
-                decisión —cuánto puede gastar de lo mío— y separarlos invitaría
-                a dejar el cupo puesto con el permiso quitado, o al revés. */}
+            {/* Permiso y tope en el mismo formulario: son una sola decisión
+                —cuánto puede gastar de lo mío— y separarlos invitaría a dejar
+                el tope puesto con el permiso quitado, o al revés. */}
             <form
               action={guardarPermisos}
               style={{
@@ -153,37 +145,28 @@ export default async function Agentes() {
               <input type="hidden" name="agenteId" value={a.id} />
 
               <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.875rem" }}>
-                <input type="checkbox" name="puedeConcederPro" defaultChecked={a.puedeConcederPro} />
-                Puede conceder PRO
+                <input
+                  type="checkbox"
+                  name="puedeActivarWebmasters"
+                  defaultChecked={a.puedeActivarWebmasters}
+                />
+                Puede activar webmasters
               </label>
 
               <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.875rem" }}>
-                Cupo mensual
+                Altas al mes
                 <input
                   type="number"
-                  name="cupoProMensual"
+                  name="cupoAltasMensual"
                   min={0}
                   max={500}
-                  defaultValue={a.cupoProMensual}
+                  defaultValue={a.cupoAltasMensual}
                   style={{ width: "5rem" }}
                 />
               </label>
-
-              <span style={{ display: "inline-flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                {CODIGOS_MEMBRESIA.map((p) => (
-                  <label
-                    key={p}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.875rem" }}
-                  >
-                    <input
-                      type="checkbox"
-                      name={`plan:${p}`}
-                      defaultChecked={a.planesAutorizados.includes(p)}
-                    />
-                    {NOMBRE_PLAN[p]}
-                  </label>
-                ))}
-              </span>
+              {/* 0 no es un error: es cómo se le corta el gasto a un agente sin
+                  cerrarle la cuenta ni la sesión. */}
+              <span className="apoyo">0 = bloqueado</span>
 
               <button type="submit" className="boton primario">
                 Guardar

@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { Malla, DIAS_APAGADO, type WebmasterMalla } from "@/components/Malla";
 import { Aviso, Cargando, Pantalla, Vacio } from "@/components/Pantalla";
-import { useTelegram } from "@/components/TelegramProvider";
+import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
-import { es } from "@/lib/i18n";
 
 interface Respuesta {
   webmasters: WebmasterMalla[];
@@ -24,6 +23,7 @@ interface Respuesta {
 export default function Red() {
   const router = useRouter();
   const { haptica } = useTelegram();
+  const t = useCadenas();
   const [datos, setDatos] = useState<Respuesta | null>(null);
   const [error, setError] = useState<ErrorApi | null>(null);
 
@@ -32,7 +32,7 @@ export default function Red() {
     api
       .get<Respuesta>("/api/agente/red")
       .then(setDatos)
-      .catch((e) => setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null)));
+      .catch((e) => setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)));
   }, []);
 
   useEffect(cargar, [cargar]);
@@ -47,25 +47,25 @@ export default function Red() {
 
   if (error) {
     return (
-      <Pantalla titulo={es.red} volverA="/">
+      <Pantalla titulo={t.red} volverA="/">
         <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
       </Pantalla>
     );
   }
   if (!datos) {
     return (
-      <Pantalla titulo={es.red} volverA="/">
-        <Cargando que="Sondeando" />
+      <Pantalla titulo={t.red} volverA="/">
+        <Cargando que={t.sondeando} />
       </Pantalla>
     );
   }
   if (datos.webmasters.length === 0) {
     return (
-      <Pantalla titulo={es.red} volverA="/">
+      <Pantalla titulo={t.red} volverA="/">
         <Vacio
-          titulo={es.sinWebmasters}
-          apoyo={es.sinWebmastersApoyo}
-          accion={{ texto: "Activar el primero", href: "/activar" }}
+          titulo={t.sinWebmasters}
+          apoyo={t.sinWebmastersApoyo}
+          accion={{ texto: t.activarElPrimero, href: "/activar" }}
         />
       </Pantalla>
     );
@@ -77,33 +77,23 @@ export default function Red() {
   const conProblema = datos.webmasters.filter((w) => w.estado !== "ACTIVO").length;
 
   return (
-    <Pantalla titulo={es.red} volverA="/">
+    <Pantalla titulo={t.red} volverA="/">
       {/* Lo primero es lo que exige actuar. Si no hay nada parado, se dice:
           confirmar que está todo bien también es información. */}
       <p className="mb-5 text-apoyo text-texto-apoyo">
         {conProblema > 0 && (
-          <span className="text-vivo">
-            {conProblema} con incidencia ·{" "}
-          </span>
+          <span className="text-vivo">{t.conIncidencia(conProblema)} · </span>
         )}
-        {parados > 0 ? (
-          <>
-            <span className="cifra">{parados}</span> sin actividad en los últimos{" "}
-            {DIAS_APAGADO} días, de <span className="cifra">{datos.webmasters.length}</span>
-          </>
-        ) : (
-          <>
-            Los <span className="cifra">{datos.webmasters.length}</span> están produciendo
-          </>
-        )}
+        <span className="tabular-nums">
+          {parados > 0
+            ? t.sinActividadDe(parados, DIAS_APAGADO, datos.webmasters.length)
+            : t.todosProduciendo(datos.webmasters.length)}
+        </span>
       </p>
 
       <Malla webmasters={datos.webmasters} dias={datos.dias} onAbrir={abrir} />
 
-      <p className="mt-5 text-apoyo text-texto-apoyo">
-        Cada columna son {datos.dias} días. La altura es el volumen de registros y la
-        escala es común, así que las teselas se comparan entre sí.
-      </p>
+      <p className="mt-5 text-apoyo text-texto-apoyo">{t.escalaComun(datos.dias)}</p>
     </Pantalla>
   );
 }

@@ -2,6 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
+import { cadenas, type Cadenas } from "@/lib/i18n";
+import { esRtl, idiomaDesdeTelegram, IDIOMA_POR_DEFECTO, type Idioma } from "@/lib/idiomas";
+
 /**
  * Puente con el cliente de Telegram.
  *
@@ -35,8 +38,15 @@ interface BotonPrincipal {
   setParams: (p: Record<string, unknown>) => void;
 }
 
+interface UsuarioInicial {
+  id?: number;
+  language_code?: string;
+}
+
 interface WebApp {
   initData: string;
+  /** Datos SIN verificar: solo se usan para elegir idioma, nunca para autorizar. */
+  initDataUnsafe?: { user?: UsuarioInicial };
   colorScheme: "light" | "dark";
   themeParams: Record<string, string>;
   viewportStableHeight?: number;
@@ -60,6 +70,9 @@ interface Contexto {
   /** El MainButton nativo puede no ser visible; entonces hay que dibujar uno propio. */
   botonTapado: boolean;
   haptica: (tipo: "exito" | "error" | "toque" | "seleccion") => void;
+  idioma: Idioma;
+  /** Cadenas ya resueltas al idioma del agente. */
+  t: Cadenas;
 }
 
 const ContextoTelegram = createContext<Contexto>({
@@ -68,10 +81,23 @@ const ContextoTelegram = createContext<Contexto>({
   oscuro: false,
   botonTapado: false,
   haptica: () => {},
+  idioma: IDIOMA_POR_DEFECTO,
+  t: cadenas(IDIOMA_POR_DEFECTO),
 });
 
 export function useTelegram(): Contexto {
   return useContext(ContextoTelegram);
+}
+
+/**
+ * Atajo para las pantallas, que casi siempre solo quieren las cadenas.
+ *
+ * Existe para que traducir una pantalla sea cambiar `es.` por `t.` y nada más:
+ * si cada una tuviera que sacar el idioma del contexto y resolver el catálogo,
+ * la traducción se habría quedado a medias en la primera que se olvidara.
+ */
+export function useCadenas(): Cadenas {
+  return useContext(ContextoTelegram).t;
 }
 
 declare global {
@@ -85,6 +111,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const [listo, setListo] = useState(false);
   const [oscuro, setOscuro] = useState(false);
   const [botonTapado, setBotonTapado] = useState(false);
+  const [idioma, setIdioma] = useState<Idioma>(IDIOMA_POR_DEFECTO);
 
   const aplicarTema = useCallback((app: WebApp) => {
     const esOscuro = app.colorScheme === "dark";
@@ -112,6 +139,17 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
     aplicarTema(app);
     setWebApp(app);
     setListo(true);
+
+    // El idioma sale de `initDataUnsafe`, que NO está verificado. Es correcto
+    // aquí y solo aquí: elegir catálogo no autoriza nada, y esperar a que el
+    // servidor validara la firma dejaría la primera pantalla en español para
+    // alguien que no lo lee. Todo lo que decide permisos sigue saliendo del
+    // `initData` firmado.
+    const elegido = idiomaDesdeTelegram(app.initDataUnsafe?.user?.language_code);
+    setIdioma(elegido);
+    document.documentElement.lang = elegido;
+    // El árabe invierte el layout entero, raíl del Testigo incluido.
+    document.documentElement.dir = esRtl(elegido) ? "rtl" : "ltr";
 
     const alCambiarTema = () => aplicarTema(app);
     const alCambiarViewport = () => {
@@ -144,8 +182,8 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   );
 
   const valor = useMemo(
-    () => ({ webApp, listo, oscuro, botonTapado, haptica }),
-    [webApp, listo, oscuro, botonTapado, haptica],
+    () => ({ webApp, listo, oscuro, botonTapado, haptica, idioma, t: cadenas(idioma) }),
+    [webApp, listo, oscuro, botonTapado, haptica, idioma],
   );
 
   return <ContextoTelegram.Provider value={valor}>{children}</ContextoTelegram.Provider>;

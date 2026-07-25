@@ -6,10 +6,9 @@ import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animaci
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Aviso, Cargando, Vacio } from "@/components/Pantalla";
 import { Testigo, TestigoVacio, type DiaTestigo } from "@/components/testigo/Testigo";
-import { useTelegram } from "@/components/TelegramProvider";
+import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
 import { formatearMicros } from "@/lib/devengo/dinero";
-import { es } from "@/lib/i18n";
 
 /**
  * Inicio del agente.
@@ -34,7 +33,7 @@ interface DiaApi extends Omit<DiaTestigo, "importeMicros"> {
 interface Resumen {
   dias: DiaApi[];
   webmasters: number;
-  puedeConcederPro: boolean;
+  puedeActivarWebmasters: boolean;
   cartera: Cartera;
 }
 
@@ -43,6 +42,7 @@ export default function Inicio() {
   // aporta tema y háptica; si tarda o falla —WebView antiguo, script bloqueado,
   // la app abierta fuera de Telegram— la pantalla debe seguir siendo legible.
   useTelegram();
+  const t = useCadenas();
 
   const [datos, setDatos] = useState<Resumen | null>(null);
   const [error, setError] = useState<ErrorApi | null>(null);
@@ -89,9 +89,9 @@ export default function Inicio() {
     return (
       <main className="min-h-dvh px-4 pt-10">
         <Vacio
-          titulo="Aún no has vinculado tu cuenta."
-          apoyo={es.pideCodigo}
-          accion={{ texto: es.vincularCuenta, href: "/alta" }}
+          titulo={t.sinVinculo}
+          apoyo={t.pideCodigo}
+          accion={{ texto: t.vincularCuenta, href: "/alta" }}
         />
       </main>
     );
@@ -100,7 +100,7 @@ export default function Inicio() {
   const cartera = datos?.cartera;
 
   return (
-    <main className="relative min-h-dvh pl-testigo">
+    <main className="relative min-h-dvh ps-testigo">
       {/* El raíl: identidad, gráfico principal, indicador de estado y estado
           vacío, todo en la misma pieza.
 
@@ -109,7 +109,7 @@ export default function Inicio() {
           misma retícula dibujada dos veces— y el resultado era un rayado sucio
           en lugar de una columna sin perforar. */}
       <div
-        className={`fixed inset-y-0 left-0 w-testigo overflow-hidden bg-superficie ${
+        className={`fixed inset-y-0 start-0 w-testigo overflow-hidden bg-superficie ${
           dias.length > 0 ? "testigo-terreno" : ""
         }`}
       >
@@ -120,28 +120,27 @@ export default function Inicio() {
         {error ? (
           <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
         ) : !datos ? (
-          <Cargando que="Sondeando" />
+          <Cargando que={t.sondeando} />
         ) : dias.length === 0 ? (
           <Vacio
-            titulo={datos.webmasters === 0 ? es.sinWebmasters : es.sinIngresos}
-            apoyo={datos.webmasters === 0 ? es.sinWebmastersApoyo : es.sinIngresosApoyo}
+            titulo={datos.webmasters === 0 ? t.sinWebmasters : t.sinIngresos}
+            apoyo={datos.webmasters === 0 ? t.sinWebmastersApoyo : t.sinIngresosApoyo}
             accion={
               datos.webmasters === 0
-                ? { texto: es.activarWebmaster, href: "/activar" }
-                : { texto: es.red, href: "/red" }
+                ? { texto: t.activarWebmaster, href: "/activar" }
+                : { texto: t.red, href: "/red" }
             }
           />
         ) : (
           <>
             <Aparece orden={0}>
               <header className="mb-8">
-                <p className="text-rotulo text-texto-apoyo">{es.devengado} · 30 DÍAS</p>
+                <p className="text-rotulo text-texto-apoyo">{t.devengadoTreintaDias}</p>
                 <div className="mt-1.5">
                   <CifraProtagonista micros={devengadoMes} />
                 </div>
-                <p className="mt-2 text-apoyo text-texto-apoyo">
-                  <span className="tabular-nums">{totalTiers}</span> registros ·{" "}
-                  <span className="tabular-nums">{datos.webmasters}</span> webmasters
+                <p className="mt-2 text-apoyo tabular-nums text-texto-apoyo">
+                  {t.registrosYWebmasters(totalTiers, datos.webmasters)}
                 </p>
               </header>
             </Aparece>
@@ -150,7 +149,7 @@ export default function Inicio() {
                 volumen?». Sustituye a tres donuts y ocupa una décima parte. */}
             {totalTiers > 0 && (
               <Aparece orden={1}>
-                <section aria-label="Reparto de registros por tier" className="mb-8">
+                <section aria-label={t.repartoPorTier} className="mb-8">
                   <div className="flex h-2 overflow-hidden bg-superficie-alta">
                     <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
                     <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
@@ -170,8 +169,8 @@ export default function Inicio() {
             {cartera && (
               <Aparece orden={2}>
                 <div className="mb-8">
-                  <Escalera cartera={cartera} titulo={es.cartera.toUpperCase()} />
-                  <p className="mt-3 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
+                  <Escalera cartera={cartera} titulo={t.cartera.toUpperCase()} etiquetas={t} />
+                  <p className="mt-3 text-apoyo text-texto-apoyo">{t.revisionManual}</p>
                 </div>
               </Aparece>
             )}
@@ -183,13 +182,15 @@ export default function Inicio() {
                   retícula PAR. Con tres secundarias la fila quedaba descuadrada
                   respecto al botón de arriba; con cuatro, el bloque entero es un
                   rectángulo y deja de leerse como un sobrante. */}
-              <nav aria-label="Acciones" className="space-y-2.5">
-                <Accion href="/activar" etiqueta={es.activarWebmaster} principal />
+              <nav aria-label={t.acciones} className="space-y-2.5">
+                <Accion href="/activar" etiqueta={t.activarWebmaster} principal />
                 <div className="grid grid-cols-2 gap-2.5">
-                  <Accion href="/red" etiqueta={es.red} />
-                  {datos.puedeConcederPro && <Accion href="/pro" etiqueta={es.concederPro} />}
-                  <Accion href="/historico" etiqueta={es.historico} />
-                  <Accion href="/cartera" etiqueta={es.cartera} />
+                  <Accion href="/red" etiqueta={t.red} />
+                  {datos.puedeActivarWebmasters && (
+                    <Accion href="/pro" etiqueta={t.colaRenovaciones} />
+                  )}
+                  <Accion href="/historico" etiqueta={t.historico} />
+                  <Accion href="/cartera" etiqueta={t.cartera} />
                 </div>
               </nav>
             </Aparece>

@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { normalizarEmail } from "@/lib/cripto";
+import { claveIdempotencia, normalizarEmail } from "@/lib/cripto";
 import { esRespuesta, exigirAgente } from "@/lib/api/agente";
+import { altasDelMes, concederAnio } from "@/lib/pro/conceder";
 import { clienteSophon } from "@/lib/sophon/instancia";
 import { ErrorSophon } from "@/lib/sophon/cliente";
 import { hoyContable } from "@/lib/sync/registros";
 
 /**
- * Activar un webmaster: la acción que crea la atribución.
+ * Activar un webmaster: la acción que crea la atribución **y concede el PRO**.
+ *
+ * Son un solo acto comercial, no dos: un webmaster se da de alta y entra con un
+ * año de PRO. El agente no elige plazo ni plan porque no hay nada que elegir.
  *
  * El orden importa y no es el intuitivo. Se **reserva primero en local** y se
  * llama a Sophon después, porque el índice único sobre `emailNormalizado` es lo
@@ -18,19 +22,39 @@ import { hoyContable } from "@/lib/sync/registros";
  * resolvería en la base de datos con uno de los agentes ya convencido de que el
  * webmaster es suyo.
  *
- * Si Sophon rechaza la vinculación, la reserva se deshace.
+ * Tres reglas sobre el fallo, que aquí no es simétrico:
+ *
+ *  - Si Sophon rechaza la **vinculación**, la reserva se deshace: no ha pasado nada.
+ *  - Si la vinculación va bien y falla el **PRO**, el alta NO se deshace. Sophon
+ *    ya vinculó al webmaster y volver a intentarlo daría «already an affiliate»,
+ *    así que revertir dejaría al webmaster vinculado allí y huérfano aquí, que
+ *    es peor que el trabajo a medias. Se avisa y se reintenta desde su ficha.
+ *  - Solo un webmaster **nuevo** recibe el año automático. Adoptar un huérfano
+ *    con historia no es registrar una cuenta nueva; su PRO se concede a mano.
  */
 
 export const dynamic = "force-dynamic";
 
 const Cuerpo = z.object({
   email: z.string().email().max(254),
+  /** La genera el cliente y hace seguro reintentar sin conceder dos años. */
+  idempotencia: z.string().min(8).max(64),
 });
 
 export async function POST(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, puedeActivarWebmasters, cupoAltasMensual } = ctx.sesion;
+
+  if (!puedeActivarWebmasters) {
+    return NextResponse.json(
+      {
+        error: "No tienes permiso para activar webmasters.",
+        apoyo: "Pídeselo al superadmin.",
+      },
+      { status: 403 },
+    );
+  }
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
@@ -42,6 +66,19 @@ export async function POST(peticion: Request): Promise<NextResponse> {
 
   const emailNormalizado = normalizarEmail(parseado.data.email);
   const hoy = hoyContable();
+
+  // El tope se comprueba ANTES de tocar nada: cada alta regala un año de PRO a
+  // costa del superadmin, así que es el único freno que hay sobre ese gasto.
+  const usadas = await altasDelMes(agenteId);
+  if (usadas >= cupoAltasMensual) {
+    return NextResponse.json(
+      {
+        error: `Has agotado tus altas de este mes (${usadas} de ${cupoAltasMensual}).`,
+        apoyo: "Se reinicia el día 1. Si necesitas más antes, pídeselo al superadmin.",
+      },
+      { status: 429 },
+    );
+  }
 
   // ── Paso 1: reservar en local ──────────────────────────────────────────
   let webmasterId: string;
@@ -187,12 +224,42 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       actorId: agenteId,
       accion: "webmaster.activado",
       recurso: emailNormalizado,
+      detalle: { nuevo: reservaNueva },
     },
+  });
+
+  // ── Paso 3: el año de PRO ──────────────────────────────────────────────
+  // Solo para cuentas NUEVAS. Un huérfano preexistente no acaba de registrarse:
+  // ya traía historia, y regalarle un año automático por adoptarlo sería pagar
+  // dos veces por el mismo webmaster cada vez que cambia de agente.
+  if (!reservaNueva) {
+    return NextResponse.json({
+      ok: true,
+      email: parseado.data.email,
+      devengaDesde: hoy,
+      nuevo: false,
+      pro: null,
+    });
+  }
+
+  const pro = await concederAnio({
+    agenteId,
+    webmasterId,
+    emailWebmaster: parseado.data.email,
+    motivo: "ALTA",
+    claveIdempotencia: claveIdempotencia(agenteId, emailNormalizado, parseado.data.idempotencia),
   });
 
   return NextResponse.json({
     ok: true,
     email: parseado.data.email,
     devengaDesde: hoy,
+    nuevo: true,
+    // El alta está hecha pase lo que pase con el PRO. Se informa del resultado
+    // en vez de fingir que todo fue bien o de fallar entera una operación que
+    // sí ha prosperado.
+    pro: pro.ok
+      ? { concedido: true, vigenteHasta: pro.vigenteHasta }
+      : { concedido: false, error: pro.error ?? null, apoyo: pro.apoyo ?? null },
   });
 }
