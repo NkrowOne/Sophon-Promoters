@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Mecha, unidadComun } from "@/components/Mecha";
-import { Aviso, Cargando, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
@@ -43,9 +43,7 @@ interface WebmasterPro {
 }
 
 interface EstadoPro {
-  puedeConceder: boolean;
   diasAviso: number;
-  altas: { usadas: number; total: number };
   webmasters: WebmasterPro[];
   urgentes: number;
 }
@@ -108,7 +106,7 @@ export default function Renovaciones() {
   if (error && !datos) {
     return (
       <Pantalla titulo={t.colaRenovaciones} volverA="/">
-        <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
+        <FalloDeCarga error={error} onReintentar={cargar} />
       </Pantalla>
     );
   }
@@ -116,17 +114,6 @@ export default function Renovaciones() {
     return (
       <Pantalla titulo={t.colaRenovaciones} volverA="/">
         <Cargando />
-      </Pantalla>
-    );
-  }
-  if (!datos.puedeConceder) {
-    return (
-      <Pantalla titulo={t.colaRenovaciones} volverA="/">
-        <Vacio
-          titulo={t.sinPermisoAltas}
-          apoyo={t.sinPermisoAltasApoyo}
-          accion={{ texto: t.volverAlInicio, href: "/" }}
-        />
       </Pantalla>
     );
   }

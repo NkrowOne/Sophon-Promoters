@@ -61,6 +61,46 @@ function escapar(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/**
+ * El menú: cada sección de la Mini App con su propia puerta.
+ *
+ * Antes el bot abría siempre la raíz, así que para renovar un PRO había que
+ * abrir la app y navegar hasta la cola. Telegram permite que cada botón
+ * `web_app` apunte a una URL distinta, así que el menú puede ser un índice
+ * real de la aplicación en vez de un solo botón de «abrir».
+ *
+ * El orden no es alfabético: es el de la jornada de un agente. Primero lo que
+ * exige actuar hoy —dar de alta y renovar—, después lo que se consulta.
+ */
+const SECCIONES = [
+  { ruta: "/activar", etiqueta: "Activar webmaster" },
+  { ruta: "/pro", etiqueta: "Renovaciones" },
+  { ruta: "/red", etiqueta: "Tu red" },
+  { ruta: "/cartera", etiqueta: "Cartera" },
+  { ruta: "/historico", etiqueta: "Histórico" },
+] as const;
+
+/**
+ * Teclado del menú.
+ *
+ * Telegram solo acepta botones de Mini App sobre HTTPS: en desarrollo, con
+ * `APP_URL` en http, un botón `web_app` hace que la API rechace el mensaje
+ * ENTERO. Por eso devuelve `undefined` y quien llama manda el enlace en texto,
+ * de modo que el bot sigue siendo usable mientras se desarrolla.
+ */
+function menu(url: string): InlineKeyboard | undefined {
+  if (!url.startsWith("https://")) return undefined;
+  const k = new InlineKeyboard();
+  SECCIONES.forEach((s, i) => {
+    k.webApp(s.etiqueta, `${url}${s.ruta}`);
+    // Dos por fila: los rótulos son cortos y cinco botones a lo ancho de un
+    // móvil se cortarían.
+    if (i % 2 === 1) k.row();
+  });
+  return k;
+}
+
+
 function registrar(b: Bot): void {
   b.command("start", async (ctx) => {
     const url = urlMiniApp();
@@ -81,16 +121,15 @@ function registrar(b: Bot): void {
       return;
     }
 
-    // Telegram solo acepta botones de Mini App sobre HTTPS. En desarrollo
-    // —APP_URL con http— el botón haría que la API rechazara el mensaje entero,
-    // así que se manda el enlace en texto y el bot sigue siendo usable.
     const seguro = url.startsWith("https://");
-    const teclado = seguro
-      ? new InlineKeyboard().webApp(
-          vinculado ? "Abrir mi panel" : "Vincular mi cuenta",
-          vinculado ? url : `${url}/alta`,
-        )
-      : undefined;
+    // Un agente vinculado recibe el índice completo; uno nuevo, una sola puerta
+    // —el alta—, porque las demás no le sirven todavía y ofrecérselas sería
+    // mandarle a cinco pantallas que solo pueden decirle que no tiene cuenta.
+    const teclado = !seguro
+      ? undefined
+      : vinculado
+        ? menu(url)
+        : new InlineKeyboard().webApp("Vincular mi cuenta", `${url}/alta`);
 
     if (vinculado?.estado === "SUSPENDIDO") {
       await ctx.reply(
@@ -100,7 +139,7 @@ function registrar(b: Bot): void {
     }
 
     const texto = vinculado
-      ? `Hola, ${escapar(vinculado.nombreVisible)}. Abre el panel para ver tu red y lo que llevas ganado.`
+      ? `Hola, ${escapar(vinculado.nombreVisible)}. Elige por dónde empiezas.`
       : [
           "<b>Sophon Promoters</b>",
           "",
@@ -113,6 +152,26 @@ function registrar(b: Bot): void {
       reply_markup: teclado,
     });
   });
+
+  // Un comando por sección además del teclado: en Telegram mucha gente escribe
+  // el comando antes de buscar el botón, y un menú que solo existe como teclado
+  // se pierde en cuanto el chat avanza tres mensajes.
+  for (const seccion of SECCIONES) {
+    b.command(seccion.ruta.slice(1), async (ctx) => {
+      const url = urlMiniApp();
+      if (!url) {
+        await ctx.reply("La aplicación aún no está publicada. Avisa al superadmin.");
+        return;
+      }
+      const destino = `${url}${seccion.ruta}`;
+      const teclado = destino.startsWith("https://")
+        ? new InlineKeyboard().webApp(seccion.etiqueta, destino)
+        : undefined;
+      await ctx.reply(teclado ? seccion.etiqueta : `${seccion.etiqueta}\n${destino}`, {
+        reply_markup: teclado,
+      });
+    });
+  }
 
   b.command("panel", async (ctx) => {
     if (!esSuperadmin(ctx.from?.id)) return;
@@ -138,8 +197,16 @@ function registrar(b: Bot): void {
 
   b.command("ayuda", async (ctx) => {
     if (!esSuperadmin(ctx.from?.id)) {
+      const url = urlMiniApp();
       await ctx.reply(
-        "Usa /start para abrir la aplicación. Si algo no cuadra, escribe al superadmin.",
+        [
+          "Cada comando abre una pantalla:",
+          "",
+          ...SECCIONES.map((s) => `/${s.ruta.slice(1)} — ${s.etiqueta.toLowerCase()}`),
+          "",
+          "O /start para el menú completo.",
+        ].join("\n"),
+        { reply_markup: menu(url) },
       );
       return;
     }

@@ -123,14 +123,16 @@ model Agente {
   cpaPorRegistroMicros BigInt?
   cpsBps               Int?
 
-  /// Dar de alta un webmaster CONCEDE un año de PRO a costa del superadmin, así
-  /// que el permiso y el tope son sobre las altas, no sobre el PRO: no existe
-  /// un alta sin PRO ni un PRO sin alta que separar.
-  puedeActivarWebmasters Boolean @default(true)
-
-  /// Altas de webmaster permitidas al mes. 0 = bloqueado sin suspender la
-  /// cuenta, que es el freno que se quiere poder echar sin cerrarle la sesión.
-  cupoAltasMensual Int @default(20)
+  /// NO hay tope de altas, y es una decisión, no un olvido.
+  ///
+  /// Un agente puede dar de alta cuantos webmasters quiera. Las dos únicas
+  /// condiciones las impone la realidad y no un contador: el webmaster tiene
+  /// que existir ya en newSophon.com —si no, `bind_sub_aff` responde «user not
+  /// found»— y no puede estar vinculado a otro agente, que es exactamente lo
+  /// que garantiza el índice único sobre `Webmaster.emailNormalizado`.
+  ///
+  /// Poner además un cupo mensual habría frenado justo lo que da dinero. Para
+  /// parar a un agente concreto está `estado`, que corta también su sesión.
 
   /// Invalidación instantánea de todas las sesiones: basta con incrementarlo.
   epocaSesion Int @default(0)

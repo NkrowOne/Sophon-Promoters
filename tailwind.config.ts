@@ -29,6 +29,8 @@ const config: Config = {
         superficie: "var(--superficie)",
         "superficie-alta": "var(--superficie-alta)",
         borde: "var(--borde)",
+        junta: "var(--junta)",
+        carril: "var(--carril)",
 
         /*
          * NO hay color de marca. Es una decisión, no un olvido.
@@ -39,22 +41,31 @@ const config: Config = {
          * producto de IA. Cualquier tercer tono habría sido la tercera versión
          * del mismo reflejo.
          *
-         * En su lugar, el tier se codifica por DENSIDAD DE TINTA sobre el color
-         * de texto que pone Telegram: T1 el más denso, T3 el más leve. Significa
-         * algo literal —mineral más rico, banda más densa—, funciona igual en
-         * tema claro y oscuro sin mantener dos paletas, y es a prueba de
-         * daltonismo por construcción, porque la escala es de valor y no de tono.
+         * El tier se codifica por DENSIDAD DE TINTA. Se probó darle un color a
+         * cada uno y se descartó con el argumento que está escrito en
+         * `lib/devengo/motor.ts`: el agente cobra lo mismo sea cual sea el
+         * tier. Gastar los tres colores más fuertes en el único dato que no
+         * cambia lo que hace es la definición de colorines.
          *
-         * El énfasis sale de la inversión y del peso tipográfico.
+         * La planitud no se combate con tono sino con MATERIA: la página se
+         * parte en bandas de superficie con juntas de 1 px —el 90 % de los
+         * píxeles— y el Testigo gana suelo opaco y canto. Ver `globals.css`.
          */
         t1: "var(--tinta-t1)",
         t2: "var(--tinta-t2)",
         t3: "var(--tinta-t3)",
         tinta: "var(--tinta-plena)",
 
-        // Único punto con croma en toda la app, y solo para estado, nunca para
+        // Único croma propio de toda la app, y solo para estado, nunca para
         // decorar: el ocre del corte fresco de un testigo recién extraído.
-        vivo: "#A8762F",
+        // Se desdobla por polaridad porque el valor único estaba flojo —3,97:1
+        // sobre blanco, y se usa justo en las etiquetas accionables—:
+        // #8A6414 en claro (5,37:1) y #D7A94A en oscuro (7,50:1).
+        vivo: "var(--vivo)",
+
+        // El rojo de error lo pone el CLIENTE del usuario, no nosotros: es el
+        // que él reconoce como error en su propio Telegram.
+        peligro: "var(--peligro)",
       },
       fontFamily: {
         // Una sola familia de texto y una mono para cifras: tres familias no

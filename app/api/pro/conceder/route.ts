@@ -36,14 +36,7 @@ const Cuerpo = z.object({
 export async function POST(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId, puedeActivarWebmasters } = ctx.sesion;
-
-  if (!puedeActivarWebmasters) {
-    return NextResponse.json(
-      { error: "No tienes permiso para dar PRO.", apoyo: "Pídeselo al superadmin." },
-      { status: 403 },
-    );
-  }
+  const { agenteId } = ctx.sesion;
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {

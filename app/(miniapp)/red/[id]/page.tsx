@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Mecha, MechaApagada } from "@/components/Mecha";
-import { Aviso, Cargando, Pantalla } from "@/components/Pantalla";
+import { Aviso, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
@@ -69,6 +69,11 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   const [datos, setDatos] = useState<Ficha | null>(null);
   const [error, setError] = useState<ErrorApi | null>(null);
   const [renovando, setRenovando] = useState(false);
+  // Estado APARTE del error de carga. Compartían variable, así que un fallo al
+  // renovar hacía que la guarda de arriba devolviera la pantalla de error y la
+  // ficha entera desapareciera: el agente perdía de vista los datos que estaba
+  // mirando por un error de una acción secundaria.
+  const [errorRenovar, setErrorRenovar] = useState<ErrorApi | null>(null);
   const clave = useRef(nuevaIdempotencia());
 
   const cargar = useCallback(() => {
@@ -86,7 +91,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   const renovar = useCallback(async () => {
     if (!datos || renovando) return;
     setRenovando(true);
-    setError(null);
+    setErrorRenovar(null);
     try {
       await api.post("/api/pro/conceder", {
         email: datos.email,
@@ -97,7 +102,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
       cargar();
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setErrorRenovar(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
     } finally {
       setRenovando(false);
     }
@@ -116,11 +121,18 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   if (error) {
     return (
       <Pantalla titulo={t.webmaster} volverA="/red">
-        <Aviso
-          error={error.message}
-          apoyo={error.apoyo}
-          onReintentar={error.estado === 404 ? undefined : cargar}
-        />
+        {/* Un 404 no se reintenta: ese webmaster no es de este agente y
+            reintentar dará 404 otra vez. La salida es volver a la red, que es
+            además desde donde se llega aquí. */}
+        {error.estado === 404 ? (
+          <Vacio
+            titulo={error.message}
+            apoyo={error.apoyo ?? undefined}
+            accion={{ texto: t.red, href: "/red" }}
+          />
+        ) : (
+          <FalloDeCarga error={error} onReintentar={cargar} />
+        )}
       </Pantalla>
     );
   }
@@ -179,6 +191,14 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           >
             {renovando ? "…" : datos.pro ? t.renovarUnAnio : t.darUnAnio}
           </button>
+
+          {/* Junto al botón que lo provocó, no arriba: así se ve sin buscarlo
+              y queda claro qué acción falló. */}
+          {errorRenovar && (
+            <div className="mt-3">
+              <Aviso error={errorRenovar.message} apoyo={errorRenovar.apoyo} />
+            </div>
+          )}
         </div>
       </Aparece>
 

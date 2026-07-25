@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth/admin";
-import { cambiarEstadoAgente, cortarSesiones, guardarPermisos } from "../acciones";
+import { cambiarEstadoAgente, cortarSesiones } from "../acciones";
 import { Cerrada } from "../_piezas/Cerrada";
 import { Importe } from "../_piezas/Importe";
 import { inicioDelMes } from "@/lib/pro/conceder";
@@ -74,8 +74,8 @@ export default async function Agentes() {
         Agentes
       </h1>
       <p className="apoyo" style={{ marginTop: "0.35rem" }}>
-        {agentes.length} en total. Cada alta concede un año de PRO, así que el tope de
-        altas es el tope de gasto. Se cuenta desde el día 1.
+        {agentes.length} en total. Cada alta concede un año de PRO. No hay tope: para
+        parar a uno, suspéndelo.
       </p>
 
       <div style={{ marginTop: "2rem", display: "grid", gap: "1.25rem" }}>
@@ -122,58 +122,26 @@ export default async function Agentes() {
                 <p className="apoyo">
                   {a._count.webmasters}{" "}
                   {a._count.webmasters === 1 ? "webmaster" : "webmasters"} ·{" "}
-                  {a.vinculaciones.length} de {a.cupoAltasMensual} altas este mes
+                  {a.vinculaciones.length} altas este mes
                 </p>
               </div>
             </div>
 
-            {/* Permiso y tope en el mismo formulario: son una sola decisión
-                —cuánto puede gastar de lo mío— y separarlos invitaría a dejar
-                el tope puesto con el permiso quitado, o al revés. */}
-            <form
-              action={guardarPermisos}
+            {/* Ya no hay permisos ni topes que configurar: un agente activa
+                cuantos webmasters quiera, y el único freno es suspenderlo. Un
+                formulario con un solo interruptor redundante sería peor que no
+                tenerlo. */}
+
+            <div
               style={{
                 marginTop: "1rem",
                 paddingTop: "0.9rem",
                 borderTop: "1px solid var(--p-borde)",
                 display: "flex",
-                gap: "1.25rem",
+                gap: "0.5rem",
                 flexWrap: "wrap",
-                alignItems: "center",
               }}
             >
-              <input type="hidden" name="agenteId" value={a.id} />
-
-              <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.875rem" }}>
-                <input
-                  type="checkbox"
-                  name="puedeActivarWebmasters"
-                  defaultChecked={a.puedeActivarWebmasters}
-                />
-                Puede activar webmasters
-              </label>
-
-              <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.875rem" }}>
-                Altas al mes
-                <input
-                  type="number"
-                  name="cupoAltasMensual"
-                  min={0}
-                  max={500}
-                  defaultValue={a.cupoAltasMensual}
-                  style={{ width: "5rem" }}
-                />
-              </label>
-              {/* 0 no es un error: es cómo se le corta el gasto a un agente sin
-                  cerrarle la cuenta ni la sesión. */}
-              <span className="apoyo">0 = bloqueado</span>
-
-              <button type="submit" className="boton primario">
-                Guardar
-              </button>
-            </form>
-
-            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <form action={cambiarEstadoAgente}>
                 <input type="hidden" name="agenteId" value={a.id} />
                 <input

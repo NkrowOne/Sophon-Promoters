@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
-import { altasDelMes } from "@/lib/pro/conceder";
 
 /**
  * La cola de renovaciones.
@@ -25,10 +24,9 @@ const DIAS_AVISO = 30;
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId, puedeActivarWebmasters, cupoAltasMensual } = ctx.sesion;
+  const { agenteId } = ctx.sesion;
 
-  const [webmasters, altas] = await Promise.all([
-    db.webmaster.findMany({
+  const webmasters = await db.webmaster.findMany({
       where: { agenteId, desaparecidoEn: null },
       select: {
         emailOriginal: true,
@@ -43,9 +41,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
           select: { creadoEn: true, vigenteHasta: true },
         },
       },
-    }),
-    altasDelMes(agenteId),
-  ]);
+  });
 
   const ahora = Date.now();
 
@@ -80,11 +76,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   });
 
   return NextResponse.json({
-    puedeConceder: puedeActivarWebmasters,
     diasAviso: DIAS_AVISO,
-    // El cupo que se enseña ya no es de PRO sino de altas, porque es el único
-    // que existe: renovar no consume nada.
-    altas: { usadas: altas, total: cupoAltasMensual },
     webmasters: salida,
     /** Los que piden acción ya: sin PRO, caducados o a punto. */
     urgentes: salida.filter(

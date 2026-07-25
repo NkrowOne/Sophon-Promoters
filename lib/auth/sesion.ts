@@ -24,8 +24,6 @@ export interface AgenteSesion {
   emailNormalizado: string;
   nombreVisible: string;
   telegramId: bigint | null;
-  puedeActivarWebmasters: boolean;
-  cupoAltasMensual: number;
 }
 
 /**
@@ -83,8 +81,6 @@ export async function sesionActual(): Promise<AgenteSesion | null> {
           telegramId: true,
           estado: true,
           epocaSesion: true,
-          puedeActivarWebmasters: true,
-          cupoAltasMensual: true,
         },
       },
     },
@@ -114,8 +110,6 @@ export async function sesionActual(): Promise<AgenteSesion | null> {
     emailNormalizado: sesion.agente.emailNormalizado,
     nombreVisible: sesion.agente.nombreVisible,
     telegramId: sesion.agente.telegramId,
-    puedeActivarWebmasters: sesion.agente.puedeActivarWebmasters,
-    cupoAltasMensual: sesion.agente.cupoAltasMensual,
   };
 }
 

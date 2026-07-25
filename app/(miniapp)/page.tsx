@@ -33,7 +33,6 @@ interface DiaApi extends Omit<DiaTestigo, "importeMicros"> {
 interface Resumen {
   dias: DiaApi[];
   webmasters: number;
-  puedeActivarWebmasters: boolean;
   cartera: Cartera;
 }
 
@@ -109,14 +108,14 @@ export default function Inicio() {
           misma retícula dibujada dos veces— y el resultado era un rayado sucio
           en lugar de una columna sin perforar. */}
       <div
-        className={`fixed inset-y-0 start-0 w-testigo overflow-hidden bg-superficie ${
+        className={`carril-testigo fixed inset-y-0 start-0 w-testigo overflow-hidden ${
           dias.length > 0 ? "testigo-terreno" : ""
         }`}
       >
         {dias.length > 0 ? <Testigo dias={dias} /> : <TestigoVacio />}
       </div>
 
-      <div className="px-4 pb-16 pt-7">
+      <div className="pb-16 pt-7" style={{ paddingInline: "var(--margen-pantalla)" }}>
         {error ? (
           <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
         ) : !datos ? (
@@ -133,8 +132,10 @@ export default function Inicio() {
           />
         ) : (
           <>
+            {/* La cifra vive en el fondo desnudo: es el estrato de superficie,
+                lo primero que se ve al sacar el testigo. */}
             <Aparece orden={0}>
-              <header className="mb-8">
+              <header className="banda banda-0 pb-7">
                 <p className="text-rotulo text-texto-apoyo">{t.devengadoTreintaDias}</p>
                 <div className="mt-1.5">
                   <CifraProtagonista micros={devengadoMes} />
@@ -149,7 +150,7 @@ export default function Inicio() {
                 volumen?». Sustituye a tres donuts y ocupa una décima parte. */}
             {totalTiers > 0 && (
               <Aparece orden={1}>
-                <section aria-label={t.repartoPorTier} className="mb-8">
+                <section aria-label={t.repartoPorTier} className="banda banda-1 py-6">
                   <div className="flex h-2 overflow-hidden bg-superficie-alta">
                     <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
                     <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
@@ -168,34 +169,35 @@ export default function Inicio() {
                 sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
             {cartera && (
               <Aparece orden={2}>
-                <div className="mb-8">
+                <div className="banda banda-2 py-6">
                   <Escalera cartera={cartera} titulo={t.cartera.toUpperCase()} etiquetas={t} />
                   <p className="mt-3 text-apoyo text-texto-apoyo">{t.revisionManual}</p>
                 </div>
               </Aparece>
             )}
 
-            {/* La acción principal va sola y a todo el ancho: es la única cosa
-                que el agente viene a hacer. */}
-            <Aparece orden={3}>
-              {/* Una acción principal a todo el ancho y las demás en una
-                  retícula PAR. Con tres secundarias la fila quedaba descuadrada
-                  respecto al botón de arriba; con cuatro, el bloque entero es un
-                  rectángulo y deja de leerse como un sobrante. */}
-              <nav aria-label={t.acciones} className="space-y-2.5">
-                <Accion href="/activar" etiqueta={t.activarWebmaster} principal />
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Accion href="/red" etiqueta={t.red} />
-                  {datos.puedeActivarWebmasters && (
-                    <Accion href="/pro" etiqueta={t.colaRenovaciones} />
-                  )}
-                  <Accion href="/historico" etiqueta={t.historico} />
-                  <Accion href="/cartera" etiqueta={t.cartera} />
-                </div>
-              </nav>
-            </Aparece>
           </>
         )}
+
+        {/* La navegación va SIEMPRE, fuera del ternario.
+            Vivía dentro de la última rama, así que un error de la API o una
+            ventana de treinta días sin devengo dejaban la portada —la única
+            pantalla con enlaces a todo lo demás— sin una sola salida. El agente
+            se quedaba encerrado en un aviso con un botón de reintentar. */}
+        <Aparece orden={4}>
+          <nav
+            aria-label={t.acciones}
+            className="banda banda-1 space-y-2.5 pb-2 pt-6"
+          >
+            <Accion href="/activar" etiqueta={t.activarWebmaster} principal />
+            <div className="grid grid-cols-2 gap-2.5">
+              <Accion href="/red" etiqueta={t.red} />
+              <Accion href="/pro" etiqueta={t.colaRenovaciones} />
+              <Accion href="/historico" etiqueta={t.historico} />
+              <Accion href="/cartera" etiqueta={t.cartera} />
+            </div>
+          </nav>
+        </Aparece>
       </div>
     </main>
   );

@@ -57,13 +57,23 @@ async function principal(): Promise<void> {
   await llamar("setWebhook", {
     url: `${url}/api/bot`,
     secret_token: secreto,
-    allowed_updates: ["message", "callback_query"],
+    // Solo `message`: el bot no registra ningún `callback_query` —sus botones
+    // son `web_app`, que no generan callbacks—, y pedir un tipo de evento que
+    // nadie atiende es invitar a que un día llegue y se pierda en silencio.
+    allowed_updates: ["message"],
     drop_pending_updates: false,
   });
 
+  // Un comando por sección: es lo que hace que el menú «/» de Telegram sea un
+  // índice de la aplicación y no una sola puerta.
   await llamar("setMyCommands", {
     commands: [
-      { command: "start", description: "Abrir la aplicación" },
+      { command: "start", description: "Menú" },
+      { command: "activar", description: "Activar un webmaster" },
+      { command: "pro", description: "Renovaciones de PRO" },
+      { command: "red", description: "Tu red" },
+      { command: "cartera", description: "Cartera y retiros" },
+      { command: "historico", description: "Histórico" },
       { command: "ayuda", description: "Qué puedo hacer aquí" },
     ],
     scope: { type: "all_private_chats" },
@@ -75,7 +85,7 @@ async function principal(): Promise<void> {
   if (superadmin) {
     await llamar("setMyCommands", {
       commands: [
-        { command: "start", description: "Abrir la aplicación" },
+        { command: "start", description: "Menú" },
         { command: "codigo", description: "Generar un código de activación" },
         { command: "agentes", description: "Agentes dados de alta" },
         { command: "retiros", description: "Retiros pendientes de pagar" },

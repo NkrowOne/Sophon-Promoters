@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Importe } from "@/components/Importe";
-import { Aviso, Cargando, Pantalla } from "@/components/Pantalla";
+import { Aviso, Cargando, FalloDeCarga, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 import { formatearMicros, microsACadena } from "@/lib/devengo/dinero";
@@ -171,7 +171,7 @@ export default function CarteraPagina() {
   if (error && !datos) {
     return (
       <Pantalla titulo={t.cartera} volverA="/">
-        <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
+        <FalloDeCarga error={error} onReintentar={cargar} />
       </Pantalla>
     );
   }

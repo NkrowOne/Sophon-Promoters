@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { claveIdempotencia, normalizarEmail } from "@/lib/cripto";
 import { esRespuesta, exigirAgente } from "@/lib/api/agente";
-import { altasDelMes, concederAnio } from "@/lib/pro/conceder";
+import { concederAnio } from "@/lib/pro/conceder";
 import { clienteSophon } from "@/lib/sophon/instancia";
 import { ErrorSophon } from "@/lib/sophon/cliente";
 import { hoyContable } from "@/lib/sync/registros";
@@ -31,6 +31,12 @@ import { hoyContable } from "@/lib/sync/registros";
  *    es peor que el trabajo a medias. Se avisa y se reintenta desde su ficha.
  *  - Solo un webmaster **nuevo** recibe el año automático. Adoptar un huérfano
  *    con historia no es registrar una cuenta nueva; su PRO se concede a mano.
+ *
+ * No hay tope: el agente puede activar cuantos quiera. Las dos condiciones que
+ * existen las impone la realidad y no un contador —el webmaster tiene que estar
+ * ya registrado en Sophon, y no puede pertenecer a otro agente— y las dos se
+ * comprueban aquí: la segunda con el índice único, la primera con la respuesta
+ * de Sophon.
  */
 
 export const dynamic = "force-dynamic";
@@ -44,17 +50,7 @@ const Cuerpo = z.object({
 export async function POST(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId, puedeActivarWebmasters, cupoAltasMensual } = ctx.sesion;
-
-  if (!puedeActivarWebmasters) {
-    return NextResponse.json(
-      {
-        error: "No tienes permiso para activar webmasters.",
-        apoyo: "Pídeselo al superadmin.",
-      },
-      { status: 403 },
-    );
-  }
+  const { agenteId } = ctx.sesion;
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
@@ -67,18 +63,6 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const emailNormalizado = normalizarEmail(parseado.data.email);
   const hoy = hoyContable();
 
-  // El tope se comprueba ANTES de tocar nada: cada alta regala un año de PRO a
-  // costa del superadmin, así que es el único freno que hay sobre ese gasto.
-  const usadas = await altasDelMes(agenteId);
-  if (usadas >= cupoAltasMensual) {
-    return NextResponse.json(
-      {
-        error: `Has agotado tus altas de este mes (${usadas} de ${cupoAltasMensual}).`,
-        apoyo: "Se reinicia el día 1. Si necesitas más antes, pídeselo al superadmin.",
-      },
-      { status: 429 },
-    );
-  }
 
   // ── Paso 1: reservar en local ──────────────────────────────────────────
   let webmasterId: string;

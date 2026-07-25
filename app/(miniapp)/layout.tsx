@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 
+import { AtrasDeTelegram } from "@/components/AtrasDeTelegram";
 import { TelegramProvider } from "@/components/TelegramProvider";
 import "./globals.css";
 
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
       </head>
       <body className="bg-fondo text-texto antialiased">
-        <TelegramProvider>{children}</TelegramProvider>
+        <TelegramProvider>
+          <AtrasDeTelegram />
+          {children}
+        </TelegramProvider>
       </body>
     </html>
   );

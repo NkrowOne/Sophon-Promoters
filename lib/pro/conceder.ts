@@ -164,20 +164,6 @@ export async function concederAnio(params: {
   }
 }
 
-/**
- * Altas con éxito del agente en el mes en curso.
- *
- * Se cuenta sobre `IntentoVinculacion`, que es INMUTABLE, y no sobre
- * `Webmaster`: al deshacer un alta que Sophon rechaza se pone `atribuidoEn` a
- * null, así que contar sobre el webmaster permitiría dar de alta y desvincular
- * en bucle sin gastar cupo nunca.
- */
-export async function altasDelMes(agenteId: string): Promise<number> {
-  return db.intentoVinculacion.count({
-    where: { agenteId, exito: true, creadoEn: { gte: inicioDelMes() } },
-  });
-}
-
 /** Primer instante del mes en curso, en la zona horaria contable declarada. */
 export function inicioDelMes(): Date {
   const zona = process.env["ZONA_HORARIA"] ?? "Europe/Madrid";

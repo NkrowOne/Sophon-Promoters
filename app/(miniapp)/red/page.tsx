@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Malla, DIAS_APAGADO, type WebmasterMalla } from "@/components/Malla";
-import { Aviso, Cargando, Pantalla, Vacio } from "@/components/Pantalla";
+import { Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
 
@@ -48,7 +48,7 @@ export default function Red() {
   if (error) {
     return (
       <Pantalla titulo={t.red} volverA="/">
-        <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
+        <FalloDeCarga error={error} onReintentar={cargar} />
       </Pantalla>
     );
   }

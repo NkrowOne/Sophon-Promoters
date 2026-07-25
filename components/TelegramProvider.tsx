@@ -25,6 +25,13 @@ import { esRtl, idiomaDesdeTelegram, IDIOMA_POR_DEFECTO, type Idioma } from "@/l
  *     confirmación que le queda.
  */
 
+interface BotonAtras {
+  show: () => void;
+  hide: () => void;
+  onClick: (cb: () => void) => void;
+  offClick: (cb: () => void) => void;
+}
+
 interface BotonPrincipal {
   setText: (t: string) => void;
   show: () => void;
@@ -51,6 +58,7 @@ interface WebApp {
   themeParams: Record<string, string>;
   viewportStableHeight?: number;
   MainButton: BotonPrincipal;
+  BackButton?: BotonAtras;
   HapticFeedback?: {
     impactOccurred: (estilo: string) => void;
     notificationOccurred: (tipo: string) => void;

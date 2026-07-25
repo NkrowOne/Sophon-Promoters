@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Importe } from "@/components/Importe";
-import { Aviso, Cargando, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
 import { useCadenas } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
@@ -116,7 +116,7 @@ export default function Historico() {
   if (error && dias.length === 0) {
     return (
       <Pantalla titulo={t.historico} volverA="/">
-        <Aviso error={error.message} apoyo={error.apoyo} onReintentar={() => void cargar(null)} />
+        <FalloDeCarga error={error} onReintentar={() => void cargar(null)} />
       </Pantalla>
     );
   }

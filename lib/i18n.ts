@@ -153,11 +153,6 @@ export const es = {
   ningunoSeApaga: (dias: number) => `Ninguno se apaga en ${dias} días`,
   nuncaTuvoPro: "Nunca llegó a tener PRO",
   todoAlDia: "Toda tu red tiene el PRO al día.",
-  sinPermisoAltas: "No tienes permiso para activar webmasters.",
-  sinPermisoAltasApoyo: "Pídeselo al superadmin.",
-  altasDelMes: (usadas: number, total: number) => `${usadas} de ${total} altas este mes`,
-  altasAgotadas: "Has agotado tus altas de este mes.",
-  altasAgotadasApoyo: "Se reinician el día 1. Si necesitas más antes, pídeselo al superadmin.",
 
   // ── Histórico ─────────────────────────────────────────────────────────────
   enDias: (dias: number) => `en ${dias} días`,
@@ -203,6 +198,8 @@ export const es = {
   solicitudesAnteriores: "ANTERIORES",
 
   // ── Errores: qué pasó · por qué · qué hago ahora ──────────────────────────
+  sesionCaducada: "Tu sesión ha caducado.",
+  sesionCaducadaApoyo: "Vuelve a entrar con tu correo. No pierdes nada de lo tuyo.",
   algoHaFallado: "Algo ha fallado.",
   comoCobras: "Cobras 0,03 $ por cada usuario que registre, sea cual sea su país.",
 } as const;
@@ -344,11 +341,6 @@ const en: Cadenas = {
   ningunoSeApaga: (dias: number) => `None burns out within ${dias} days`,
   nuncaTuvoPro: "Never had PRO",
   todoAlDia: "Your whole network is up to date on PRO.",
-  sinPermisoAltas: "You're not allowed to activate webmasters.",
-  sinPermisoAltasApoyo: "Ask the superadmin.",
-  altasDelMes: (usadas: number, total: number) => `${usadas} of ${total} activations this month`,
-  altasAgotadas: "You've used up this month's activations.",
-  altasAgotadasApoyo: "They reset on the 1st. If you need more before then, ask the superadmin.",
 
   enDias: (dias: number) => `over ${dias} days`,
   tocaUnDia: "Tap a day to see where it came from.",
@@ -390,6 +382,8 @@ const en: Cadenas = {
   pedirRetiro: "REQUEST PAYOUT",
   solicitudesAnteriores: "EARLIER",
 
+  sesionCaducada: "Your session has expired.",
+  sesionCaducadaApoyo: "Sign in again with your email. Nothing of yours is lost.",
   algoHaFallado: "Something went wrong.",
   comoCobras: "You earn $0.03 for every user they sign up, whatever the country.",
 };
@@ -518,11 +512,6 @@ const it: Cadenas = {
   ningunoSeApaga: (dias: number) => `Nessuno si spegne entro ${dias} giorni`,
   nuncaTuvoPro: "Non ha mai avuto il PRO",
   todoAlDia: "Tutta la tua rete ha il PRO in regola.",
-  sinPermisoAltas: "Non hai il permesso di attivare webmaster.",
-  sinPermisoAltasApoyo: "Chiedilo al superadmin.",
-  altasDelMes: (usadas: number, total: number) => `${usadas} di ${total} attivazioni questo mese`,
-  altasAgotadas: "Hai esaurito le attivazioni di questo mese.",
-  altasAgotadasApoyo: "Si azzerano il giorno 1. Se ti servono prima, chiedile al superadmin.",
 
   enDias: (dias: number) => `in ${dias} giorni`,
   tocaUnDia: "Tocca un giorno per vedere da dove viene.",
@@ -565,6 +554,8 @@ const it: Cadenas = {
   pedirRetiro: "CHIEDI PRELIEVO",
   solicitudesAnteriores: "PRECEDENTI",
 
+  sesionCaducada: "La tua sessione è scaduta.",
+  sesionCaducadaApoyo: "Rientra con la tua email. Non perdi niente di tuo.",
   algoHaFallado: "Qualcosa è andato storto.",
   comoCobras: "Guadagni 0,03 $ per ogni utente che registra, da qualunque paese arrivi.",
 };
@@ -691,11 +682,6 @@ const pt: Cadenas = {
   ningunoSeApaga: (dias: number) => `Nenhum se apaga em ${dias} dias`,
   nuncaTuvoPro: "Nunca chegou a ter PRO",
   todoAlDia: "Toda a tua rede tem o PRO em dia.",
-  sinPermisoAltas: "Não tens permissão para ativar webmasters.",
-  sinPermisoAltasApoyo: "Pede ao superadmin.",
-  altasDelMes: (usadas: number, total: number) => `${usadas} de ${total} ativações este mês`,
-  altasAgotadas: "Esgotaste as tuas ativações deste mês.",
-  altasAgotadasApoyo: "Reiniciam no dia 1. Se precisares antes, pede ao superadmin.",
 
   enDias: (dias: number) => `em ${dias} dias`,
   tocaUnDia: "Toca num dia para veres de onde veio.",
@@ -738,6 +724,8 @@ const pt: Cadenas = {
   pedirRetiro: "PEDIR LEVANTAMENTO",
   solicitudesAnteriores: "ANTERIORES",
 
+  sesionCaducada: "A tua sessão expirou.",
+  sesionCaducadaApoyo: "Entra outra vez com o teu email. Não perdes nada do que é teu.",
   algoHaFallado: "Alguma coisa correu mal.",
   comoCobras: "Ganhas 0,03 $ por cada utilizador que ele registar, seja de que país for.",
 };
@@ -868,11 +856,6 @@ const ar: Cadenas = {
   ningunoSeApaga: (dias: number) => `لا أحد ينطفئ خلال ${dias} يومًا`,
   nuncaTuvoPro: "لم يحصل على PRO قط",
   todoAlDia: "كل شبكتك محدَّثة في PRO.",
-  sinPermisoAltas: "ليس لديك صلاحية تفعيل مشرفي المواقع.",
-  sinPermisoAltasApoyo: "اطلبها من المشرف العام.",
-  altasDelMes: (usadas: number, total: number) => `${usadas} من ${total} تفعيلات هذا الشهر`,
-  altasAgotadas: "استنفدت تفعيلات هذا الشهر.",
-  altasAgotadasApoyo: "تُجدَّد في اليوم الأول من الشهر. إن احتجت قبل ذلك، اطلبها من المشرف العام.",
 
   enDias: (dias: number) => `خلال ${dias} يومًا`,
   tocaUnDia: "المس يومًا لترى من أين جاء.",
@@ -914,6 +897,8 @@ const ar: Cadenas = {
   pedirRetiro: "اطلب سحبًا",
   solicitudesAnteriores: "السابقة",
 
+  sesionCaducada: "انتهت جلستك.",
+  sesionCaducadaApoyo: "ادخل مرة أخرى ببريدك. لا تفقد شيئًا مما لك.",
   algoHaFallado: "حدث خطأ ما.",
   comoCobras: "تربح 0,03 $ عن كل مستخدم يسجّله، أيًّا كان بلده.",
 };

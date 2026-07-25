@@ -11,6 +11,7 @@
 
 import Link from "next/link";
 
+import type { ErrorApi } from "@/lib/api/cliente";
 import { useCadenas } from "./TelegramProvider";
 
 export function Pantalla({
@@ -30,13 +31,13 @@ export function Pantalla({
   return (
     <main className={`relative min-h-dvh ${tarea ? "ps-testigo-min" : "ps-testigo"}`}>
       <div
-        className={`testigo-terreno fixed inset-y-0 start-0 bg-superficie ${
+        className={`carril-testigo testigo-terreno fixed inset-y-0 start-0 ${
           tarea ? "w-testigo-min" : "w-testigo"
         }`}
         aria-hidden={tarea}
       />
 
-      <div className="px-4 pb-16 pt-6">
+      <div className="pb-16 pt-6" style={{ paddingInline: "var(--margen-pantalla)" }}>
         {(titulo || volverA) && (
           <header className="mb-6 flex items-baseline gap-3">
             {volverA && (
@@ -93,6 +94,10 @@ export function Vacio({
  *
  * Nunca se muestra un código ni un stack: el agente no puede hacer nada con
  * eso, y lo que sí puede hacer va en el botón.
+ *
+ * El filete es de PELIGRO —el rojo del propio cliente de Telegram— y no del
+ * acento de estado: un aviso de error y una etiqueta de «esto caduca pronto»
+ * no pueden compartir color, porque entonces ninguno de los dos significa nada.
  */
 export function Aviso({
   error,
@@ -104,14 +109,46 @@ export function Aviso({
   onReintentar?: () => void;
 }) {
   return (
-    <div role="alert" className="border-s-2 border-vivo py-2 ps-3">
+    <div role="alert" className="border-s-2 border-peligro py-2 ps-3">
       <p className="text-cuerpo">{error}</p>
       {apoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{apoyo}</p>}
-      {onReintentar && (
-        <BotonReintentar onReintentar={onReintentar} />
-      )}
+      {onReintentar && <BotonReintentar onReintentar={onReintentar} />}
     </div>
   );
+}
+
+/**
+ * Un fallo de carga, resuelto en un solo sitio.
+ *
+ * Las cinco pantallas profundas trataban el 401 como cualquier otro error y
+ * ofrecían «Reintentar», que reintenta contra un servidor que va a seguir
+ * diciendo que no: la sesión ha caducado y lo que hace falta es volver a
+ * entrar. Solo la portada sabía traducirlo, así que perder la sesión mientras
+ * mirabas tu red te dejaba encerrado ahí.
+ *
+ * Centralizarlo es además lo que garantiza que la próxima pantalla lo herede
+ * sin que nadie tenga que acordarse.
+ */
+export function FalloDeCarga({
+  error,
+  onReintentar,
+}: {
+  error: ErrorApi;
+  onReintentar: () => void;
+}) {
+  const t = useCadenas();
+
+  if (error.estado === 401) {
+    return (
+      <Vacio
+        titulo={t.sesionCaducada}
+        apoyo={t.sesionCaducadaApoyo}
+        accion={{ texto: t.vincularCuenta, href: "/alta" }}
+      />
+    );
+  }
+
+  return <Aviso error={error.message} apoyo={error.apoyo} onReintentar={onReintentar} />;
 }
 
 function BotonReintentar({ onReintentar }: { onReintentar: () => void }) {
