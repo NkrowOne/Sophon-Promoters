@@ -199,7 +199,7 @@ export function BotonPrincipalAccion({
         type="button"
         onClick={onClick}
         disabled={!activo || cargando}
-        className="w-full rounded-pieza bg-filon py-3.5 text-cuerpo font-semibold text-white transition-opacity duration-150 disabled:opacity-40"
+        className="w-full rounded-pieza bg-tinta py-3.5 text-cuerpo font-semibold text-fondo transition-opacity duration-150 disabled:opacity-40"
       >
         {cargando ? "…" : texto}
       </button>

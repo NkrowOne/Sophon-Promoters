@@ -15,6 +15,14 @@
   --superficie-alta: #eef0f3;
   --borde: #dfe3e8;
 
+  /* Escala de tinta de los estratos. T1 el más denso, T3 el más leve.
+     Se derivan del color de TEXTO de Telegram, no de una paleta propia, así
+     que la app respeta el tema del usuario en vez de imponerle el suyo. */
+  --tinta-plena: #10151a;
+  --tinta-t1: #10151a;
+  --tinta-t2: #5b636c;
+  --tinta-t3: #a9b0b7;
+
   --fuente-texto: system-ui;
   --fuente-cifras: ui-monospace;
 }
@@ -23,6 +31,21 @@
   --superficie: #1c2229;
   --superficie-alta: #262e37;
   --borde: #333d48;
+
+  /* En oscuro la escala se invierte: lo denso es lo luminoso. */
+  --tinta-plena: #f5f7f9;
+  --tinta-t1: #f5f7f9;
+  --tinta-t2: #98a2ac;
+  --tinta-t3: #59636d;
+}
+
+@supports (background: color-mix(in oklab, red, blue)) {
+  :root {
+    --tinta-plena: var(--tg-theme-text-color, #10151a);
+    --tinta-t1: var(--tg-theme-text-color, #10151a);
+    --tinta-t2: color-mix(in oklab, var(--tg-theme-text-color, #10151a) 62%, var(--tg-theme-bg-color, #fff));
+    --tinta-t3: color-mix(in oklab, var(--tg-theme-text-color, #10151a) 30%, var(--tg-theme-bg-color, #fff));
+  }
 }
 
 @supports (background: color-mix(in oklab, red, blue)) {
@@ -58,7 +81,7 @@ body {
 
 /* Foco visible de verdad: es el suelo de calidad, no un extra. */
 :focus-visible {
-  outline: 2px solid theme("colors.filon");
+  outline: 2px solid theme("colors.vivo");
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -97,7 +120,7 @@ body {
   /* Sobrevive la opacidad; ningún transform ni altura animada. */
   .cabeza-sonda {
     animation: none !important;
-    outline: 2px solid theme("colors.filon");
+    outline: 2px solid theme("colors.vivo");
     outline-offset: 1px;
   }
 }

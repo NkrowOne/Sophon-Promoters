@@ -148,7 +148,7 @@ export function Testigo({
           return (
             <g key={dia.fecha} className={animar ? "animate-depositar" : undefined} style={estilo}>
               {tiers === 0 ? (
-                <rect x="0" y={y} width={longitud} height={alturaBanda - 1} className="fill-filon-suave" />
+                <rect x="0" y={y} width={longitud} height={alturaBanda - 1} className="fill-t2" />
               ) : (
                 <>
                   <rect x="0" y={y} width={anchoT1} height={alturaBanda - 1} className="fill-t1" />
@@ -170,11 +170,11 @@ export function Testigo({
 
               {/* Hito: una activación deja una línea que cruza el testigo. */}
               {(dia.activaciones ?? 0) > 0 && (
-                <line x1="0" y1={y} x2={ancho} y2={y} className="stroke-filon" strokeWidth="2" />
+                <line x1="0" y1={y} x2={ancho} y2={y} className="stroke-vivo" strokeWidth="2" />
               )}
               {/* Hito: una concesión PRO deja una muesca en el borde derecho. */}
               {(dia.concesiones ?? 0) > 0 && (
-                <rect x={ancho - 4} y={y + 2} width="4" height={alturaBanda - 5} className="fill-filon" />
+                <rect x={ancho - 4} y={y + 2} width="4" height={alturaBanda - 5} className="fill-vivo" />
               )}
             </g>
           );
@@ -227,7 +227,7 @@ export function TestigoVacio({ ancho = 44, alto = 240 }: { ancho?: number; alto?
           strokeWidth="1"
         />
       ))}
-      <rect x="0" y="0" width={ancho} height="3" className="fill-filon" />
+      <rect x="0" y="0" width={ancho} height="3" className="fill-vivo" />
     </svg>
   );
 }

@@ -100,7 +100,7 @@ export default function Inicio() {
             volumen?» en 200 ms. Sustituye a tres donuts y ocupa una décima parte. */}
         <Aparece orden={1}>
           <section aria-label="Reparto de registros por tier" className="mb-8">
-            <div className="flex h-2.5 overflow-hidden rounded-full bg-superficie-alta">
+            <div className="flex h-2 overflow-hidden bg-superficie-alta">
               <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
               <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
               <BarraCreciente porcentaje={(t3 / totalTiers) * 100} className="bg-t3" retardoMs={120} />
@@ -117,16 +117,22 @@ export default function Inicio() {
             (devengado → disponible → solicitado → pagado). Cuatro tarjetas KPI
             perderían justo esa secuencia, que es lo único que el agente
             necesita entender para saber cuándo cobra. */}
+        {/* Sin tarjeta contenedora. Un bloque gris con esquinas blandas es la
+            firma de «app moderna» genérica y no aporta nada: la agrupación ya la
+            hace el rótulo y la separan filetes de 1 px, como en una tabla de
+            ensayo. Menos superficie, más densidad de información. */}
         <Aparece orden={2}>
           <section aria-label="Estado de tu dinero" className="mb-8">
-            <p className="text-rotulo mb-3 text-texto-apoyo">{es.cartera.toUpperCase()}</p>
-            <div className="space-y-2.5 rounded-pieza bg-superficie p-3.5">
+            <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">
+              {es.cartera.toUpperCase()}
+            </p>
+            <div className="divide-y divide-borde">
               <Peldano etiqueta={es.devengado} micros={CARTERA_DEMO.devengadoMicros} proporcion={proporcion(CARTERA_DEMO.devengadoMicros)} destacado />
               <Peldano etiqueta={es.disponible} micros={CARTERA_DEMO.disponibleMicros} proporcion={proporcion(CARTERA_DEMO.disponibleMicros)} retardo={70} />
               <Peldano etiqueta={es.solicitado} micros={CARTERA_DEMO.solicitadoMicros} proporcion={proporcion(CARTERA_DEMO.solicitadoMicros)} retardo={140} />
               <Peldano etiqueta={es.pagado} micros={CARTERA_DEMO.pagadoMicros} proporcion={proporcion(CARTERA_DEMO.pagadoMicros)} retardo={210} />
             </div>
-            <p className="mt-2.5 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
+            <p className="mt-3 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
           </section>
         </Aparece>
 
@@ -181,17 +187,19 @@ function Peldano({
   retardo?: number;
 }) {
   return (
-    <div>
+    <div className="py-2.5">
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
         <span className="text-rotulo text-texto-apoyo">{etiqueta}</span>
         <span className={`cifra text-cuerpo ${destacado ? "font-semibold" : ""}`}>
           {formatearMicros(micros)}
         </span>
       </div>
-      <span className="block h-2 overflow-hidden rounded-full bg-superficie-alta">
+      {/* Extremos rectos: una barra de datos con las puntas redondeadas miente
+          sobre dónde empieza y acaba la medida, y solo está ahí por blandura. */}
+      <span className="block h-1.5 overflow-hidden bg-superficie-alta">
         <BarraCreciente
           porcentaje={Math.max(proporcion, 1.5)}
-          className={destacado ? "bg-filon" : "bg-t2"}
+          className={destacado ? "bg-tinta" : "bg-t2"}
           retardoMs={retardo}
         />
       </span>
@@ -213,9 +221,12 @@ function Accion({
       href={href}
       className={[
         "flex items-center justify-center rounded-pieza px-3 py-3.5 text-center",
-        "transition-transform duration-150 ease-sonda active:scale-[0.98]",
+        "transition-transform duration-150 ease-sonda active:scale-[0.99]",
+        // El énfasis es una INVERSIÓN, no un color: el botón principal es tinta
+        // plena sobre el fondo del tema. Funciona igual en claro y oscuro y no
+        // introduce un tono de marca que compita con los estratos.
         principal
-          ? "bg-filon text-cuerpo font-semibold text-white"
+          ? "bg-tinta text-cuerpo font-semibold text-fondo"
           : "border border-borde text-apoyo font-medium hover:bg-superficie",
       ].join(" ")}
     >

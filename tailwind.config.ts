@@ -30,24 +30,31 @@ const config: Config = {
         "superficie-alta": "var(--superficie-alta)",
         borde: "var(--borde)",
 
-        // Marca: el Filón, la veta valiosa. Es el índigo del T1 llevado a su
-        // expresión más brillante, no un acento decorativo traído de fuera.
-        //
-        // Se descartó un naranja de baliza: sobre el tema oscuro de Telegram
-        // reproducía el cliché de «fondo casi negro con un único acento cálido»,
-        // que aparece en cualquier interfaz generada sin mirar el tema.
-        filon: "#5B4BE8",
-        "filon-suave": "#8B80F0",
+        /*
+         * NO hay color de marca. Es una decisión, no un olvido.
+         *
+         * Se probaron dos y los dos eran plantilla: un naranja de baliza, que
+         * sobre el tema oscuro reproducía el «fondo casi negro con un acento
+         * cálido», y un índigo-violeta, que es el color por defecto de todo
+         * producto de IA. Cualquier tercer tono habría sido la tercera versión
+         * del mismo reflejo.
+         *
+         * En su lugar, el tier se codifica por DENSIDAD DE TINTA sobre el color
+         * de texto que pone Telegram: T1 el más denso, T3 el más leve. Significa
+         * algo literal —mineral más rico, banda más densa—, funciona igual en
+         * tema claro y oscuro sin mantener dos paletas, y es a prueba de
+         * daltonismo por construcción, porque la escala es de valor y no de tono.
+         *
+         * El énfasis sale de la inversión y del peso tipográfico.
+         */
+        t1: "var(--tinta-t1)",
+        t2: "var(--tinta-t2)",
+        t3: "var(--tinta-t3)",
+        tinta: "var(--tinta-plena)",
 
-        // Estratos por tier. Orden fijo T1 → T2 → T3, siempre en ese sentido:
-        // la posición codifica el tier igual que el color, así que la lectura
-        // sobrevive a cualquier daltonismo.
-        t1: "#3B4CC0", // índigo profundo: lo más valioso está más hondo
-        t2: "#12796B", // verde mineral
-        t3: "#A8752A", // ocre sedimentario
-
-        verdin: "#1F8F55",
-        oxido: "#C6382F",
+        // Único punto con croma en toda la app, y solo para estado, nunca para
+        // decorar: el ocre del corte fresco de un testigo recién extraído.
+        vivo: "#A8762F",
       },
       fontFamily: {
         // Una sola familia de texto y una mono para cifras: tres familias no
@@ -79,7 +86,10 @@ const config: Config = {
         "testigo-min": "8px",
       },
       borderRadius: {
-        pieza: "14px",
+        // 4 px, no 14. Un radio grande y blando es la firma de «app moderna»
+        // genérica; uno pequeño y constante lee como instrumento. Cero radio
+        // habría caído en el otro extremo, el de la maqueta tipo periódico.
+        pieza: "4px",
       },
       transitionTimingFunction: {
         sonda: "cubic-bezier(.2,.8,.2,1)",
