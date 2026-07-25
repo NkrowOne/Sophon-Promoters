@@ -144,26 +144,19 @@ async function main(): Promise<void> {
     mal(`detalle/register falló: ${e instanceof Error ? e.message : String(e)}`);
   }
 
-  // ── Identidad de tesorería: el control contable que debe cerrar siempre ──
-  titulo("Identidad de tesorería");
+  // ── Tesorería de la cuenta maestra ──────────────────────────────────────
+  // No se consultan los retiros de Sophon: los agentes no retiran allí y sus
+  // pagos los hace el superadmin a mano. Aquí solo interesa cuánto hay.
+  titulo("Tesorería de la cuenta maestra");
   try {
-    const [t, retiros] = await Promise.all([cliente.tesoreria(), cliente.historialRetiros()]);
-    const total = microsDesdeCadena(t.total);
-    const enProceso = microsDesdeCadena(t.processing);
-    const disponible = microsDesdeCadena(t.withdrawable);
-    const pagados = retiros.reduce((a, r) => a + microsDesdeCadena(r.amount), 0n);
-    const descuadre = pagados + enProceso + disponible - total;
-
-    console.log(
-      `    ${formatearMicros(pagados)} pagados + ${formatearMicros(enProceso)} en proceso + ` +
-        `${formatearMicros(disponible)} disponible`,
-    );
-    console.log(`    total declarado: ${formatearMicros(total)}`);
-    if (descuadre === 0n) ok("Cuadra exacta.");
-    else if (descuadre < 1_000n && descuadre > -1_000n) ok(`Cuadra dentro de tolerancia.`);
-    else mal(`DESCUADRE de ${formatearMicros(descuadre)} — investigar antes de pagar a nadie.`);
+    const t = await cliente.tesoreria();
+    console.log(`    generado en total: ${formatearMicros(microsDesdeCadena(t.total))}`);
+    console.log(`    en proceso:        ${formatearMicros(microsDesdeCadena(t.processing))}`);
+    console.log(`    disponible:        ${formatearMicros(microsDesdeCadena(t.withdrawable))}`);
+    ok("Leída correctamente.");
+    aviso("El cuadre real es Σ ganancias registradas frente a totalRevenue: lo hace el barrido.");
   } catch (e) {
-    mal(`No se pudo verificar la tesorería: ${e instanceof Error ? e.message : String(e)}`);
+    mal(`No se pudo leer la tesorería: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   console.log("");

@@ -28,7 +28,6 @@ import {
   type TarifasRegion,
   type Tesoreria,
   type TokenPartner,
-  type RetiroSophon,
 } from "./tipos.ts";
 
 export const HOST_POR_DEFECTO = "https://tool-api.newsophon.com";
@@ -251,17 +250,20 @@ export class ClienteSophon {
     return this.peticion<TarifasRegion>("GET", "/api/uc/aff/region/reward");
   }
 
-  /** Tesorería: `total = Σ retiros + processing + withdrawable`. Se usa para conciliar. */
+  /**
+   * Tesorería de la cuenta maestra: cuánto ha generado el programa en total,
+   * cuánto está en proceso y cuánto queda disponible. Se usa para conciliar
+   * contra lo que hemos registrado nosotros.
+   *
+   * NOTA: los endpoints de retiro de Sophon (`/api/uc/withdraw/*`) NO se usan
+   * a propósito. Los agentes no retiran nada en Sophon —no tienen cuenta allí—
+   * y sus pagos los hace el superadmin a mano desde `SolicitudRetiro`. Añadir
+   * aquí el historial de retiros de Sophon mezclaría dos flujos de dinero
+   * distintos: el que la plataforma paga al superadmin y el que el superadmin
+   * paga a sus agentes.
+   */
   async tesoreria(): Promise<Tesoreria> {
     return this.peticion<Tesoreria>("GET", "/api/uc/aff/brief/revenue");
-  }
-
-  async historialRetiros(): Promise<RetiroSophon[]> {
-    const d = await this.peticion<{ withdraws: RetiroSophon[] }>(
-      "GET",
-      "/api/uc/withdraw/history",
-    );
-    return d.withdraws ?? [];
   }
 
   /** `affiliateLevel`: 1 = incluir agentes de nivel 1, 2 = no. Es un sí/no, no una profundidad. */

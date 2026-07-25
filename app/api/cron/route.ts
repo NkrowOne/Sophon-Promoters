@@ -65,7 +65,6 @@ export async function POST(peticion: Request): Promise<NextResponse> {
             totalMicros: formatearMicros(r.totalMicros),
             enProcesoMicros: formatearMicros(r.enProcesoMicros),
             disponibleMicros: formatearMicros(r.disponibleMicros),
-            retiradoMicros: formatearMicros(r.retiradoMicros),
             descuadreLedgerMicros: formatearMicros(r.descuadreLedgerMicros),
           }
         : { omitido: "otro barrido en curso" };

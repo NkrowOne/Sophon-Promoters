@@ -1,24 +1,25 @@
 /**
  * Barrido de tesorería: el control que impide pagar sobre cifras equivocadas.
  *
- * Comprueba dos cuadres independientes y guarda el resultado:
+ * Cuadra **nuestro ledger contra Sophon**: la suma de lo que hemos registrado
+ * como ganancia total debe coincidir con `totalRevenue`. Si nos separamos, el
+ * devengo a los agentes está construido sobre una base que no cuadra, y se
+ * estaría pagando dinero calculado sobre datos incompletos.
  *
- *  1. **Identidad de Sophon**: `total = Σ retiros + en proceso + disponible`.
- *     Verificada al céntimo contra la cuenta real. Si deja de cumplirse, o
- *     hemos leído mal o Sophon cambió algo; en ambos casos hay que enterarse
- *     antes de liquidar a nadie.
+ * Un descuadre **no se absorbe**: se guarda con su importe y marca la ejecución
+ * como parcial para que el panel lo muestre. El silencio es el peor resultado
+ * posible aquí.
  *
- *  2. **Nuestro ledger contra Sophon**: la suma de lo que hemos registrado como
- *     ganancia total debe coincidir con `totalRevenue`. Si nos separamos, el
- *     devengo a los agentes está construido sobre una base que no cuadra.
- *
- * Un descuadre **no se absorbe**: se guarda con su importe y se marca para que
- * el panel lo muestre. El silencio es el peor resultado posible aquí.
+ * NO se consulta el historial de retiros de Sophon. Los agentes no retiran allí
+ * —no tienen cuenta— y sus pagos los hace el superadmin a mano contra
+ * `SolicitudRetiro`. Son dos flujos de dinero distintos y mezclarlos en el mismo
+ * cuadre haría que un movimiento del superadmin en Sophon pareciera un descuadre
+ * de las comisiones de sus agentes.
  */
 
 import { db, CERROJO, conCerrojo } from "../db.ts";
 import { formatearMicros, microsDesdeCadena, type Micros } from "../devengo/dinero.ts";
-import { conciliar, verificarTesoreria } from "../devengo/motor.ts";
+import { conciliar } from "../devengo/motor.ts";
 import type { ClienteSophon } from "../sophon/cliente.ts";
 import { NivelAfiliado } from "../sophon/tipos.ts";
 
@@ -26,9 +27,6 @@ export interface ResultadoTesoreria {
   totalMicros: Micros;
   enProcesoMicros: Micros;
   disponibleMicros: Micros;
-  retiradoMicros: Micros;
-  /** ¿Cierra la identidad de Sophon? */
-  identidadCuadra: boolean;
   /** ¿Cuadra nuestro ledger con el total que declara Sophon? */
   ledgerCuadra: boolean;
   descuadreLedgerMicros: Micros;
@@ -42,26 +40,16 @@ export async function barrerTesoreria(
     const ejecucion = await db.ejecucionSync.create({ data: { tipo: "TESORERIA" } });
 
     try {
-      const [tesoreria, retiros, resumen] = await Promise.all([
+      const [tesoreria, resumen] = await Promise.all([
         cliente.tesoreria(),
-        cliente.historialRetiros(),
         cliente.resumenRegistros(NivelAfiliado.Total),
       ]);
 
       const totalMicros = microsDesdeCadena(tesoreria.total);
       const enProcesoMicros = microsDesdeCadena(tesoreria.processing);
       const disponibleMicros = microsDesdeCadena(tesoreria.withdrawable);
-      const retirosMicros = retiros.map((r) => microsDesdeCadena(r.amount));
-      const retiradoMicros = retirosMicros.reduce((a, b) => a + b, 0n);
 
-      const identidad = verificarTesoreria({
-        totalMicros,
-        enProcesoMicros,
-        disponibleMicros,
-        retirosMicros,
-      });
-
-      // Segundo cuadre: lo que hemos guardado frente a lo que Sophon declara.
+      // El cuadre: lo que hemos guardado frente a lo que Sophon declara.
       const agregado = await db.filaDiariaSophon.aggregate({
         _sum: { gananciaTotalMicros: true },
       });
@@ -74,10 +62,10 @@ export async function barrerTesoreria(
           totalSophonMicros: declarado,
           totalLocalMicros: local,
           descuadreMicros: ledger.descuadreMicros,
-          cuadra: ledger.cuadra && identidad.cuadra,
+          cuadra: ledger.cuadra,
           detalle: [
-            `identidad ${identidad.cuadra ? "OK" : `DESCUADRE ${formatearMicros(identidad.descuadreMicros)}`}`,
             `ledger ${ledger.cuadra ? "OK" : `DESCUADRE ${formatearMicros(ledger.descuadreMicros)}`}`,
+            `disponible en Sophon ${formatearMicros(disponibleMicros)}`,
             `partnerLevel ${resumen.partnerLevel}`,
           ].join(" · "),
         },
@@ -107,13 +95,11 @@ export async function barrerTesoreria(
       await db.ejecucionSync.update({
         where: { id: ejecucion.id },
         data: {
-          estado: identidad.cuadra && ledger.cuadra ? "COMPLETADA" : "PARCIAL",
+          estado: ledger.cuadra ? "COMPLETADA" : "PARCIAL",
           terminadaEn: new Date(),
-          filasLeidas: retiros.length,
-          error:
-            identidad.cuadra && ledger.cuadra
-              ? null
-              : `descuadre: identidad ${formatearMicros(identidad.descuadreMicros)}, ledger ${formatearMicros(ledger.descuadreMicros)}`,
+          error: ledger.cuadra
+            ? null
+            : `descuadre del ledger: ${formatearMicros(ledger.descuadreMicros)}`,
         },
       });
 
@@ -121,8 +107,6 @@ export async function barrerTesoreria(
         totalMicros,
         enProcesoMicros,
         disponibleMicros,
-        retiradoMicros,
-        identidadCuadra: identidad.cuadra,
         ledgerCuadra: ledger.cuadra,
         descuadreLedgerMicros: ledger.descuadreMicros,
         partnerLevel: resumen.partnerLevel,

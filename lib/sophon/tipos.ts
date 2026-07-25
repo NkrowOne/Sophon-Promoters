@@ -125,21 +125,11 @@ export interface Tesoreria {
   todayRevenue?: string;
 }
 
-export const EstadoRetiro = {
-  EnProceso: 1,
-  Completado: 2,
-  Fallido: 3,
-} as const;
-export type EstadoRetiro = (typeof EstadoRetiro)[keyof typeof EstadoRetiro];
-
-export interface RetiroSophon {
-  requestedAt: string;
-  processedAt: string | null;
-  amount: string;
-  status: EstadoRetiro;
-  cryptoAccount: { network: number; account: string; withdrawAccountType: number };
-  currencyType: number;
-}
+/*
+ * Los tipos de retiro de Sophon se eliminaron a propósito: los agentes no
+ * retiran en Sophon —no tienen cuenta allí— y sus pagos los hace el superadmin
+ * a mano. Ver `SolicitudRetiro` en el esquema.
+ */
 
 /** Estado de un sub-afiliado. Ojo: la API responde `pendingDeletion` en camelCase. */
 export interface ResumenSubAfiliados {

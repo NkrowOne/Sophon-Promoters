@@ -214,26 +214,6 @@ export function conciliar(
   };
 }
 
-/**
- * Comprueba la identidad de tesorería de Sophon:
- *   total = Σ retiros + en proceso + disponible
- *
- * Verificada al céntimo contra la cuenta real (55.510,04 + 98,16 + 233,85 =
- * 55.842,05). Si deja de cumplirse, o hemos leído mal o Sophon cambió algo:
- * en ambos casos hay que enterarse antes de pagar a nadie.
- */
-export function verificarTesoreria(params: {
-  totalMicros: Micros;
-  enProcesoMicros: Micros;
-  disponibleMicros: Micros;
-  retirosMicros: readonly Micros[];
-}): { cuadra: boolean; descuadreMicros: Micros } {
-  const suma = sumar(params.retirosMicros) + params.enProcesoMicros + params.disponibleMicros;
-  const descuadreMicros = suma - params.totalMicros;
-  const abs = descuadreMicros < 0n ? -descuadreMicros : descuadreMicros;
-  return { cuadra: abs <= 1_000n, descuadreMicros };
-}
-
 // ─────────────────────────── Ventana de revisión ───────────────────────────
 
 /**

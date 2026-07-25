@@ -14,7 +14,6 @@ import {
   margenSuperadmin,
   objetivoDevengo,
   planificarAsientos,
-  verificarTesoreria,
 } from "../lib/devengo/motor.ts";
 
 /** Tarifa del negocio: 0,03 $ por registro y 5 % de las compras. */
@@ -239,21 +238,6 @@ test("la conciliación detecta un descuadre real y tolera el redondeo", () => {
   const mal = conciliar(sophon, [microsDesdeCadena("55000.00")]);
   assert.equal(mal.cuadra, false);
   assert.equal(mal.descuadreMicros, microsDesdeCadena("-842.05"));
-});
-
-test("la identidad de tesorería reproduce la cuenta real", () => {
-  // 55.510,04 pagados + 98,16 en proceso + 233,85 disponibles = 55.842,05.
-  const r = verificarTesoreria({
-    totalMicros: microsDesdeCadena("55842.05"),
-    enProcesoMicros: microsDesdeCadena("98.16"),
-    disponibleMicros: microsDesdeCadena("233.85"),
-    retirosMicros: [
-      "2211.08", "11065.21", "1208.37", "5951.21", "724.84", "500.82",
-      "834.29", "2171.31", "9424.07", "11011.50", "10407.34",
-    ].map(microsDesdeCadena),
-  });
-  assert.equal(r.cuadra, true, "la identidad de tesorería debe cerrar exacta");
-  assert.equal(r.descuadreMicros, 0n);
 });
 
 test("la ventana de revisión distingue días abiertos de cerrados", () => {
