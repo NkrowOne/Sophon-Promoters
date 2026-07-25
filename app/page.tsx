@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
+import { Aviso, Cargando, Vacio } from "@/components/Pantalla";
 import { Testigo, TestigoVacio, type DiaTestigo } from "@/components/testigo/Testigo";
 import { useTelegram } from "@/components/TelegramProvider";
-import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
+import { api, ErrorApi } from "@/lib/api/cliente";
+import { formatearMicros } from "@/lib/devengo/dinero";
 import { es } from "@/lib/i18n";
 
 /**
@@ -21,42 +23,55 @@ import { es } from "@/lib/i18n";
  * del mes. Todo lo demás es apoyo de esa cifra.
  */
 
-interface Cartera {
-  devengadoMicros: bigint;
-  disponibleMicros: bigint;
-  solicitadoMicros: bigint;
-  pagadoMicros: bigint;
+interface DiaApi extends Omit<DiaTestigo, "importeMicros"> {
+  importeMicros: string;
+  importe: string;
+  registros: number;
+  usuariosPago: number;
 }
 
-/** Datos de ejemplo hasta cablear el endpoint; la forma es la definitiva. */
-const DIAS_DEMO: DiaTestigo[] = [
-  { fecha: "2026-07-24", importeMicros: microsDesdeCadena("4.12"), registrosT1: 3, registrosT2: 2, registrosT3: 6, provisional: true },
-  { fecha: "2026-07-23", importeMicros: microsDesdeCadena("6.90"), registrosT1: 3, registrosT2: 7, registrosT3: 6 },
-  { fecha: "2026-07-22", importeMicros: microsDesdeCadena("7.44"), registrosT1: 4, registrosT2: 5, registrosT3: 2, concesiones: 1 },
-  { fecha: "2026-07-21", importeMicros: microsDesdeCadena("3.10"), registrosT1: 2, registrosT2: 3, registrosT3: 7 },
-  { fecha: "2026-07-20", importeMicros: microsDesdeCadena("8.71"), registrosT1: 3, registrosT2: 6, registrosT3: 4, activaciones: 1 },
-  { fecha: "2026-07-19", importeMicros: microsDesdeCadena("6.02"), registrosT1: 2, registrosT2: 8, registrosT3: 4 },
-  { fecha: "2026-07-18", importeMicros: microsDesdeCadena("4.52"), registrosT1: 2, registrosT2: 6, registrosT3: 6 },
-  { fecha: "2026-07-17", importeMicros: microsDesdeCadena("5.31"), registrosT1: 1, registrosT2: 4, registrosT3: 8 },
-  { fecha: "2026-07-16", importeMicros: microsDesdeCadena("9.14"), registrosT1: 3, registrosT2: 11, registrosT3: 3 },
-  { fecha: "2026-07-15", importeMicros: microsDesdeCadena("7.02"), registrosT1: 4, registrosT2: 7, registrosT3: 7 },
-];
-
-const CARTERA_DEMO: Cartera = {
-  devengadoMicros: microsDesdeCadena("128.44"),
-  disponibleMicros: microsDesdeCadena("96.20"),
-  solicitadoMicros: microsDesdeCadena("18.00"),
-  pagadoMicros: microsDesdeCadena("14.24"),
-};
+interface Resumen {
+  dias: DiaApi[];
+  webmasters: number;
+  cartera: {
+    devengado: { micros: string; texto: string };
+    disponible: { micros: string; texto: string };
+    solicitado: { micros: string; texto: string };
+    pagado: { micros: string; texto: string };
+  };
+}
 
 export default function Inicio() {
   // Deliberadamente NO se bloquea el render esperando a Telegram. El puente solo
   // aporta tema y háptica; si tarda o falla —WebView antiguo, script bloqueado,
-  // la app abierta fuera de Telegram— la pantalla debe seguir siendo legible y
-  // usable con los colores de respaldo. Una versión anterior mostraba
-  // «SONDEANDO…» hasta que el puente respondía y dejaba la app en blanco.
+  // la app abierta fuera de Telegram— la pantalla debe seguir siendo legible.
   useTelegram();
-  const dias = DIAS_DEMO;
+
+  const [datos, setDatos] = useState<Resumen | null>(null);
+  const [error, setError] = useState<ErrorApi | null>(null);
+
+  const cargar = useCallback(() => {
+    setError(null);
+    api
+      .get<Resumen>("/api/agente/resumen")
+      .then(setDatos)
+      .catch((e) =>
+        setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null)),
+      );
+  }, []);
+
+  useEffect(cargar, [cargar]);
+
+  // Los importes llegan como cadena porque JSON no admite BigInt: se reconstruyen
+  // aquí, y nunca se pasan por coma flotante.
+  const dias: DiaTestigo[] = useMemo(
+    () =>
+      (datos?.dias ?? []).map((d) => ({
+        ...d,
+        importeMicros: BigInt(d.importeMicros),
+      })),
+    [datos],
+  );
 
   const { totalTiers, t1, t2, t3, devengadoMes } = useMemo(() => {
     const t1 = dias.reduce((a, d) => a + d.registrosT1, 0);
@@ -71,9 +86,24 @@ export default function Inicio() {
     };
   }, [dias]);
 
-  const maxCartera = CARTERA_DEMO.devengadoMicros;
-  const proporcion = (m: bigint): number =>
-    maxCartera === 0n ? 0 : Number((m * 1000n) / maxCartera) / 10;
+  if (error && error.estado === 401) {
+    // Sin sesión no hay nada que enseñar: se manda al alta en vez de mostrar
+    // una pantalla vacía que no explica por qué está vacía.
+    return (
+      <main className="min-h-dvh px-4 pt-10">
+        <Vacio
+          titulo="Aún no has vinculado tu cuenta."
+          apoyo={es.pideCodigo}
+          accion={{ texto: es.vincularCuenta, href: "/alta" }}
+        />
+      </main>
+    );
+  }
+
+  const cartera = datos?.cartera;
+  const maxCartera = cartera ? BigInt(cartera.devengado.micros) : 0n;
+  const proporcion = (m: string): number =>
+    maxCartera === 0n ? 0 : Number((BigInt(m) * 1000n) / maxCartera) / 10;
 
   return (
     <main className="relative min-h-dvh pl-testigo">
@@ -84,72 +114,87 @@ export default function Inicio() {
       </div>
 
       <div className="px-4 pb-16 pt-7">
-        <Aparece orden={0}>
-          <header className="mb-8">
-            <p className="text-rotulo text-texto-apoyo">{es.devengado} · JULIO</p>
-            <div className="mt-1.5">
-              <CifraProtagonista micros={devengadoMes} />
-            </div>
-            <p className="mt-2 text-apoyo text-texto-apoyo">
-              <span className="tabular-nums">{totalTiers}</span> registros en {dias.length} días
-            </p>
-          </header>
-        </Aparece>
+        {error ? (
+          <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
+        ) : !datos ? (
+          <Cargando que="Sondeando" />
+        ) : dias.length === 0 ? (
+          <Vacio
+            titulo={datos.webmasters === 0 ? es.sinWebmasters : es.sinIngresos}
+            apoyo={datos.webmasters === 0 ? es.sinWebmastersApoyo : es.sinIngresosApoyo}
+            accion={
+              datos.webmasters === 0
+                ? { texto: es.activarWebmaster, href: "/activar" }
+                : { texto: es.red, href: "/red" }
+            }
+          />
+        ) : (
+          <>
+            <Aparece orden={0}>
+              <header className="mb-8">
+                <p className="text-rotulo text-texto-apoyo">{es.devengado} · 30 DÍAS</p>
+                <div className="mt-1.5">
+                  <CifraProtagonista micros={devengadoMes} />
+                </div>
+                <p className="mt-2 text-apoyo text-texto-apoyo">
+                  <span className="tabular-nums">{totalTiers}</span> registros ·{" "}
+                  <span className="tabular-nums">{datos.webmasters}</span> webmasters
+                </p>
+              </header>
+            </Aparece>
 
-        {/* La Cinta: una sola marca de 10 px responde «¿de dónde viene el
-            volumen?» en 200 ms. Sustituye a tres donuts y ocupa una décima parte. */}
-        <Aparece orden={1}>
-          <section aria-label="Reparto de registros por tier" className="mb-8">
-            <div className="flex h-2 overflow-hidden bg-superficie-alta">
-              <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
-              <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
-              <BarraCreciente porcentaje={(t3 / totalTiers) * 100} className="bg-t3" retardoMs={120} />
-            </div>
-            <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
-              <Leyenda color="bg-t1" etiqueta="T1" valor={t1} />
-              <Leyenda color="bg-t2" etiqueta="T2" valor={t2} />
-              <Leyenda color="bg-t3" etiqueta="T3" valor={t3} />
-            </div>
-          </section>
-        </Aparece>
+            {/* La Cinta: una sola marca de 8 px responde «¿de dónde viene el
+                volumen?». Sustituye a tres donuts y ocupa una décima parte. */}
+            {totalTiers > 0 && (
+              <Aparece orden={1}>
+                <section aria-label="Reparto de registros por tier" className="mb-8">
+                  <div className="flex h-2 overflow-hidden bg-superficie-alta">
+                    <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
+                    <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
+                    <BarraCreciente porcentaje={(t3 / totalTiers) * 100} className="bg-t3" retardoMs={120} />
+                  </div>
+                  <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
+                    <Leyenda color="bg-t1" etiqueta="T1" valor={t1} />
+                    <Leyenda color="bg-t2" etiqueta="T2" valor={t2} />
+                    <Leyenda color="bg-t3" etiqueta="T3" valor={t3} />
+                  </div>
+                </section>
+              </Aparece>
+            )}
 
-        {/* La Escalera: el dinero no es un saldo, es un flujo con estados
-            (devengado → disponible → solicitado → pagado). Cuatro tarjetas KPI
-            perderían justo esa secuencia, que es lo único que el agente
-            necesita entender para saber cuándo cobra. */}
-        {/* Sin tarjeta contenedora. Un bloque gris con esquinas blandas es la
-            firma de «app moderna» genérica y no aporta nada: la agrupación ya la
-            hace el rótulo y la separan filetes de 1 px, como en una tabla de
-            ensayo. Menos superficie, más densidad de información. */}
-        <Aparece orden={2}>
-          <section aria-label="Estado de tu dinero" className="mb-8">
-            <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">
-              {es.cartera.toUpperCase()}
-            </p>
-            <div className="divide-y divide-borde">
-              <Peldano etiqueta={es.devengado} micros={CARTERA_DEMO.devengadoMicros} proporcion={proporcion(CARTERA_DEMO.devengadoMicros)} destacado />
-              <Peldano etiqueta={es.disponible} micros={CARTERA_DEMO.disponibleMicros} proporcion={proporcion(CARTERA_DEMO.disponibleMicros)} retardo={70} />
-              <Peldano etiqueta={es.solicitado} micros={CARTERA_DEMO.solicitadoMicros} proporcion={proporcion(CARTERA_DEMO.solicitadoMicros)} retardo={140} />
-              <Peldano etiqueta={es.pagado} micros={CARTERA_DEMO.pagadoMicros} proporcion={proporcion(CARTERA_DEMO.pagadoMicros)} retardo={210} />
-            </div>
-            <p className="mt-3 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
-          </section>
-        </Aparece>
+            {/* La Escalera: el dinero es un flujo con estados, no cuatro saldos
+                sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
+            {cartera && (
+              <Aparece orden={2}>
+                <section aria-label="Estado de tu dinero" className="mb-8">
+                  <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">
+                    {es.cartera.toUpperCase()}
+                  </p>
+                  <div className="divide-y divide-borde">
+                    <Peldano etiqueta={es.devengado} texto={cartera.devengado.texto} proporcion={100} destacado />
+                    <Peldano etiqueta={es.disponible} texto={cartera.disponible.texto} proporcion={proporcion(cartera.disponible.micros)} retardo={70} />
+                    <Peldano etiqueta={es.solicitado} texto={cartera.solicitado.texto} proporcion={proporcion(cartera.solicitado.micros)} retardo={140} />
+                    <Peldano etiqueta={es.pagado} texto={cartera.pagado.texto} proporcion={proporcion(cartera.pagado.micros)} retardo={210} />
+                  </div>
+                  <p className="mt-3 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
+                </section>
+              </Aparece>
+            )}
 
-        {/* La acción principal va sola y a todo el ancho: es la única cosa que
-            el agente viene a hacer. Las tres secundarias caben en una fila de
-            iguales, en vez de una retícula de dos donde una celda envolvía a dos
-            líneas y descuadraba la altura de toda la fila. */}
-        <Aparece orden={3}>
-          <nav aria-label="Acciones" className="space-y-2.5">
-            <Accion href="/activar" etiqueta={es.activarWebmaster} principal />
-            <div className="grid grid-cols-3 gap-2.5">
-              <Accion href="/red" etiqueta={es.red} />
-              <Accion href="/historico" etiqueta={es.historico} />
-              <Accion href="/cartera" etiqueta={es.cartera} />
-            </div>
-          </nav>
-        </Aparece>
+            {/* La acción principal va sola y a todo el ancho: es la única cosa
+                que el agente viene a hacer. */}
+            <Aparece orden={3}>
+              <nav aria-label="Acciones" className="space-y-2.5">
+                <Accion href="/activar" etiqueta={es.activarWebmaster} principal />
+                <div className="grid grid-cols-3 gap-2.5">
+                  <Accion href="/red" etiqueta={es.red} />
+                  <Accion href="/historico" etiqueta={es.historico} />
+                  <Accion href="/cartera" etiqueta={es.cartera} />
+                </div>
+              </nav>
+            </Aparece>
+          </>
+        )}
       </div>
     </main>
   );
@@ -175,13 +220,13 @@ function Leyenda({ color, etiqueta, valor }: { color: string; etiqueta: string; 
  */
 function Peldano({
   etiqueta,
-  micros,
+  texto,
   proporcion,
   destacado = false,
   retardo = 0,
 }: {
   etiqueta: string;
-  micros: bigint;
+  texto: string;
   proporcion: number;
   destacado?: boolean;
   retardo?: number;
@@ -191,7 +236,7 @@ function Peldano({
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
         <span className="text-rotulo text-texto-apoyo">{etiqueta}</span>
         <span className={`cifra text-cuerpo ${destacado ? "font-semibold" : ""}`}>
-          {formatearMicros(micros)}
+          {texto}
         </span>
       </div>
       {/* Extremos rectos: una barra de datos con las puntas redondeadas miente
