@@ -23,14 +23,20 @@
 
 import { createHmac } from "node:crypto";
 
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 import { formatearCodigo, hashOtp, normalizarCodigo, normalizarEmail } from "../lib/cripto.ts";
 
 const BASE = (process.env["APP_URL_PRUEBA"] ?? "http://127.0.0.1:3001").replace(/\/+$/, "");
 const TOKEN = process.env["TELEGRAM_BOT_TOKEN"] ?? "";
+/**
+ * Identidad propia de la prueba.
+ *
+ * Reservada y reconocible para que la limpieza no arrastre datos de nadie más
+ * si esto se ejecuta contra una base de datos que ya tiene algo dentro.
+ */
 const TELEGRAM_ID = 987_654_321;
-const EMAIL = "agente.prueba@example.com";
+const EMAIL = "e2e@prueba.local";
 
 const db = new PrismaClient();
 
@@ -83,17 +89,59 @@ async function principal(): Promise<void> {
   const emailNormalizado = normalizarEmail(EMAIL);
 
   // ── Limpieza previa: la prueba tiene que poder repetirse ──────────────────
-  await db.sesionAgente.deleteMany({ where: { agente: { emailNormalizado } } });
+  //
+  // En orden de dependencia y borrando primero lo que cuelga del agente. La
+  // base de datos NO deja borrar un agente que tenga asientos —el ledger es
+  // append-only y un asiento sin dueño no significa nada—, así que una limpieza
+  // ingenua se estrella contra esa clave ajena. Aquí eso no debería pasar,
+  // porque esta identidad no devenga nada, pero la prueba tiene que poder
+  // ejecutarse dos veces seguidas pase lo que pase entre medias.
+  const previo = await db.agente.findUnique({
+    where: { emailNormalizado },
+    select: { id: true },
+  });
+  if (previo) {
+    await db.sesionAgente.deleteMany({ where: { agenteId: previo.id } });
+    await db.asientoComision.deleteMany({ where: { agenteId: previo.id } });
+    await db.concesionPro.deleteMany({ where: { agenteId: previo.id } });
+    await db.solicitudRetiro.deleteMany({ where: { agenteId: previo.id } });
+    await db.intentoVinculacion.deleteMany({ where: { agenteId: previo.id } });
+    await db.webmaster.updateMany({ where: { agenteId: previo.id }, data: { agenteId: null } });
+    await db.codigoActivacion.updateMany({
+      where: { agenteId: previo.id },
+      data: { agenteId: null },
+    });
+  }
   await db.codigoOtp.deleteMany({ where: { emailNormalizado } });
   await db.codigoActivacion.deleteMany({ where: { creadoPorId: "prueba-e2e" } });
   await db.agente.deleteMany({ where: { emailNormalizado } });
+  // El Telegram de la prueba puede haber quedado atado a otro correo si una
+  // ejecución anterior se interrumpió a medias. Se DESATA, no se borra: ese
+  // agente puede tener asientos, y el ledger no permite —ni debe permitir—
+  // borrar al dueño de un devengo. Lo que la prueba necesita es que el Telegram
+  // esté libre, no que la cuenta desaparezca.
+  await db.agente.updateMany({
+    where: { telegramId: BigInt(TELEGRAM_ID), emailNormalizado: { not: emailNormalizado } },
+    data: { telegramId: null },
+  });
 
   // ── 1. La migración creó lo que el código espera ──────────────────────────
-  const tablas = await db.$queryRaw<{ count: bigint }[]>`
-    SELECT count(*)::bigint FROM information_schema.tables WHERE table_schema = 'public'
-      AND table_name NOT LIKE '\\_prisma%'`;
-  comprobar("la migración crea las 15 tablas", Number(tablas[0]?.count ?? 0) === 15,
-    `${tablas[0]?.count} encontradas`);
+  //
+  // La lista esperada sale del propio esquema, no de un número escrito a mano.
+  // La primera versión comprobaba «son 15 tablas» y se rompió en cuanto se
+  // añadió una decimosexta: un recuento fijo solo sabe decir que algo cambió,
+  // no si la migración se olvidó de un modelo, que es lo que de verdad importa.
+  const esperadas = Prisma.dmmf.datamodel.models.map((m) => m.dbName ?? m.name);
+  const presentes = await db.$queryRaw<{ table_name: string }[]>`
+    SELECT table_name::text FROM information_schema.tables
+     WHERE table_schema = 'public' AND table_name NOT LIKE '\\_prisma%'`;
+  const nombres = new Set(presentes.map((t) => t.table_name));
+  const faltan = esperadas.filter((t) => !nombres.has(t));
+  comprobar(
+    `la migración crea las ${esperadas.length} tablas del esquema`,
+    faltan.length === 0,
+    faltan.length ? `faltan: ${faltan.join(", ")}` : `${nombres.size} en la base de datos`,
+  );
 
   // ── 2. Sin firma no se entra ──────────────────────────────────────────────
   const sinFirma = await fetch(`${BASE}/api/agente/resumen`);
@@ -216,6 +264,30 @@ async function principal(): Promise<void> {
   comprobar("un Telegram ya vinculado no puede darse de alta otra vez",
     repetida.status === 409, await detalle(repetida));
 
+  // ── 8. El panel está cerrado sin sesión ───────────────────────────────────
+  // Se comprueban TODAS las páginas, no una de muestra: el guardia está en cada
+  // una por separado —a propósito, para que una página nueva no herede la
+  // protección sin declararla— y eso significa que también hay que verificarlo
+  // en cada una.
+  for (const ruta of ["/admin", "/admin/agentes", "/admin/retiros"]) {
+    const r = await fetch(`${BASE}${ruta}`);
+    const html = await r.text();
+    comprobar(
+      `${ruta} no enseña nada sin sesión`,
+      html.includes("Necesitas entrar") && !html.includes("Tu margen"),
+    );
+  }
+
+  // ── 9. Un enlace de entrada inventado no abre el panel ────────────────────
+  const inventado = await fetch(`${BASE}/admin/entrar?t=noexisteestetoken`, {
+    redirect: "manual",
+  });
+  comprobar(
+    "un enlace de entrada inventado no abre sesión",
+    (inventado.headers.get("location") ?? "").includes("/admin/cerrado"),
+    inventado.headers.get("location") ?? "",
+  );
+
   console.log(
     `\n${fallos === 0 ? "Todo en verde." : `${fallos === 1 ? "1 comprobación falló" : `${fallos} comprobaciones fallaron`}.`}`,
   );
@@ -233,7 +305,14 @@ try {
   await principal();
 } catch (e) {
   fallos++;
-  console.log(`\n✗ la prueba se interrumpió: ${e instanceof Error ? e.message.split("\n")[0] : e}`);
+  // La primera línea NO sirve: los errores de Prisma empiezan con un salto de
+  // línea y el informe salía diciendo «se interrumpió:» y nada más. Se busca
+  // la primera línea con contenido.
+  const motivo =
+    e instanceof Error
+      ? (e.message.split("\n").find((l) => l.trim()) ?? e.name).trim()
+      : String(e);
+  console.log(`\n✗ la prueba se interrumpió: ${motivo}`);
 } finally {
   await db.$disconnect();
   process.exit(fallos === 0 ? 0 : 1);

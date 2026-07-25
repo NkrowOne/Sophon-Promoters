@@ -1,0 +1,146 @@
+/*
+ * El panel NO es la Mini App.
+ *
+ * La Mini App vive dentro de Telegram y hereda su tema; el panel se abre en un
+ * navegador de escritorio y no tiene de quién heredarlo, así que fija el suyo.
+ * Mismo lenguaje —tinta, filetes, radio de 4 px, cifras tabulares— y ninguna
+ * variable `--tg-theme-*`, que aquí no existirían y dejarían texto sobre
+ * transparente.
+ *
+ * Es deliberadamente más denso: aquí se comparan filas y se toman decisiones
+ * sobre dinero, no se consulta un saldo de pie en la calle.
+ */
+
+.panel {
+  --p-fondo: #ffffff;
+  --p-texto: #10151a;
+  --p-apoyo: #5b636c;
+  --p-superficie: #f7f8fa;
+  --p-superficie-alta: #eef0f3;
+  --p-borde: #dfe3e8;
+  --p-vivo: #a8762f;
+
+  min-height: 100vh;
+  background: var(--p-fondo);
+  color: var(--p-texto);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  .panel {
+    --p-fondo: #14181d;
+    --p-texto: #f5f7f9;
+    --p-apoyo: #98a2ac;
+    --p-superficie: #1c2229;
+    --p-superficie-alta: #262e37;
+    --p-borde: #333d48;
+  }
+}
+
+.panel a {
+  color: inherit;
+}
+
+.panel .rotulo {
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--p-apoyo);
+  text-transform: uppercase;
+}
+
+.panel .apoyo {
+  font-size: 0.8125rem;
+  color: var(--p-apoyo);
+}
+
+.panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.panel th {
+  text-align: left;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--p-apoyo);
+  text-transform: uppercase;
+  padding: 0 0.75rem 0.5rem 0;
+  border-bottom: 1px solid var(--p-borde);
+  white-space: nowrap;
+}
+
+.panel td {
+  padding: 0.6rem 0.75rem 0.6rem 0;
+  border-bottom: 1px solid var(--p-borde);
+  vertical-align: baseline;
+  font-size: 0.875rem;
+}
+
+/* Las columnas de dinero se alinean a la derecha y en mono: es la única forma
+   de que una lista de importes se pueda comparar de un vistazo. */
+.panel td.num,
+.panel th.num {
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.panel .boton {
+  display: inline-block;
+  border: 1px solid var(--p-borde);
+  border-radius: 4px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.panel .boton:hover {
+  background: var(--p-superficie);
+}
+
+.panel .boton.primario {
+  background: var(--p-texto);
+  color: var(--p-fondo);
+  border-color: var(--p-texto);
+  font-weight: 600;
+}
+
+.panel .boton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.panel input,
+.panel select {
+  border: 1px solid var(--p-borde);
+  border-radius: 4px;
+  background: var(--p-superficie);
+  color: inherit;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.panel input:focus,
+.panel select:focus {
+  outline: none;
+  border-color: var(--p-texto);
+}
+
+.panel .vivo {
+  color: var(--p-vivo);
+}
+
+/* La cifra del margen privado. Es lo único de esta aplicación que solo puede
+   ver una persona, y lo lleva escrito encima en vez de fiarlo a que quien
+   mira una captura ya lo sepa. */
+.panel .privado {
+  border-left: 2px solid var(--p-vivo);
+  padding-left: 0.75rem;
+}

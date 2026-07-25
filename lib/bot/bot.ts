@@ -1,6 +1,7 @@
 import { Bot, InlineKeyboard } from "grammy";
 
 import { db } from "../db.ts";
+import { crearEnlaceDeEntrada, MINUTOS_CANJE } from "../auth/admin.ts";
 import { formatearCodigo, generarCodigoActivacion, normalizarEmail } from "../cripto.ts";
 import { formatearMicros } from "../devengo/dinero.ts";
 
@@ -113,6 +114,28 @@ function registrar(b: Bot): void {
     });
   });
 
+  b.command("panel", async (ctx) => {
+    if (!esSuperadmin(ctx.from?.id)) return;
+
+    const enlace = await crearEnlaceDeEntrada(BigInt(ctx.from!.id));
+    if (!enlace) {
+      await ctx.reply("Falta APP_URL: no sé dónde está publicado el panel.");
+      return;
+    }
+
+    await ctx.reply(
+      [
+        enlace,
+        "",
+        `Un solo uso y caduca en ${MINUTOS_CANJE} minutos.`,
+        "Si pides otro, este deja de valer.",
+      ].join("\n"),
+      // Sin previsualización: Telegram la genera abriendo la URL, y eso
+      // gastaría el enlace de un solo uso antes de que nadie lo tocara.
+      { link_preview_options: { is_disabled: true } },
+    );
+  });
+
   b.command("ayuda", async (ctx) => {
     if (!esSuperadmin(ctx.from?.id)) {
       await ctx.reply(
@@ -129,6 +152,7 @@ function registrar(b: Bot): void {
         `/codigo correo@ejemplo.com 30 — y válido 30 días (máx. ${MAX_DIAS_CODIGO})`,
         "/agentes — quién hay dado de alta y qué mueve",
         "/retiros — solicitudes pendientes, con su wallet",
+        "/panel — enlace de entrada al panel",
         "",
         "<i>Aprobar y marcar como pagado se hace en el panel, no aquí: mover",
         "dinero desde un chat es demasiado fácil de hacer sin querer.</i>",

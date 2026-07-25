@@ -161,6 +161,38 @@ model SesionAgente {
   @@index([expiraEn])
 }
 
+/// Sesión del panel de superadmin.
+///
+/// No hay contraseña: el bot emite un enlace de un solo uso al Telegram del
+/// superadmin, que ya es el ancla de confianza de toda la aplicación
+/// (`TELEGRAM_SUPERADMIN_ID`). Una contraseña más en el entorno sería una
+/// credencial más que rotar, filtrar y olvidar, sin añadir ninguna garantía
+/// que el control del Telegram no diera ya.
+///
+/// Dura poco a propósito: al panel se entra a hacer algo concreto —pagar un
+/// retiro, subir un cupo— y una sesión eterna sobre la mesa de un portátil es
+/// justo lo que no puede quedar abierto.
+model SesionAdmin {
+  id String @id @default(cuid())
+
+  /// Solo el hash, como en las sesiones de agente.
+  tokenHash String @unique
+
+  /// Token de un solo uso del enlace de entrada. Se borra al canjearlo, así
+  /// que un enlace reenviado por error no vale dos veces.
+  canjeHash String?   @unique
+  canjeadoEn DateTime?
+
+  telegramId  BigInt
+  emitidaEn   DateTime  @default(now())
+  expiraEn    DateTime
+  ultimoUsoEn DateTime  @default(now())
+  revocadaEn  DateTime?
+  ip          String?
+
+  @@index([expiraEn])
+}
+
 /// Código que genera el superadmin desde el bot para dar de alta a un agente.
 model CodigoActivacion {
   id     String @id @default(cuid())
