@@ -163,3 +163,24 @@ export function sumar(importes: Iterable<Micros>): Micros {
 export function absMicros(micros: Micros): Micros {
   return micros < 0n ? -micros : micros;
 }
+
+/**
+ * Raíz cuadrada entera por Newton.
+ *
+ * La usan las escalas del Testigo: con escala lineal un día de 12 $ aplasta
+ * treinta días de 0,40 $ y desaparece la textura de la constancia, que es
+ * justamente lo que el agente tiene que ver. Va aquí y no en el componente
+ * porque el importe es un `bigint` en micros y no puede pasar por coma flotante
+ * ni siquiera para dibujarlo.
+ */
+export function raizEntera(n: Micros): Micros {
+  if (n <= 0n) return 0n;
+  if (n < 2n) return n;
+  let x = n;
+  let y = (x + 1n) / 2n;
+  while (y < x) {
+    x = y;
+    y = (x + n / x) / 2n;
+  }
+  return x;
+}

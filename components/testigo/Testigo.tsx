@@ -22,7 +22,7 @@
  * datos móviles no da para importar una.
  */
 
-import { formatearMicros } from "@/lib/devengo/dinero";
+import { formatearMicros, raizEntera } from "@/lib/devengo/dinero";
 
 export interface DiaTestigo {
   fecha: string;
@@ -55,19 +55,6 @@ interface Props {
 const LONGITUD_MINIMA = 3;
 /** Tope del escalonado: más allá, la carga se percibiría lenta. */
 const MAX_RETARDO_MS = 520;
-
-/** Raíz cuadrada entera sobre bigint: el dinero nunca pasa por coma flotante. */
-function raizEntera(n: bigint): bigint {
-  if (n <= 0n) return 0n;
-  if (n < 2n) return n;
-  let x = n;
-  let y = (x + 1n) / 2n;
-  while (y < x) {
-    x = y;
-    y = (x + n / x) / 2n;
-  }
-  return x;
-}
 
 export function Testigo({
   dias,

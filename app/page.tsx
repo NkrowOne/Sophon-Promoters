@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
+import { Escalera, type Cartera } from "@/components/Escalera";
 import { Aviso, Cargando, Vacio } from "@/components/Pantalla";
 import { Testigo, TestigoVacio, type DiaTestigo } from "@/components/testigo/Testigo";
 import { useTelegram } from "@/components/TelegramProvider";
@@ -33,12 +34,8 @@ interface DiaApi extends Omit<DiaTestigo, "importeMicros"> {
 interface Resumen {
   dias: DiaApi[];
   webmasters: number;
-  cartera: {
-    devengado: { micros: string; texto: string };
-    disponible: { micros: string; texto: string };
-    solicitado: { micros: string; texto: string };
-    pagado: { micros: string; texto: string };
-  };
+  puedeConcederPro: boolean;
+  cartera: Cartera;
 }
 
 export default function Inicio() {
@@ -101,15 +98,21 @@ export default function Inicio() {
   }
 
   const cartera = datos?.cartera;
-  const maxCartera = cartera ? BigInt(cartera.devengado.micros) : 0n;
-  const proporcion = (m: string): number =>
-    maxCartera === 0n ? 0 : Number((BigInt(m) * 1000n) / maxCartera) / 10;
 
   return (
     <main className="relative min-h-dvh pl-testigo">
       {/* El raíl: identidad, gráfico principal, indicador de estado y estado
-          vacío, todo en la misma pieza. */}
-      <div className="testigo-terreno fixed inset-y-0 left-0 w-testigo overflow-hidden bg-superficie">
+          vacío, todo en la misma pieza.
+
+          La trama de terreno solo se pone cuando hay bandas que apoyar. Con el
+          raíl vacío se solapaba con las marcas del propio TestigoVacio —la
+          misma retícula dibujada dos veces— y el resultado era un rayado sucio
+          en lugar de una columna sin perforar. */}
+      <div
+        className={`fixed inset-y-0 left-0 w-testigo overflow-hidden bg-superficie ${
+          dias.length > 0 ? "testigo-terreno" : ""
+        }`}
+      >
         {dias.length > 0 ? <Testigo dias={dias} /> : <TestigoVacio />}
       </div>
 
@@ -166,28 +169,25 @@ export default function Inicio() {
                 sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
             {cartera && (
               <Aparece orden={2}>
-                <section aria-label="Estado de tu dinero" className="mb-8">
-                  <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">
-                    {es.cartera.toUpperCase()}
-                  </p>
-                  <div className="divide-y divide-borde">
-                    <Peldano etiqueta={es.devengado} texto={cartera.devengado.texto} proporcion={100} destacado />
-                    <Peldano etiqueta={es.disponible} texto={cartera.disponible.texto} proporcion={proporcion(cartera.disponible.micros)} retardo={70} />
-                    <Peldano etiqueta={es.solicitado} texto={cartera.solicitado.texto} proporcion={proporcion(cartera.solicitado.micros)} retardo={140} />
-                    <Peldano etiqueta={es.pagado} texto={cartera.pagado.texto} proporcion={proporcion(cartera.pagado.micros)} retardo={210} />
-                  </div>
+                <div className="mb-8">
+                  <Escalera cartera={cartera} titulo={es.cartera.toUpperCase()} />
                   <p className="mt-3 text-apoyo text-texto-apoyo">{es.revisionManual}</p>
-                </section>
+                </div>
               </Aparece>
             )}
 
             {/* La acción principal va sola y a todo el ancho: es la única cosa
                 que el agente viene a hacer. */}
             <Aparece orden={3}>
+              {/* Una acción principal a todo el ancho y las demás en una
+                  retícula PAR. Con tres secundarias la fila quedaba descuadrada
+                  respecto al botón de arriba; con cuatro, el bloque entero es un
+                  rectángulo y deja de leerse como un sobrante. */}
               <nav aria-label="Acciones" className="space-y-2.5">
                 <Accion href="/activar" etiqueta={es.activarWebmaster} principal />
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 gap-2.5">
                   <Accion href="/red" etiqueta={es.red} />
+                  {datos.puedeConcederPro && <Accion href="/pro" etiqueta={es.concederPro} />}
                   <Accion href="/historico" etiqueta={es.historico} />
                   <Accion href="/cartera" etiqueta={es.cartera} />
                 </div>
@@ -206,49 +206,6 @@ function Leyenda({ color, etiqueta, valor }: { color: string; etiqueta: string; 
       <span className={`h-2 w-2 rounded-sm ${color}`} aria-hidden />
       {etiqueta} <span className="cifra">{valor}</span>
     </span>
-  );
-}
-
-/**
- * Un peldaño de la Escalera: longitud = importe, posición = estado del dinero.
- *
- * El rótulo va en su propia línea con el importe a la derecha, y la barra debajo.
- * La versión anterior los ponía en una sola fila con el rótulo de ancho fijo, y
- * el `letter-spacing` de los rótulos desbordaba sobre la barra: «DEVENGADO» y
- * «SOLICITADO» aparecían cortados. Dos líneas cuestan altura pero no dependen
- * de que ninguna palabra quepa en una medida calculada a ojo.
- */
-function Peldano({
-  etiqueta,
-  texto,
-  proporcion,
-  destacado = false,
-  retardo = 0,
-}: {
-  etiqueta: string;
-  texto: string;
-  proporcion: number;
-  destacado?: boolean;
-  retardo?: number;
-}) {
-  return (
-    <div className="py-2.5">
-      <div className="mb-1.5 flex items-baseline justify-between gap-3">
-        <span className="text-rotulo text-texto-apoyo">{etiqueta}</span>
-        <span className={`cifra text-cuerpo ${destacado ? "font-semibold" : ""}`}>
-          {texto}
-        </span>
-      </div>
-      {/* Extremos rectos: una barra de datos con las puntas redondeadas miente
-          sobre dónde empieza y acaba la medida, y solo está ahí por blandura. */}
-      <span className="block h-1.5 overflow-hidden bg-superficie-alta">
-        <BarraCreciente
-          porcentaje={Math.max(proporcion, 1.5)}
-          className={destacado ? "bg-tinta" : "bg-t2"}
-          retardoMs={retardo}
-        />
-      </span>
-    </div>
   );
 }
 
