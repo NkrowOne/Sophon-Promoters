@@ -202,6 +202,35 @@ test("la clave avanza con la secuencia, así que un ida y vuelta no colisiona", 
   assert.equal(new Set(todas).size, todas.length, "ninguna clave puede repetirse");
 });
 
+test("INVARIANTE: el concepto se distingue por baseMicros, no por la nota", () => {
+  // El sincronizador reconstruye lo ya asentado separando CPA de CPS con este
+  // criterio estructural. Si un día se invirtiera, los reversos se aplicarían
+  // contra el concepto equivocado y el saldo del agente quedaría mal en silencio.
+  const alta = planificarAsientos(ctx());
+  const cpa = alta.find((a) => a.tipo === TipoAsiento.CPA);
+  const cps = alta.find((a) => a.tipo === TipoAsiento.CPS);
+  assert.equal(cpa?.baseMicros, null, "un asiento de registros no lleva base en micros");
+  assert.notEqual(cps?.baseMicros, null, "uno de pagos sí lleva la base sobre la que se calculó");
+
+  // Y los reversos conservan la forma de aquello que revierten.
+  const previo: AsentadoPrevio = {
+    cpaMicros: microsDesdeCadena("0.27"),
+    cpsMicros: microsDesdeCadena("0.4995"),
+    secuencia: 2,
+  };
+  const revCpa = planificarAsientos(
+    ctx({ fila: filaReal({ countRegister: 4 }), previo }),
+  )[0];
+  assert.equal(revCpa?.tipo, TipoAsiento.AJUSTE_REVERSO);
+  assert.equal(revCpa?.baseMicros, null, "el reverso de registros mantiene base nula");
+
+  const revCps = planificarAsientos(
+    ctx({ fila: filaReal({ paymentAmountMicros: 0n, countPayingUsers: 0 }), previo }),
+  )[0];
+  assert.equal(revCps?.tipo, TipoAsiento.AJUSTE_REVERSO);
+  assert.notEqual(revCps?.baseMicros, null, "el reverso de pagos mantiene base no nula");
+});
+
 test("la conciliación detecta un descuadre real y tolera el redondeo", () => {
   const sophon = microsDesdeCadena("55842.05");
   const ok = conciliar(sophon, [microsDesdeCadena("55842.0505")]);

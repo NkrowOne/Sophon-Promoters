@@ -39,14 +39,19 @@ const CODIGO_OK = 0;
 const CODIGO_ERROR_SISTEMA = 999999;
 
 export class ErrorSophon extends Error {
-  constructor(
-    mensaje: string,
-    readonly codigo: number,
-    readonly ruta: string,
-    readonly traceId: string | null,
-  ) {
+  // Campos explícitos y no propiedades de parámetro: el modo de type-stripping
+  // nativo de Node no soporta esa azúcar sintáctica, y los tests y el script de
+  // diagnóstico se ejecutan sin compilar.
+  readonly codigo: number;
+  readonly ruta: string;
+  readonly traceId: string | null;
+
+  constructor(mensaje: string, codigo: number, ruta: string, traceId: string | null) {
     super(mensaje);
     this.name = "ErrorSophon";
+    this.codigo = codigo;
+    this.ruta = ruta;
+    this.traceId = traceId;
   }
 
   /** El UID del llamante no está autorizado para la Tool API. */
@@ -95,6 +100,7 @@ const UMBRAL_CORTACIRCUITOS = 5;
 const REPOSO_CORTACIRCUITOS_MS = 60_000;
 
 export class ClienteSophon {
+  private readonly opciones: OpcionesCliente;
   private readonly host: string;
   private readonly fetchImpl: typeof fetch;
   private readonly ahora: () => number;
@@ -103,7 +109,8 @@ export class ClienteSophon {
   private fallosConsecutivos = 0;
   private abiertoHasta = 0;
 
-  constructor(private readonly opciones: OpcionesCliente) {
+  constructor(opciones: OpcionesCliente) {
+    this.opciones = opciones;
     this.host = opciones.host ?? HOST_POR_DEFECTO;
     this.fetchImpl = opciones.fetchImpl ?? fetch;
     this.ahora = opciones.ahora ?? (() => Date.now());
