@@ -17,7 +17,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "sophon:diagnostico": "node --experimental-strip-types scripts/diagnostico-sophon.ts"
+    "sophon:diagnostico": "node --experimental-strip-types scripts/diagnostico-sophon.ts",
+    "bot:configurar": "node --experimental-strip-types scripts/bot-configurar.ts",
+    "prueba:e2e": "node --experimental-strip-types scripts/prueba-extremo-a-extremo.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
