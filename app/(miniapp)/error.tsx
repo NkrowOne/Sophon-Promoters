@@ -33,7 +33,7 @@ export default function ErrorMiniApp({
         <button
           type="button"
           onClick={reset}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-control bg-tinta text-cuerpo font-semibold text-fondo"
+          className="pulsable flex min-h-12 flex-1 items-center justify-center rounded-control bg-tinta text-cuerpo font-semibold text-fondo"
         >
           Reintentar
         </button>

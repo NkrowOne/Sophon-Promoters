@@ -141,7 +141,7 @@ export default function Historico() {
 
   return (
     <Pantalla titulo={t.historico}>
-      <Banda tono={0} como="header" className="pb-5">
+      <Banda orden={0} tono={0} como="header" className="pb-5">
         <p className="text-apoyo text-texto-apoyo">
           <Importe micros={total} className="text-cuerpo font-semibold text-texto" />{" "}
           {t.enDias(serie.length)}
@@ -155,7 +155,7 @@ export default function Historico() {
       {/* El testigo va sobre superficie y no sobre el fondo desnudo: las bandas
           de días son el dato, y necesitan un suelo propio contra el que medirse
           igual que el raíl lo tiene en las demás pantallas. */}
-      <Banda tono={1} etiqueta={t.historico} className="pb-2 pt-4">
+      <Banda orden={1} tono={1} etiqueta={t.historico} className="pb-2 pt-4">
         {/* Cabecera de la columna de importes: la unidad se dice una vez aquí y
             desaparece de las setenta filas de abajo. */}
         <div className="mb-1 flex items-baseline justify-between border-b border-junta pb-1.5">
@@ -166,7 +166,7 @@ export default function Historico() {
         <TestigoAncho dias={serie} meses={meses} etiquetas={t} />
       </Banda>
 
-      <Banda tono={0}>
+      <Banda orden={2} tono={0}>
         <div ref={centinela} className="pt-6">
           {agotado ? (
             // El fondo del sondeo tiene que verse: sin este cierre, el scroll

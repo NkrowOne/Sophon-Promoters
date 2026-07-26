@@ -165,19 +165,23 @@ const config: Config = {
         panel: "16px",
         pildora: "999px",
       },
+      /*
+       * Una sola fuente para la curva. Aquí había un `cubic-bezier` escrito a
+       * mano que duplicaba el valor de `--curva` en `globals.css`: dos sitios
+       * para el mismo reglaje, y por tanto dos sitios donde puede quedarse uno
+       * viejo. Ahora apunta a la variable, que es la que manda.
+       */
       transitionTimingFunction: {
-        sonda: "cubic-bezier(.2,.8,.2,1)",
+        sonda: "var(--curva)",
       },
-      keyframes: {
-        emerger: {
-          from: { opacity: "0", transform: "translateY(8px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
-      },
-      animation: {
-        // Vertical, nunca horizontal: el gesto de retroceso de Telegram es horizontal.
-        emerger: "emerger 180ms ease-out both",
-      },
+      /*
+       * `emerger` se ha ido. Era un segundo fotograma de entrada —180 ms y 8 px—
+       * que solo usaba `Banda` cuando le pasaban `orden`, y que se sumaba al
+       * `depositar` que esa misma banda ya hereda de `.banda`: dos animaciones
+       * en el mismo elemento, resueltas por el orden en que Tailwind emite las
+       * clases. El retardo vive ahora en el `animationDelay` de `Banda`, sobre
+       * la única animación de entrada que hay.
+       */
     },
   },
   plugins: [],

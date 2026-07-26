@@ -134,8 +134,22 @@ function CifraAnimadaSinMoneda({ micros }: { micros: bigint }) {
  */
 
 /**
- * Barra que crece desde cero al entrar. Se usa en la Cinta y en la Escalera,
- * donde la longitud ES el dato: verla crecer explica la escala sin leyenda.
+ * Barra que crece desde cero al entrar. Se usa en la Cinta, en la Escalera y en
+ * el progreso del bono, donde la longitud ES el dato: verla crecer explica la
+ * escala sin leyenda.
+ *
+ * **Crece con `transform`, no con `width`.** Animar el ancho obliga al navegador
+ * a rehacer maquetación, pintado y composición en cada fotograma, y estas barras
+ * no van solas: en la portada hay ocho —tres de la Cinta, cuatro de la Escalera
+ * y la del hito— animándose a la vez. Con `scaleX` el trabajo se va entero a la
+ * GPU y el coste deja de crecer con el número de barras.
+ *
+ * El ancho se fija de una vez, en el primer fotograma. En la Cinta eso arregla
+ * además un defecto que se veía: los tres segmentos son hermanos de una fila
+ * flexible, así que mientras sus anchos se animaban la fila se recolocaba en
+ * cada fotograma y los huecos de 2 px que los separan iban deslizándose hasta
+ * su sitio. Ahora la retícula está quieta desde el principio y lo único que se
+ * mueve es la medida.
  */
 export function BarraCreciente({
   porcentaje,
@@ -146,21 +160,21 @@ export function BarraCreciente({
   className: string;
   retardoMs?: number;
 }) {
-  const [ancho, setAncho] = useState(prefiereQuietud() ? porcentaje : 0);
+  const [medida, setMedida] = useState(prefiereQuietud() ? 1 : 0);
 
   useEffect(() => {
     if (prefiereQuietud()) {
-      setAncho(porcentaje);
+      setMedida(1);
       return;
     }
-    const id = setTimeout(() => setAncho(porcentaje), 60 + retardoMs);
+    const id = setTimeout(() => setMedida(1), 60 + retardoMs);
     return () => clearTimeout(id);
   }, [porcentaje, retardoMs]);
 
   return (
     <span
-      className={`block h-full transition-[width] duration-[520ms] ease-sonda ${className}`}
-      style={{ width: `${ancho}%` }}
+      className={`barra-dato block h-full ${className}`}
+      style={{ width: `${porcentaje}%`, transform: `scaleX(${medida})` }}
     />
   );
 }

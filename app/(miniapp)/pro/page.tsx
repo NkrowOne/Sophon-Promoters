@@ -174,7 +174,7 @@ export default function Renovaciones() {
           pantalla, y con la placa flotando sobre ella en vez de morder la
           primera lista. */}
       {(datos.renovables === 0 || hecho || error) && (
-      <Banda tono={0} como="header" className="pb-6 pt-5">
+      <Banda orden={0} tono={0} como="header" className="pb-6 pt-5">
         {datos.renovables === 0 && (
           <p className="text-apoyo text-texto-apoyo">{t.ningunoRenovable}</p>
         )}
@@ -205,7 +205,7 @@ export default function Renovaciones() {
       )}
 
       {renovables.length > 0 && (
-        <Banda tono={1} etiqueta={t.puedesRenovarAhora} className="py-2">
+        <Banda orden={1} tono={1} etiqueta={t.puedesRenovarAhora} className="py-2">
           <p className="pb-1 pt-4 text-rotulo text-texto-apoyo">{t.puedesRenovarAhora}</p>
           <ul className="divide-y divide-junta" role="list">
             {renovables.map((w) => (
@@ -229,7 +229,7 @@ export default function Renovaciones() {
            descarte: siguen siendo la red del agente y su plazo es lo que le dice
            cuándo tendrá que volver. Pero no piden nada hoy, y el estrato lo
            dice sin escribirlo. */
-        <Banda tono={2} etiqueta={t.proActivo} className="py-2">
+        <Banda orden={2} tono={2} etiqueta={t.proActivo} className="py-2">
           <p className="pb-1 pt-4 text-rotulo text-texto-apoyo">{t.proActivo}</p>
           <ul className="divide-y divide-junta" role="list">
             {activos.map((w) => (

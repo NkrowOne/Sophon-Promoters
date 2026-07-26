@@ -119,7 +119,7 @@ function ActivarPasos() {
             suscripción no, y eso hay que repararlo: mantiene su tratamiento
             aparte —marca de problema y la explicación debajo— porque es la única
             parte de esta pantalla en la que queda algo por hacer. */}
-        <Banda tono={0} className="pb-6">
+        <Banda orden={0} tono={0} className="pb-6">
           <p className="text-cuerpo font-medium">{t.yaEstaEnTuRed(hecho.email)}</p>
           <p className="mt-1.5 text-apoyo text-texto-apoyo">
             {t.cobrarasDesdeHoy}
@@ -138,7 +138,7 @@ function ActivarPasos() {
           )}
         </Banda>
 
-        <Banda tono={0} className="pt-6">
+        <Banda orden={1} tono={0} className="pt-6">
           <div className="flex gap-2.5">
             <button
               type="button"
@@ -148,7 +148,7 @@ function ActivarPasos() {
                 clave.current = nuevaIdempotencia();
                 router.replace("/activar");
               }}
-              className="flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde-control px-4 text-cuerpo font-medium"
+              className="pulsable flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde-control px-4 text-cuerpo font-medium"
             >
               {t.activarOtro}
             </button>
@@ -161,7 +161,7 @@ function ActivarPasos() {
                     : "/red",
                 )
               }
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-control bg-tinta px-4 text-cuerpo font-semibold text-fondo"
+              className="pulsable flex min-h-12 flex-1 items-center justify-center gap-2 rounded-control bg-tinta px-4 text-cuerpo font-semibold text-fondo"
             >
               {hecho.pro && !hecho.pro.concedido ? t.verSuFicha : t.verMiRed}
             </button>
@@ -174,7 +174,7 @@ function ActivarPasos() {
   if (paso === "confirmar") {
     return (
       <Pantalla titulo={t.activarWebmaster}>
-        <Banda tono={0} className="pb-6">
+        <Banda orden={0} tono={0} className="pb-6">
           <p className="text-rotulo text-texto-apoyo">{t.vasAActivar}</p>
           {/* El correo grande y entero: es lo único que hay que revisar aquí, y
               revisarlo en el tamaño de un campo de formulario es no revisarlo. */}
@@ -188,14 +188,14 @@ function ActivarPasos() {
           </button>
         </Banda>
 
-        <Banda tono={1} className="py-5">
+        <Banda orden={1} tono={1} className="py-5">
           <p className="text-apoyo">{t.incluyeUnAnio}</p>
           <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.comoCobras}</p>
           <p className="mt-3 text-apoyo text-texto-apoyo">{t.altaNoSeDeshace}</p>
         </Banda>
 
         {error && (
-          <Banda tono={0} className="pt-5">
+          <Banda orden={2} tono={0} className="pt-5">
             <Aviso error={error.message} apoyo={error.apoyo} onReintentar={activar} />
           </Banda>
         )}
@@ -207,7 +207,7 @@ function ActivarPasos() {
 
   return (
     <Pantalla titulo={t.activarWebmaster}>
-      <Banda tono={0} className="pb-6">
+      <Banda orden={0} tono={0} className="pb-6">
         <label htmlFor="email" className="text-rotulo block text-texto-apoyo">
           {t.correoDelWebmaster}
         </label>
@@ -228,7 +228,7 @@ function ActivarPasos() {
 
       {/* Estado previo: qué pasa al continuar. No es letra pequeña, es contexto,
           y desde que el alta concede un año de PRO lo es todavía más. */}
-      <Banda tono={1} className="py-5">
+      <Banda orden={1} tono={1} className="py-5">
         <p className="text-apoyo">{t.incluyeUnAnio}</p>
         <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.comoCobras}</p>
       </Banda>

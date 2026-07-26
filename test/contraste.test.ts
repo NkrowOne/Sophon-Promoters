@@ -540,4 +540,45 @@ describe("contraste de los tokens", () => {
     // Y no costaba contraste bajarla: el valor nuevo pasa 3:1 de sobra.
     assert.ok(contraste(TOKENS.oscuro.tintaT3, FONDOS.oscuroBanda2) >= 3);
   });
+
+  /*
+   * El canto iluminado de los estratos: la única comprobación de la casa que
+   * exige que algo se vea POCO.
+   *
+   * Es el filete de 1 px que va bajo la junta para darle espesor a la banda. Su
+   * trabajo es insinuar una arista, no dibujar una línea: pasado cierto punto
+   * deja de leerse como luz rasante y se lee como un segundo borde, y entonces
+   * la página se llena de rayas. Los umbrales de contraste de más arriba son
+   * suelos porque miden cosas que hay que leer; este es un techo porque mide una
+   * que no.
+   *
+   * El techo es distinto en cada polaridad y no por capricho: sobre papel casi
+   * blanco un canto blanco apenas puede destacar, mientras que sobre marrón
+   * negro el mismo gesto tiene mucho más recorrido antes de pasarse.
+   */
+  it("el canto de los estratos insinúa una arista, no dibuja una línea", () => {
+    const CANTO = { claro: "#FFFFFF", oscuro: "#4A4038" } as const;
+
+    for (const f of CLAROS) {
+      const r = contraste(CANTO.claro, FONDOS[f]);
+      assert.ok(r < 1.35, `canto claro sobre ${f}: ${r.toFixed(2)}:1 ya es una raya`);
+    }
+    for (const f of OSCUROS) {
+      const r = contraste(CANTO.oscuro, FONDOS[f]);
+      assert.ok(r < 2.4, `canto oscuro sobre ${f}: ${r.toFixed(2)}:1 ya es una raya`);
+    }
+
+    /*
+     * Y tiene que verse ALGO, o el filete es un token muerto que solo sirve para
+     * que alguien lo lea en el CSS y crea que la profundidad está resuelta.
+     */
+    assert.ok(
+      contraste(CANTO.claro, FONDOS.claroBanda2) > 1.05,
+      "sobre la banda más oscura del tema claro el canto tiene que notarse",
+    );
+    assert.ok(
+      contraste(CANTO.oscuro, FONDOS.oscuroFondo) > 1.5,
+      "sobre el fondo del tema oscuro el canto tiene que notarse",
+    );
+  });
 });

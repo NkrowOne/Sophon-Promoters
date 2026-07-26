@@ -16,6 +16,7 @@
  * hace el mismo trabajo con el tamaño y la posición que pone el sistema.
  */
 
+import * as React from "react";
 import Link from "next/link";
 
 import type { ErrorApi } from "@/lib/api/cliente";
@@ -124,16 +125,64 @@ export function Placa({
   valor: React.ReactNode;
   apoyo?: React.ReactNode;
 }) {
+  const compacta = useCompactaAlBajar();
+
   return (
-    <header className="placa pb-6 pt-7" style={{ paddingInline: "var(--margen-pantalla)" }}>
+    <header
+      className="placa pb-6 pt-7"
+      data-compacta={compacta ? "si" : "no"}
+      style={{ paddingInline: "var(--margen-pantalla)" }}
+    >
       {/* El rótulo ES el título de la pantalla, así que es el `h1`: no hay otro
           debajo. En caja baja: sobre la placa, unas versalitas tracadas a 11 px
           eran lo primero que se leía de toda la aplicación. */}
       <h1 className="text-rotulo opacity-75">{rotulo}</h1>
       <div className="mt-2">{valor}</div>
-      {apoyo && <p className="mt-2.5 text-apoyo opacity-80">{apoyo}</p>}
+      {apoyo && (
+        <div className="placa-apoyo mt-2.5">
+          <div>
+            <p className="text-apoyo opacity-80">{apoyo}</p>
+          </div>
+        </div>
+      )}
     </header>
   );
+}
+
+/**
+ * ¿Ha bajado ya lo bastante como para compactar la cabecera?
+ *
+ * Dos cosas que no son opcionales en un WebView de móvil:
+ *
+ *  - **`passive: true`**. Sin él, el navegador tiene que esperar a ver si el
+ *    escuchador llama a `preventDefault` antes de desplazar, y el scroll se
+ *    entrecorta. Este no lo llama nunca.
+ *  - **Histéresis**. Con un solo umbral, quedarse parado justo encima hace que
+ *    el más mínimo temblor del dedo encienda y apague la cabecera sin parar.
+ *    Compacta a 40 px y no se abre hasta los 16: entre medias no pasa nada.
+ *
+ * Y se escribe en el DOM solo cuando el estado CAMBIA. Un `setState` por evento
+ * de scroll pondría a React a reconciliar sesenta veces por segundo para dejar
+ * el árbol igual que estaba.
+ */
+function useCompactaAlBajar(): boolean {
+  const [compacta, setCompacta] = React.useState(false);
+
+  React.useEffect(() => {
+    const CIERRA = 40;
+    const ABRE = 16;
+
+    const mirar = () => {
+      const y = window.scrollY;
+      setCompacta((antes) => (antes ? y > ABRE : y > CIERRA));
+    };
+
+    mirar();
+    window.addEventListener("scroll", mirar, { passive: true });
+    return () => window.removeEventListener("scroll", mirar);
+  }, []);
+
+  return compacta;
 }
 
 /**
@@ -178,6 +227,17 @@ export function Banda({
    *
    * Traerla aquí quita un nivel de caja en las dos pantallas y devuelve las
    * juntas sin tocar el CSS.
+   *
+   * `orden` aporta SOLO el retardo. Antes añadía además la clase
+   * `animate-emerger`, que traía su propia animación de entrada —180 ms, 8 px—
+   * encima del `depositar` que la banda ya hereda de `.banda`: dos animaciones
+   * peleándose por el mismo elemento, con el ganador decidido por el orden en
+   * que Tailwind emitiera las clases. Ahora hay una sola entrada en toda la
+   * aplicación y esto solo dice cuándo empieza.
+   *
+   * El escalonado es de 40 ms —el mismo que tenían las reglas `nth-child` que
+   * esto sustituye— y se corta a 320 ms: pasado ese punto la última banda entra
+   * tan tarde que ya no se lee como parte del mismo gesto.
    */
   orden?: number;
   className?: string;
@@ -186,8 +246,8 @@ export function Banda({
   return (
     <Elemento
       aria-label={etiqueta}
-      className={`banda banda-${tono} ${orden !== undefined ? "animate-emerger" : ""} ${className}`}
-      style={orden !== undefined ? { animationDelay: `${Math.min(orden * 60, 420)}ms` } : undefined}
+      className={`banda banda-${tono} ${className}`}
+      style={orden !== undefined ? { animationDelay: `${Math.min(orden * 40, 320)}ms` } : undefined}
     >
       {children}
     </Elemento>
@@ -214,7 +274,7 @@ export function Vacio({
       <p className="text-titulo">{titulo}</p>
       {apoyo && <p className="mt-2 text-cuerpo text-texto-apoyo">{apoyo}</p>}
       {accion && (
-        <Link href={accion.href} className="chapa mt-6 text-cuerpo">
+        <Link href={accion.href} className="chapa pulsable mt-6 text-cuerpo">
           {accion.icono && <Icono nombre={accion.icono} />}
           {accion.texto}
         </Link>

@@ -121,7 +121,7 @@ function AltaPasos() {
   if (paso === "otp") {
     return (
       <Pantalla titulo={t.confirmaQueEresTu}>
-        <Banda tono={0} className="pb-6">
+        <Banda orden={0} tono={0} className="pb-6">
           <p className="text-apoyo text-texto-apoyo">{t.otpEnviado(email.trim())}</p>
 
           <label htmlFor="otp" className="text-rotulo mt-7 block text-texto-apoyo">
@@ -164,7 +164,7 @@ function AltaPasos() {
           )}
         </Banda>
 
-        <Banda tono={1} className="py-4">
+        <Banda orden={1} tono={1} className="py-4">
           <div className="flex items-baseline justify-between gap-3">
             <button
               type="button"

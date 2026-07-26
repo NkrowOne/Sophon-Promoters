@@ -82,7 +82,7 @@ export default function Red() {
           El veredicto va en el fondo desnudo y el mosaico sobre superficie, que
           es lo que le da a las teselas un suelo contra el que medirse en vez de
           flotar sobre la página. */}
-      <Banda tono={0} como="header" className="pb-5">
+      <Banda orden={0} tono={0} como="header" className="pb-5">
         {/* Lo primero es lo que exige actuar. Si no hay nada parado, se dice:
             confirmar que está todo bien también es información. */}
         {/* Al quitar la cápsula, las dos frases se leían de corrido —«1 con
@@ -107,7 +107,7 @@ export default function Red() {
         </p>
       </Banda>
 
-      <Banda tono={1} etiqueta={t.red} className="py-6">
+      <Banda orden={1} tono={1} etiqueta={t.red} className="py-6">
         <Malla webmasters={datos.webmasters} dias={datos.dias} onAbrir={abrir} />
         <p className="mt-5 text-apoyo text-texto-apoyo">{t.escalaComun(datos.dias)}</p>
       </Banda>

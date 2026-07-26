@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Icono, type NombreIcono } from "@/components/Icono";
-import { Aviso, Cargando, Placa, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
@@ -117,6 +117,19 @@ export default function Inicio() {
 
   const cartera = datos?.cartera;
 
+  /*
+   * El puesto de cada banda en la secuencia de entrada.
+   *
+   * Se calcula y no se escribe a mano porque las tres primeras son CONDICIONALES:
+   * sin tiers no hay Cinta, sin escalera configurada no hay hito, y sin cartera
+   * no hay Escalera. Numerarlas a ojo dejaría huecos en el escalonado en cuanto
+   * falte una, que es justo lo que pasaba con las reglas `nth-child` que esto
+   * sustituye —y lo que dejó sin retardo a la banda del bono en cuanto se
+   * insertó en medio—.
+   */
+  const visibles = [totalTiers > 0, Boolean(datos?.hito), Boolean(cartera)];
+  const orden = (i: number) => visibles.slice(0, i).filter(Boolean).length;
+
   return (
     <main className="relative min-h-dvh">
       {/* La Placa: lo devengado del mes sobre campo amarillo. Es la identidad y
@@ -161,7 +174,7 @@ export default function Inicio() {
             {/* La Cinta: una sola marca de 8 px responde «¿de dónde viene el
                 volumen?». Sustituye a tres donuts y ocupa una décima parte. */}
             {totalTiers > 0 && (
-              <section aria-label={t.repartoPorTier} className="banda banda-1 py-6">
+              <Banda tono={1} etiqueta={t.repartoPorTier} orden={orden(0)} className="py-6">
                 <p className="mb-2.5 text-rotulo text-texto-apoyo">{t.repartoPorTier}</p>
                 {/* `gap-0.5` = 2 px de superficie entre segmentos. Es la
                     especificación de marcas apiladas: lo que separa es el
@@ -176,7 +189,7 @@ export default function Inicio() {
                   <Leyenda color="bg-t2" etiqueta="T2" valor={t2} />
                   <Leyenda color="bg-t3" etiqueta="T3" valor={t3} />
                 </div>
-              </section>
+              </Banda>
             )}
 
             {/* El bono del mes. Va entre la Cinta y la Escalera porque es la
@@ -188,15 +201,15 @@ export default function Inicio() {
                 que el agente es un profesional que cobra, no alguien a quien
                 haya que animar. La recompensa es dinero y con enseñarla bien
                 basta. */}
-            {datos?.hito && <BandaHito hito={datos.hito} etiquetas={t} />}
+            {datos?.hito && <BandaHito hito={datos.hito} etiquetas={t} orden={orden(1)} />}
 
             {/* La Escalera: el dinero es un flujo con estados, no cuatro saldos
                 sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
             {cartera && (
-              <div className="banda banda-2 py-6">
+              <Banda como="div" tono={2} orden={orden(2)} className="py-6">
                 <Escalera cartera={cartera} titulo={t.cartera} etiquetas={t} />
                 <p className="mt-3 text-apoyo text-texto-apoyo">{t.revisionManual}</p>
-              </div>
+              </Banda>
             )}
           </>
         )}
@@ -206,7 +219,7 @@ export default function Inicio() {
             ventana de treinta días sin devengo dejaban la portada —la única
             pantalla con enlaces a todo lo demás— sin una sola salida. El agente
             se quedaba encerrado en un aviso con un botón de reintentar. */}
-        <nav aria-label={t.acciones} className="banda banda-0 pb-2 pt-7">
+        <Banda como="nav" tono={0} etiqueta={t.acciones} orden={orden(3)} className="pb-2 pt-7">
           <a
             href="/activar"
             className="chapa pulsable text-cuerpo"
@@ -243,7 +256,7 @@ export default function Inicio() {
               dato={cartera ? cartera.disponible.texto : null}
             />
           </ul>
-        </nav>
+        </Banda>
       </div>
     </main>
   );
@@ -304,12 +317,20 @@ function Fila({
  * Se anima porque MIDE algo, que es la regla que decide qué se mueve en esta
  * aplicación. Reutiliza `BarraCreciente`.
  */
-function BandaHito({ hito, etiquetas: t }: { hito: Hito; etiquetas: Cadenas }) {
+function BandaHito({
+  hito,
+  etiquetas: t,
+  orden,
+}: {
+  hito: Hito;
+  etiquetas: Cadenas;
+  orden: number;
+}) {
   const meta = hito.siguiente?.usuarios ?? hito.escalones[hito.escalones.length - 1]?.usuarios ?? 0;
   const porcentaje = meta > 0 ? Math.min(100, (hito.registros / meta) * 100) : 0;
 
   return (
-    <section aria-label={t.bonoDelMes} className="banda banda-0 py-6">
+    <Banda tono={0} etiqueta={t.bonoDelMes} orden={orden} className="py-6">
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-rotulo text-texto-apoyo">{t.bonoDelMes}</p>
         {/* Lo ganado solo aparece cuando hay algo ganado: un «0,00 $» fijo en la
@@ -321,19 +342,32 @@ function BandaHito({ hito, etiquetas: t }: { hito: Hito; etiquetas: Cadenas }) {
 
       <p className="mt-1.5 text-cuerpo tabular-nums">{t.registrosEsteMes(hito.registros)}</p>
 
-      {/* El raíl con los escalones marcados. Cada muesca es un hito, así que la
-          barra dice a la vez cuánto llevas y cuántos peldaños hay. */}
+      {/* El raíl con los escalones ya superados marcados.
+
+          Las muescas se posicionaban con anchos ACUMULADOS en una fila flexible,
+          y como los hijos de un flex encogen por defecto, la suma —que pasaba
+          holgadamente del 100 %— se repartía a prorrata: con 12.000 registros
+          las marcas debían caer al 50 % y al 100 %, y caían al 20 %, 60 % y
+          100 %. Ninguna estaba sobre su escalón. Ahora cada una se coloca sola,
+          en su sitio, con una propiedad lógica que se espeja en árabe.
+
+          La del propio objetivo no se dibuja: el final del raíl ES ese escalón,
+          y una muesca ahí queda medio recortada por el `overflow`. */}
       <div className="relative mt-3 h-1.5 overflow-hidden rounded-marca bg-borde">
         <BarraCreciente porcentaje={porcentaje} className="bg-t2" />
-        <span className="pointer-events-none absolute inset-0 flex" aria-hidden>
-          {hito.escalones.map((e) => (
-            <span
-              key={e.usuarios}
-              className="border-e border-fondo"
-              style={{ width: `${meta > 0 ? Math.min(100, (e.usuarios / meta) * 100) : 0}%` }}
-            />
-          ))}
-        </span>
+        {meta > 0 &&
+          hito.escalones.map((e) => {
+            const posicion = (e.usuarios / meta) * 100;
+            if (posicion <= 0 || posicion >= 100) return null;
+            return (
+              <span
+                key={e.usuarios}
+                aria-hidden
+                className="pointer-events-none absolute top-0 h-full w-px bg-fondo"
+                style={{ insetInlineStart: `${posicion}%` }}
+              />
+            );
+          })}
       </div>
 
       <p className="mt-2.5 text-apoyo text-texto-apoyo tabular-nums">
@@ -341,6 +375,6 @@ function BandaHito({ hito, etiquetas: t }: { hito: Hito; etiquetas: Cadenas }) {
           ? t.faltanParaElBono(hito.siguiente.faltan, hito.siguiente.premio.texto)
           : t.bonoMaximoAlcanzado}
       </p>
-    </section>
+    </Banda>
   );
 }

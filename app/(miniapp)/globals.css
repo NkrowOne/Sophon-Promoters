@@ -95,6 +95,14 @@
      que hace que las capas parezcan tener espesor. */
   --junta: #f2e7ce;
 
+  /* El canto iluminado, 1 px por debajo de la junta.
+     Una junta sola separa dos colores; junta oscura + canto claro es un BORDE
+     con espesor, y es lo que hace que un estrato se lea como una capa apoyada
+     sobre la anterior en vez de como un cambio de fondo. En claro es blanco
+     franco porque el papel ya es cálido; en oscuro va apenas insinuado, que es
+     donde un canto claro se pasa de frenada enseguida. */
+  --canto-luz: #ffffff;
+
   /*
    * Texto. NUESTRO, no el del cliente.
    *
@@ -239,6 +247,7 @@
   --borde: #3a312a;
   --borde-control: #916343;
   --junta: #2f2823;
+  --canto-luz: #4a4038;
 
   --texto: #f6efe6;
 
@@ -257,7 +266,24 @@ html,
 body {
   background: var(--fondo);
   color: var(--texto);
-  /* El cuerpo nunca hace scroll horizontal: lo que desborda scrollea en su caja. */
+}
+
+/*
+ * El recorte horizontal va SOLO en `html`, y no en los dos.
+ *
+ * `overflow-x: hidden` convierte al elemento en contenedor de scroll —recortar
+ * en un eje obliga al navegador a hacer desplazable el otro—. Puesto en `html`
+ * **y** en `body` a la vez, el que scrollea de verdad es `html` y `body` se
+ * queda como un contenedor de scroll que no scrollea nunca; sus descendientes
+ * `sticky` no tienen entonces nada a lo que agarrarse y se van con la página.
+ * La cabecera de la portada no se quedaba fija por esto: el CSS estaba bien, lo
+ * que no podía era aplicarse.
+ *
+ * Medido en el navegador con las siete combinaciones —`clip` incluido— y solo
+ * falla esa. Con el recorte únicamente en `html` se conserva igual —el scroll
+ * horizontal sigue sin existir— y la cabecera se queda.
+ */
+html {
   overflow-x: hidden;
 }
 
@@ -382,11 +408,101 @@ textarea::placeholder {
  * que lo que informa y lo que se pulsa tenían una sola apariencia. En espresso
  * son dos objetos que no se pueden confundir ni de lejos, y la jerarquía se lee
  * sin leer nada: lo más oscuro informa, lo más brillante se pulsa.
+ *
+ * ── Y AHORA SE QUEDA ──
+ *
+ * La placa lleva la respuesta de la pantalla y se iba con el scroll justo cuando
+ * el agente empezaba a leer los datos que la explican: miraba el reparto por
+ * tier sin la cifra que reparte. Ahora es `sticky` y al bajar **se compacta**:
+ * la cifra grande se encoge y se apaga, y en su sitio queda una línea con el
+ * mismo número. No desaparece nada; cambia de tamaño lo que ya estaba.
+ *
+ * Eso es continuidad espacial, no decoración, y es la razón por la que se salta
+ * la regla de «solo se anima lo que mide». Está escrito también en el bloque del
+ * movimiento, más abajo.
+ *
+ * **La sombra solo existe cuando hay algo debajo.** Una sombra permanente es
+ * decoración; una que aparece en cuanto el contenido pasa por detrás dice algo
+ * cierto —«esto está por encima de aquello»— y es lo que da la profundidad que
+ * la aplicación no tenía. La pinta un pseudoelemento en vez de `box-shadow`
+ * sobre la propia placa: así se desvanece con una `opacity`, que es gratis, en
+ * vez de transicionar una sombra, que no lo es.
  */
 .placa {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   background: var(--placa);
   color: var(--placa-tinta);
   border-bottom: 1px solid var(--placa-canto);
+  transition: padding-block var(--t-entrada) var(--curva-mover);
+}
+
+/*
+ * Compactar es quitar AIRE y la línea de apoyo. La cifra no se toca.
+ *
+ * Se probó encogerla con `scale` y no vale la pena: la caja conserva su altura
+ * aunque el dibujo mida menos, así que hay que compensar con más recorte de
+ * relleno y el resultado es una cifra pequeña flotando en un hueco de su tamaño
+ * original. Y la cifra es justo lo que este gesto existe para conservar.
+ *
+ * `padding-block` sí toca maquetación, y es deliberado: no se anima con el
+ * scroll sino UNA vez, al cruzar el umbral. Son dos transiciones por sesión de
+ * lectura, no sesenta por segundo. La regla de «solo transform y opacity» habla
+ * de lo que se anima continuamente.
+ */
+.placa[data-compacta="si"] {
+  padding-block: 0.7rem;
+}
+
+/*
+ * La sombra solo existe cuando hay algo debajo.
+ *
+ * Una sombra permanente es decoración; una que aparece en cuanto el contenido
+ * pasa por detrás dice algo cierto —«esto está por encima de aquello»— y es de
+ * donde sale la profundidad que a la aplicación le faltaba. La pinta un
+ * pseudoelemento en vez de un `box-shadow` sobre la placa: así aparece con una
+ * `opacity`, que la GPU resuelve sola, en vez de transicionar una sombra, que
+ * se repinta.
+ */
+.placa::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  height: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-entrada) var(--curva);
+  background: linear-gradient(to bottom, rgb(0 0 0 / 20%), rgb(0 0 0 / 0%));
+}
+
+.placa[data-compacta="si"]::after {
+  opacity: 1;
+}
+
+/*
+ * La línea de apoyo se pliega.
+ *
+ * `grid-template-rows: 1fr → 0fr` en vez de un `max-height` a ojo: no hay que
+ * adivinar la altura, así que sigue funcionando cuando el texto ocupa dos
+ * líneas —que en alemán o en árabe pasa— en lugar de recortarlo.
+ */
+.placa-apoyo {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--t-entrada) var(--curva-mover),
+    opacity var(--t-entrada) var(--curva);
+}
+
+.placa-apoyo > * {
+  overflow: hidden;
+}
+
+.placa[data-compacta="si"] .placa-apoyo {
+  grid-template-rows: 0fr;
+  opacity: 0;
 }
 
 /* ═══════════════ LA FORMA DISTINGUE ACCIÓN DE ESTADO ═══════════════
@@ -464,9 +580,9 @@ textarea::placeholder {
 /* ══════════════════════════════ EL MOVIMIENTO ══════════════════════════════
  *
  * Una sola gramática, y formal: **nada rebota, nada gira, nada se escala más de
- * un 2 %, y ningún color se anima.** Todo usa la misma curva de desaceleración
- * —entra rápido y frena al llegar, nunca se pasa de largo— y todo dura entre
- * 140 y 520 ms.
+ * un 3 %, y ningún color se anima.** Todo sale de tres curvas y tres duraciones
+ * declaradas aquí; una cuarta curva escrita a mano en un componente es un
+ * defecto, no una variante.
  *
  * La regla que decide QUÉ se mueve: se anima lo que MIDE algo. Una barra que
  * crece explica su escala mientras crece; una cifra que sube dice de dónde
@@ -474,28 +590,63 @@ textarea::placeholder {
  * lectura tomándose. Lo que no mide nada —el texto, los iconos, los rótulos— no
  * se mueve, y por eso lo que sí se mueve significa.
  *
- * Es lo contrario de decorar: si algo se anima aquí es porque su movimiento es
- * el dato.
+ * A eso se le añade UNA excepción, y está razonada donde vive: la cabecera que
+ * se compacta al bajar (`.placa`, más arriba). No decora: mantiene la cifra en
+ * pantalla mientras se leen los datos que la explican, que es continuidad
+ * espacial y no adorno. Antes aquí ponía que «nada anima en scroll salvo el
+ * Testigo»; se dice ahora como es, porque un comentario que defiende lo
+ * contrario de lo que ejecuta el código es peor que no tenerlo.
+ *
+ * **Solo se animan `transform` y `opacity`.** Cualquier otra propiedad —`width`,
+ * `height`, `top`— obliga al navegador a rehacer la maquetación y el pintado en
+ * cada fotograma. La Cinta, la Escalera y el progreso del bono son ocho barras
+ * en la misma pantalla: con `width` eran ocho recálculos por fotograma.
  */
 :root {
   /*
-   * DOS curvas, y la diferencia importa.
+   * TRES curvas, y la diferencia importa.
    *
-   * `--curva` frena fuerte al llegar: es la de las cosas que APARECEN —una
-   * banda que entra, un botón que se hunde—, donde interesa que llegue rápido y
-   * se pose.
+   * `--curva` es un ease-out FUERTE: sale disparada y frena al llegar. Es la de
+   * las cosas que aparecen y desaparecen, y es el reglaje por defecto —a 200 ms
+   * se percibe más rápida que un ease-in de la misma duración, porque el
+   * movimiento está donde el ojo ya está mirando—. La anterior
+   * (`.2,.8,.2,1`) apenas se distinguía de la `ease` del navegador.
    *
-   * `--curva-dibujo` es casi recta, y es la de las cosas que MIDEN. Con la curva
-   * de entrada, un barrido de 520 ms ya iba por el 26 % a los 33 ms —medido en el
-   * navegador, no supuesto— así que la medida terminaba antes de que se pudiera
-   * ver tomarse: todo el gesto se perdía en el primer parpadeo. Un instrumento
-   * barre a ritmo constante; esta curva es eso, con un frenazo mínimo al final.
+   * `--curva-mover` es un ease-in-out fuerte: acelera y frena. Solo para lo que
+   * se DESPLAZA por la pantalla sin entrar ni salir.
+   *
+   * `--curva-dibujo` es LINEAL, y es la de las cosas que MIDEN. Aquí había un
+   * `cubic-bezier(0.4, 0.05, 0.25, 1)`, que es un ease-in: arranca lento justo
+   * en el instante en que se está mirando. Se puso para arreglar un problema
+   * real —con la curva de entrada, un barrido de 520 ms iba por el 26 % a los
+   * 33 ms, medido en el navegador, y la medida terminaba antes de poder verse
+   * tomar— pero la respuesta correcta a «esto tiene que ir a ritmo constante»
+   * es la curva constante, no la inversa. Un instrumento barre a velocidad
+   * fija.
    */
-  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --curva-dibujo: cubic-bezier(0.4, 0.05, 0.25, 1);
+  --curva: cubic-bezier(0.23, 1, 0.32, 1);
+  --curva-mover: cubic-bezier(0.77, 0, 0.175, 1);
+  --curva-dibujo: linear;
   --t-toque: 140ms;
-  --t-entrada: 320ms;
+  --t-entrada: 240ms;
   --t-dibujo: 520ms;
+}
+
+/*
+ * LA BARRA DE DATO: la longitud es el valor, y crece con `transform`.
+ *
+ * El ancho se fija de una vez —así el hueco de 2 px entre segmentos de la Cinta
+ * está en su sitio desde el primer fotograma en vez de deslizarse— y lo que se
+ * anima es la escala horizontal desde el inicio lógico. El remate sigue recto:
+ * el radio lo pone el raíl que la recorta, no la barra.
+ */
+.barra-dato {
+  transform-origin: left;
+  transition: transform var(--t-dibujo) var(--curva-dibujo);
+}
+
+[dir="rtl"] .barra-dato {
+  transform-origin: right;
 }
 
 /*
@@ -537,11 +688,18 @@ textarea::placeholder {
 }
 
 /*
- * El toque. Un hundimiento de 1 % y un velo de superficie: lo justo para que el
+ * El toque. Un hundimiento del 3 % y un velo de superficie: lo justo para que el
  * dedo tenga acuse de recibo en una pantalla sin puntero.
  *
+ * Era del 1 %, y el 1 % no se ve: a 390 px de ancho son menos de cuatro píxeles
+ * repartidos entre los dos lados de un botón, por debajo del umbral en el que
+ * el ojo distingue un cambio de tamaño. Un acuse de recibo que no se percibe no
+ * acusa nada. El 3 % es el reglaje habitual y sigue siendo discreto.
+ *
  * `:active` y no `:hover`: aquí no hay ratón, y una interfaz que solo responde
- * al puntero no responde nunca.
+ * al puntero no responde nunca. Si algún día entra un `:hover` con movimiento,
+ * va detrás de `@media (hover: hover) and (pointer: fine)` — en táctil, tocar
+ * dispara un `hover` falso y el elemento se queda encendido después del toque.
  */
 .pulsable {
   transition:
@@ -550,25 +708,44 @@ textarea::placeholder {
 }
 
 .pulsable:active {
-  transform: scale(0.99);
+  transform: scale(0.97);
   background-color: var(--superficie-alta);
 }
 
 /*
- * Con movimiento reducido no se apaga la interfaz: se salta el trayecto.
+ * Con movimiento reducido no se apaga la interfaz: se quita el DESPLAZAMIENTO.
  *
- * Las animaciones aterrizan en su fotograma final —`both` en `.barrido` lo
- * garantiza— así que la mecha sigue dibujada y la barra sigue medida. Lo único
- * que desaparece es el viaje. Y las transiciones se acortan en vez de anularse:
- * un cambio instantáneo de estado es más desconcertante que uno de 100 ms.
+ * Movimiento reducido no significa cero movimiento: significa menos y más
+ * suave. Lo que molesta a quien lo activa es que las cosas se muevan por la
+ * pantalla, no que un color cambie. Así que se anulan las animaciones de
+ * entrada y el hundimiento del toque —que son traslación y escala— y se
+ * conservan a su duración normal la opacidad y el color, que son los que
+ * explican un cambio de estado.
+ *
+ * Las barras y las mechas aterrizan en su fotograma final igual: `both` en
+ * `.barrido` lo garantiza y `.barra-dato` recibe su escala final de una vez. La
+ * medida sigue ahí; lo único que se pierde es el viaje.
+ *
+ * Antes esto era un `*` con `!important` que ponía TODA animación a 1 ms y toda
+ * transición a 100 ms, incluidas las que solo cambian de color. Eso no es
+ * suavizar: es apagar.
  */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 100ms !important;
+  .banda,
+  .barrido {
+    animation: none;
+  }
+
+  .barra-dato {
+    transition: none;
+  }
+
+  .pulsable:active {
+    transform: none;
+  }
+
+  .placa {
+    transition-property: box-shadow;
   }
 }
 
@@ -598,8 +775,21 @@ textarea::placeholder {
   padding-inline: var(--margen-pantalla);
 }
 
+/*
+ * Junta oscura arriba y canto claro justo debajo: dos píxeles que le dan
+ * ESPESOR al estrato.
+ *
+ * Con la junta sola, dos bandas contiguas eran dos rectángulos de color
+ * distinto pegados, que es exactamente la planitud de la que se venía. Un canto
+ * iluminado bajo la junta es lo que hace un borde real —la sombra propia y la
+ * luz rasante que tendría un escalón—, y cuesta un `inset` sin repintar nada.
+ *
+ * Va en `box-shadow` y no en un segundo borde para no tocar la caja: un
+ * `border-top` más movería el contenido de todas las bandas 1 px hacia abajo.
+ */
 .banda + .banda {
   border-top: 1px solid var(--junta);
+  box-shadow: inset 0 1px 0 var(--canto-luz);
 }
 
 .banda-0 { background: var(--fondo); }
@@ -619,9 +809,18 @@ textarea::placeholder {
 /*
  * El único momento con permiso para llamar la atención: la carga.
  *
- * La placa entra primero y las bandas se depositan detrás, escalonadas. Un
- * momento orquestado aterriza mejor que efectos sueltos por toda la interfaz, y
- * cuenta la metáfora en lugar de decorarla. Nada supera los 420 ms.
+ * La placa entra primero y las bandas se depositan detrás, escalonadas de 40 en
+ * 40 ms. Un momento orquestado aterriza mejor que efectos sueltos por toda la
+ * interfaz, y cuenta la metáfora en lugar de decorarla.
+ *
+ * Vertical y nunca horizontal: el gesto de retroceso de Telegram es horizontal
+ * y una entrada lateral compite con él.
+ *
+ * **El retardo ya no va por `nth-child`.** Estaba escrito a mano hasta el quinto
+ * hijo, así que añadir una banda —que es exactamente lo que hizo el bono por
+ * hitos, y lo que vuelve a pasar con el ritmo del mes— la dejaba sin retardo:
+ * entraba a la vez que la primera y rompía la secuencia justo por el final.
+ * Ahora lo pone `Banda` con su prop `orden`, que no se puede quedar corto.
  */
 @keyframes depositar {
   from {
@@ -637,13 +836,3 @@ textarea::placeholder {
 .banda {
   animation: depositar var(--t-entrada) var(--curva) both;
 }
-
-/* Vertical y nunca horizontal: el gesto de retroceso de Telegram es horizontal
-   y una entrada lateral compite con él. */
-.banda:nth-child(2) { animation-delay: 40ms; }
-.banda:nth-child(3) { animation-delay: 80ms; }
-.banda:nth-child(4) { animation-delay: 120ms; }
-/* La quinta la trajo el bono por hitos. El escalonado va por `nth-child`, así
-   que una banda nueva no hereda retardo: se queda a 0 y entra a la vez que la
-   primera, rompiendo la secuencia justo por el final. */
-.banda:nth-child(5) { animation-delay: 160ms; }

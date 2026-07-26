@@ -205,7 +205,7 @@ export default function CarteraPagina() {
         ),
       }}
     >
-      <Banda tono={0} className="pb-6">
+      <Banda orden={0} tono={0} className="pb-6">
         <Escalera cartera={datos.cartera} etiquetas={t} />
 
         {/* Una sola línea aquí: la que explica por qué disponible < devengado, que
@@ -226,7 +226,7 @@ export default function CarteraPagina() {
       </Banda>
 
       {viva ? (
-        <Banda tono={1} etiqueta={t.solicitudEnCurso} className="py-6">
+        <Banda orden={1} tono={1} etiqueta={t.solicitudEnCurso} className="py-6">
           {/* Un filete amarillo de 2 px sería invisible sobre papel claro
               —1,49:1—. El estado de la solicitud viva va sobre PLACA, que es
               donde el amarillo se lee y además es lo que el agente ha venido a
@@ -252,7 +252,7 @@ export default function CarteraPagina() {
           </div>
         </Banda>
       ) : (
-        <Banda tono={1} etiqueta={t.solicitarRetiro} className="py-6">
+        <Banda orden={1} tono={1} etiqueta={t.solicitarRetiro} className="py-6">
           <p className="text-rotulo mb-3 border-b border-junta pb-2 text-texto-apoyo">
             {t.solicitarRetiro}
           </p>
@@ -276,7 +276,7 @@ export default function CarteraPagina() {
               type="button"
               onClick={() => setImporte(paraEscribir(disponibleMicros))}
               disabled={disponibleMicros < minimoMicros}
-              className="shrink-0 rounded-control border border-borde-control px-4 text-cuerpo font-medium disabled:opacity-40"
+              className="pulsable shrink-0 rounded-control border border-borde-control px-4 text-cuerpo font-medium disabled:opacity-40"
             >
               {t.todo}
             </button>
@@ -379,7 +379,7 @@ export default function CarteraPagina() {
           apareciera dos veces en la misma pantalla hacía dudar de si eran dos
           solicitudes distintas, que es justo la confusión que este flujo —una
           sola viva a la vez— tiene que evitar. */}
-      <Banda tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
+      <Banda orden={2} tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
         <p className="text-rotulo mb-1 border-b border-junta pb-2 text-texto-apoyo">
           {t.solicitudesAnteriores}
         </p>
