@@ -1,0 +1,45 @@
+# Lo que NO entra en el contexto de construcción.
+#
+# Sin este fichero, `COPY . .` de la etapa `builder` se lleva el árbol entero, y
+# eso son tres problemas distintos:
+#
+#  1. **Un secreto dentro de la imagen.** Un `.env` de trabajo acabaría copiado
+#     en una capa, y las capas se pueden leer con `docker history`. Es el motivo
+#     por el que este fichero es lo primero de la lista.
+#  2. **`node_modules` del anfitrión pisando los de la imagen.** El `Dockerfile`
+#     trae los suyos con `COPY --from=deps` —instalados en Alpine— y acto
+#     seguido `COPY . .` los sobrescribiría con los del anfitrión. Los motores
+#     nativos de Prisma son binarios por plataforma: los de una Debian con glibc
+#     no funcionan sobre musl, así que el fallo aparecería en ejecución y no al
+#     construir.
+#  3. **Un contexto de 1,1 GB.** 792 MB son `node_modules` y 276 MB `.next`. En
+#     un constructor remoto eso es un envío lento que además puede agotar el
+#     tiempo, para mandar exactamente lo que la imagen va a regenerar.
+
+# Secretos. Lo primero y lo más importante.
+.env
+.env.*
+!.env.example
+
+# Se instalan y se construyen dentro de la imagen.
+node_modules
+.next
+out
+
+# Historia y herramientas: nada de esto se ejecuta en producción.
+.git
+.gitignore
+.github
+
+# Artefactos de desarrollo.
+tsconfig.tsbuildinfo
+capturas
+coverage
+*.log
+npm-debug.log*
+
+# Documentación y configuración que no participa en el build.
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore

@@ -27,6 +27,12 @@ RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# `HOSTNAME` explícito, y no es redundante: el servidor de la salida autocontenida
+# hace `process.env.HOSTNAME || '0.0.0.0'`, y **Docker define HOSTNAME solo** con
+# el identificador del contenedor. Sin esta línea, el servidor se ata a ese
+# nombre en vez de a todas las interfaces, y el proxy que publica la aplicación
+# puede no alcanzarlo. Es un fallo que solo aparece desplegado.
+ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs

@@ -1,26 +1,48 @@
-# Despliegue en Skyway.
+# ══════════════ ESTO ES PARA LEVANTARLO EN LOCAL, NO PARA DESPLEGAR ══════════
 #
-# Dos servicios y nada más: la aplicación y su Postgres. El bot NO es un
-# servicio aparte —vive dentro de la aplicación, en `/api/bot`, porque funciona
-# por webhook y no por polling—, y el planificador tampoco: las tareas de
-# sincronización se disparan contra `/api/cron` desde el cron de Skyway, que ya
-# existe. Un contenedor por cosa que no necesita contenedor propio es coste de
-# operación sin nada a cambio.
+# **Skyway no lee este fichero.** Construye el `Dockerfile` directamente, le
+# inyecta las variables desde su panel y le da la URL interna de su Postgres
+# gestionado. Aquí abajo hay un servicio `db` propio y una `DATABASE_URL`
+# calculada, y en producción las dos sobran: el Postgres lo pone Skyway y la URL
+# viene de él.
 #
-# La cadencia está en `.env.example`. La línea que no puede faltar es la de las
-# **16:05 UTC**: Sophon cierra su día a las 00:00 UTC+8 y es entonces cuando hay
-# cifras nuevas que leer.
+# Se conserva porque levantar la aplicación entera en una máquina —con su base
+# de datos, sus migraciones y su semilla— sigue haciendo falta para trabajar, y
+# porque es donde está escrito por qué el reparto de servicios es este.
 #
-# Puesta en marcha:
+# ── Cómo se despliega de verdad ──
+#
+#   1. Conectar el repositorio en Skyway. Encuentra el `Dockerfile` y reconstruye
+#      en cada push.
+#   2. Añadir su Postgres gestionado y copiar su `DATABASE_URL` interna, con
+#      `?connection_limit=10` al final: sin ese tope Prisma abre
+#      `núcleos × 2 + 1` conexiones y agota el cupo de una base pequeña.
+#   3. El resto de variables, en el panel. Están todas en `.env.example`.
+#   4. `npm run bot:configurar` desde un clon, con `APP_URL` apuntando ya al
+#      dominio. No se puede lanzar dentro del contenedor: la imagen final no
+#      copia `scripts/`.
+#   5. Las líneas de cron de `.env.example`. La que no puede faltar es la de las
+#      **16:05 UTC**: Sophon cierra su día a las 00:00 UTC+8 y es entonces
+#      cuando hay cifras nuevas que leer.
+#
+# Las migraciones NO se lanzan a mano en ningún caso: el `CMD` de la imagen
+# ejecuta `prisma migrate deploy` antes de servir. Y hace falta **también** en
+# una base vacía, porque es lo que crea las tablas: sin ella la aplicación
+# arranca y toda consulta falla.
+#
+# ── Y en local ──
 #
 #   1. cp .env.example .env  y rellenarlo. `POSTGRES_PASSWORD` y la contraseña
 #      dentro de `DATABASE_URL` tienen que ser la misma.
 #   2. docker compose up -d --build
-#   3. npm run bot:configurar   (con APP_URL ya apuntando al dominio público)
 #
-# Las migraciones NO se lanzan a mano: el `CMD` de la imagen ejecuta
-# `prisma migrate deploy` antes de servir, y el contenedor se recrea en cada
-# despliegue.
+# ── Por qué solo dos servicios ──
+#
+# El bot NO es un servicio aparte —vive dentro de la aplicación, en `/api/bot`,
+# porque funciona por webhook y no por polling— y el planificador tampoco: las
+# tareas de sincronización se disparan contra `/api/cron` desde fuera. Un
+# contenedor por cosa que no necesita contenedor propio es coste de operación
+# sin nada a cambio.
 
 services:
   app:
