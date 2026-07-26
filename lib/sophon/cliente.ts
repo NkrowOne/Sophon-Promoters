@@ -16,7 +16,6 @@
  */
 
 import {
-  type AgenteSophon,
   type CodigoMembresia,
   NivelAfiliado,
   type PaginaEnlaces,
@@ -264,14 +263,6 @@ export class ClienteSophon {
    */
   async tesoreria(): Promise<Tesoreria> {
     return this.peticion<Tesoreria>("GET", "/api/uc/aff/brief/revenue");
-  }
-
-  /** `affiliateLevel`: 1 = incluir agentes de nivel 1, 2 = no. Es un sí/no, no una profundidad. */
-  async listaAgentes(incluirNivel1 = true): Promise<AgenteSophon[]> {
-    return this.peticion<AgenteSophon[]>(
-      "GET",
-      `/api/uc/aff/agent/list?affiliateLevel=${incluirNivel1 ? 1 : 2}`,
-    );
   }
 
   // ─────────────────────── Tool API (requiere whitelist) ───────────────────────

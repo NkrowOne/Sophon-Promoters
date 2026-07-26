@@ -115,11 +115,6 @@ export interface PaginaEnlaces {
   pagePagination: { total: string };
 }
 
-export interface AgenteSophon {
-  uid: string;
-  email: string;
-}
-
 export interface PrecioNivel {
   partnerLevel: number;
   unitPrice: string;

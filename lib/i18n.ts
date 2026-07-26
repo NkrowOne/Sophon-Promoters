@@ -36,8 +36,6 @@ export const es = {
 
   // ── Acciones ──────────────────────────────────────────────────────────────
   activarWebmaster: "Activar webmaster",
-  concederPro: "Conceder PRO",
-  renovarPro: "Renovar PRO",
   solicitarRetiro: "Solicitar retiro",
   vincularCuenta: "Vincular mi cuenta",
   reintentar: "Reintentar",
@@ -88,7 +86,6 @@ export const es = {
   // ── Activar webmaster ─────────────────────────────────────────────────────
   correoDelWebmaster: "Correo del webmaster",
   tieneQueExistirYa: "El correo con el que se registró en Sophon. Tiene que existir ya.",
-  alActivarlo: "Al activarlo pasa a tu red.",
   yaEstaEnTuRed: (email: string) => `${email} ya está en tu red.`,
   cobrarasDesdeHoy:
     "Cobrarás por los usuarios que registre a partir de hoy. Los que trajera antes no cuentan.",
@@ -123,8 +120,6 @@ export const es = {
     `Cobras por lo que registre a partir del ${fecha}. Lo anterior no cuenta.`,
   ultimosDias: (dias: number) => `Últimos ${dias} días`,
   todaviaSinRegistros: "Todavía no ha traído ningún registro.",
-  noEstaEnTuRed: "Ese webmaster no está en tu red.",
-  noEstaEnTuRedApoyo: "Comprueba el correo, o actívalo si aún no lo has hecho.",
   registroDeSondeo: "Registro de sondeo",
 
   // ── Enlaces de reparto ────────────────────────────────────────────────────
@@ -146,7 +141,6 @@ export const es = {
   sinPro: "Sin PRO",
 
   // ── PRO: siempre un año y atado al alta ───────────────────────────────────
-  quedaRegistrado: "Quedará registrado con tu nombre y hora.",
   incluyeUnAnio: "Al activarlo le das un año de PRO. No hay que hacer nada más.",
   continuar: "Continuar",
   vasAActivar: "Vas a activar",
@@ -165,7 +159,6 @@ export const es = {
   puedesRenovarAhora: "Se pueden renovar ya",
   proActivo: "PRO activo",
   podrasRenovarloCuandoSeApague: "Podrás renovarlo cuando se apague.",
-  proSigueActivo: "Ese PRO sigue activo.",
 
   // ── Histórico ─────────────────────────────────────────────────────────────
   enDias: (dias: number) => `en ${dias} días`,
@@ -287,8 +280,6 @@ const en: Cadenas = {
   sondeando: "Drilling",
 
   activarWebmaster: "Activate webmaster",
-  concederPro: "Grant PRO",
-  renovarPro: "Renew PRO",
   solicitarRetiro: "Request payout",
   vincularCuenta: "Link my account",
   reintentar: "Try again",
@@ -334,7 +325,6 @@ const en: Cadenas = {
 
   correoDelWebmaster: "Webmaster's email",
   tieneQueExistirYa: "The email they signed up to Sophon with. It has to exist already.",
-  alActivarlo: "Activating them adds them to your network.",
   yaEstaEnTuRed: (email: string) => `${email} is now in your network.`,
   cobrarasDesdeHoy:
     "You earn on the users they sign up from today onwards. Anyone they brought before doesn't count.",
@@ -366,8 +356,6 @@ const en: Cadenas = {
     `You earn on what they sign up from ${fecha} onwards. Anything before doesn't count.`,
   ultimosDias: (dias: number) => `Last ${dias} days`,
   todaviaSinRegistros: "They haven't brought any signups yet.",
-  noEstaEnTuRed: "That webmaster isn't in your network.",
-  noEstaEnTuRedApoyo: "Check the email, or activate them if you haven't yet.",
   registroDeSondeo: "Drill log",
 
   susEnlaces: "Their links",
@@ -386,7 +374,6 @@ const en: Cadenas = {
   sinProActivo: "No active PRO.",
   sinPro: "No PRO",
 
-  quedaRegistrado: "It will be logged with your name and the time.",
   incluyeUnAnio: "Activating them gives them a year of PRO. Nothing else to do.",
   continuar: "Continue",
   vasAActivar: "You're activating",
@@ -405,7 +392,6 @@ const en: Cadenas = {
   puedesRenovarAhora: "Ready to renew",
   proActivo: "PRO active",
   podrasRenovarloCuandoSeApague: "You can renew it once it burns out.",
-  proSigueActivo: "That PRO is still active.",
 
   enDias: (dias: number) => `over ${dias} days`,
   tocaUnDia: "Tap a day to see where it came from.",
@@ -498,8 +484,6 @@ const it: Cadenas = {
   sondeando: "Sondaggio",
 
   activarWebmaster: "Attiva webmaster",
-  concederPro: "Assegna PRO",
-  renovarPro: "Rinnova PRO",
   solicitarRetiro: "Richiedi prelievo",
   vincularCuenta: "Collega il mio account",
   reintentar: "Riprova",
@@ -545,7 +529,6 @@ const it: Cadenas = {
 
   correoDelWebmaster: "Email del webmaster",
   tieneQueExistirYa: "L'email con cui si è registrato su Sophon. Deve esistere già.",
-  alActivarlo: "Attivandolo passa nella tua rete.",
   yaEstaEnTuRed: (email: string) => `${email} è ora nella tua rete.`,
   cobrarasDesdeHoy:
     "Guadagni sugli utenti che registra da oggi in poi. Quelli portati prima non contano.",
@@ -578,8 +561,6 @@ const it: Cadenas = {
     `Guadagni su quello che registra dal ${fecha}. Quello precedente non conta.`,
   ultimosDias: (dias: number) => `Ultimi ${dias} giorni`,
   todaviaSinRegistros: "Non ha ancora portato nessuna iscrizione.",
-  noEstaEnTuRed: "Quel webmaster non è nella tua rete.",
-  noEstaEnTuRedApoyo: "Controlla l'email, oppure attivalo se non l'hai ancora fatto.",
   registroDeSondeo: "Registro di sondaggio",
 
   susEnlaces: "I suoi link",
@@ -599,7 +580,6 @@ const it: Cadenas = {
   sinProActivo: "Nessun PRO attivo.",
   sinPro: "Senza PRO",
 
-  quedaRegistrado: "Resterà registrato con il tuo nome e l'ora.",
   incluyeUnAnio: "Attivandolo gli dai un anno di PRO. Non serve altro.",
   continuar: "Continua",
   vasAActivar: "Stai attivando",
@@ -618,7 +598,6 @@ const it: Cadenas = {
   puedesRenovarAhora: "Si possono rinnovare",
   proActivo: "PRO attivo",
   podrasRenovarloCuandoSeApague: "Potrai rinnovarlo quando si spegne.",
-  proSigueActivo: "Quel PRO è ancora attivo.",
 
   enDias: (dias: number) => `in ${dias} giorni`,
   tocaUnDia: "Tocca un giorno per vedere da dove viene.",
@@ -712,8 +691,6 @@ const pt: Cadenas = {
   sondeando: "A sondar",
 
   activarWebmaster: "Ativar webmaster",
-  concederPro: "Conceder PRO",
-  renovarPro: "Renovar PRO",
   solicitarRetiro: "Pedir levantamento",
   vincularCuenta: "Ligar a minha conta",
   reintentar: "Tentar de novo",
@@ -759,7 +736,6 @@ const pt: Cadenas = {
 
   correoDelWebmaster: "Email do webmaster",
   tieneQueExistirYa: "O email com que se registou na Sophon. Tem de existir já.",
-  alActivarlo: "Ao ativá-lo passa para a tua rede.",
   yaEstaEnTuRed: (email: string) => `${email} já está na tua rede.`,
   cobrarasDesdeHoy:
     "Ganhas pelos utilizadores que ele registar a partir de hoje. Os que trouxe antes não contam.",
@@ -791,8 +767,6 @@ const pt: Cadenas = {
     `Ganhas pelo que ele registar a partir de ${fecha}. O anterior não conta.`,
   ultimosDias: (dias: number) => `Últimos ${dias} dias`,
   todaviaSinRegistros: "Ainda não trouxe nenhum registo.",
-  noEstaEnTuRed: "Esse webmaster não está na tua rede.",
-  noEstaEnTuRedApoyo: "Confirma o email, ou ativa-o se ainda não o fizeste.",
   registroDeSondeo: "Registo de sondagem",
 
   susEnlaces: "Os links dele",
@@ -811,7 +785,6 @@ const pt: Cadenas = {
   sinProActivo: "Sem PRO ativo.",
   sinPro: "Sem PRO",
 
-  quedaRegistrado: "Fica registado com o teu nome e a hora.",
   incluyeUnAnio: "Ao ativá-lo dás-lhe um ano de PRO. Não é preciso mais nada.",
   continuar: "Continuar",
   vasAActivar: "Vais ativar",
@@ -830,7 +803,6 @@ const pt: Cadenas = {
   puedesRenovarAhora: "Podem renovar-se já",
   proActivo: "PRO ativo",
   podrasRenovarloCuandoSeApague: "Poderás renová-lo quando se apagar.",
-  proSigueActivo: "Esse PRO continua ativo.",
 
   enDias: (dias: number) => `em ${dias} dias`,
   tocaUnDia: "Toca num dia para veres de onde veio.",
@@ -932,8 +904,6 @@ const ar: Cadenas = {
   sondeando: "جارٍ السبر",
 
   activarWebmaster: "تفعيل مشرف موقع",
-  concederPro: "منح PRO",
-  renovarPro: "تجديد PRO",
   solicitarRetiro: "طلب سحب",
   vincularCuenta: "ربط حسابي",
   reintentar: "أعد المحاولة",
@@ -977,7 +947,6 @@ const ar: Cadenas = {
 
   correoDelWebmaster: "بريد مشرف الموقع",
   tieneQueExistirYa: "البريد الذي سجّل به في Sophon. يجب أن يكون موجودًا مسبقًا.",
-  alActivarlo: "بتفعيله ينضم إلى شبكتك.",
   yaEstaEnTuRed: (email: string) => `${email} أصبح الآن في شبكتك.`,
   cobrarasDesdeHoy: "تربح عن المستخدمين الذين يسجّلهم من اليوم فصاعدًا. من جلبهم قبل ذلك لا يُحتسب.",
 
@@ -1007,8 +976,6 @@ const ar: Cadenas = {
   cobrasDesde: (fecha: string) => `تربح عمّا يسجّله ابتداءً من ${fecha}. وما قبله لا يُحتسب.`,
   ultimosDias: (dias: number) => `آخر ${dias} يومًا`,
   todaviaSinRegistros: "لم يجلب أي تسجيل بعد.",
-  noEstaEnTuRed: "هذا المشرف ليس في شبكتك.",
-  noEstaEnTuRedApoyo: "تحقّق من البريد، أو فعّله إن لم تفعل بعد.",
   registroDeSondeo: "سجل السبر",
 
   susEnlaces: "روابطه",
@@ -1027,7 +994,6 @@ const ar: Cadenas = {
   sinProActivo: "لا يوجد PRO نشط.",
   sinPro: "بلا PRO",
 
-  quedaRegistrado: "سيُسجَّل باسمك ووقته.",
   incluyeUnAnio: "بتفعيله تمنحه سنة من PRO. لا شيء آخر عليك فعله.",
   continuar: "متابعة",
   vasAActivar: "ستفعّل",
@@ -1046,7 +1012,6 @@ const ar: Cadenas = {
   puedesRenovarAhora: "يمكن تجديدها الآن",
   proActivo: "PRO نشط",
   podrasRenovarloCuandoSeApague: "ستتمكن من تجديده عندما ينطفئ.",
-  proSigueActivo: "هذا الـ PRO ما زال نشطًا.",
 
   enDias: (dias: number) => `خلال ${dias} يومًا`,
   tocaUnDia: "المس يومًا لترى من أين جاء.",

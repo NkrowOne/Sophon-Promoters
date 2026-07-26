@@ -308,9 +308,51 @@ async function principal(): Promise<void> {
     inventado.headers.get("location") ?? "",
   );
 
+  // ── 10. Sin tarifa en vigor, el barrido lo DICE ───────────────────────────
+  //
+  // Este es el defecto que estuvo en el repositorio desde el primer día sin que
+  // nada lo delatara: `TarifaVersion` tenía un lector y ningún escritor, así que
+  // en una base de datos nueva el motor guardaba las filas diarias y no emitía
+  // un solo asiento. Los barridos terminaban en verde, los registros crecían en
+  // pantalla y lo único que faltaba era el dinero de los agentes.
+  //
+  // No se comprueba que el devengo funcione —eso ya lo cubren los tests del
+  // motor—, sino que el estado roto sea OBSERVABLE. Que fuera invisible es lo
+  // que lo mantuvo vivo, y una prueba de que se ve es lo único que impide que
+  // vuelva.
+  const tarifasVivas = await db.tarifaVersion.count({ where: { validaHasta: null } });
+  if (tarifasVivas === 0) {
+    const { barrerRegistros } = await import("../lib/sync/registros.ts");
+    const r = await barrerRegistros(clienteFalsoSinDatos(), {
+      desde: "2026-01-01",
+      hasta: "2026-01-01",
+    });
+    comprobar("sin tarifa, el barrido avisa con `sinTarifa`", r?.sinTarifa === true);
+    comprobar("y no devenga nada", r?.asientosCreados === 0);
+  } else {
+    comprobar(
+      "hay tarifa en vigor, así que el motor puede devengar",
+      true,
+      `${tarifasVivas} versión(es)`,
+    );
+  }
+
   console.log(
     `\n${fallos === 0 ? "Todo en verde." : `${fallos === 1 ? "1 comprobación falló" : `${fallos} comprobaciones fallaron`}.`}`,
   );
+}
+
+/**
+ * Un cliente de Sophon que no devuelve ninguna fila.
+ *
+ * Basta para lo que se comprueba: si el barrido detecta la falta de tarifa
+ * antes de tocar nada, no hacen falta datos. Y así la prueba no depende de la
+ * API real, que es lo que la haría fallar por motivos ajenos.
+ */
+function clienteFalsoSinDatos() {
+  return {
+    async *todosLosRegistros() {},
+  } as never;
 }
 
 /**
