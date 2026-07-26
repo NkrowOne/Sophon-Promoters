@@ -7,6 +7,7 @@ import { exigirAdmin } from "@/lib/auth/admin";
 import { avisarRetiroResueltoAlAgente } from "@/lib/bot/avisos";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
 import { CPA_MAXIMO_MICROS, CPS_MAXIMO_BPS } from "@/lib/devengo/motor";
+import { motivoEscaleraInvalida } from "@/lib/devengo/bonos";
 import { revocarSesiones } from "@/lib/auth/sesion";
 
 /**
@@ -139,6 +140,96 @@ export async function cambiarTarifa(formulario: FormData): Promise<void> {
   });
 
   revalidatePath("/admin/tarifas");
+  revalidatePath("/admin");
+}
+
+/**
+ * Cambia la escalera de bonos por hitos.
+ *
+ * Mismo versionado que `cambiarTarifa` y por el mismo motivo: cada asiento de
+ * BONO apunta al escalón que lo pagó, así que editar un escalón en sitio
+ * cambiaría la explicación de dinero ya entregado. Guardar cierra la escalera
+ * vigente y abre otra, las dos con el MISMO instante para que no haya un hueco
+ * en el que no rija ninguna.
+ *
+ * El formulario manda pares paralelos `usuarios[]` y `recompensa[]`. Las filas
+ * vacías se descartan, así que quitar un escalón es borrar su umbral.
+ */
+export async function cambiarEscaleraBono(formulario: FormData): Promise<void> {
+  const actor = await admin();
+
+  const umbrales = formulario.getAll("usuarios").map((v) => String(v).trim());
+  const premios = formulario.getAll("recompensa").map((v) => String(v).trim());
+  const nota = String(formulario.get("nota") ?? "").trim().slice(0, 300) || null;
+
+  const escalones: { usuarios: number; recompensaMicros: bigint }[] = [];
+  for (let i = 0; i < umbrales.length; i++) {
+    const u = umbrales[i] ?? "";
+    const r = premios[i] ?? "";
+    // Fila entera vacía: es como se borra un escalón desde el formulario.
+    if (!u && !r) continue;
+    const usuarios = Number(u.replace(/[.\s]/g, ""));
+    if (!Number.isInteger(usuarios)) return;
+    let recompensaMicros: bigint;
+    try {
+      recompensaMicros = microsDesdeCadena(r.replace(",", "."));
+    } catch {
+      return;
+    }
+    escalones.push({ usuarios, recompensaMicros });
+  }
+
+  // La misma validación que usa el devengo, para que el panel no pueda guardar
+  // una escalera que el motor no sabría pagar. En particular: las recompensas
+  // tienen que CRECER con los usuarios, o subir de hito daría una diferencia
+  // negativa —un asiento que le quita dinero al agente por trabajar más—.
+  const conId = escalones.map((e, i) => ({ id: String(i), ...e }));
+  if (motivoEscaleraInvalida(conId) !== null) return;
+
+  await db.$transaction(async (tx) => {
+    const vigente = await tx.bonoVersion.findFirst({
+      where: { validaHasta: null },
+      orderBy: { validaDesde: "desc" },
+      include: { escalones: { orderBy: { usuarios: "asc" } } },
+    });
+
+    // Guardar lo mismo que ya rige crearía una versión idéntica y llenaría el
+    // historial de ruido sin ningún cambio detrás.
+    if (vigente) {
+      const antes = vigente.escalones.map((e) => `${e.usuarios}:${e.recompensaMicros}`).join("|");
+      const ahora = [...escalones]
+        .sort((a, b) => a.usuarios - b.usuarios)
+        .map((e) => `${e.usuarios}:${e.recompensaMicros}`)
+        .join("|");
+      if (antes === ahora) return;
+    }
+
+    const instante = new Date();
+    if (vigente) {
+      await tx.bonoVersion.update({
+        where: { id: vigente.id },
+        data: { validaHasta: instante },
+      });
+    }
+    await tx.bonoVersion.create({
+      data: {
+        validaDesde: instante,
+        creadoPorId: actor,
+        nota,
+        escalones: { create: escalones },
+      },
+    });
+  });
+
+  await anotar(actor, "bono.escalera_cambiada", "bono", {
+    escalones: escalones.map((e) => ({
+      usuarios: e.usuarios,
+      recompensa: formatearMicros(e.recompensaMicros),
+    })),
+    nota,
+  });
+
+  revalidatePath("/admin/bonos");
   revalidatePath("/admin");
 }
 
