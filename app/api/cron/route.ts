@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { barrerAvisos } from "@/lib/sync/avisos";
 import { barrerRegistros } from "@/lib/sync/registros";
 import { barrerTesoreria } from "@/lib/sync/tesoreria";
 import { barrerWebmasters } from "@/lib/sync/webmasters";
@@ -22,7 +23,7 @@ import { formatearMicros } from "@/lib/devengo/dinero";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-type Tarea = "registros" | "webmasters" | "tesoreria" | "todo";
+type Tarea = "registros" | "webmasters" | "tesoreria" | "avisos" | "todo";
 
 export async function POST(peticion: Request): Promise<NextResponse> {
   const secreto = process.env["CRON_SECRET"];
@@ -77,6 +78,24 @@ export async function POST(peticion: Request): Promise<NextResponse> {
             descuadreLedgerMicros: formatearMicros(r.descuadreLedgerMicros),
           }
         : { omitido: "otro barrido en curso" };
+    }
+
+    /*
+     * Los avisos van los ÚLTIMOS y sin depender del cliente de Sophon.
+     *
+     * Después, porque miran lo que los otros tres acaban de escribir: avisar
+     * con los datos de ayer diría que alguien lleva parado un día más de la
+     * cuenta. Y sin cliente, porque solo leen nuestra base de datos: si Sophon
+     * está caído, este es el único barrido que sigue funcionando, y es
+     * justamente el que le habla al agente.
+     *
+     * `null` aquí quiere decir dos cosas —otro barrido en curso, o que hoy ya
+     * se avisó—, y la segunda es la normal: el cron corre cada media hora y
+     * este barrido es diario.
+     */
+    if (tarea === "avisos" || tarea === "todo") {
+      const r = await barrerAvisos();
+      salida["avisos"] = r ?? { omitido: "ya se avisó hoy, o hay otro barrido en curso" };
     }
 
     return NextResponse.json({ ok: true, duracionMs: Date.now() - inicio, ...salida });

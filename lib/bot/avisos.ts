@@ -20,7 +20,20 @@
 import { cadenas } from "../i18n.ts";
 import { idiomaGuardado } from "../idiomas.ts";
 
-const API_TELEGRAM = "https://api.telegram.org";
+/**
+ * Dónde vive la Bot API.
+ *
+ * Configurable porque si no, esta capa **no se puede probar**: eran tres
+ * funciones de aviso con cero cobertura, y son el único canal por el que la
+ * aplicación le habla al agente. Con la constante fija, comprobar que un
+ * barrido diario manda un mensaje y no cuarenta y ocho exige o llamar a
+ * Telegram de verdad o no comprobarlo, y lo segundo es lo que estaba pasando.
+ *
+ * Telegram admite además servidores locales de la Bot API, así que esto no es
+ * solo un gancho de pruebas. La variable la pone el operador, igual que el
+ * token: quien pueda cambiarla ya tiene el token.
+ */
+const API_TELEGRAM = process.env["TELEGRAM_API_URL"] ?? "https://api.telegram.org";
 
 async function enviarA(destino: string | null, texto: string): Promise<void> {
   const token = process.env["TELEGRAM_BOT_TOKEN"];
@@ -121,6 +134,58 @@ export async function avisarRetiroResueltoAlAgente(datos: {
             ...(datos.motivo ? ["", escapar(t.botMotivo(datos.motivo))] : []),
           ];
 
+  await enviarA(String(datos.telegramId), lineas.join("\n"));
+}
+
+/**
+ * Su red se está apagando, y el agente no lo va a ver si no entra.
+ *
+ * Es el único aviso de la aplicación que habla del TRABAJO y no del dinero. Los
+ * otros dos avisan de un retiro —o sea, de algo ya ganado—, y ese desequilibrio
+ * era el problema: la aplicación empujaba a cobrar y no a vender.
+ *
+ * **Un mensaje, no uno por webmaster.** Con seis webmasters parados, seis
+ * mensajes seguidos es exactamente lo que hace que alguien silencie un bot, y
+ * silenciarlo se lleva por delante también el aviso de que le han pagado.
+ *
+ * Se listan como mucho seis y el resto se resume. Una lista de veinte correos en
+ * un móvil no se lee: se cierra.
+ */
+export async function avisarRedApagadaAlAgente(datos: {
+  telegramId: bigint | null;
+  idioma: string;
+  apagados: readonly { email: string; dias: number }[];
+  incidencias: readonly { email: string; estado: string }[];
+  total: number;
+}): Promise<void> {
+  if (datos.telegramId === null) return;
+  if (datos.apagados.length === 0 && datos.incidencias.length === 0) return;
+
+  const t = cadenas(idiomaGuardado(datos.idioma));
+  const MAXIMO = 6;
+  const lineas: string[] = [`<b>${escapar(t.botRedTitulo)}</b>`];
+
+  if (datos.apagados.length > 0) {
+    lineas.push("", escapar(t.botRedParados(datos.apagados.length, datos.total)));
+    for (const w of datos.apagados.slice(0, MAXIMO)) {
+      lineas.push(`· ${escapar(w.email)} — ${escapar(t.botRedDiasParado(w.dias))}`);
+    }
+    if (datos.apagados.length > MAXIMO) {
+      lineas.push(escapar(t.botRedYOtros(datos.apagados.length - MAXIMO)));
+    }
+  }
+
+  if (datos.incidencias.length > 0) {
+    lineas.push("", escapar(t.botRedIncidencias(datos.incidencias.length)));
+    for (const w of datos.incidencias.slice(0, MAXIMO)) {
+      lineas.push(`· ${escapar(w.email)}`);
+    }
+    if (datos.incidencias.length > MAXIMO) {
+      lineas.push(escapar(t.botRedYOtros(datos.incidencias.length - MAXIMO)));
+    }
+  }
+
+  lineas.push("", `<i>${escapar(t.botRedComoVerlo)}</i>`);
   await enviarA(String(datos.telegramId), lineas.join("\n"));
 }
 

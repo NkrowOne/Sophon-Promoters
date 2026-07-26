@@ -1,0 +1,24 @@
+-- El barrido de avisos, como tipo de sincronización propio.
+--
+-- Hasta ahora el agente recibía UN solo aviso en toda la aplicación: el de su
+-- retiro resuelto. Es decir, el trabajo por el que se le paga —notar que un
+-- webmaster se ha apagado y llamarle— no tenía ningún empujón: La Malla lo
+-- enseña muy bien, pero solo si el agente abre la aplicación, y un comercial que
+-- ya cobró no la abre.
+--
+-- `TipoSync` ya tenía `CADUCIDADES` sin usar, y no vale: nombra los plazos del
+-- PRO, que es justo lo que este aviso NO cuenta —meter la caducidad aquí sería
+-- devolverle al PRO por la puerta de atrás el peso que se le acaba de quitar—.
+-- El barrido nuevo trata de inactividad y de incidencias en Sophon.
+--
+-- Con su propio valor, cada ejecución queda en `EjecucionSync` y sale en la
+-- tabla de barridos del panel como las otras tres. Y sirve además de cerrojo
+-- diario: si ya hay una ejecución completada hoy, el barrido se salta la vuelta
+-- y ningún agente recibe dos mensajes el mismo día.
+--
+-- `ADD VALUE` fuera de cualquier uso en esta misma transacción: Postgres permite
+-- añadir un valor a un enum dentro de una transacción, pero no usarlo hasta que
+-- confirme. Esta migración solo lo declara.
+--
+-- AlterEnum
+ALTER TYPE "TipoSync" ADD VALUE 'AVISOS';

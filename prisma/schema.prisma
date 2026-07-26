@@ -88,6 +88,10 @@ enum TipoSync {
   TESORERIA
   CADUCIDADES
   TARIFAS
+  /// Barrido diario que avisa al agente de sus webmasters apagados o con
+  /// incidencia. Distinto de CADUCIDADES: ese nombra plazos de PRO, y el PRO
+  /// no entra en este aviso.
+  AVISOS
 }
 
 enum EstadoSync {

@@ -238,6 +238,16 @@ export const es = {
 
   // Avisos que salen del panel hacia el agente.
   botRetiroPagado: (importe: string) => `Te hemos pagado ${importe}.`,
+  // ── Aviso diario: tu red se está apagando ─────────────────────────────────
+  botRedTitulo: "Tu red necesita una llamada",
+  botRedParados: (n: number, total: number) =>
+    `${n} de tus ${total} webmasters llevan tiempo sin traer ni un registro:`,
+  botRedDiasParado: (dias: number) => `${dias} días parado`,
+  botRedIncidencias: (n: number) =>
+    `${n} ${n === 1 ? "tiene un problema" : "tienen un problema"} en Sophon y no puede${n === 1 ? "" : "n"} producir:`,
+  botRedYOtros: (n: number) => `…y ${n} más.`,
+  botRedComoVerlo: "Ábrelos en «Tu red» para ver con qué enlaces captan.",
+
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Referencia: ${referencia}`,
   botRetiroAprobado: (importe: string) =>
@@ -455,6 +465,15 @@ const en: Cadenas = {
   botUsaStart: "Use /start to open the app.",
 
   botRetiroPagado: (importe: string) => `We've paid you ${importe}.`,
+  botRedTitulo: "Your network needs a call",
+  botRedParados: (n: number, total: number) =>
+    `${n} of your ${total} webmasters haven't brought a single signup in a while:`,
+  botRedDiasParado: (dias: number) => `${dias} days idle`,
+  botRedIncidencias: (n: number) =>
+    `${n} ${n === 1 ? "has a problem" : "have a problem"} on Sophon and can't produce:`,
+  botRedYOtros: (n: number) => `…and ${n} more.`,
+  botRedComoVerlo: "Open them in \"Your network\" to see what links they use.",
+
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Reference: ${referencia}`,
   botRetiroAprobado: (importe: string) =>
@@ -660,6 +679,15 @@ const it: Cadenas = {
   botUsaStart: "Usa /start per aprire l'applicazione.",
 
   botRetiroPagado: (importe: string) => `Ti abbiamo pagato ${importe}.`,
+  botRedTitulo: "La tua rete ha bisogno di una chiamata",
+  botRedParados: (n: number, total: number) =>
+    `${n} dei tuoi ${total} webmaster non portano un'iscrizione da un pezzo:`,
+  botRedDiasParado: (dias: number) => `${dias} giorni fermo`,
+  botRedIncidencias: (n: number) =>
+    `${n} ${n === 1 ? "ha un problema" : "hanno un problema"} su Sophon e non può${n === 1 ? "" : " produrre"}:`,
+  botRedYOtros: (n: number) => `…e altri ${n}.`,
+  botRedComoVerlo: "Aprili in «La tua rete» per vedere con quali link portano gente.",
+
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Riferimento: ${referencia}`,
   botRetiroAprobado: (importe: string) =>
@@ -863,6 +891,15 @@ const pt: Cadenas = {
   botUsaStart: "Usa /start para abrir a aplicação.",
 
   botRetiroPagado: (importe: string) => `Pagámos-te ${importe}.`,
+  botRedTitulo: "A tua rede precisa de uma chamada",
+  botRedParados: (n: number, total: number) =>
+    `${n} dos teus ${total} webmasters não trazem um registo há algum tempo:`,
+  botRedDiasParado: (dias: number) => `${dias} dias parado`,
+  botRedIncidencias: (n: number) =>
+    `${n} ${n === 1 ? "tem um problema" : "têm um problema"} no Sophon e não consegue${n === 1 ? "" : "m"} produzir:`,
+  botRedYOtros: (n: number) => `…e mais ${n}.`,
+  botRedComoVerlo: "Abre-os em «A tua rede» para veres com que links captam.",
+
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Referência: ${referencia}`,
   botRetiroAprobado: (importe: string) =>
@@ -1069,6 +1106,14 @@ const ar: Cadenas = {
   botUsaStart: "استخدم /start لفتح التطبيق.",
 
   botRetiroPagado: (importe: string) => `حوّلنا لك ${importe}.`,
+  botRedTitulo: "شبكتك تحتاج مكالمة",
+  botRedParados: (n: number, total: number) =>
+    `${n} من أصل ${total} من مشرفيك لم يجلبوا أي تسجيل منذ مدة:`,
+  botRedDiasParado: (dias: number) => `متوقّف منذ ${dias} يومًا`,
+  botRedIncidencias: (n: number) => `${n} لديهم مشكلة في Sophon ولا يمكنهم الإنتاج:`,
+  botRedYOtros: (n: number) => `…و${n} آخرون.`,
+  botRedComoVerlo: "افتحهم في «شبكتك» لترى بأي روابط يجلبون المستخدمين.",
+
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `المرجع: ${referencia}`,
   botRetiroAprobado: (importe: string) =>

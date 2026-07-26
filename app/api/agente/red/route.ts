@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { dinero, esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
 import { hoyContable } from "@/lib/sync/registros";
 import { diasRestantesPro, renovablePro } from "@/lib/pro/vigencia";
+import { diasSinActividad } from "@/lib/red/inactividad";
 
 /**
  * La red del agente, en la forma que necesita La Malla.
@@ -69,12 +70,11 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       usuariosPago: f.countPayingUsers,
     }));
 
-    const ultimoConActividad = w.filasDiarias.find((f) => f.countRegister > 0);
-    const diasSinActividad = ultimoConActividad
-      ? Math.round(
-          (Date.parse(`${hoy}T00:00:00Z`) - ultimoConActividad.fecha.getTime()) / 86_400_000,
-        )
-      : null;
+    // La cuenta la hace `lib/red/inactividad.ts`, que es la MISMA que usa el
+    // aviso diario del bot. Estaba escrita aquí a mano, y con dos lectores del
+    // mismo estado eso acaba en que la Malla dice «14 días parado» y el bot
+    // avisa a los veintiuno.
+    const parado = diasSinActividad(w.filasDiarias, hoy);
 
     const registrosVentana = serie.reduce((a, d) => a + d.registros, 0);
 
@@ -100,7 +100,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       proRenovable: renovablePro(w.proVigenteHasta),
       ganadoTotal: dinero(ganado),
       registrosVentana,
-      diasSinActividad,
+      diasSinActividad: parado,
       serie,
     };
   });
