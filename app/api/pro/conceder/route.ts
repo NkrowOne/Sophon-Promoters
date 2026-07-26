@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { db } from "@/lib/db";
 import { claveIdempotencia, normalizarEmail } from "@/lib/cripto";
 import { esRespuesta, exigirAgente, webmasterDelAgente } from "@/lib/api/agente";
 import { concederAnio } from "@/lib/pro/conceder";
@@ -19,10 +18,19 @@ import { concederAnio } from "@/lib/pro/conceder";
  *    las altas, que son las que regalan un año nuevo. Renovar a un webmaster
  *    que ya está en la red protege un ingreso que ya existe, y ponerle tope
  *    sería empujar al agente a dejar apagarse lo que ya produce.
+ *  - **No escribe auditoría.** Escribía `pro.renovado` igual que
+ *    `lib/pro/conceder.ts`, así que cada renovación dejaba DOS asientos
+ *    idénticos —en la única tabla donde duplicar estorba de verdad—. El asiento
+ *    lo pone quien concede, que es quien sabe si llegó a concederse.
  *
  * Lo que sí sigue haciendo, porque es el vector de fraude que queda: comprobar
  * que el webmaster es **de este agente**. Sin eso, cualquiera podría renovarle
  * el PRO a la red de otro con el token maestro del superadmin.
+ *
+ * Y lo que hace nuevo: **rechazar si el PRO sigue vivo**. El guardián está en
+ * `lib/pro/conceder.ts` —los dos caminos que conceden no pueden divergir— y esta
+ * ruta solo traduce su veredicto a algo que el agente pueda usar: la fecha en
+ * que podrá.
  */
 
 export const dynamic = "force-dynamic";
@@ -77,15 +85,29 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     );
   }
 
-  await db.auditoria.create({
-    data: {
-      actorTipo: "AGENTE",
-      actorId: agenteId,
-      accion: "pro.renovado",
-      recurso: emailNormalizado,
-      detalle: { vigenteHasta: resultado.vigenteHasta },
-    },
-  });
+  /*
+   * El PRO seguía vivo: 409, con la fecha.
+   *
+   * Es un conflicto de estado, no un fallo del servidor ni una petición mal
+   * formada, y el cliente tiene que poder distinguirlo para refrescar la lista
+   * en vez de ofrecer «reintentar» —reintentar contra un PRO vigente va a
+   * fallar igual mañana—.
+   *
+   * `renovableEl` es lo único accionable que se puede decir aquí, así que va en
+   * el cuerpo y no enterrado en el texto: la pantalla lo formatea en el idioma
+   * del agente.
+   */
+  if (resultado.yaActivo) {
+    return NextResponse.json(
+      {
+        error: "Ese PRO sigue activo.",
+        apoyo: "Podrás renovarlo cuando termine.",
+        yaActivo: true,
+        renovableEl: resultado.vigenteHasta,
+      },
+      { status: 409 },
+    );
+  }
 
   return NextResponse.json({
     ok: true,

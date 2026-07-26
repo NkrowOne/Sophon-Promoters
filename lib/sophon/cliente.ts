@@ -305,11 +305,19 @@ export class ClienteSophon {
    *
    * La respuesta es la **única** fuente de `membership_end_at`: no hay endpoint
    * para consultar la caducidad después, así que hay que persistirla aquí mismo.
+   *
+   * ⚠️ **`duracionSegundos` es OBLIGATORIO.** Tenía `= 0` por defecto, y ese
+   * cero es justo el valor que la documentación de Sophon traduce en **30
+   * días** —el código de membresía nombra el plan, `duration` fija el plazo—.
+   * Es decir: el defecto que ya costó una corrección entera estaba armado en la
+   * firma, esperando al siguiente llamante que no supiera esto. Hoy no explota
+   * porque `conceder.ts` siempre pasa el valor; mañana explota en silencio y el
+   * agente cree haber regalado un año.
    */
   async concederMembresia(
     email: string,
     codigo: CodigoMembresia,
-    duracionSegundos = 0,
+    duracionSegundos: number,
   ): Promise<ResultadoMembresia> {
     return this.peticion<ResultadoMembresia>("POST", "/api/uc/tool/user/setmembership", {
       cuerpo: { email, membership_code: codigo, duration: duracionSegundos },

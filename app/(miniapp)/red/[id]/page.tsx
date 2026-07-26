@@ -49,6 +49,13 @@ interface Ficha {
     diasRestantes: number;
     diasConcedidos: number | null;
   } | null;
+  /**
+   * Se le puede conceder PRO hoy.
+   *
+   * Fuera de `pro` porque el caso más renovable de todos —nunca tuvo— es
+   * justamente el que tiene `pro: null`.
+   */
+  proRenovable: boolean;
   dias: number;
   serie: DiaFicha[];
   totales: {
@@ -188,15 +195,27 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           {/* Se renueva AQUÍ, no en otra pantalla. El plazo es siempre un año,
               así que no hay nada que elegir en el camino: mandar al agente a un
               formulario intermedio para pulsar un único botón era un paso que
-              solo servía cuando había planes entre los que decidir. */}
-          <button
-            type="button"
-            onClick={renovar}
-            disabled={renovando}
-            className="mt-3 w-full rounded-pieza border border-borde py-3 text-cuerpo font-medium transition-transform duration-150 ease-sonda active:scale-[0.99] disabled:opacity-40"
-          >
-            {renovando ? "…" : datos.pro ? t.renovarUnAnio : t.darUnAnio}
-          </button>
+              solo servía cuando había planes entre los que decidir.
+
+              Pero solo si SE PUEDE. Este botón tenía por única guarda
+              `disabled={renovando}`: se pintaba con 300 días de PRO por delante
+              y hasta sobre una cuenta bloqueada en Sophon. Ahora aparece cuando
+              hay algo que hacer y, cuando no, deja en su sitio el único dato
+              accionable que queda —cuándo se libera—. */}
+          {datos.proRenovable ? (
+            <button
+              type="button"
+              onClick={renovar}
+              disabled={renovando}
+              className="chapa mt-3 min-h-11 w-full py-3 text-cuerpo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
+            >
+              {renovando ? "…" : datos.pro ? t.renovarUnAnio : t.darUnAnio}
+            </button>
+          ) : (
+            <p className="mt-3 text-apoyo text-texto-apoyo">
+              {t.podrasRenovarloCuandoSeApague}
+            </p>
+          )}
 
           {/* Junto al botón que lo provocó, no arriba: así se ve sin buscarlo
               y queda claro qué acción falló. */}

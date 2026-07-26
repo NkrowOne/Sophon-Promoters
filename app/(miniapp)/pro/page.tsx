@@ -11,26 +11,30 @@ import type { Cadenas } from "@/lib/i18n";
 /**
  * Renovaciones.
  *
- * Esta pantalla era «elige a quién y elige durante cuánto». Ya no: el PRO va
- * atado al alta del webmaster y **siempre dura un año**, así que no queda nada
- * que elegir. Lo que queda es la única pregunta que sobrevive al cambio:
- * **¿a quién se le está apagando?**
+ * La pregunta de esta pantalla ha cambiado dos veces. Fue «elige a quién y elige
+ * durante cuánto», pasó a «¿a quién se le está apagando?» y ahora es la única
+ * que se puede contestar con un botón: **¿a quién PUEDO renovar hoy?**
  *
- * Tres decisiones que salen de esa pregunta:
+ * El motivo es la regla de `lib/pro/vigencia.ts`: **un PRO vigente no se
+ * renueva**. No es solo negocio —no sabemos si Sophon suma el plazo o lo
+ * sustituye, y no podemos comprobarlo—, y su consecuencia sobre esta pantalla es
+ * total: «se apaga en 12 días» deja de ser accionable, así que ordenar por
+ * urgencia deja de significar nada. Para casi todos, la respuesta es «a nadie,
+ * todavía».
  *
- *  - **El orden es la respuesta.** Primero los que nunca tuvieron PRO —un
- *    webmaster sin PRO casi siempre es un alta que se quedó a medias—, después
- *    por días restantes. El agente no tiene que buscar: lo urgente está arriba.
- *  - **Cada fila lleva su propia Mecha**, la misma pieza que su ficha. La
- *    longitud de lo encendido es el tiempo que le queda, así que la lista se
- *    lee de un vistazo sin comparar fechas.
- *  - **El coste sigue escrito en el botón**, pero ahora el coste es un plazo y
- *    no un cupo: `RENOVAR · 1 AÑO`. Renovar no gasta nada del agente, y por eso
- *    desapareció el contador que presidía esta pantalla.
+ * De ahí la partición en dos grupos, que es lo que la pantalla hace ahora:
+ *
+ *  1. **Renovables ahora** — sin PRO o ya apagado. Son los únicos con botón, y
+ *     los únicos con amarillo. Encaja con la disciplina de color en vez de
+ *     pelearse con ella: el campo aparece exactamente donde hay una acción
+ *     posible, y en ninguna fila más.
+ *  2. **Activos** — no hay nada que hacer. La Mecha sigue enseñando lo que
+ *     queda, pero como información y no como alarma.
+ *
+ * Y por eso desapareció «renuévalo antes de que se apague»: con la regla nueva
+ * es un consejo imposible de seguir. Lo que se puede decir de un PRO vivo es
+ * cuándo se libera.
  */
-
-/** Mismo umbral que La Mecha: por debajo, renovar deja de ser previsión. */
-const DIAS_URGENTE = 30;
 
 interface WebmasterPro {
   email: string;
@@ -40,12 +44,16 @@ interface WebmasterPro {
   diasRestantes: number | null;
   diasConcedidos: number | null;
   sinPro: boolean;
+  /** Se le puede conceder hoy. Lo decide el servidor, con la misma regla que el guardián. */
+  renovable: boolean;
+  /** Cuándo se libera. `null` si nunca tuvo PRO —ya está libre—. */
+  renovableEl: string | null;
 }
 
 interface EstadoPro {
   diasAviso: number;
   webmasters: WebmasterPro[];
-  urgentes: number;
+  renovables: number;
 }
 
 export default function Renovaciones() {
@@ -136,25 +144,38 @@ export default function Renovaciones() {
   // Una sola unidad para toda la lista: ver la explicación en `Mecha`.
   const porSemanas = unidadComun(datos.webmasters.map((w) => w.diasRestantes));
 
+  // El servidor ya los devuelve ordenados con los renovables delante; aquí solo
+  // se parten, porque los dos grupos responden a preguntas distintas y no se
+  // pueden leer en una sola lista.
+  const renovables = datos.webmasters.filter((w) => w.renovable);
+  const activos = datos.webmasters.filter((w) => !w.renovable);
+
   return (
     <Pantalla
       titulo={t.colaRenovaciones}
-      /* La respuesta de esta pantalla es cuántos piden actuar, así que es lo
-         que va sobre la placa. Cuando no hay ninguno la placa NO aparece: no
-         hay nada que hacer aquí hoy, y decirlo en amarillo sería gritar una
-         buena noticia. */
+      /* La respuesta de esta pantalla es a cuántos se les puede dar PRO hoy, así
+         que es lo que va sobre la placa. Cuando no hay ninguno la placa NO
+         aparece: no hay nada que hacer aquí, y abrir con un titular sobre cero
+         acciones es ocupar la primera pantalla para no decir nada. */
       placa={
-        datos.urgentes > 0
+        datos.renovables > 0
           ? {
               rotulo: t.colaRenovaciones,
-              valor: <p className="text-titulo font-semibold">{t.seApagan(datos.urgentes)}</p>,
+              valor: <p className="text-titulo font-semibold">{t.puedesRenovar(datos.renovables)}</p>,
             }
           : undefined
       }
     >
-      <Banda tono={0} como="header" className="pb-6">
-        {datos.urgentes === 0 && (
-          <p className="text-apoyo text-texto-apoyo">{t.ningunoSeApaga(datos.diasAviso)}</p>
+      {/* La banda de cabecera solo existe si tiene ALGO que decir.
+          Se pintaba siempre, así que en el caso normal —hay renovables, no se ha
+          renovado nada aún, no hay error— quedaba una banda vacía de 24 px justo
+          debajo de la placa: una franja muerta en el sitio de más valor de la
+          pantalla, y con la placa flotando sobre ella en vez de morder la
+          primera lista. */}
+      {(datos.renovables === 0 || hecho || error) && (
+      <Banda tono={0} como="header" className="pb-6 pt-5">
+        {datos.renovables === 0 && (
+          <p className="text-apoyo text-texto-apoyo">{t.ningunoRenovable}</p>
         )}
 
         {hecho && (
@@ -165,43 +186,64 @@ export default function Renovaciones() {
 
         {/* El error de una renovación se reintenta renovando otra vez, así que
             el aviso lleva la acción: sin ella el agente solo podía volver a
-            buscar la fila y adivinar si el toque anterior llegó a contar. */}
+            buscar la fila y adivinar si el toque anterior llegó a contar.
+
+            Salvo si el rechazo es «ese PRO sigue activo»: ahí reintentar va a
+            fallar igual, y lo que hace falta es la lista al día. Por eso el 409
+            no ofrece acción —ya se ha recargado sola—. */}
         {error && (
           <div className="mt-4">
             <Aviso
               error={error.message}
               apoyo={error.apoyo}
-              onReintentar={ultimo ? () => renovar(ultimo) : undefined}
+              onReintentar={ultimo && error.estado !== 409 ? () => renovar(ultimo) : undefined}
             />
           </div>
         )}
       </Banda>
+      )}
 
-      <Banda tono={1} etiqueta={t.colaRenovaciones} className="py-2">
-        <ul className="divide-y divide-borde" role="list">
-          {datos.webmasters.map((w) => (
-            <li key={w.id} className="py-4">
-              <Fila
-                w={w}
-                t={t}
-                porSemanas={porSemanas}
-                cargando={enCurso === w.id}
-                deshabilitado={Boolean(enCurso)}
-                onRenovar={() => renovar(w)}
-              />
-            </li>
-          ))}
-        </ul>
-      </Banda>
+      {renovables.length > 0 && (
+        <Banda tono={1} etiqueta={t.puedesRenovarAhora} className="py-2">
+          <p className="rotulo pb-1 pt-4 text-rotulo text-texto-apoyo">{t.puedesRenovarAhora}</p>
+          <ul className="divide-y divide-borde" role="list">
+            {renovables.map((w) => (
+              <li key={w.id} className="py-4">
+                <Fila
+                  w={w}
+                  t={t}
+                  porSemanas={porSemanas}
+                  cargando={enCurso === w.id}
+                  deshabilitado={Boolean(enCurso)}
+                  onRenovar={() => renovar(w)}
+                />
+              </li>
+            ))}
+          </ul>
+        </Banda>
+      )}
 
-      {datos.urgentes === 0 && (
-        <Banda tono={0} className="pt-5">
-          <p className="text-apoyo text-texto-apoyo">{t.todoAlDia}</p>
+      {activos.length > 0 && (
+        /* Los activos van en la banda MÁS profunda y sin botón. No es un
+           descarte: siguen siendo la red del agente y su plazo es lo que le dice
+           cuándo tendrá que volver. Pero no piden nada hoy, y el estrato lo
+           dice sin escribirlo. */
+        <Banda tono={2} etiqueta={t.proActivo} className="py-2">
+          <p className="rotulo pb-1 pt-4 text-rotulo text-texto-apoyo">{t.proActivo}</p>
+          <ul className="divide-y divide-borde" role="list">
+            {activos.map((w) => (
+              <li key={w.id} className="py-4">
+                <Fila w={w} t={t} porSemanas={porSemanas} cargando={false} deshabilitado onRenovar={noop} />
+              </li>
+            ))}
+          </ul>
         </Banda>
       )}
     </Pantalla>
   );
 }
+
+function noop() {}
 
 function Fila({
   w,
@@ -218,8 +260,6 @@ function Fila({
   deshabilitado: boolean;
   onRenovar: () => void;
 }) {
-  const urgente = w.sinPro || (w.diasRestantes !== null && w.diasRestantes <= DIAS_URGENTE);
-
   return (
     <>
       <p className="break-all text-cuerpo">{w.email}</p>
@@ -248,25 +288,37 @@ function Fila({
       </div>
 
       {/*
-        Solo lleva CAMPO lo que exige actuar hoy; el resto es un filete. Así en
-        una lista de seis filas el amarillo sigue significando algo, que es toda
-        la razón de que sea escaso.
+        El botón existe SOLO si se puede pulsar.
+
+        Antes se pintaba en las seis filas y se distinguía por color: chapa
+        amarilla para los urgentes y filete para el resto. Eso ofrecía una acción
+        que el servidor iba a rechazar en casi todas, y encima gastaba el
+        amarillo en filas que no lo merecían. Un botón deshabilitado tampoco
+        vale: sigue diciendo «esto es lo que hay que hacer aquí», y no lo es.
+
+        Lo que se pone en su lugar no es un hueco: es el dato accionable que
+        queda —cuándo se libera—, que es la única respuesta útil a «¿y este
+        cuándo?».
 
         `min-h-11` porque estos botones medían 314×43: un píxel por debajo del
         mínimo táctil, y son la acción de la pantalla.
       */}
-      <button
-        type="button"
-        onClick={onRenovar}
-        disabled={deshabilitado || w.bloqueado}
-        className={[
-          "mt-3 min-h-11 w-full rounded-pieza text-apoyo font-semibold",
-          "transition-transform duration-150 ease-sonda active:scale-[0.99]",
-          urgente ? "chapa" : "border border-borde disabled:opacity-40",
-        ].join(" ")}
-      >
-        {cargando ? "…" : w.sinPro ? t.darUnAnio : t.renovarUnAnio}
-      </button>
+      {w.renovable ? (
+        <button
+          type="button"
+          onClick={onRenovar}
+          disabled={deshabilitado || w.bloqueado}
+          className="chapa mt-3 min-h-11 w-full text-apoyo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
+        >
+          {cargando ? "…" : w.sinPro ? t.darUnAnio : t.renovarUnAnio}
+        </button>
+      ) : (
+        // Sin repetir la fecha: la Mecha de arriba ya escribe «vence el
+        // 06/08/26» y «12 días de PRO», así que decirla una tercera vez en la
+        // misma fila la convierte en ruido. Lo único que esta línea añade —y por
+        // lo que existe— es que hasta entonces no hay nada que hacer.
+        <p className="mt-2.5 text-apoyo text-texto-apoyo">{t.podrasRenovarloCuandoSeApague}</p>
+      )}
 
       {w.bloqueado && <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.bloqueadoEnSophon}</p>}
     </>

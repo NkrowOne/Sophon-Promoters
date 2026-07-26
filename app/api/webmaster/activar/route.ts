@@ -239,11 +239,22 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     email: parseado.data.email,
     devengaDesde: hoy,
     nuevo: true,
-    // El alta está hecha pase lo que pase con el PRO. Se informa del resultado
-    // en vez de fingir que todo fue bien o de fallar entera una operación que
-    // sí ha prosperado.
+    /*
+     * El alta está hecha pase lo que pase con el PRO. Se informa del resultado
+     * en vez de fingir que todo fue bien o de fallar entera una operación que
+     * sí ha prosperado.
+     *
+     * `yaActivo` es ÉXITO aquí, y es el caso que distingue este camino del de la
+     * renovación: un webmaster que ya venía con PRO tiene exactamente lo que el
+     * alta le iba a dar. Tratarlo como error le enseñaría al agente un aviso
+     * rojo por una operación que salió perfecta, y encima le empujaría a
+     * reintentar contra una membresía que no hay que tocar.
+     *
+     * `renovado: false` lo separa de una concesión real: son dos hechos
+     * distintos y la pantalla dice cosas distintas de cada uno.
+     */
     pro: pro.ok
-      ? { concedido: true, vigenteHasta: pro.vigenteHasta }
-      : { concedido: false, error: pro.error ?? null, apoyo: pro.apoyo ?? null },
+      ? { concedido: true, renovado: !pro.yaActivo, vigenteHasta: pro.vigenteHasta }
+      : { concedido: false, renovado: false, error: pro.error ?? null, apoyo: pro.apoyo ?? null },
   });
 }

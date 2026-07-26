@@ -1,0 +1,22 @@
+-- El `membership_start_at` que devuelve Sophon al conceder.
+--
+-- Es el detector de la única pregunta que esta integración no ha podido
+-- responder: al fijar la membresía sobre una suscripción viva, ¿el plazo se
+-- SUMA o se SUSTITUYE? La documentación no lo dice y la whitelist del Tool API
+-- no está activa en la cuenta de producción, así que no se puede provocar el
+-- caso para comprobarlo.
+--
+-- Hasta ahora la aplicación solo leía `membership_end_at` y sobrescribía la
+-- caducidad sin compararla con la anterior: adoptaba la respuesta de Sophon como
+-- verdad sin enterarse de si acababa de quitarle meses al webmaster.
+--
+-- La regla nueva —un PRO vigente no se renueva— hace que el caso no se pueda
+-- provocar desde la renovación, pero sigue ocurriendo de forma legítima al dar
+-- de alta a un huérfano que ya venía con PRO. Con esta columna, la primera vez
+-- que pase quedará registrado en vez de perderse.
+--
+-- Nullable y sin defecto: las concesiones anteriores no lo tienen y no se puede
+-- inventar. Un dato ausente y un dato falso no son lo mismo.
+--
+-- AlterTable
+ALTER TABLE "ConcesionPro" ADD COLUMN "vigenteDesde" TIMESTAMP(3);

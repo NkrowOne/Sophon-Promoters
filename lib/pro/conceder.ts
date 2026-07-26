@@ -7,7 +7,7 @@
  * la duración explícita para conceder 30 días creyendo conceder un año —que es
  * exactamente el fallo que traía el código anterior—.
  *
- * Las tres reglas que encapsula:
+ * Las cuatro reglas que encapsula:
  *
  *  1. **Siempre `vip.year` con la duración en segundos escrita.** El código de
  *     membresía NO fija el plazo: `duration: 0` da 30 días con cualquier
@@ -16,12 +16,17 @@
  *     idempotencia. Un doble toque no concede dos años.
  *  3. **`membership_end_at` es la única fuente de la caducidad.** No hay
  *     endpoint que la consulte después: si no se persiste aquí, se pierde.
+ *  4. **Un PRO vigente no se toca.** Ver `vigencia.ts`: no sabemos si Sophon
+ *     suma el plazo o lo sustituye, y no podemos comprobarlo. El guardián va
+ *     aquí y no en la ruta precisamente porque este módulo existe para que los
+ *     dos caminos que conceden no puedan divergir.
  */
 
 import { db } from "../db.ts";
 import { clienteSophon } from "../sophon/instancia.ts";
 import { ErrorSophon } from "../sophon/cliente.ts";
-import { PLAN_UNICO, SEGUNDOS_UN_ANIO } from "../sophon/tipos.ts";
+import { PLAN_UNICO, SEGUNDOS_UN_ANIO, type ResultadoMembresia } from "../sophon/tipos.ts";
+import { proActivo } from "./vigencia.ts";
 
 export type MotivoConcesion = "ALTA" | "RENOVACION";
 
@@ -29,6 +34,15 @@ export interface ResultadoConcesion {
   ok: boolean;
   /** Fecha de caducidad tal como la devolvió Sophon, en ISO corto. */
   vigenteHasta: string | null;
+  /**
+   * El PRO ya estaba vigente, así que NO se ha llamado a Sophon.
+   *
+   * Los dos caminos leen esto al revés y por eso se devuelve en vez de
+   * decidirse aquí: para una renovación es el motivo del rechazo, y para un
+   * alta es éxito —un huérfano adoptado que ya venía con PRO tiene justo lo que
+   * el alta le iba a dar—.
+   */
+  yaActivo?: boolean;
   /** Motivo legible cuando no ha salido bien. Nunca un código ni un stack. */
   error?: string;
   apoyo?: string;
@@ -36,20 +50,82 @@ export interface ResultadoConcesion {
   estado?: number;
 }
 
+/** Marca interna para salir de la transacción; nunca sale del módulo. */
+const YA_ACTIVO = "YA_ACTIVO:";
+const REPETIDA = "REPETIDA:";
+
+const isoCorto = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
+
+/**
+ * Lo que este módulo necesita del mundo exterior.
+ *
+ * Existe para poder **comprobar que un PRO vigente no llega a Sophon**, que es
+ * la única garantía que da la regla de vigencia y la que no se puede verificar
+ * en producción: la whitelist del Tool API no está activa, así que el caso no se
+ * puede provocar en vivo. Sin esta costura, la regla que decide si a un
+ * webmaster se le borran meses de suscripción quedaría sin una sola prueba.
+ *
+ * Los tipos son estructurales y describen solo lo que se usa: un doble de
+ * pruebas no tiene que implementar Prisma entero para poder existir.
+ */
+export interface DependenciasConcesion {
+  db: {
+    $transaction: {
+      <T>(fn: (tx: TransaccionConcesion) => Promise<T>): Promise<T>;
+      (operaciones: unknown[]): Promise<unknown>;
+    };
+    concesionPro: { update: (a: unknown) => unknown };
+    webmaster: { update: (a: unknown) => unknown };
+    auditoria: { create: (a: unknown) => unknown };
+  };
+  /** Se resuelve por llamada, no al importar: sin PRO vigente nunca se invoca. */
+  sophon: () => {
+    concederMembresia: (
+      email: string,
+      codigo: typeof PLAN_UNICO,
+      duracionSegundos: number,
+    ) => Promise<ResultadoMembresia>;
+  };
+}
+
+interface TransaccionConcesion {
+  concesionPro: {
+    findUnique: (a: unknown) => Promise<{
+      id: string;
+      estado: string;
+      vigenteHasta: Date | null;
+    } | null>;
+    delete: (a: unknown) => Promise<unknown>;
+    create: (a: unknown) => Promise<{ id: string }>;
+  };
+  webmaster: {
+    findUnique: (a: unknown) => Promise<{ proVigenteHasta: Date | null } | null>;
+  };
+}
+
+const REALES: DependenciasConcesion = {
+  db: db as unknown as DependenciasConcesion["db"],
+  sophon: clienteSophon,
+};
+
 /**
  * Reserva la concesión y la ejecuta.
  *
  * No lanza: devuelve el resultado. Quien llama decide qué hacer con un fallo,
  * y en el caso del alta la respuesta correcta **no** es deshacer nada.
  */
-export async function concederAnio(params: {
-  agenteId: string;
-  webmasterId: string;
-  emailWebmaster: string;
-  motivo: MotivoConcesion;
-  claveIdempotencia: string;
-}): Promise<ResultadoConcesion> {
+export async function concederAnio(
+  params: {
+    agenteId: string;
+    webmasterId: string;
+    emailWebmaster: string;
+    motivo: MotivoConcesion;
+    claveIdempotencia: string;
+  },
+  deps: DependenciasConcesion = REALES,
+): Promise<ResultadoConcesion> {
   const { agenteId, webmasterId, emailWebmaster, motivo, claveIdempotencia } = params;
+  const { db, sophon } = deps;
 
   // ── Reserva ────────────────────────────────────────────────────────────
   let concesionId: string;
@@ -67,10 +143,29 @@ export async function concederAnio(params: {
         if (previa.estado === "FALLIDA") {
           await tx.concesionPro.delete({ where: { id: previa.id } });
         } else {
-          throw new Error(
-            `REPETIDA:${previa.vigenteHasta ? previa.vigenteHasta.toISOString().slice(0, 10) : ""}`,
-          );
+          throw new Error(`${REPETIDA}${isoCorto(previa.vigenteHasta)}`);
         }
+      }
+
+      /*
+       * El guardián de vigencia, y va DESPUÉS de la idempotencia a propósito.
+       *
+       * Al revés estaría roto justo en el caso para el que existe la clave: el
+       * agente renueva un PRO caducado, la concesión prospera, y el reintento
+       * de la red llega con la misma clave. Para entonces el PRO YA está
+       * vigente —lo acaba de conceder él—, así que un guardián por delante
+       * respondería «no se puede renovar» a una operación que salió bien. Con
+       * este orden, la clave contesta primero y devuelve la fecha que consiguió.
+       *
+       * Dentro de la transacción y no antes porque es donde se decide: leerlo
+       * fuera dejaría una ventana entre la comprobación y la reserva.
+       */
+      const actual = await tx.webmaster.findUnique({
+        where: { id: webmasterId },
+        select: { proVigenteHasta: true },
+      });
+      if (proActivo(actual?.proVigenteHasta ?? null)) {
+        throw new Error(`${YA_ACTIVO}${isoCorto(actual?.proVigenteHasta)}`);
       }
 
       const creada = await tx.concesionPro.create({
@@ -89,10 +184,28 @@ export async function concederAnio(params: {
     });
   } catch (e) {
     const motivoError = e instanceof Error ? e.message : "";
-    if (motivoError.startsWith("REPETIDA:")) {
+    if (motivoError.startsWith(REPETIDA)) {
       // Reintento sobre algo que sí prosperó: se devuelve tal cual. Es lo que
       // hace seguro pulsar dos veces.
-      return { ok: true, vigenteHasta: motivoError.slice("REPETIDA:".length) || null };
+      return { ok: true, vigenteHasta: motivoError.slice(REPETIDA.length) || null };
+    }
+    if (motivoError.startsWith(YA_ACTIVO)) {
+      /*
+       * Ni error ni concesión: **no se ha llamado a Sophon**, que es lo único
+       * que este camino tiene que garantizar.
+       *
+       * Sale con `ok: true` porque para el alta esto ES el resultado correcto
+       * —el webmaster ya tiene lo que se le iba a dar— y quien quiera tratarlo
+       * como rechazo tiene `yaActivo` para hacerlo. Devolverlo como error
+       * obligaría al alta a distinguir «Sophon no responde» de «no hacía falta»
+       * leyendo un texto, que es justo la clase de deducción que este módulo
+       * existe para no repartir por las rutas.
+       */
+      return {
+        ok: true,
+        yaActivo: true,
+        vigenteHasta: motivoError.slice(YA_ACTIVO.length) || null,
+      };
     }
     console.error("[pro] reserva fallida", e);
     return { ok: false, vigenteHasta: null, error: "No se ha podido registrar la concesión.", estado: 500 };
@@ -100,23 +213,27 @@ export async function concederAnio(params: {
 
   // ── Concesión en Sophon ────────────────────────────────────────────────
   try {
-    const r = await clienteSophon().concederMembresia(
-      emailWebmaster,
-      PLAN_UNICO,
-      SEGUNDOS_UN_ANIO,
-    );
+    const r = await sophon().concederMembresia(emailWebmaster, PLAN_UNICO, SEGUNDOS_UN_ANIO);
 
-    const fin =
-      typeof r.membership_end_at === "object" && r.membership_end_at?.seconds
-        ? new Date(r.membership_end_at.seconds * 1000)
-        : typeof r.membership_end_at === "string"
-          ? new Date(r.membership_end_at)
-          : null;
+    const fin = fechaDeSophon(r.membership_end_at);
+    /*
+     * El inicio se guarda aunque hoy nadie lo lea. Es la evidencia que falta
+     * para saber si Sophon SUMA o SUSTITUYE el plazo —si al conceder sobre algo
+     * vigente el inicio se mueve a hoy, sustituye— y no cuesta más que una
+     * columna. Sin esto, la primera vez que ocurra pasará sin dejar rastro, que
+     * es exactamente lo que ya pasó con los «30 días».
+     */
+    const inicio = fechaDeSophon(r.membership_start_at);
 
     await db.$transaction([
       db.concesionPro.update({
         where: { id: concesionId },
-        data: { estado: "CONFIRMADA", vigenteHasta: fin, uidSophon: r.uid ?? null },
+        data: {
+          estado: "CONFIRMADA",
+          vigenteHasta: fin,
+          vigenteDesde: inicio,
+          uidSophon: r.uid ?? null,
+        },
       }),
       db.webmaster.update({
         where: { id: webmasterId },
@@ -162,6 +279,18 @@ export async function concederAnio(params: {
       estado: 502,
     };
   }
+}
+
+/**
+ * Las fechas de `setmembership` llegan de dos formas y hay que aceptar las dos.
+ *
+ * Con protobuf sobre JSON, un `Timestamp` sale como `{seconds}`; por la pasarela
+ * HTTP, como cadena ISO. Se observaron ambas contra la cuenta real.
+ */
+function fechaDeSophon(v: { seconds?: number } | string | undefined): Date | null {
+  if (typeof v === "object" && v?.seconds) return new Date(v.seconds * 1000);
+  if (typeof v === "string" && v) return new Date(v);
+  return null;
 }
 
 /** Primer instante del mes en curso, en la zona horaria contable declarada. */

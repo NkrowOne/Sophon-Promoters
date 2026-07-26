@@ -41,14 +41,25 @@ const ANCHO_MARCA_PX = 3;
  * plazos de entre 58 y 70 días: ahora los ve en días, que es como los piensa.
  */
 const MARCAS_MAXIMAS = 70;
-/**
- * Por debajo de este plazo la mecha se marca como urgente.
+/*
+ * Ya no hay umbral de «urgente» en esta pieza, y su desaparición es la regla
+ * nueva hecha visible.
  *
- * Eran 7 días, calibrados cuando el PRO podía durar uno solo. Ahora dura
- * siempre un año, y avisar con una semana es avisar tarde: el agente tiene que
- * poder hablar con el webmaster antes de que se le apague, no el día antes.
+ * La mecha pintaba de amarillo lo que quedaba por debajo de 30 días y rotulaba
+ * «renuévalo antes de que se apague». Con un PRO vigente que no se puede
+ * renovar, eso es una alarma sobre algo que no se puede tocar y un consejo
+ * imposible de seguir: el agente ve amarillo, pulsa, y el servidor le dice que
+ * no. El amarillo es la ACCIÓN, así que solo queda donde hay una.
+ *
+ * Lo que se puede hacer con un plazo corto —hablar con el webmaster— no
+ * necesita alarma: lo dice la propia longitud de la mecha, que es para lo que
+ * está. Y cuando el PRO se apaga, entonces sí hay botón y entonces sí hay chapa.
+ *
+ * El umbral que sigue existiendo vive en `lib/pro/vigencia.ts` junto a la regla
+ * que le da sentido. Estaba por triplicado —aquí, en `pro/page.tsx` y en
+ * `api/pro/route.ts`— que es la forma segura de que al cambiarlo solo cambien
+ * dos.
  */
-export const DIAS_URGENTE = 30;
 
 /** Lo que necesita traducido. Se pasa desde la pantalla, que ya tiene el catálogo. */
 export interface EtiquetasMecha {
@@ -57,7 +68,6 @@ export interface EtiquetasMecha {
   caducado: string;
   diasDePro: (dias: number) => string;
   semanasDePro: (semanas: number) => string;
-  renuevaloAntes: string;
   proYaCaducado: string;
   sinProActivo: string;
 }
@@ -86,7 +96,6 @@ export function Mecha({
 }) {
   const restan = Math.max(0, diasRestantes);
   const caducado = diasRestantes <= 0;
-  const urgente = !caducado && restan <= DIAS_URGENTE;
 
   // Cambio de unidad: se cuenta en días mientras contarlos sea posible y útil.
   // Nadie cuenta trescientos días de uno en uno; se piensa en semanas, y el
@@ -129,10 +138,11 @@ export function Mecha({
           <Marca key={`gastada-${i}`} className="bg-borde" />
         ))}
         {/*
-          Lo que queda encendido va del CAMPO cuando urge y del T1 cuando no. Es
-          la única marca de dato de la aplicación que se pinta de amarillo, y se
-          lo ha ganado: aquí el amarillo no informa, avisa —que es exactamente el
-          trabajo que tiene asignado en el resto del sistema—.
+          Lo encendido va del T1, siempre. Ya no hay variante amarilla para los
+          plazos cortos: un PRO vigente no se puede renovar, así que pintar de
+          amarillo lo que queda sería señalar como acción algo que el servidor va
+          a rechazar. La urgencia la dice la LONGITUD, que es para lo que existe
+          una mecha.
 
           `bg-t1` y no `bg-tinta`: el escalón denso de la rampa es la tinta de
           DATOS, y esto es un dato. `--tinta-plena` dejó de ser el T1 al bajar la
@@ -140,27 +150,19 @@ export function Mecha({
           la mecha del color de los controles.
         */}
         {Array.from({ length: marcasVivas }, (_, i) => (
-          <Marca key={`viva-${i}`} className={urgente ? "bg-campo" : "bg-t1"} />
+          <Marca key={`viva-${i}`} className="bg-t1" />
         ))}
         {caducado && <span className="w-16 self-end border-b-2 border-peligro" />}
       </div>
 
       {/*
-        El plazo urgente va sobre CHAPA, no teñido de amarillo.
-        `#F9D027` como texto da 1,49:1 sobre papel claro: pintarlo de amarillo
-        sería esconderlo justo cuando hay que leerlo. Sobre campo son 12,43:1.
+        Solo el PRO APAGADO lleva chapa, porque es el único que se puede tocar.
+        Un plazo corto se dice y ya: «12 días de PRO.» El amarillo se guarda para
+        la fila que tiene botón.
       */}
       <p className="mt-2 text-apoyo tabular-nums">
-        {caducado || urgente ? (
-          <ChapaTexto>
-            {caducado
-              ? etiquetas.proYaCaducado
-              : `${
-                  rotuloEnSemanas
-                    ? etiquetas.semanasDePro(Math.floor(restan / 7))
-                    : etiquetas.diasDePro(restan)
-                }${etiquetas.renuevaloAntes}`}
-          </ChapaTexto>
+        {caducado ? (
+          <ChapaTexto>{etiquetas.proYaCaducado}</ChapaTexto>
         ) : rotuloEnSemanas ? (
           `${etiquetas.semanasDePro(Math.floor(restan / 7))}.`
         ) : (

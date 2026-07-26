@@ -38,6 +38,8 @@ export interface WebmasterMalla {
   registrosVentana: number;
   diasSinActividad: number | null;
   diasHastaCaducidad: number | null;
+  /** Se le puede conceder PRO hoy. Lo decide el servidor: ver `lib/pro/vigencia.ts`. */
+  proRenovable: boolean;
   serie: DiaWebmaster[];
 }
 
@@ -46,9 +48,6 @@ const ALTO_BARRAS = 34;
 
 /** Días sin actividad a partir de los cuales la tesela se marca como apagada. */
 export const DIAS_APAGADO = 4;
-
-/** Días de PRO por debajo de los cuales la tesela lo avisa. */
-export const DIAS_AVISO_PRO = 30;
 
 export function Malla({
   webmasters,
@@ -95,27 +94,33 @@ function Tesela({
   const t = useCadenas();
   const apagado = w.diasSinActividad === null || w.diasSinActividad >= DIAS_APAGADO;
   const problema = w.estado !== "ACTIVO";
-  // Mismo umbral que La Mecha, y por la misma razón: con un PRO de un año,
-  // avisar con una semana no deja margen para hablar con nadie.
-  const avisoPro = w.diasHastaCaducidad !== null && w.diasHastaCaducidad <= DIAS_AVISO_PRO;
+  /*
+   * El PRO solo se marca cuando SE PUEDE HACER ALGO con él.
+   *
+   * La tesela avisaba de todo lo que bajara de 30 días —«PRO VENCE EN 12 D»,
+   * sobre chapa amarilla, o sea con el color de la acción— y con la regla de
+   * vigencia eso es señalar un botón que no existe: hasta que se apague no se
+   * puede renovar. El aviso se reserva para el PRO ya caducado, que es el único
+   * que abre una acción.
+   *
+   * Lo decide el servidor (`proRenovable`) y no un umbral local, para que la
+   * Malla, la pantalla de renovaciones y el guardián de `concederAnio` no puedan
+   * contar historias distintas del mismo estado.
+   */
+  const proApagado = w.proRenovable;
 
   // Solo se escribe lo que exige una decisión, y por orden de urgencia: una
-  // cuenta bloqueada importa más que un PRO a punto de vencer, y este más que
-  // una racha sin actividad. Un webmaster que rinde no lleva etiqueta: su
-  // columna ya lo dice.
+  // cuenta bloqueada importa más que un PRO apagado, y este más que una racha
+  // sin actividad. Un webmaster que rinde no lleva etiqueta: su columna ya lo
+  // dice.
   const etiqueta = problema
     ? w.estado === "BLOQUEADO"
       ? t.bloqueado
       : w.estado === "PENDIENTE_BORRADO"
         ? t.seVaABorrar
         : t.desaparecido
-    : avisoPro
-      ? w.diasHastaCaducidad! <= 0
-        ? t.proCaducado
-        : // Cabe en una tesela de media pantalla. «PRO VENCE EN 5 D» se truncaba
-          // a «PRO VENCE EN …», que es peor que no decir nada: ocupa sitio y no
-          // informa del plazo, que es justo el dato accionable.
-          t.proVenceEn(w.diasHastaCaducidad!)
+    : proApagado
+      ? t.proCaducado
       : apagado
         ? w.diasSinActividad === null
           ? t.sinActividad
@@ -177,16 +182,17 @@ function Tesela({
         {/*
           El campo marca lo ACCIONABLE, no lo malo.
 
-          «PRO vence en 12 d» es algo que el agente puede arreglar hoy —renovar—
-          así que va sobre placa. «Bloqueado» es un problema de Sophon que él no
+          «PRO apagado» es algo que el agente puede arreglar hoy —conceder— así
+          que va sobre chapa. «Bloqueado» es un problema de Sophon que él no
           puede tocar: va del rojo de peligro, igual que el marco de la tesela,
-          y así los dos dicen lo mismo en vez de contradecirse.
+          y así los dos dicen lo mismo en vez de contradecirse. Y «9 días
+          parado» no es ni una cosa ni la otra: va en tinta de apoyo.
         */}
         <span className="text-rotulo mt-1.5 flex h-4 items-center">
           {etiqueta &&
             (problema ? (
               <span className="truncate text-peligro">{etiqueta}</span>
-            ) : avisoPro ? (
+            ) : proApagado ? (
               <span className="chapa truncate px-1 py-px font-semibold">{etiqueta}</span>
             ) : (
               <span className="truncate text-texto-apoyo">{etiqueta}</span>

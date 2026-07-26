@@ -455,7 +455,23 @@ model ConcesionPro {
 
   /// Única fuente de la caducidad: la respuesta de setmembership.
   vigenteHasta DateTime?
-  uidSophon    String?
+
+  /// El `membership_start_at` que devuelve Sophon, y el detector de la única
+  /// pregunta que esta integración no ha podido responder: al conceder sobre
+  /// una membresía viva, ¿el plazo se SUMA o se SUSTITUYE?
+  ///
+  /// La aplicación solo leía `membership_end_at` y sobrescribía la caducidad sin
+  /// compararla con la anterior, así que adoptaba la respuesta como verdad sin
+  /// enterarse de si acababa de perder tiempo. Si el inicio se mueve a hoy, es
+  /// que sustituye.
+  ///
+  /// La regla de vigencia (`lib/pro/vigencia.ts`) hace que el caso no se pueda
+  /// provocar desde la renovación, pero sigue ocurriendo de forma legítima al
+  /// dar de alta a un huérfano que ya venía con PRO. Esta columna deja el
+  /// detector puesto para la primera vez que pase.
+  vigenteDesde DateTime?
+
+  uidSophon String?
 
   /// Impide que un doble toque conceda dos años en vez de uno.
   claveIdempotencia String @unique

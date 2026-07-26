@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { CAMPOS_FILA_VISIBLES, dinero, esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
 import { estaCerrado } from "@/lib/devengo/motor";
 import { hoyContable } from "@/lib/sync/registros";
+import { diasRestantesPro, renovablePro } from "@/lib/pro/vigencia";
 
 /**
  * Ficha de un webmaster.
@@ -123,12 +124,23 @@ export async function GET(
     ? {
         vigenteHasta: isoFecha(fin),
         concedidoEn: vigente ? isoFecha(vigente.creadoEn) : null,
-        diasRestantes: Math.ceil((fin.getTime() - Date.now()) / 86_400_000),
+        diasRestantes: diasRestantesPro(fin) ?? 0,
         diasConcedidos: vigente
           ? Math.max(1, Math.round((fin.getTime() - vigente.creadoEn.getTime()) / 86_400_000))
           : null,
       }
     : null;
+
+  /*
+   * Si se le puede conceder PRO hoy, y va FUERA del objeto `pro` a propósito:
+   * un webmaster sin PRO no tiene `pro`, y es justo el más renovable de todos.
+   * Colgarlo de dentro habría dejado el caso principal sin poder expresarse.
+   *
+   * Sale de la misma función que usa el guardián de `concederAnio`: la ficha
+   * tenía por única guarda `disabled={renovando}`, así que ofrecía renovar un
+   * PRO con 300 días por delante e incluso una cuenta bloqueada en Sophon.
+   */
+  const proRenovable = renovablePro(fin);
 
   return NextResponse.json({
     email: webmaster.emailOriginal,
@@ -141,6 +153,7 @@ export async function GET(
     // falta dinero.
     devengaDesde: webmaster.devengaDesde ? isoFecha(webmaster.devengaDesde) : null,
     pro,
+    proRenovable,
     dias: DIAS_FICHA,
     serie,
     totales: {

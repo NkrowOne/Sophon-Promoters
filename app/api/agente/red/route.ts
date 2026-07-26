@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dinero, esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
 import { hoyContable } from "@/lib/sync/registros";
+import { diasRestantesPro, renovablePro } from "@/lib/pro/vigencia";
 
 /**
  * La red del agente, en la forma que necesita La Malla.
@@ -85,9 +86,18 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       proVigenteHasta: w.proVigenteHasta ? isoFecha(w.proVigenteHasta) : null,
       // La Mecha: días hasta que caduque el PRO. Es el único dato temporal que
       // la API de Sophon no permite consultar, solo llega al concederlo.
-      diasHastaCaducidad: w.proVigenteHasta
-        ? Math.ceil((w.proVigenteHasta.getTime() - Date.now()) / 86_400_000)
-        : null,
+      diasHastaCaducidad: diasRestantesPro(w.proVigenteHasta),
+      /*
+       * Y si se puede hacer algo al respecto, que no es lo mismo.
+       *
+       * La Malla pintaba «PRO vence en 12 d» como aviso amarillo, o sea como
+       * algo accionable, y con la regla de vigencia no lo es: hasta que se
+       * apague no hay botón que valga. Este campo es el que decide si la tesela
+       * avisa o solo informa, y sale de la MISMA función que usa el guardián de
+       * `concederAnio`. Tres lectores del mismo estado tienen que contar la
+       * misma historia.
+       */
+      proRenovable: renovablePro(w.proVigenteHasta),
       ganadoTotal: dinero(ganado),
       registrosVentana,
       diasSinActividad,
