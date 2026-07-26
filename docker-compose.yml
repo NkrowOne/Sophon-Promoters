@@ -1,0 +1,81 @@
+# Despliegue en Skyway.
+#
+# Dos servicios y nada más: la aplicación y su Postgres. El bot NO es un
+# servicio aparte —vive dentro de la aplicación, en `/api/bot`, porque funciona
+# por webhook y no por polling—, y el planificador tampoco: las tres tareas de
+# sincronización se disparan contra `/api/cron` desde el cron de Skyway, que ya
+# existe. Un contenedor por cosa que no necesita contenedor propio es coste de
+# operación sin nada a cambio.
+#
+# Puesta en marcha:
+#
+#   1. cp .env.example .env  y rellenarlo. `POSTGRES_PASSWORD` y la contraseña
+#      dentro de `DATABASE_URL` tienen que ser la misma.
+#   2. docker compose up -d --build
+#   3. npm run bot:configurar   (con APP_URL ya apuntando al dominio público)
+#
+# Las migraciones NO se lanzan a mano: el `CMD` de la imagen ejecuta
+# `prisma migrate deploy` antes de servir, y el contenedor se recrea en cada
+# despliegue.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # `env_file` y no una lista de `environment`: cada variable enumerada aquí
+    # sería una que hay que acordarse de añadir en dos sitios el día que se
+    # sume una nueva, y la que se olvide fallará en producción y no en local.
+    env_file: .env
+    environment:
+      # Estas dos las fija la composición, no el fichero: dentro de la red de
+      # Docker el host de la base de datos es el nombre del servicio, y el
+      # puerto es el interno.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sophon}:${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sophon_promoters}?connection_limit=10
+      NODE_ENV: production
+    depends_on:
+      db:
+        # No basta con que el contenedor exista: Postgres tarda en aceptar
+        # conexiones y `migrate deploy` fallaría en el primer arranque.
+        condition: service_healthy
+    # Sin `ports`: en Skyway quien publica es Traefik, y abrir el 3000 al host
+    # dejaría la aplicación accesible por HTTP saltándose el proxy —y con él el
+    # TLS que Telegram exige para las Mini Apps—.
+    expose:
+      - "3000"
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.sophon-promoters.loadbalancer.server.port: "3000"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sophon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-sophon_promoters}
+      # El corte contable es una decisión declarada (§5): el servidor va en UTC
+      # y el reparto por día lo hace la aplicación con `ZONA_HORARIA`. Dejar que
+      # la base de datos tuviera su propia zona sería una segunda respuesta a
+      # «¿de qué día es este devengo?».
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - datos-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sophon} -d ${POSTGRES_DB:-sophon_promoters}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      # El primer arranque inicializa el cluster y tarda: sin margen, `app`
+      # se daría por vencida antes de que la base de datos llegue a existir.
+      start_period: 30s
+    # Tampoco se publica: la base de datos solo la habla `app`. Para entrar a
+    # mano, `docker compose exec db psql -U sophon sophon_promoters`.
+    expose:
+      - "5432"
+
+volumes:
+  # Nombrado y no anónimo: un volumen anónimo se queda huérfano en cada
+  # `down -v` mal dado y el ledger es append-only, así que no hay de dónde
+  # reconstruirlo.
+  datos-postgres:
