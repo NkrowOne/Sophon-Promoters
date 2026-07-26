@@ -61,8 +61,8 @@ export default async function Agentes() {
       <>
         <h1 style={{ fontSize: "1.3125rem", fontWeight: 600 }}>Agentes</h1>
         <p className="apoyo" style={{ marginTop: "0.6rem" }}>
-          Todavía no hay ninguno. Escribe <code>/codigo</code> al bot para generar una
-          invitación.
+          Sin agentes registrados. Los códigos de activación se generan con{" "}
+          <code>/codigo</code> en el bot.
         </p>
       </>
     );
@@ -74,8 +74,8 @@ export default async function Agentes() {
         Agentes
       </h1>
       <p className="apoyo" style={{ marginTop: "0.35rem" }}>
-        {agentes.length} en total. Cada alta concede un año de PRO. No hay tope: para
-        parar a uno, suspéndelo.
+        {agentes.length} en total. Cada activación de webmaster concede un año de PRO. No
+        hay tope de activaciones; el único freno es la suspensión del agente.
       </p>
 
       <div style={{ marginTop: "2rem", display: "grid", gap: "1.25rem" }}>
@@ -155,8 +155,8 @@ export default async function Agentes() {
               </form>
               <form action={cortarSesiones}>
                 <input type="hidden" name="agenteId" value={a.id} />
-                <button type="submit" className="boton" title="Le obliga a volver a entrar con su correo">
-                  Cortar sesiones
+                <button type="submit" className="boton" title="Obliga a iniciar sesión de nuevo con el correo">
+                  Cerrar sesiones
                 </button>
               </form>
             </div>

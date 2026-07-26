@@ -10,8 +10,8 @@
 export const dynamic = "force-dynamic";
 
 const MOTIVOS: Record<string, string> = {
-  falta: "Ese enlace no lleva el testigo de entrada.",
-  caducado: "Ese enlace ya no vale: o se ha usado, o ha pasado su cuarto de hora.",
+  falta: "Enlace incompleto: falta el token de entrada.",
+  caducado: "Enlace no válido: ya se ha usado o ha caducado.",
 };
 
 export default async function Cerrado({
@@ -30,8 +30,8 @@ export default async function Cerrado({
         {(motivo && MOTIVOS[motivo]) ?? "La sesión ha terminado."}
       </p>
       <p style={{ marginTop: "1.25rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
-        Escribe <code>/panel</code> al bot y te mandará uno nuevo. Solo funciona desde el
-        Telegram del superadmin.
+        El comando <code>/panel</code> del bot genera un enlace nuevo. Solo funciona desde
+        el Telegram del superadmin.
       </p>
     </div>
   );

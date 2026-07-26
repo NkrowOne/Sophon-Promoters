@@ -29,7 +29,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const secreto = process.env["CRON_SECRET"];
   if (!secreto) {
     return NextResponse.json(
-      { error: "CRON_SECRET no configurado; la ruta queda deshabilitada" },
+      { error: "Ruta deshabilitada: falta configuración." },
       { status: 503 },
     );
   }
@@ -37,7 +37,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   // Cabecera y no parámetro de URL: los parámetros acaban en los logs de acceso
   // de cualquier proxy por el que pase la petición.
   if (peticion.headers.get("x-cron-secret") !== secreto) {
-    return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   const url = new URL(peticion.url);

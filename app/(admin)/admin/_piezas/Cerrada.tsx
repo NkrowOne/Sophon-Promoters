@@ -11,11 +11,11 @@ export function Cerrada() {
   return (
     <div style={{ paddingTop: "2rem", maxWidth: "34rem" }}>
       <h1 style={{ fontSize: "1.3125rem", fontWeight: 600, letterSpacing: "-0.015em" }}>
-        Necesitas entrar
+        Sesión requerida
       </h1>
       <p style={{ marginTop: "0.6rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
-        Escribe <code>/panel</code> al bot desde el Telegram del superadmin y te mandará un
-        enlace de un solo uso.
+        El comando <code>/panel</code> del bot genera un enlace de un solo uso. Solo
+        funciona desde el Telegram del superadmin.
       </p>
     </div>
   );

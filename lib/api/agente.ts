@@ -33,7 +33,7 @@ export async function exigirAgente(
 ): Promise<Contexto | NextResponse> {
   if (!telegramDeLaPeticion(peticion)) {
     return NextResponse.json(
-      { error: "Abre la aplicación desde Telegram." },
+      { error: "Acceso no verificado por Telegram. La aplicación se abre desde el bot." },
       { status: 401 },
     );
   }

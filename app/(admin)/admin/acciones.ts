@@ -217,7 +217,7 @@ export async function resolverRetiro(
           estado: "RECHAZADO",
           resueltoEn: new Date(),
           resueltoPor: actor,
-          motivo: nota || "Rechazado por el superadmin.",
+          motivo: nota || "Sin motivo especificado.",
         },
       });
       if (count === 0) return;
@@ -234,7 +234,7 @@ export async function resolverRetiro(
           fechaDevengo: new Date(),
           claveIdempotencia: `retiro-rechazado:${id}`,
           retiroId: id,
-          nota: "Devolución de saldo por retiro rechazado.",
+          nota: "Devolución por retiro rechazado.",
         },
       });
     });

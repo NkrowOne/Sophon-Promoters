@@ -32,14 +32,14 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const usuario = telegramDeLaPeticion(peticion);
   if (!usuario) {
     return NextResponse.json(
-      { error: "Abre la aplicación desde Telegram para darte de alta." },
+      { error: "Acceso no verificado por Telegram. La vinculación se completa desde el bot." },
       { status: 401 },
     );
   }
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
-    return NextResponse.json({ error: "Revisa el código y el correo." }, { status: 400 });
+    return NextResponse.json({ error: "Código o correo con formato no válido." }, { status: 400 });
   }
 
   const codigo = normalizarCodigo(parseado.data.codigo);
@@ -49,15 +49,15 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (!invitacion || invitacion.anuladoEn || invitacion.expiraEn < new Date()) {
     return NextResponse.json(
       {
-        error: "Ese código no es válido o ha caducado.",
-        apoyo: "Pide al superadmin que te genere uno nuevo desde el bot.",
+        error: "Código de activación no válido o caducado.",
+        apoyo: "Lo facilita el superadmin.",
       },
       { status: 400 },
     );
   }
   if (invitacion.usosActuales >= invitacion.usosMaximos) {
     return NextResponse.json(
-      { error: "Ese código ya se ha usado.", apoyo: "Pide uno nuevo al superadmin." },
+      { error: "Código de activación ya utilizado.", apoyo: "Lo facilita el superadmin." },
       { status: 400 },
     );
   }
@@ -65,8 +65,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (invitacion.emailDestino && normalizarEmail(invitacion.emailDestino) !== emailNormalizado) {
     return NextResponse.json(
       {
-        error: "Ese código está reservado para otro correo.",
-        apoyo: "Usa el correo con el que te lo dieron.",
+        error: "Código emitido para otro correo.",
+        apoyo: "El código solo es válido con el correo para el que se emitió.",
       },
       { status: 400 },
     );
@@ -81,8 +81,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (yaVinculado) {
     return NextResponse.json(
       {
-        error: `Este Telegram ya está vinculado a ${yaVinculado.emailNormalizado}.`,
-        apoyo: "Si has perdido el acceso, escribe al superadmin.",
+        error: `Esta cuenta de Telegram ya está vinculada a ${yaVinculado.emailNormalizado}.`,
+        apoyo: "La recuperación de acceso se solicita al superadmin.",
       },
       { status: 409 },
     );
@@ -97,7 +97,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       (SEGUNDOS_REENVIO * 1000 - (Date.now() - ultimo.creadoEn.getTime())) / 1000,
     );
     return NextResponse.json(
-      { error: `Espera ${faltan} segundos para pedir otro código.` },
+      { error: `El siguiente código puede solicitarse en ${faltan} segundos.` },
       { status: 429 },
     );
   }
@@ -121,8 +121,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     console.error("[auth] fallo al enviar el OTP", e);
     return NextResponse.json(
       {
-        error: "No hemos podido enviarte el correo.",
-        apoyo: "Comprueba la dirección o inténtalo en un minuto.",
+        error: "No se ha podido enviar el correo.",
+        apoyo: "La dirección puede ser incorrecta. Se puede reintentar en un minuto.",
       },
       { status: 502 },
     );

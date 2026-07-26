@@ -208,7 +208,13 @@ export async function concederAnio(
       };
     }
     console.error("[pro] reserva fallida", e);
-    return { ok: false, vigenteHasta: null, error: "No se ha podido registrar la concesión.", estado: 500 };
+    return {
+      ok: false,
+      vigenteHasta: null,
+      error: "No se ha podido registrar el PRO.",
+      apoyo: "No se ha modificado nada. Se puede reintentar desde la ficha.",
+      estado: 500,
+    };
   }
 
   // ── Concesión en Sophon ────────────────────────────────────────────────
@@ -266,16 +272,16 @@ export async function concederAnio(
       return {
         ok: false,
         vigenteHasta: null,
-        error: "La cuenta aún no está autorizada en Sophon.",
-        apoyo: "El superadmin tiene que tramitarlo con soporte.",
+        error: "La cuenta no está autorizada en Sophon.",
+        apoyo: "La autorización se tramita manualmente con soporte.",
         estado: 503,
       };
     }
     return {
       ok: false,
       vigenteHasta: null,
-      error: "Sophon no ha podido dar el PRO ahora mismo.",
-      apoyo: "Inténtalo otra vez desde su ficha en un minuto.",
+      error: "Sophon no ha concedido el PRO.",
+      apoyo: "Se puede reintentar desde la ficha del webmaster en un minuto.",
       estado: 502,
     };
   }

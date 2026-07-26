@@ -47,8 +47,8 @@ export default async function Tarifas() {
         Tarifas
       </h1>
       <p className="apoyo" style={{ marginTop: "0.35rem" }}>
-        Lo que cobra un agente por el tráfico de sus webmasters. Se aplica desde que se
-        guarda: los asientos ya emitidos conservan la suya.
+        Retribución del agente por el tráfico de sus webmasters. Se aplica al guardar;
+        los asientos ya emitidos conservan su versión.
       </p>
 
       {/* Sin tarifa el motor no emite un solo asiento, así que esto va arriba y
@@ -58,9 +58,8 @@ export default async function Tarifas() {
         <div className="privado" style={{ marginTop: "1.5rem" }}>
           <p className="rotulo vivo">No hay ninguna tarifa en vigor</p>
           <p className="apoyo" style={{ marginTop: "0.4rem" }}>
-            Mientras siga así, los barridos guardan los registros pero <strong>no devengan
-            nada</strong>: todos tus agentes ven 0,00 $ por mucho tráfico que traigan.
-            Guarda una aquí abajo.
+            Sin tarifa vigente los barridos guardan los registros pero <strong>no devengan
+            nada</strong>: los agentes ven 0,00 $. Se establece en el formulario siguiente.
           </p>
         </div>
       )}
@@ -70,7 +69,7 @@ export default async function Tarifas() {
           className="rotulo"
           style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}
         >
-          {vigente ? "Cambiar la tarifa" : "Poner la primera tarifa"}
+          {vigente ? "Nueva versión" : "Primera versión"}
         </p>
 
         <form
@@ -79,7 +78,7 @@ export default async function Tarifas() {
         >
           <div>
             <label htmlFor="cpa" className="rotulo" style={{ display: "block" }}>
-              Por registro (CPA), en dólares
+              CPA por registro (USD)
             </label>
             <input
               id="cpa"
@@ -93,14 +92,13 @@ export default async function Tarifas() {
               style={campo}
             />
             <p className="apoyo" style={{ marginTop: "0.3rem" }}>
-              Máximo {formatearMicros(CPA_MAXIMO_MICROS, 4)}: es lo que entra por registro,
-              y ceder más sale de tu bolsillo.
+              Máximo {formatearMicros(CPA_MAXIMO_MICROS, 4)} por registro.
             </p>
           </div>
 
           <div>
             <label htmlFor="cps" className="rotulo" style={{ display: "block" }}>
-              Del pago de los usuarios (CPS), en %
+              CPS sobre el pago de usuarios (%)
             </label>
             <input
               id="cps"
@@ -112,24 +110,23 @@ export default async function Tarifas() {
               style={campo}
             />
             <p className="apoyo" style={{ marginTop: "0.3rem" }}>
-              Máximo {CPS_MAXIMO_BPS / 100} %, que es el que te entra a ti del CPS.
+              Máximo {CPS_MAXIMO_BPS / 100} %.
             </p>
           </div>
 
           <div>
             <label htmlFor="nota" className="rotulo" style={{ display: "block" }}>
-              Por qué la cambias (opcional)
+              Motivo (opcional)
             </label>
             <input id="nota" name="nota" type="text" maxLength={300} style={campo} />
             <p className="apoyo" style={{ marginTop: "0.3rem" }}>
-              Queda en el historial. Dentro de seis meses es la diferencia entre un
-              cambio explicado y un número que apareció solo.
+              Se guarda en el historial.
             </p>
           </div>
 
           <div>
             <button type="submit" className="boton primario">
-              {vigente ? "Guardar como versión nueva" : "Guardar"}
+              Guardar versión
             </button>
           </div>
         </form>
@@ -145,7 +142,7 @@ export default async function Tarifas() {
 
         {versiones.length === 0 ? (
           <p className="apoyo" style={{ marginTop: "0.9rem" }}>
-            Ninguna todavía.
+            Sin versiones registradas.
           </p>
         ) : (
           <table style={{ marginTop: "0.9rem" }}>

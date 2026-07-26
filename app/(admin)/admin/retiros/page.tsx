@@ -52,8 +52,8 @@ export default async function Retiros() {
       </h1>
       <p className="apoyo" style={{ marginTop: "0.35rem" }}>
         {vivas.length === 0
-          ? "No hay nada pendiente de pagar."
-          : `${vivas.length} ${vivas.length === 1 ? "solicitud" : "solicitudes"} por ${formatearMicros(totalVivo)}. Paga a mano y anota el hash.`}
+          ? "Sin retiros pendientes."
+          : `${vivas.length} ${vivas.length === 1 ? "solicitud" : "solicitudes"} por ${formatearMicros(totalVivo)}. El pago es manual y requiere el hash de la transacción.`}
       </p>
 
       {vivas.length > 0 && (
@@ -108,7 +108,7 @@ export default async function Retiros() {
                 </code>
               </p>
               <p className="apoyo" style={{ marginTop: "0.35rem" }}>
-                {ETIQUETA[s.estado]} · pedida el {fecha(s.solicitadoEn)}
+                {ETIQUETA[s.estado]} · solicitada el {fecha(s.solicitadoEn)}
               </p>
 
               {/* La intención va enlazada al servidor con `.bind`, no en el
@@ -133,7 +133,7 @@ export default async function Retiros() {
                   style={{ flex: "1 1 18rem", minWidth: 0 }}
                 />
                 <button type="submit" className="boton primario">
-                  Marcar pagado
+                  Marcar como pagado
                 </button>
                 {/* Aprobar no necesita hash, así que se salta la validación
                     del campo obligatorio y lleva su propia acción. */}
@@ -160,11 +160,11 @@ export default async function Retiros() {
                 <input
                   name="nota"
                   required
-                  placeholder="Motivo del rechazo (lo verá el agente)"
+                  placeholder="Motivo del rechazo. Visible para el agente."
                   style={{ flex: "1 1 18rem", minWidth: 0 }}
                 />
                 <button type="submit" className="boton">
-                  Rechazar y devolver el saldo
+                  Rechazar y devolver saldo
                 </button>
               </form>
             </article>
@@ -177,7 +177,7 @@ export default async function Retiros() {
           Resueltos
         </p>
         {resueltas.length === 0 ? (
-          <p className="apoyo" style={{ marginTop: "0.9rem" }}>Todavía ninguno.</p>
+          <p className="apoyo" style={{ marginTop: "0.9rem" }}>Sin retiros resueltos.</p>
         ) : (
           <table style={{ marginTop: "0.9rem" }}>
             <thead>

@@ -81,11 +81,11 @@ async function principal(): Promise<void> {
   // que mirar la red. Baja al final —sigue registrado, sigue funcionando— y el
   // orden pasa a ser el de la jornada: captar, la red, el dinero, el histórico.
   const DESCRIPCIONES = {
-    es: ["Menú", "Activar un webmaster", "Tu red", "Cartera y retiros", "Histórico", "Renovaciones de PRO", "Qué puedo hacer aquí"],
-    en: ["Menu", "Activate a webmaster", "Your network", "Wallet and payouts", "History", "PRO renewals", "What I can do here"],
-    it: ["Menu", "Attiva un webmaster", "La tua rete", "Portafoglio e prelievi", "Storico", "Rinnovi del PRO", "Cosa posso fare qui"],
-    pt: ["Menu", "Ativar um webmaster", "A tua rede", "Carteira e levantamentos", "Histórico", "Renovações de PRO", "O que posso fazer aqui"],
-    ar: ["القائمة", "تفعيل مشرف", "شبكتك", "المحفظة والسحوبات", "السجل", "تجديدات PRO", "ما الذي يمكنني فعله هنا"],
+    es: ["Menú", "Activar un webmaster", "Red", "Cartera y retiros", "Histórico", "Renovaciones de PRO", "Comandos disponibles"],
+    en: ["Menu", "Activate a webmaster", "Network", "Wallet and payouts", "History", "PRO renewals", "Available commands"],
+    it: ["Menu", "Attiva un webmaster", "Rete", "Portafoglio e prelievi", "Storico", "Rinnovi del PRO", "Comandi disponibili"],
+    pt: ["Menu", "Ativar um webmaster", "Rede", "Carteira e levantamentos", "Histórico", "Renovações de PRO", "Comandos disponíveis"],
+    ar: ["القائمة", "تفعيل مشرف", "الشبكة", "المحفظة والسحوبات", "السجل", "تجديدات PRO", "الأوامر المتاحة"],
   } as const;
   const NOMBRES = ["start", "activar", "red", "cartera", "historico", "pro", "ayuda"] as const;
 
@@ -120,7 +120,7 @@ async function principal(): Promise<void> {
   }
 
   await llamar("setChatMenuButton", {
-    menu_button: { type: "web_app", text: "Panel", web_app: { url } },
+    menu_button: { type: "web_app", text: "Sophon Promoters", web_app: { url } },
   });
 
   console.log(`\nBot apuntando a ${url}/api/bot`);

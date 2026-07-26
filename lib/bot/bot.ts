@@ -261,7 +261,7 @@ function registrar(b: Bot): void {
 
     const enlace = await crearEnlaceDeEntrada(BigInt(ctx.from!.id));
     if (!enlace) {
-      await ctx.reply("Falta APP_URL: no sé dónde está publicado el panel.");
+      await ctx.reply("Falta APP_URL: el panel no tiene URL publicada.");
       return;
     }
 
@@ -304,8 +304,8 @@ function registrar(b: Bot): void {
         "/codigo — genera un código de activación",
         "/codigo correo@ejemplo.com — solo canjeable con ese correo",
         `/codigo correo@ejemplo.com 30 — y válido 30 días (máx. ${MAX_DIAS_CODIGO})`,
-        "/agentes — quién hay dado de alta y qué mueve",
-        "/retiros — solicitudes pendientes, con su wallet",
+        "/agentes — agentes dados de alta y su devengo",
+        "/retiros — solicitudes pendientes y su wallet",
         "/panel — enlace de entrada al panel",
         "",
         "<i>Aprobar y marcar como pagado se hace en el panel, no aquí: mover",
@@ -323,7 +323,7 @@ function registrar(b: Bot): void {
     const posibleDias = partes.find((p) => /^\d+$/.test(p));
 
     if (posibleEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(posibleEmail)) {
-      await ctx.reply("Ese correo no tiene buena pinta. Revísalo.");
+      await ctx.reply("Formato de correo no válido.");
       return;
     }
 
@@ -359,7 +359,7 @@ function registrar(b: Bot): void {
         "",
         posibleEmail
           ? `Solo lo puede canjear ${escapar(posibleEmail)}.`
-          : "Lo puede canjear cualquiera que lo tenga: mándalo por privado.",
+          : "Canjeable por cualquiera que lo reciba.",
         `Caduca en ${dias} ${dias === 1 ? "día" : "días"}. Un solo uso.`,
       ].join("\n"),
       { parse_mode: "HTML" },
@@ -382,7 +382,7 @@ function registrar(b: Bot): void {
     });
 
     if (agentes.length === 0) {
-      await ctx.reply("Todavía no hay ningún agente. Genera un código con /codigo.");
+      await ctx.reply("Sin agentes registrados. Los códigos de activación se generan con /codigo.");
       return;
     }
 
@@ -446,7 +446,7 @@ function registrar(b: Bot): void {
           ].join("\n"),
         ),
         "",
-        "<i>Márcalos como pagados en el panel.</i>",
+        "<i>El pago se marca en el panel.</i>",
       ].join("\n\n"),
       { parse_mode: "HTML" },
     );

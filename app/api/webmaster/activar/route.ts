@@ -55,7 +55,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
     return NextResponse.json(
-      { error: "Escribe un correo válido.", apoyo: "Es el correo con el que el webmaster se registró en Sophon." },
+      { error: "Formato de correo no válido.", apoyo: "Correo de registro del webmaster en Sophon." },
       { status: 400 },
     );
   }
@@ -114,20 +114,26 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     if (motivo === "DE_OTRO_AGENTE") {
       return NextResponse.json(
         {
-          error: "Ese webmaster ya está a cargo de otro agente.",
-          apoyo: "Si crees que es un error, escribe al superadmin.",
+          error: "El webmaster está atribuido a otro agente.",
+          apoyo: "La atribución es exclusiva. Las revisiones son manuales.",
         },
         { status: 409 },
       );
     }
     if (motivo === "YA_ES_TUYO") {
       return NextResponse.json(
-        { error: "Ese webmaster ya está en tu red.", apoyo: "Puedes verlo en «Tu red»." },
+        { error: "El webmaster ya consta en esta red.", apoyo: "La ficha está disponible en «Red»." },
         { status: 409 },
       );
     }
     console.error("[activar] reserva fallida", e);
-    return NextResponse.json({ error: "No se ha podido reservar el webmaster." }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "No se ha podido registrar la activación.",
+        apoyo: "No se ha modificado nada. Se puede reintentar.",
+      },
+      { status: 500 },
+    );
   }
 
   // ── Paso 2: pedírselo a Sophon ─────────────────────────────────────────
@@ -164,8 +170,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     if (err?.esFaltaWhitelist) {
       return NextResponse.json(
         {
-          error: "La cuenta aún no está autorizada en Sophon.",
-          apoyo: "El superadmin tiene que tramitarlo con soporte. No se ha activado nada.",
+          error: "La cuenta no está autorizada en Sophon.",
+          apoyo: "La autorización se tramita manualmente con soporte. No se ha activado nada.",
         },
         { status: 503 },
       );
@@ -173,8 +179,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     if (/already an affiliate/i.test(err?.message ?? "")) {
       return NextResponse.json(
         {
-          error: "Sophon rechazó el correo: ya está vinculado a otro afiliado.",
-          apoyo: "Pide al webmaster que use otro correo, o escribe al superadmin para reclamarlo.",
+          error: "El correo ya está vinculado a otro afiliado en Sophon.",
+          apoyo: "Se requiere otro correo. Las reclamaciones son manuales.",
         },
         { status: 409 },
       );
@@ -182,8 +188,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     if (/user not found/i.test(err?.message ?? "")) {
       return NextResponse.json(
         {
-          error: "Ese correo no existe en Sophon.",
-          apoyo: "El webmaster tiene que crear su cuenta antes de que puedas activarlo.",
+          error: "El correo no existe en Sophon.",
+          apoyo: "El registro en Sophon es previo a la activación.",
         },
         { status: 404 },
       );
@@ -191,8 +197,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
 
     return NextResponse.json(
       {
-        error: "Sophon no responde ahora mismo.",
-        apoyo: "No se ha activado nada. Vuelve a intentarlo en un minuto.",
+        error: "Sophon no responde.",
+        apoyo: "No se ha activado nada. Se puede reintentar en un minuto.",
       },
       { status: 502 },
     );

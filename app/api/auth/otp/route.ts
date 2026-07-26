@@ -27,14 +27,17 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const usuario = telegramDeLaPeticion(peticion);
   if (!usuario) {
     return NextResponse.json(
-      { error: "Abre la aplicación desde Telegram para darte de alta." },
+      { error: "Acceso no verificado por Telegram. La vinculación se completa desde el bot." },
       { status: 401 },
     );
   }
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
-    return NextResponse.json({ error: "El código son 6 dígitos." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Datos no válidos.", apoyo: "El código de verificación tiene 6 dígitos." },
+      { status: 400 },
+    );
   }
 
   const emailNormalizado = normalizarEmail(parseado.data.email);
@@ -47,14 +50,20 @@ export async function POST(peticion: Request): Promise<NextResponse> {
 
   if (!registro || registro.expiraEn < new Date()) {
     return NextResponse.json(
-      { error: "El código ha caducado.", apoyo: "Pide uno nuevo." },
+      {
+        error: "Código de verificación caducado.",
+        apoyo: "Los códigos de verificación caducan a los 10 minutos. Se puede solicitar otro.",
+      },
       { status: 400 },
     );
   }
 
   if (registro.intentos >= registro.maxIntentos) {
     return NextResponse.json(
-      { error: "Demasiados intentos fallidos.", apoyo: "Pide un código nuevo." },
+      {
+        error: "Número máximo de intentos alcanzado.",
+        apoyo: "El código queda anulado. Se puede solicitar otro.",
+      },
       { status: 429 },
     );
   }
@@ -68,11 +77,11 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     const restantes = actualizado.maxIntentos - actualizado.intentos;
     return NextResponse.json(
       {
-        error: "El código no coincide.",
+        error: "Código de verificación incorrecto.",
         apoyo:
           restantes > 0
-            ? `Te ${restantes === 1 ? "queda 1 intento" : `quedan ${restantes} intentos`}.`
-            : "Pide un código nuevo.",
+            ? `Intentos restantes: ${restantes}.`
+            : "El código queda anulado. Se puede solicitar otro.",
         intentosRestantes: Math.max(restantes, 0),
       },
       { status: 400 },
@@ -83,7 +92,10 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   // código que no le llegó a él.
   if (registro.telegramId !== null && registro.telegramId !== BigInt(usuario.id)) {
     return NextResponse.json(
-      { error: "Ese código se pidió desde otra cuenta de Telegram." },
+      {
+        error: "El código se solicitó desde otra cuenta de Telegram.",
+        apoyo: "Solo es válido en la cuenta que lo solicitó.",
+      },
       { status: 403 },
     );
   }
@@ -156,21 +168,27 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     const motivo = e instanceof Error ? e.message : "";
     if (motivo === "CODIGO_INVALIDO") {
       return NextResponse.json(
-        { error: "Ese código ya no es válido.", apoyo: "Pide uno nuevo al superadmin." },
+        { error: "Código de activación no válido.", apoyo: "Lo facilita el superadmin." },
         { status: 400 },
       );
     }
     if (motivo === "EMAIL_EN_USO") {
       return NextResponse.json(
         {
-          error: "Ese correo ya está vinculado a otro Telegram.",
-          apoyo: "Escribe al superadmin para recuperarlo.",
+          error: "El correo ya está vinculado a otra cuenta de Telegram.",
+          apoyo: "La recuperación de acceso se solicita al superadmin.",
         },
         { status: 409 },
       );
     }
     console.error("[auth] alta fallida", e);
-    return NextResponse.json({ error: "No se ha podido completar el alta." }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "No se ha podido completar la vinculación.",
+        apoyo: "El código de activación no se ha consumido. Se puede reintentar.",
+      },
+      { status: 500 },
+    );
   }
 
   // Se consume DESPUÉS de que el alta haya salido bien: si se marcara antes y la

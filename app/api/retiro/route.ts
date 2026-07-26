@@ -97,7 +97,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
     return NextResponse.json(
-      { error: "Revisa el importe y la wallet." },
+      { error: "Importe o wallet con formato no válido." },
       { status: 400 },
     );
   }
@@ -187,7 +187,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       );
     }
     console.error("[retiro] solicitud fallida", e);
-    return NextResponse.json({ error: "No se ha podido registrar la solicitud." }, { status: 500 });
+    return NextResponse.json({ error: "error: «No se ha podido registrar la solicitud.» · apoyo: «No se ha descontado nada del saldo. Se puede reintentar.»" }, { status: 500 });
   }
 
   await db.auditoria.create({

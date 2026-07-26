@@ -81,29 +81,27 @@ export default async function Panel() {
           llega tarde: para entonces ya se ha leído y creído. */}
       {(rotas.length > 0 || !hayTarifa || (conciliacion && !conciliacion.cuadra)) && (
         <div className="privado" style={{ marginBottom: "1.75rem" }}>
-          <p className="rotulo vivo">Estos números pueden estar mal</p>
+          <p className="rotulo vivo">Cifras no fiables</p>
           <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
             {/* Primero, porque es el único de la lista que hace que el margen de
                 abajo sea entero mentira en vez de estar solo desactualizado. */}
             {!hayTarifa && (
               <li>
-                <strong>No hay ninguna tarifa en vigor</strong>, así que los barridos no
-                están devengando nada y tus agentes ven 0,00 $. El margen de aquí abajo
-                sale al 100 % por eso, no porque sea buen mes.{" "}
-                <Link href="/admin/tarifas">Ponla ahora</Link>.
+                <strong>No hay tarifa en vigor</strong>: los barridos no devengan y los
+                agentes ven 0,00 $. El margen inferior aparece al 100 % por esa causa.{" "}
+                <Link href="/admin/tarifas">Configurar tarifa</Link>.
               </li>
             )}
             {rotas.map((s) => (
               <li key={s.tipo}>
-                El barrido de {s.tipo.toLowerCase()} falló el {fecha(s.iniciadaEn)}
+                Barrido de {s.tipo.toLowerCase()}: fallido el {fecha(s.iniciadaEn)}
                 {s.error ? `: ${s.error.slice(0, 120)}` : ""}.
               </li>
             ))}
             {conciliacion && !conciliacion.cuadra && (
               <li>
-                La conciliación del {fecha(conciliacion.fecha)} no cuadra por{" "}
-                {formatearMicros(conciliacion.descuadreMicros)}. Revísalo antes de pagar
-                nada.
+                Conciliación del {fecha(conciliacion.fecha)}: descuadre de{" "}
+                {formatearMicros(conciliacion.descuadreMicros)}.
               </li>
             )}
           </ul>
@@ -111,7 +109,7 @@ export default async function Panel() {
       )}
 
       <section className="privado" style={{ marginBottom: "2.5rem" }}>
-        <p className="rotulo">Tu margen · privado</p>
+        <p className="rotulo">Margen · privado</p>
         <p
           style={{
             fontSize: "3rem",
@@ -125,7 +123,7 @@ export default async function Panel() {
         </p>
         <p className="apoyo" style={{ marginTop: "0.4rem" }}>
           {formatearMicros(entradasMicros)} de Sophon − {formatearMicros(devengadoMicros)}{" "}
-          devengado por tus agentes. No aparece en ninguna pantalla de agente.
+          devengado por los agentes. No aparece en ninguna pantalla de agente.
         </p>
       </section>
 
@@ -147,7 +145,7 @@ export default async function Panel() {
             apoyo={
               porPagarCuenta > 0
                 ? `${porPagarCuenta} ${porPagarCuenta === 1 ? "solicitud" : "solicitudes"}`
-                : "nada pendiente"
+                : "Sin solicitudes"
             }
             urgente={porPagarCuenta > 0}
             href={porPagarCuenta > 0 ? "/admin/retiros" : undefined}
@@ -158,7 +156,7 @@ export default async function Panel() {
             apoyo={`${pagados?._count ?? 0} en total`}
           />
           <Dato etiqueta="Agentes activos" valor={String(agentes)} href="/admin/agentes" />
-          <Dato etiqueta="Webmasters" valor={String(webmasters)} apoyo="vivos en Sophon" />
+          <Dato etiqueta="Webmasters" valor={String(webmasters)} apoyo="activos en Sophon" />
         </div>
       </section>
 
@@ -168,7 +166,7 @@ export default async function Panel() {
         </p>
         {ultimaPorTipo.size === 0 ? (
           <p className="apoyo" style={{ marginTop: "0.9rem" }}>
-            Todavía no se ha ejecutado ningún barrido. Comprueba el planificador de Skyway.
+            Sin ejecuciones registradas. El planificador está en Skyway.
           </p>
         ) : (
           <table style={{ marginTop: "0.9rem" }}>
@@ -176,7 +174,7 @@ export default async function Panel() {
               <tr>
                 <th>Tarea</th>
                 <th>Estado</th>
-                <th>Última vez</th>
+                <th>Última ejecución</th>
               </tr>
             </thead>
             <tbody>

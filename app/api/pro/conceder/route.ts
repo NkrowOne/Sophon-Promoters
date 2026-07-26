@@ -48,7 +48,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
-    return NextResponse.json({ error: "Revisa el correo." }, { status: 400 });
+    return NextResponse.json({ error: "Formato de correo no válido." }, { status: 400 });
   }
 
   const emailNormalizado = normalizarEmail(parseado.data.email);
@@ -56,8 +56,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (!webmaster) {
     return NextResponse.json(
       {
-        error: "Ese webmaster no está en tu red.",
-        apoyo: "Solo puedes renovar el PRO de los tuyos.",
+        error: "El webmaster no consta en esta red.",
+        apoyo: "La renovación del PRO solo se aplica a los webmasters de esta red.",
       },
       { status: 403 },
     );
@@ -100,8 +100,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (resultado.yaActivo) {
     return NextResponse.json(
       {
-        error: "Ese PRO sigue activo.",
-        apoyo: "Podrás renovarlo cuando termine.",
+        error: "El PRO sigue activo.",
+        apoyo: "La renovación se habilita al caducar el PRO.",
         yaActivo: true,
         renovableEl: resultado.vigenteHasta,
       },

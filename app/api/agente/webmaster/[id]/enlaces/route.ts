@@ -49,7 +49,7 @@ export async function GET(
   // que exista.
   const webmaster = await webmasterDelAgente(ctx.sesion.agenteId, emailNormalizado);
   if (!webmaster) {
-    return NextResponse.json({ error: "Ese webmaster no está en tu red." }, { status: 404 });
+    return NextResponse.json({ error: "El webmaster no consta en esta red." }, { status: 404 });
   }
 
   const hasta = hoyContable();

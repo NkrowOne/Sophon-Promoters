@@ -43,7 +43,7 @@ async function peticion<T>(ruta: string, opciones: RequestInit = {}): Promise<T>
 
   if (!r.ok) {
     throw new ErrorApi(
-      cuerpo?.error ?? "Algo ha fallado.",
+      cuerpo?.error ?? "No se ha podido completar la operación.",
       r.status,
       cuerpo?.apoyo ?? null,
     );
