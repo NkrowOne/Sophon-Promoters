@@ -75,14 +75,19 @@ async function principal(): Promise<void> {
   // Los NOMBRES de comando no se traducen: son las rutas de la Mini App, y un
   // `/rete` italiano obligaría a que el bot conociera cinco alfabetos de
   // comandos para abrir la misma pantalla.
+  // El ORDEN importa: Telegram pinta el menú «/» en el orden en que se envía, y
+  // ese menú es lo primero que ve un agente al escribir una barra. `pro` estaba
+  // el tercero, por delante de `red`, y ahí decía que renovar es más habitual
+  // que mirar la red. Baja al final —sigue registrado, sigue funcionando— y el
+  // orden pasa a ser el de la jornada: captar, la red, el dinero, el histórico.
   const DESCRIPCIONES = {
-    es: ["Menú", "Activar un webmaster", "Renovaciones de PRO", "Tu red", "Cartera y retiros", "Histórico", "Qué puedo hacer aquí"],
-    en: ["Menu", "Activate a webmaster", "PRO renewals", "Your network", "Wallet and payouts", "History", "What I can do here"],
-    it: ["Menu", "Attiva un webmaster", "Rinnovi del PRO", "La tua rete", "Portafoglio e prelievi", "Storico", "Cosa posso fare qui"],
-    pt: ["Menu", "Ativar um webmaster", "Renovações de PRO", "A tua rede", "Carteira e levantamentos", "Histórico", "O que posso fazer aqui"],
-    ar: ["القائمة", "تفعيل مشرف", "تجديدات PRO", "شبكتك", "المحفظة والسحوبات", "السجل", "ما الذي يمكنني فعله هنا"],
+    es: ["Menú", "Activar un webmaster", "Tu red", "Cartera y retiros", "Histórico", "Renovaciones de PRO", "Qué puedo hacer aquí"],
+    en: ["Menu", "Activate a webmaster", "Your network", "Wallet and payouts", "History", "PRO renewals", "What I can do here"],
+    it: ["Menu", "Attiva un webmaster", "La tua rete", "Portafoglio e prelievi", "Storico", "Rinnovi del PRO", "Cosa posso fare qui"],
+    pt: ["Menu", "Ativar um webmaster", "A tua rede", "Carteira e levantamentos", "Histórico", "Renovações de PRO", "O que posso fazer aqui"],
+    ar: ["القائمة", "تفعيل مشرف", "شبكتك", "المحفظة والسحوبات", "السجل", "تجديدات PRO", "ما الذي يمكنني فعله هنا"],
   } as const;
-  const NOMBRES = ["start", "activar", "pro", "red", "cartera", "historico", "ayuda"] as const;
+  const NOMBRES = ["start", "activar", "red", "cartera", "historico", "pro", "ayuda"] as const;
 
   for (const [idioma, textos] of Object.entries(DESCRIPCIONES)) {
     const commands = NOMBRES.map((command, i) => ({ command, description: textos[i]! }));

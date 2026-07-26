@@ -16,9 +16,13 @@ import type { Cadenas } from "@/lib/i18n";
 /**
  * Ficha de un webmaster.
  *
- * Dos preguntas, en este orden: **cuánto me da** y **cuándo le caduca el PRO**.
- * Lo segundo va arriba aunque sea el dato menor, porque es el único que tiene
- * fecha límite: la cifra de ganancia seguirá ahí mañana, la mecha no.
+ * Tres preguntas, en este orden: **cuánto me da**, **cuándo le caduca el PRO** y
+ * **con qué está captando**.
+ *
+ * El orden cambió. La mecha del PRO iba primero, con el argumento de que era lo
+ * único con fecha límite; pero tener fecha límite no la hace más importante que
+ * el motivo por el que esa persona está en la red. Lo primero que se lee de un
+ * webmaster es lo que produce.
  *
  * El resto de la pantalla es el Testigo de este webmaster a ancho completo. Es
  * el mismo instrumento que el raíl, no un gráfico distinto para una pantalla
@@ -69,6 +73,20 @@ interface Ficha {
   };
 }
 
+interface EnlaceReparto {
+  enlace: string;
+  registros: number;
+  usuariosPago: number;
+  pagado: { micros: string; texto: string };
+}
+
+interface RespuestaEnlaces {
+  dias: number;
+  enlaces: EnlaceReparto[];
+  /** Ausente = fue bien. En falso = Sophon no contestó. */
+  disponible?: boolean;
+}
+
 export default function FichaWebmaster({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -84,6 +102,23 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   const [errorRenovar, setErrorRenovar] = useState<ErrorApi | null>(null);
   const clave = useRef(nuevaIdempotencia());
 
+  /*
+   * Los enlaces van en su PROPIA petición y su propio estado.
+   *
+   * Vienen de una llamada en vivo a Sophon, así que son lo único de esta
+   * pantalla que puede tardar o no llegar. Metidos en la petición de la ficha,
+   * un timeout de Sophon habría dejado al agente sin ver ni lo que ha ganado ni
+   * cuándo le caduca el PRO —que salen de nuestra base de datos y siempre se
+   * pueden responder—. Separados, la ficha se pinta entera y la banda de
+   * enlaces es la única que se queda esperando.
+   *
+   * `null` es «todavía no ha contestado»; una lista vacía con `disponible` en
+   * falso es «Sophon no está»; y vacía con `disponible` es «no ha repartido
+   * ninguno». Son tres estados distintos y la pantalla dice cosas distintas.
+   */
+  const [enlaces, setEnlaces] = useState<RespuestaEnlaces | null>(null);
+  const [copiado, setCopiado] = useState<string | null>(null);
+
   const cargar = useCallback(() => {
     setError(null);
     api
@@ -95,6 +130,31 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   }, [id]);
 
   useEffect(cargar, [cargar]);
+
+  useEffect(() => {
+    // Sin `catch` que pinte error: la ruta ya devuelve 200 con `disponible` en
+    // falso cuando Sophon no contesta, y un fallo de red aquí tampoco es algo
+    // que el agente pueda arreglar. Se queda sin banda y ya está.
+    api
+      .get<RespuestaEnlaces>(`/api/agente/webmaster/${encodeURIComponent(id)}/enlaces`)
+      .then(setEnlaces)
+      .catch(() => setEnlaces({ dias: 0, enlaces: [], disponible: false }));
+  }, [id]);
+
+  const copiar = useCallback(
+    async (enlace: string) => {
+      try {
+        await navigator.clipboard.writeText(enlace);
+        haptica("exito");
+        setCopiado(enlace);
+        setTimeout(() => setCopiado((c) => (c === enlace ? null : c)), 1600);
+      } catch {
+        // Sin portapapeles no hay nada que decir: el enlace está en pantalla y
+        // se puede seleccionar a mano.
+      }
+    },
+    [haptica],
+  );
 
   const renovar = useCallback(async () => {
     if (!datos || renovando) return;
@@ -178,10 +238,67 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           </p>
         </Banda>
 
-      {/* La mecha primero: es lo único con fecha límite. Va en su propio estrato
-          porque es la única parte de la ficha en la que se actúa; el resto se
-          mira. */}
-              <Banda orden={1} tono={1} etiqueta={t.colaRenovaciones} className="py-6">
+      {/* Lo que esta persona le ha dado, PRIMERO.
+
+          Estaba debajo de la mecha del PRO, bajo el argumento de que la mecha es
+          lo único con fecha límite. Tener fecha límite no la hace más importante:
+          lo primero que se lee de un webmaster tiene que ser el motivo por el que
+          está en la red, y ese motivo es lo que produce. La suscripción es una
+          condición del alta, y va después. */}
+              <Banda orden={1} tono={1} etiqueta={t.teHaDado} className="py-6">
+          <p className="text-rotulo text-texto-apoyo">{t.teHaDado}</p>
+          <div className="mt-1.5">
+            <CifraProtagonista micros={BigInt(tot.ganado.micros)} />
+          </div>
+          <p className="mt-2 text-apoyo tabular-nums text-texto-apoyo">
+            {t.registrosEnDias(tot.registros, datos.dias)}
+            {tot.usuariosPago > 0 && <> · {t.compraronPro(tot.usuariosPago)}</>}
+          </p>
+
+          {/* La mezcla de tiers, como en inicio: una cinta de 8 px y los
+              recuentos debajo. La versión anterior ponía el porcentaje entre
+              paréntesis junto a cada tier y los tres no cabían en 390 px: «(18
+              %)» caía a una segunda línea y la fila se veía rota. La cinta da la
+              proporción sin escribirla. */}
+          {conTier > 0 && (
+            <div className="mt-4">
+              <div className="flex h-2 overflow-hidden bg-superficie-alta">
+                <BarraCreciente
+                  porcentaje={(tot.registrosT1 / conTier) * 100}
+                  className="bg-t1"
+                />
+                <BarraCreciente
+                  porcentaje={(tot.registrosT2 / conTier) * 100}
+                  className="bg-t2"
+                  retardoMs={60}
+                />
+                <BarraCreciente
+                  porcentaje={(tot.registrosT3 / conTier) * 100}
+                  className="bg-t3"
+                  retardoMs={120}
+                />
+              </div>
+              <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
+                <Tier color="bg-t1" etiqueta="T1" valor={tot.registrosT1} />
+                <Tier color="bg-t2" etiqueta="T2" valor={tot.registrosT2} />
+                <Tier color="bg-t3" etiqueta="T3" valor={tot.registrosT3} />
+              </div>
+            </div>
+          )}
+
+          {/* Atribución prospectiva: si no se dice, el agente ve registros
+              antiguos sin importe y cree que falta dinero. */}
+          {datos.devengaDesde && (
+            <p className="mt-4 border-s-2 border-tinta ps-3 text-apoyo text-texto-apoyo">
+              {t.cobrasDesde(formatoDia(datos.devengaDesde))}
+            </p>
+          )}
+        </Banda>
+
+      {/* Y después la suscripción. Sigue siendo la única parte de la ficha en la
+          que se actúa, y por eso conserva su estrato propio y su botón: bajarle
+          el peso es cambiarla de sitio, no quitarle nada. */}
+              <Banda orden={2} tono={0} etiqueta={t.colaRenovaciones} className="py-6">
           {datos.pro ? (
             <Mecha
               diasRestantes={datos.pro.diasRestantes}
@@ -237,56 +354,6 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           )}
         </Banda>
 
-              <Banda orden={2} tono={0} etiqueta={t.teHaDado} className="py-6">
-          <p className="text-rotulo text-texto-apoyo">{t.teHaDado}</p>
-          <div className="mt-1.5">
-            <CifraProtagonista micros={BigInt(tot.ganado.micros)} />
-          </div>
-          <p className="mt-2 text-apoyo tabular-nums text-texto-apoyo">
-            {t.registrosEnDias(tot.registros, datos.dias)}
-            {tot.usuariosPago > 0 && <> · {t.compraronPro(tot.usuariosPago)}</>}
-          </p>
-
-          {/* La mezcla de tiers, como en inicio: una cinta de 8 px y los
-              recuentos debajo. La versión anterior ponía el porcentaje entre
-              paréntesis junto a cada tier y los tres no cabían en 390 px: «(18
-              %)» caía a una segunda línea y la fila se veía rota. La cinta da la
-              proporción sin escribirla. */}
-          {conTier > 0 && (
-            <div className="mt-4">
-              <div className="flex h-2 overflow-hidden bg-superficie-alta">
-                <BarraCreciente
-                  porcentaje={(tot.registrosT1 / conTier) * 100}
-                  className="bg-t1"
-                />
-                <BarraCreciente
-                  porcentaje={(tot.registrosT2 / conTier) * 100}
-                  className="bg-t2"
-                  retardoMs={60}
-                />
-                <BarraCreciente
-                  porcentaje={(tot.registrosT3 / conTier) * 100}
-                  className="bg-t3"
-                  retardoMs={120}
-                />
-              </div>
-              <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
-                <Tier color="bg-t1" etiqueta="T1" valor={tot.registrosT1} />
-                <Tier color="bg-t2" etiqueta="T2" valor={tot.registrosT2} />
-                <Tier color="bg-t3" etiqueta="T3" valor={tot.registrosT3} />
-              </div>
-            </div>
-          )}
-
-          {/* Atribución prospectiva: si no se dice, el agente ve registros
-              antiguos sin importe y cree que falta dinero. */}
-          {datos.devengaDesde && (
-            <p className="mt-4 border-s-2 border-tinta ps-3 text-apoyo text-texto-apoyo">
-              {t.cobrasDesde(formatoDia(datos.devengaDesde))}
-            </p>
-          )}
-        </Banda>
-
               <Banda orden={3} tono={2} etiqueta={t.registroDeSondeo} className="py-6">
           <p className="text-rotulo mb-3 text-texto-apoyo">{t.ultimosDias(datos.dias)}</p>
           {serie.length > 0 ? (
@@ -295,6 +362,77 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             <p className="text-apoyo text-texto-apoyo">{t.todaviaSinRegistros}</p>
           )}
         </Banda>
+
+      {/* Con qué capta.
+
+          `share_link/list` llevaba implementado en el cliente de Sophon desde
+          el principio sin un solo llamante, y es lo más cerca que está la
+          aplicación de servir al trabajo comercial: saber qué enlace le
+          funciona a un webmaster es lo que permite decirle algo útil cuando se
+          le llama. La banda no aparece mientras Sophon no conteste: es
+          información de apoyo, no un requisito de la ficha.
+
+          Y cuando contesta con la lista VACÍA, la banda sí aparece y lo dice. Un
+          webmaster que no ha repartido un solo enlace no es un hueco que
+          convenga esconder: es justo al que hay que llamar, y ocultarlo dejaría
+          su ficha idéntica a la de uno que reparte diez. */}
+      {enlaces && (
+        <Banda orden={4} tono={0} etiqueta={t.susEnlaces} className="py-6">
+          <p className="text-rotulo text-texto-apoyo">{t.susEnlaces}</p>
+          <p className="mt-1 text-apoyo text-texto-apoyo">
+            {enlaces.disponible === false
+              ? t.enlacesNoDisponibles
+              : enlaces.enlaces.length === 0
+                ? t.sinEnlaces
+                : t.conQueCapta}
+          </p>
+
+          {enlaces.enlaces.length > 0 && (
+            <ul className="mt-4 divide-y divide-junta" role="list">
+              {enlaces.enlaces.map((e) => (
+                <li key={e.enlace} className="py-3 first:pt-0 last:pb-0">
+                  {/* El enlace y su botón de copiar en la misma fila. Copiar es
+                      lo único que se hace con un enlace desde un móvil —no se
+                      transcribe a mano una URL con parámetros—, y el icono
+                      `copiar` ya existía en el juego sin ningún consumidor. */}
+                  <div className="flex items-start gap-2">
+                    {/* `overflow-wrap:anywhere` y NO `break-all`.
+                        `break-all` corta en cualquier carácter aunque quepa un
+                        salto mejor dos posiciones antes, y dejaba una «m» sola
+                        en la última línea de una URL con `?src=telegram`. Es el
+                        mismo defecto que ya se corrigió en el correo de la
+                        cabecera («…@gmail.c / om»). Con `anywhere` el navegador
+                        prefiere los puntos de corte naturales —tras `/`, `?`,
+                        `&`— y solo parte una palabra cuando no hay más
+                        remedio. */}
+                    <p className="min-w-0 flex-1 text-apoyo [overflow-wrap:anywhere]">
+                      {e.enlace}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => copiar(e.enlace)}
+                      // 44×44 reales: es la regla táctil de toda la app, y un
+                      // icono de 18 px sin caja se queda muy por debajo.
+                      className="pulsable -m-2.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-texto-apoyo"
+                      aria-label={t.enlaceCopiado}
+                    >
+                      <Icono
+                        nombre={copiado === e.enlace ? "activo" : "copiar"}
+                        tam={18}
+                      />
+                    </button>
+                  </div>
+                  <p className="mt-1 text-apoyo tabular-nums text-texto-apoyo">
+                    {t.registrosCortos(e.registros)}
+                    {e.usuariosPago > 0 && <> · {t.dePago(e.usuariosPago)}</>}
+                    {e.pagado.micros !== "0" && <> · {e.pagado.texto}</>}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Banda>
+      )}
     </Pantalla>
   );
 }

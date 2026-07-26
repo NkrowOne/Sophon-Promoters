@@ -107,20 +107,29 @@ function ActivarPasos() {
   if (hecho) {
     return (
       <Pantalla titulo={t.activarWebmaster}>
+        {/* El alta y, debajo, sus consecuencias en la misma banda.
+
+            El PRO tenía estrato propio con su rótulo «PRO», y eso lo convertía
+            en un segundo acto: dos bloques del mismo tamaño para un alta y para
+            una consecuencia automática del alta. Conceder el año no es una tarea
+            que el agente haya hecho, es algo que pasó porque dio de alta a
+            alguien, así que se cuenta en una línea junto a «cobrarás desde hoy».
+
+            Lo que NO se funde es el fallo. Si el PRO no entró, el alta sí y la
+            suscripción no, y eso hay que repararlo: mantiene su tratamiento
+            aparte —marca de problema y la explicación debajo— porque es la única
+            parte de esta pantalla en la que queda algo por hacer. */}
         <Banda tono={0} className="pb-6">
           <p className="text-cuerpo font-medium">{t.yaEstaEnTuRed(hecho.email)}</p>
-          <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.cobrarasDesdeHoy}</p>
-        </Banda>
+          <p className="mt-1.5 text-apoyo text-texto-apoyo">
+            {t.cobrarasDesdeHoy}
+            {hecho.pro?.concedido && hecho.pro.vigenteHasta && (
+              <> · {t.proConcedido(formatoDia(hecho.pro.vigenteHasta))}</>
+            )}
+          </p>
 
-        {/* El PRO tiene su propio estrato porque puede haber ido distinto que
-            el alta, y fundir los dos resultados en una sola frase de éxito
-            escondería justo el caso que hay que reparar. */}
-        <Banda tono={1} etiqueta="PRO" className="py-5">
-          {hecho.pro?.concedido && hecho.pro.vigenteHasta && (
-            <p className="text-apoyo">{t.proConcedido(formatoDia(hecho.pro.vigenteHasta))}</p>
-          )}
           {hecho.pro && !hecho.pro.concedido && (
-            <div>
+            <div className="mt-4 border-s-2 border-peligro ps-3">
               <p className="text-apoyo">
                 <Marca icono="aviso" tono="problema">{t.proNoConcedido}</Marca>
               </p>

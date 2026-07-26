@@ -188,7 +188,7 @@ export default function Inicio() {
             {t.activarWebmaster}
           </a>
 
-          {/* Cuatro filas en el orden de la jornada, cada una con su dato. Antes
+          {/* Tres filas en el orden de la jornada, cada una con su dato. Antes
               era una retícula de 2×2 con cuatro cajas idénticas y vacías: el
               menú por defecto de cualquier app, y cuatro toques a ciegas.
 
@@ -196,10 +196,18 @@ export default function Inicio() {
               hace que la fila se reconozca sin leerla —es la diferencia entre un
               menú y una lista de palabras— y el chevron dice que lleva a algún
               sitio, que es lo que distingue una fila de navegación de una fila
-              de datos. La aplicación no tenía ni uno. */}
+              de datos. La aplicación no tenía ni uno.
+
+              **Y ya no está «Renovaciones».** Era la segunda de cuatro, o sea el
+              segundo sitio de más valor de toda la aplicación, y renovar el PRO
+              no es a lo que viene un agente: viene a ver su red y su dinero. El
+              PRO se sigue dando —cada alta concede un año— y se sigue pudiendo
+              renovar desde la ficha de la persona a la que se le concede, que es
+              donde la decisión tiene contexto. Lo que se retira es el peso, no
+              la capacidad: `/pro` sigue existiendo, se llega por el comando del
+              bot y desde la ficha. */}
           <ul className="mt-3 divide-y divide-junta" role="list">
             <Fila href="/red" icono="red" etiqueta={t.red} dato={datos ? String(datos.webmasters) : null} />
-            <Fila href="/pro" icono="renovar" etiqueta={t.colaRenovaciones} />
             <Fila href="/historico" icono="historico" etiqueta={t.historico} />
             <Fila
               href="/cartera"

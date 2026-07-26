@@ -71,16 +71,37 @@ function escapar(s: string): string {
  * `web_app` apunte a una URL distinta, así que el menú puede ser un índice
  * real de la aplicación en vez de un solo botón de «abrir».
  *
- * El orden no es alfabético: es el de la jornada de un agente. Primero lo que
- * exige actuar hoy —dar de alta y renovar—, después lo que se consulta.
+ * El orden no es alfabético: es el de la jornada de un agente. Captar primero,
+ * después su red, y al final el dinero y el histórico.
+ *
+ * **`/pro` ya no está en la lista.** Estaba en segundo lugar bajo la premisa
+ * «primero lo que exige actuar hoy: dar de alta y renovar», y esa premisa era
+ * falsa. Dar el PRO es una consecuencia del alta —cada una concede un año—, no
+ * un trabajo aparte que el agente venga a hacer; ponerlo por delante de `/red`
+ * hacía que el menú le pidiera a diario algo que casi nunca toca.
+ *
+ * El comando `/pro` SIGUE existiendo: se registra aparte, más abajo, justo
+ * porque el bucle que crea un comando por sección ya no lo cubre. Se retira del
+ * menú, no del bot.
  */
 const SECCIONES = [
   { ruta: "/activar", etiqueta: (t: Cadenas) => t.activarWebmaster },
-  { ruta: "/pro", etiqueta: (t: Cadenas) => t.colaRenovaciones },
   { ruta: "/red", etiqueta: (t: Cadenas) => t.red },
   { ruta: "/cartera", etiqueta: (t: Cadenas) => t.cartera },
   { ruta: "/historico", etiqueta: (t: Cadenas) => t.historico },
 ] as const;
+
+/**
+ * Rutas alcanzables por comando aunque no estén en el menú.
+ *
+ * `/pro` es la única superficie donde se ven juntos todos los PRO apagados, y
+ * con veinte webmasters eso deja de ser un lujo. Deja de ser un destino de menú
+ * y pasa a ser un atajo, que es distinto de desaparecer.
+ */
+const ATAJOS = [{ ruta: "/pro", etiqueta: (t: Cadenas) => t.colaRenovaciones }] as const;
+
+/** Todo lo que tiene comando propio: el menú más los atajos. */
+const CON_COMANDO = [...SECCIONES, ...ATAJOS];
 
 /**
  * El idioma de quien escribe.
@@ -123,14 +144,19 @@ function menu(url: string, t: Cadenas): InlineKeyboard | undefined {
  * compartido para «mira tu red» abría la portada y dejaba al agente navegando
  * a mano hasta donde ya se le había dicho que fuera.
  *
- * Solo se aceptan rutas de `SECCIONES`: el parámetro viene de una URL que puede
+ * Solo se aceptan rutas conocidas: el parámetro viene de una URL que puede
  * escribir cualquiera, y concatenarlo sin filtrar dejaría abrir la Mini App en
  * una ruta arbitraria del dominio.
+ *
+ * La lista es `CON_COMANDO` y no `SECCIONES` porque un atajo tiene que poder
+ * enlazarse. `/pro` salió del menú justamente para llegar a él por enlace en vez
+ * de por navegación, así que dejarlo fuera de aquí lo habría hecho inalcanzable
+ * por el único camino que le queda.
  */
 function seccionDeParametro(parametro: string | undefined) {
   if (!parametro) return null;
   const ruta = `/${parametro.trim().toLowerCase()}`;
-  return SECCIONES.find((s) => s.ruta === ruta) ?? null;
+  return CON_COMANDO.find((s) => s.ruta === ruta) ?? null;
 }
 
 
@@ -207,7 +233,11 @@ function registrar(b: Bot): void {
   // Un comando por sección además del teclado: en Telegram mucha gente escribe
   // el comando antes de buscar el botón, y un menú que solo existe como teclado
   // se pierde en cuanto el chat avanza tres mensajes.
-  for (const seccion of SECCIONES) {
+  //
+  // Se recorre `CON_COMANDO` y no `SECCIONES` para que `/pro` siga respondiendo
+  // aunque ya no salga en el teclado. Antes esta lista era la misma que la del
+  // menú, así que sacar una ruta del menú le habría borrado el comando de paso.
+  for (const seccion of CON_COMANDO) {
     b.command(seccion.ruta.slice(1), async (ctx) => {
       const url = urlMiniApp();
       const t = idiomaDe(ctx);
@@ -256,7 +286,10 @@ function registrar(b: Bot): void {
         [
           t.botCadaComando,
           "",
-          ...SECCIONES.map((s) => `/${s.ruta.slice(1)} — ${s.etiqueta(t).toLowerCase()}`),
+          // `CON_COMANDO`: la ayuda enumera lo que responde, no lo que sale en
+          // el teclado. Un comando que existe y no se lista es un comando que
+          // nadie usa.
+          ...CON_COMANDO.map((s) => `/${s.ruta.slice(1)} — ${s.etiqueta(t).toLowerCase()}`),
           "",
           t.botOStart,
         ].join("\n"),

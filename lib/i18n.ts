@@ -127,6 +127,14 @@ export const es = {
   noEstaEnTuRedApoyo: "Comprueba el correo, o actívalo si aún no lo has hecho.",
   registroDeSondeo: "Registro de sondeo",
 
+  // ── Enlaces de reparto ────────────────────────────────────────────────────
+  susEnlaces: "Sus enlaces",
+  conQueCapta: "Con qué está captando. Sale de Sophon en vivo.",
+  sinEnlaces: "Todavía no ha repartido ningún enlace.",
+  enlacesNoDisponibles: "Ahora mismo no se pueden consultar sus enlaces.",
+  enlaceCopiado: "Enlace copiado",
+  registrosCortos: (n: number) => `${n} registros`,
+
   // ── La Mecha ──────────────────────────────────────────────────────────────
   tiempoRestanteDePro: "Tiempo restante de PRO",
   venceEl: (fecha: string) => `vence el ${fecha}`,
@@ -352,6 +360,13 @@ const en: Cadenas = {
   noEstaEnTuRedApoyo: "Check the email, or activate them if you haven't yet.",
   registroDeSondeo: "Drill log",
 
+  susEnlaces: "Their links",
+  conQueCapta: "What they're bringing people in with. Live from Sophon.",
+  sinEnlaces: "They haven't shared any links yet.",
+  enlacesNoDisponibles: "Their links can't be looked up right now.",
+  enlaceCopiado: "Link copied",
+  registrosCortos: (n: number) => `${n} signups`,
+
   tiempoRestanteDePro: "PRO time left",
   venceEl: (fecha: string) => `ends ${fecha}`,
   caducado: "expired",
@@ -547,6 +562,13 @@ const it: Cadenas = {
   noEstaEnTuRed: "Quel webmaster non è nella tua rete.",
   noEstaEnTuRedApoyo: "Controlla l'email, oppure attivalo se non l'hai ancora fatto.",
   registroDeSondeo: "Registro di sondaggio",
+
+  susEnlaces: "I suoi link",
+  conQueCapta: "Con cosa sta portando gente. Dal vivo da Sophon.",
+  sinEnlaces: "Non ha ancora condiviso nessun link.",
+  enlacesNoDisponibles: "Ora non si possono consultare i suoi link.",
+  enlaceCopiado: "Link copiato",
+  registrosCortos: (n: number) => `${n} iscrizioni`,
 
   tiempoRestanteDePro: "Tempo di PRO rimasto",
   venceEl: (fecha: string) => `scade il ${fecha}`,
@@ -744,6 +766,13 @@ const pt: Cadenas = {
   noEstaEnTuRed: "Esse webmaster não está na tua rede.",
   noEstaEnTuRedApoyo: "Confirma o email, ou ativa-o se ainda não o fizeste.",
   registroDeSondeo: "Registo de sondagem",
+
+  susEnlaces: "Os links dele",
+  conQueCapta: "Com o que está a captar. Vem do Sophon em direto.",
+  sinEnlaces: "Ainda não partilhou nenhum link.",
+  enlacesNoDisponibles: "Agora não é possível consultar os links dele.",
+  enlaceCopiado: "Link copiado",
+  registrosCortos: (n: number) => `${n} registos`,
 
   tiempoRestanteDePro: "Tempo de PRO que falta",
   venceEl: (fecha: string) => `acaba a ${fecha}`,
@@ -944,6 +973,13 @@ const ar: Cadenas = {
   noEstaEnTuRed: "هذا المشرف ليس في شبكتك.",
   noEstaEnTuRedApoyo: "تحقّق من البريد، أو فعّله إن لم تفعل بعد.",
   registroDeSondeo: "سجل السبر",
+
+  susEnlaces: "روابطه",
+  conQueCapta: "ما الذي يجلب به المستخدمين. مباشرةً من Sophon.",
+  sinEnlaces: "لم يشارك أي رابط بعد.",
+  enlacesNoDisponibles: "لا يمكن الاطّلاع على روابطه الآن.",
+  enlaceCopiado: "نُسخ الرابط",
+  registrosCortos: (n: number) => `${n} تسجيل`,
 
   tiempoRestanteDePro: "ما تبقّى من PRO",
   venceEl: (fecha: string) => `ينتهي في ${fecha}`,

@@ -5,6 +5,11 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 COPY package.json package-lock.json* ./
+# Playwright está en devDependencies solo para el guion de capturas
+# (`scripts/capturas.mjs`), que no se ejecuta aquí. Sin esta variable su
+# postinstall se descargaría tres navegadores —cientos de megas— en cada
+# construcción de la imagen, para nada.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN npm ci --no-audit --no-fund
 
 FROM node:22-alpine AS builder
