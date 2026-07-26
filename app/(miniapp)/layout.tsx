@@ -73,8 +73,16 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // La Mini App se comporta como una app: el zoom por pellizco rompe el layout fijo.
-  maximumScale: 1,
+  /*
+   * SIN `maximumScale`. Estaba en 1 «porque la Mini App se comporta como una
+   * app», y eso bloquea el zoom por pellizco.
+   *
+   * Quien usa esto es un comercial de cuarenta y tantos mirando importes de pie
+   * en la calle, a veces a pleno sol. Impedirle acercar la pantalla es quitarle
+   * la última salida que le queda cuando algo no se lee, y no compra nada: el
+   * layout es fluido y ya se verifica a 360 px. Es la infracción de WCAG 1.4.4
+   * más fácil de cometer y la más fácil de arreglar.
+   */
   viewportFit: "cover",
 };
 

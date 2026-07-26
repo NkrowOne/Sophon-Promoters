@@ -142,7 +142,7 @@ function AltaPasos() {
               autoComplete="one-time-code"
               maxLength={6}
               placeholder="000000"
-              className="cifra w-full rounded-control border border-borde bg-fondo px-3.5 pb-4 pt-3.5 text-center text-cifra tracking-[0.5em] indent-[0.5em] outline-none focus:border-tinta"
+              className="cifra w-full rounded-control border border-borde-control bg-fondo px-3.5 pb-4 pt-3.5 text-center text-cifra tracking-[0.5em] indent-[0.5em] outline-none focus:border-tinta"
             />
             <span
               className="pointer-events-none absolute inset-x-3.5 bottom-2.5 flex gap-1.5"
@@ -214,7 +214,7 @@ function AltaPasos() {
               autoCapitalize="characters"
               spellCheck={false}
               placeholder="XXXX-XXXX"
-              className="cifra mt-2 w-full rounded-control border border-borde bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta tracking-[0.18em]"
+              className="cifra mt-2 w-full rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta tracking-[0.18em]"
             />
             {/* La ayuda no repite el rótulo: bajo «CÓDIGO DE ACTIVACIÓN», una
                 línea que dice «escribe el código de activación» ocupa sitio para
@@ -237,7 +237,7 @@ function AltaPasos() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="correo@ejemplo.com"
-              className="mt-2 w-full rounded-control border border-borde bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta"
+              className="mt-2 w-full rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta"
             />
             <p className="mt-2 text-apoyo text-texto-apoyo">{t.seraTuIdentificador}</p>
           </div>

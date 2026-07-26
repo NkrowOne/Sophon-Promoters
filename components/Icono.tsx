@@ -16,9 +16,13 @@
  *
  *  - Retícula de 24, con el dibujo dentro de 20: queda 2 de aire por lado, así
  *    que un icono junto a un texto de 16 px nunca lo toca.
- *  - Trazo 1,75, redondo en puntas y en uniones. Constante: NUNCA se escala el
- *    trazo con el tamaño, porque un icono a 15 px con trazo fino y otro a 22 con
- *    trazo grueso se leen como de dos familias distintas.
+ *  - Trazo de 1,75 px REALES a cualquier tamaño. Y esto había que calcularlo:
+ *    con `strokeWidth` fijo dentro de un `viewBox` de 24, el grosor se escala
+ *    con la caja —un icono a 15 px salía a 1,09 px de trazo y otro a 22 px a
+ *    1,60—, así que el comentario que había aquí decía lo contrario de lo que
+ *    hacía el código. Se compensa dividiendo por el factor de escala, que es lo
+ *    que hace que quince iconos de tres tamaños distintos se lean como de la
+ *    misma mano.
  *  - Sin relleno. El color entra por `currentColor`, así que un icono hereda la
  *    tinta de su contexto y no puede desincronizarse de la paleta.
  *  - Geométricos y frontales, sin perspectiva ni detalle decorativo: comparten
@@ -125,7 +129,9 @@ export function Icono({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      // 1,75 px reales sea cual sea `tam`: el trazo se declara en unidades del
+      // `viewBox`, así que hay que deshacer la escala de la caja a mano.
+      strokeWidth={(1.75 * 24) / tam}
       strokeLinecap="round"
       strokeLinejoin="round"
       // `shrink-0` porque estos iconos viven casi siempre en un flex junto a un

@@ -310,6 +310,36 @@ describe("contraste de los tokens", () => {
     }
   });
 
+  it("el contorno de un CONTROL pasa 3:1, y el filete decorativo no tiene que", () => {
+    /*
+     * WCAG 1.4.11 exige 3:1 para «la información visual necesaria para
+     * identificar un componente de interfaz». Un campo donde el agente teclea su
+     * wallet es exactamente eso, y llevaba `--borde`: entre 1,15 y 1,52:1 contra
+     * los tres estratos, o sea una caja sin límite perceptible.
+     *
+     * `--borde` no desaparece: separar dos bloques de contenido no es identificar
+     * un control, y subir todos los filetes a 3:1 convierte el papel en una
+     * retícula de cajas marcadas. Lo que hay son DOS tokens con dos trabajos, y
+     * este test fija la diferencia para que nadie los vuelva a fundir.
+     */
+    const CONTROL = { claro: "#AB7E60", oscuro: "#916343" };
+    const DECORATIVO = { claro: "#EADFC6", oscuro: "#3A312A" };
+
+    for (const [tema, estratos] of [
+      ["claro", CLAROS],
+      ["oscuro", OSCUROS],
+    ] as const) {
+      for (const f of estratos) {
+        const r = contraste(CONTROL[tema], FONDOS[f]);
+        assert.ok(r >= 3, `${tema}: el contorno de control sobre ${f} da ${r.toFixed(2)}:1`);
+      }
+      // Y el decorativo NO llega, que es la prueba de que eran dos cosas: si
+      // algún día pasara, es que se ha vuelto a usar uno para las dos.
+      const peor = Math.min(...estratos.map((f) => contraste(DECORATIVO[tema], FONDOS[f])));
+      assert.ok(peor < 3, `${tema}: --borde ya pasa 3:1; ¿siguen siendo dos tokens?`);
+    }
+  });
+
   it("los tres estratos SE DISTINGUEN entre sí", () => {
     /*
      * La aplicación entera se estructura en tres estratos de papel, y estaban a

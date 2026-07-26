@@ -88,7 +88,7 @@ export function CifraProtagonista({ micros }: { micros: bigint }) {
       aria-label={texto}
     >
       <CifraAnimadaSinMoneda micros={micros} />
-      <span aria-hidden className="text-[1.5rem] font-medium opacity-60">
+      <span aria-hidden className="text-[0.6em] font-medium opacity-60">
         $
       </span>
       <span className="sr-only">{importe} dólares</span>

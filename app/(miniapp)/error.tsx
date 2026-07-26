@@ -39,7 +39,7 @@ export default function ErrorMiniApp({
         </button>
         <a
           href="/"
-          className="flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde text-cuerpo font-medium"
+          className="flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde-control text-cuerpo font-medium"
         >
           Ir al inicio
         </a>

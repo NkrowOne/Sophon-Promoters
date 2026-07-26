@@ -34,6 +34,9 @@ const config: Config = {
         superficie: "var(--superficie)",
         "superficie-alta": "var(--superficie-alta)",
         borde: "var(--borde)",
+        // 3:1 contra los tres estratos: es lo que WCAG 1.4.11 pide para el
+        // contorno de un control, y `borde` se queda en 1,15-1,52.
+        "borde-control": "var(--borde-control)",
         junta: "var(--junta)",
 
         texto: "var(--texto)",

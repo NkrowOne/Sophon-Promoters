@@ -78,6 +78,19 @@
   --superficie-alta: #f7eeda;
   --borde: #eadfc6;
 
+  /*
+   * Contorno de CONTROL, distinto del filete decorativo.
+   *
+   * `--borde` mide 1,15-1,52:1 contra los estratos: vale para separar dos
+   * bloques, pero WCAG 1.4.11 pide **3:1** para el contorno de algo que se
+   * puede usar, y un campo de texto es exactamente eso. Con `--borde`, la caja
+   * donde el agente teclea su wallet no tenía un límite perceptible.
+   *
+   * Es el mismo valor que el escalón T3 de la rampa —3,08-3,73:1 medido— así
+   * que no entra ningún hex nuevo: se reutiliza el que ya está aprobado.
+   */
+  --borde-control: #ab7e60;
+
   /* Junta entre estratos. Es un canto, no una línea de separación: eso es lo
      que hace que las capas parezcan tener espesor. */
   --junta: #f2e7ce;
@@ -224,6 +237,7 @@
   --superficie: #1c1713;
   --superficie-alta: #282119;
   --borde: #3a312a;
+  --borde-control: #916343;
   --junta: #2f2823;
 
   --texto: #f6efe6;
@@ -248,7 +262,16 @@ body {
 }
 
 body {
-  font-family: var(--fuente), system-ui, -apple-system, sans-serif;
+  /*
+   * UNA sola pila, con Archivo DELANTE y el árabe detrás.
+   *
+   * El emparejamiento de fuentes en CSS es POR GLIFO: el navegador recorre la
+   * pila para cada carácter y se queda con la primera cara que lo tenga. Archivo
+   * no trae árabe, así que las letras árabes caen solas a Noto sin que haga
+   * falta una regla por idioma —y quien lee en español nunca dispara su
+   * descarga, porque nunca aparece un glifo que la necesite—.
+   */
+  font-family: var(--fuente), var(--fuente-arabe), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   /* La Mini App ocupa el alto estable, no el visual: con el teclado abierto
      el viewport se reajusta y usar 100vh dejaría contenido bajo el teclado. */
@@ -256,20 +279,24 @@ body {
 }
 
 /*
- * Árabe: la cara que cubre el bloque, no la del sistema.
+ * NO hay regla `:lang(ar)`, y quitarla fue arreglar un defecto.
  *
- * Archivo no tiene subconjunto árabe, así que hasta ahora la versión RTL —la
- * única que nadie miraba— se pintaba con la tipografía del móvil y era la única
- * que no se parecía al resto del producto. Noto Sans Arabic cubre el bloque
- * completo y también trae cifras tabulares, así que las columnas de dinero
- * siguen cuadrando en árabe.
+ * La había, y ponía `var(--fuente-arabe)` DELANTE de Archivo. Parece lo obvio
+ * —«en árabe, la cara árabe»— y es justo lo contrario de cómo funciona el
+ * emparejamiento por glifo: `next/font` emite para Noto Sans Arabic también sus
+ * subconjuntos LATINOS (u+00?? y u+0100-02ba, comprobado en el CSS del build)
+ * aunque solo se le pida `subsets:["arabic"]`. Con la cara árabe primero, en la
+ * versión RTL cada correo, cada wallet, cada fecha y **todos los importes** se
+ * pintaban con Noto y no con Archivo.
  *
- * Se aplica por `lang` y no por `dir` porque son cosas distintas: el hebreo
- * también es RTL y no se escribe con esta cara.
+ * O sea que el árabe perdía exactamente el `tnum` de Archivo que es el
+ * argumento entero para no traer una segunda cara de cifras, y encima se veía de
+ * otra tipografía que el resto del producto. Se confirmó preguntándole al
+ * navegador qué cara estaba usando de verdad (`CSS.getPlatformFontsForNode`),
+ * no leyendo la hoja.
+ *
+ * Con la pila única de `body` el orden es el correcto y la regla sobra.
  */
-:lang(ar) {
-  font-family: var(--fuente-arabe), var(--fuente), system-ui, sans-serif;
-}
 
 /*
  * Cifras: la MISMA cara, en tabular.

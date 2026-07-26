@@ -209,7 +209,7 @@ function FilaDensa({ dia, largo }: { dia: DiaAncho; largo: number }) {
     <div className="flex items-center gap-2 py-[1px]">
       {/* Solo se rotula el lunes: una fecha por semana basta para orientarse y
           sesenta fechas serían ruido sobre el dato. */}
-      <span className="w-6 shrink-0 text-end text-[10px] leading-none text-texto-apoyo">
+      <span className="w-7 shrink-0 text-end text-apoyo leading-none text-texto-apoyo">
         {dow === 1 ? dia.fecha.slice(8) : ""}
       </span>
       <Banda dia={dia} largo={largo} alto={7} />
@@ -244,7 +244,7 @@ function FilaTocable({
         aria-expanded={abierto}
         className="pulsable -mx-2 flex min-h-11 w-full items-center gap-2.5 rounded-control px-2 py-1.5 text-start"
       >
-        <span className="cifra w-11 shrink-0 text-[11px] text-texto-apoyo">
+        <span className="cifra w-14 shrink-0 text-apoyo text-texto-apoyo">
           {dia.fecha.slice(8)} {meses[Number(dia.fecha.slice(5, 7)) - 1]}
         </span>
         <Banda dia={dia} largo={largo} alto={14} />
