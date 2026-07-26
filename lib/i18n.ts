@@ -41,7 +41,11 @@
  * cinco versiones de una pantalla que solo ella abre sería trabajo sin destino.
  */
 
-import { IDIOMA_POR_DEFECTO, type Idioma } from "./idiomas";
+// Con extensión, como todo el resto de `lib/`: era el único import relativo
+// sin ella, y el resolvedor de módulos de Node —que no reescribe rutas como
+// hace el empaquetador— no lo encontraba. La prueba de extremo a extremo se
+// caía aquí en cuanto el barrido de avisos empezó a necesitar los catálogos.
+import { IDIOMA_POR_DEFECTO, type Idioma } from "./idiomas.ts";
 
 export const es = {
   // ── Navegación y rótulos ──────────────────────────────────────────────────

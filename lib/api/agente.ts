@@ -15,6 +15,21 @@ import { NextResponse } from "next/server";
 
 import { db } from "../db.ts";
 import { formatearMicros, type Micros } from "../devengo/dinero.ts";
+
+/*
+ * `saldos` se ha mudado a `lib/devengo/saldos.ts` y se reexporta desde aquí.
+ *
+ * Es aritmética del ledger y no sabía nada de HTTP, pero vivía en este módulo
+ * —que importa `next/server` para construir los 401— y eso la hacía
+ * inimportable con Node pelado: `next` no publica mapa de `exports`. La prueba
+ * de extremo a extremo se caía justo al llegar al tramo que comprueba el
+ * circuito del dinero, o sea que el acoplamiento dejaba sin cubrir lo que más
+ * falta hace cubrir.
+ *
+ * El reexporte mantiene el sitio de llamada de las seis rutas que ya la piden
+ * de aquí: la separación es de dependencias, no de API.
+ */
+export { saldos, type Saldos } from "../devengo/saldos.ts";
 import { sesionActual, telegramDeLaPeticion, type AgenteSesion } from "../auth/sesion.ts";
 
 export interface Contexto {
@@ -85,55 +100,6 @@ export function dinero(micros: Micros): { micros: string; texto: string } {
   return { micros: micros.toString(), texto: formatearMicros(micros) };
 }
 
-/**
- * Saldos del agente, derivados de SUS asientos.
- *
- * - devengado: todo lo acumulado, incluidos los días aún provisionales.
- * - disponible: lo consolidado menos lo ya solicitado o pagado.
- *
- * Los retiros entran como asientos negativos, así que el disponible sale de una
- * suma y no de restar tablas distintas, que es donde suelen aparecer los
- * descuadres.
- */
-export async function saldos(agenteId: string): Promise<{
-  devengadoMicros: Micros;
-  disponibleMicros: Micros;
-  solicitadoMicros: Micros;
-  pagadoMicros: Micros;
-}> {
-  const [porEstado, retiros] = await Promise.all([
-    db.asientoComision.groupBy({
-      by: ["estado"],
-      where: { agenteId, estado: { not: "ANULADO" } },
-      _sum: { importeMicros: true },
-    }),
-    db.solicitudRetiro.groupBy({
-      by: ["estado"],
-      where: { agenteId, estado: { in: ["SOLICITADO", "APROBADO", "PAGADO"] } },
-      _sum: { importeMicros: true },
-    }),
-  ]);
-
-  const suma = (estado: string): Micros =>
-    porEstado.find((p) => p.estado === estado)?._sum.importeMicros ?? 0n;
-  const sumaRetiro = (estado: string): Micros =>
-    retiros.find((r) => r.estado === estado)?._sum.importeMicros ?? 0n;
-
-  const devengadoMicros = suma("PROVISIONAL") + suma("CONSOLIDADO");
-  const pagadoMicros = sumaRetiro("PAGADO");
-  const solicitadoMicros = sumaRetiro("SOLICITADO") + sumaRetiro("APROBADO");
-
-  // Solo lo consolidado es retirable: un día abierto todavía puede revisarse a
-  // la baja, y pagar sobre él obligaría a reclamar dinero ya entregado.
-  const disponibleMicros = suma("CONSOLIDADO") - pagadoMicros - solicitadoMicros;
-
-  return {
-    devengadoMicros,
-    disponibleMicros: disponibleMicros > 0n ? disponibleMicros : 0n,
-    solicitadoMicros,
-    pagadoMicros,
-  };
-}
 
 /** Comprueba que el webmaster es de este agente antes de dejar operar sobre él. */
 export async function webmasterDelAgente(

@@ -294,7 +294,11 @@ async function principal(): Promise<void> {
     const html = await r.text();
     comprobar(
       `${ruta} no enseña nada sin sesión`,
-      html.includes("Necesitas entrar") && !html.includes("Tu margen"),
+      // Se comprueba lo que IMPORTA —que el margen privado no salga— y además
+      // que se pinte el estado cerrado. La cadena anterior («Necesitas entrar»)
+      // dejó de existir al subir el registro de la copia y esta comprobación
+      // llevaba desde entonces fallando por el motivo equivocado.
+      html.includes("Sesión requerida") && !html.includes("Margen · privado"),
     );
   }
 
@@ -316,7 +320,7 @@ async function principal(): Promise<void> {
   // todos los agentes era cero. Aquí se mide el circuito entero —devengar,
   // consolidar, ver saldo— porque el fallo era invisible en cada pieza suelta.
   {
-    const { saldos } = await import("../lib/api/agente.ts");
+    const { saldos } = await import("../lib/devengo/saldos.ts");
     const { barrerRegistros, hoyContable } = await import("../lib/sync/registros.ts");
     const hoy = hoyContable();
     const hace = (d: number) => new Date(Date.parse(`${hoy}T00:00:00Z`) - d * 86_400_000);
