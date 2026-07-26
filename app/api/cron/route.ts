@@ -49,6 +49,15 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     if (tarea === "registros" || tarea === "todo") {
       const r = await barrerRegistros(cliente);
       salida["registros"] = r ?? { omitido: "otro barrido en curso" };
+      // Un barrido que lee 40.000 filas y emite cero asientos no puede salir en
+      // los logs con el mismo aspecto que uno bueno: sin tarifa en vigor nadie
+      // está devengando nada, y esta línea es lo único que lo dice en el sitio
+      // donde se mira cuando algo va raro.
+      if (r?.sinTarifa) {
+        console.error(
+          "[cron] SIN TARIFA EN VIGOR: se han guardado las filas pero no se ha devengado nada. Ponla en /admin/tarifas.",
+        );
+      }
     }
 
     if (tarea === "webmasters" || tarea === "todo") {

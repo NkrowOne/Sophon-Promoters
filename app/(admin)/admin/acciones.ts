@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { avisarRetiroResueltoAlAgente } from "@/lib/bot/avisos";
-import { formatearMicros } from "@/lib/devengo/dinero";
+import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
+import { CPA_MAXIMO_MICROS, CPS_MAXIMO_BPS } from "@/lib/devengo/motor";
 import { revocarSesiones } from "@/lib/auth/sesion";
 
 /**
@@ -60,6 +61,85 @@ export async function cortarSesiones(formulario: FormData): Promise<void> {
   await revocarSesiones(agenteId);
   await anotar(actor, "agente.sesiones_cortadas", agenteId, {});
   revalidatePath("/admin/agentes");
+}
+
+/**
+ * Cambia la tarifa vigente.
+ *
+ * **Versiona, no edita.** Guardar es cerrar la vigente con `validaHasta` y
+ * crear otra fila, las dos en la misma transacción. Un `update` sobre la
+ * vigente sería más corto y reescribiría el pasado: cada `AsientoComision`
+ * apunta a su `tarifaId`, así que cambiarle el precio a una versión ya usada
+ * altera el importe que explica asientos emitidos hace meses. Es la regla del
+ * §5.6 del plan y es el motivo de que esta tabla tenga `validaDesde`.
+ *
+ * Se acota por arriba a lo que el negocio puede pagar (`CPA_MAXIMO_MICROS` y
+ * `CPS_MAXIMO_BPS`, en `lib/devengo/motor.ts`): ceder más que lo que entra sería
+ * pagar de su bolsillo. El tope no es una preferencia de interfaz, es la
+ * frontera en la que el margen se vuelve negativo, y por eso se comprueba aquí
+ * en el servidor y no solo con un `max` en el formulario.
+ */
+export async function cambiarTarifa(formulario: FormData): Promise<void> {
+  const actor = await admin();
+
+  // Del formulario llegan cadenas con coma o con punto según el teclado del
+  // móvil: `microsDesdeCadena` ya normaliza eso y además rechaza el float.
+  const cpa = String(formulario.get("cpa") ?? "").trim().replace(",", ".");
+  const cps = Number(String(formulario.get("cps") ?? "").trim().replace(",", "."));
+  const nota = String(formulario.get("nota") ?? "").trim().slice(0, 300) || null;
+
+  if (!cpa || !Number.isFinite(cps)) return;
+
+  let cpaMicros: bigint;
+  try {
+    cpaMicros = microsDesdeCadena(cpa);
+  } catch {
+    return;
+  }
+
+  const cpsBps = Math.round(cps * 100);
+  if (cpaMicros < 0n || cpaMicros > CPA_MAXIMO_MICROS) return;
+  if (cpsBps < 0 || cpsBps > CPS_MAXIMO_BPS) return;
+
+  await db.$transaction(async (tx) => {
+    const vigente = await tx.tarifaVersion.findFirst({
+      where: { validaHasta: null },
+      orderBy: { validaDesde: "desc" },
+    });
+
+    // Guardar lo mismo que ya está en vigor crearía una versión nueva idéntica
+    // y dejaría el histórico lleno de ruido sin ningún cambio detrás.
+    if (vigente && vigente.cpaPorRegistroMicros === cpaMicros && vigente.cpsBps === cpsBps) {
+      return;
+    }
+
+    const ahora = new Date();
+    if (vigente) {
+      await tx.tarifaVersion.update({
+        where: { id: vigente.id },
+        data: { validaHasta: ahora },
+      });
+    }
+
+    await tx.tarifaVersion.create({
+      data: {
+        cpaPorRegistroMicros: cpaMicros,
+        cpsBps,
+        validaDesde: ahora,
+        creadoPorId: actor,
+        nota,
+      },
+    });
+  });
+
+  await anotar(actor, "tarifa.cambiada", "tarifa", {
+    cpa: formatearMicros(cpaMicros, 4),
+    cps: `${cpsBps / 100} %`,
+    nota,
+  });
+
+  revalidatePath("/admin/tarifas");
+  revalidatePath("/admin");
 }
 
 export type AccionRetiro = "aprobar" | "pagar" | "rechazar";

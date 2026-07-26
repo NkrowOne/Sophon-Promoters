@@ -51,6 +51,13 @@ export default async function Panel() {
       db.conciliacion.findFirst({ orderBy: { fecha: "desc" } }),
     ]);
 
+  // Sin tarifa en vigor el motor no emite un solo asiento, y eso NO se parece a
+  // un fallo desde aquí: los barridos salen en verde, las filas diarias entran,
+  // y el margen de abajo —que es entradas menos devengado— sale al 100 %. Es
+  // decir, la página se lee como un mes excelente justo cuando ningún agente
+  // está cobrando nada. Por eso se comprueba aquí y se avisa arriba del todo.
+  const hayTarifa = (await db.tarifaVersion.count({ where: { validaHasta: null } })) > 0;
+
   const entradasMicros = entradas._sum.gananciaSuperadminMicros ?? 0n;
   const devengadoMicros = devengado._sum.importeMicros ?? 0n;
   const margenMicros = entradasMicros - devengadoMicros;
@@ -72,10 +79,20 @@ export default async function Panel() {
       {/* Las advertencias van ARRIBA. Un margen calculado sobre datos a medio
           sincronizar es un número equivocado, y avisarlo debajo de la cifra
           llega tarde: para entonces ya se ha leído y creído. */}
-      {(rotas.length > 0 || (conciliacion && !conciliacion.cuadra)) && (
+      {(rotas.length > 0 || !hayTarifa || (conciliacion && !conciliacion.cuadra)) && (
         <div className="privado" style={{ marginBottom: "1.75rem" }}>
           <p className="rotulo vivo">Estos números pueden estar mal</p>
           <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
+            {/* Primero, porque es el único de la lista que hace que el margen de
+                abajo sea entero mentira en vez de estar solo desactualizado. */}
+            {!hayTarifa && (
+              <li>
+                <strong>No hay ninguna tarifa en vigor</strong>, así que los barridos no
+                están devengando nada y tus agentes ven 0,00 $. El margen de aquí abajo
+                sale al 100 % por eso, no porque sea buen mes.{" "}
+                <Link href="/admin/tarifas">Ponla ahora</Link>.
+              </li>
+            )}
             {rotas.map((s) => (
               <li key={s.tipo}>
                 El barrido de {s.tipo.toLowerCase()} falló el {fecha(s.iniciadaEn)}

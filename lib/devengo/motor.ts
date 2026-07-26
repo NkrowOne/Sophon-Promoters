@@ -50,6 +50,23 @@ export interface Tarifa {
   cpsBps: Bps;
 }
 
+/*
+ * Lo máximo que se le puede ceder a un agente.
+ *
+ * Al superadmin le entran 0,06 $ por registro y el 15 % del CPS (§2.2.1 del
+ * plan, despejado de la propia API). Ceder por encima de eso no es una tarifa
+ * generosa: es pagar de su bolsillo por cada registro que entra, y crece con el
+ * volumen, así que cuanto mejor le va al agente más pierde el superadmin.
+ *
+ * Viven aquí y no en la acción del panel por dos razones. La primera es que un
+ * fichero `"use server"` solo puede exportar funciones asíncronas —exportarlas
+ * de ahí rompía el build, que es como se encontró—. La segunda es que son de
+ * este dominio: la frontera en la que el margen se vuelve negativo es del motor
+ * de devengo, no de la pantalla que resulta que la aplica hoy.
+ */
+export const CPA_MAXIMO_MICROS: Micros = 60_000n;
+export const CPS_MAXIMO_BPS = 1_500;
+
 /** Lo ya escrito en el ledger para esa fila, por tipo. */
 export interface AsentadoPrevio {
   cpaMicros: Micros;

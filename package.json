@@ -16,6 +16,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "node --experimental-strip-types prisma/seed.ts",
     "db:studio": "prisma studio",
     "sophon:diagnostico": "node --experimental-strip-types scripts/diagnostico-sophon.ts",
     "bot:configurar": "node --experimental-strip-types scripts/bot-configurar.ts",

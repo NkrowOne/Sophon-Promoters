@@ -36,6 +36,19 @@ export interface ResultadoBarrido {
   webmastersNuevos: number;
   desde: string;
   hasta: string;
+  /**
+   * No había ninguna `TarifaVersion` en vigor, así que este barrido guardó las
+   * filas y **no devengó nada**.
+   *
+   * Va en el resultado y no solo en un `console.warn` porque este es el único
+   * fallo del sistema que no se parece a un fallo: el barrido termina en
+   * verde, las filas diarias entran, los registros y los tiers crecen en
+   * pantalla, y lo único que falta es el dinero de los agentes. En el panel el
+   * efecto es peor todavía —el margen sale del devengo, así que con cero
+   * asientos se lee al 100 % y parece un buen mes—. Que salga del barrido es lo
+   * que permite que la portada lo grite.
+   */
+  sinTarifa: boolean;
 }
 
 /** Clave de cruce entre los dos niveles: la fila es (webmaster, día). */
@@ -132,16 +145,24 @@ export async function barrerRegistros(
         webmastersNuevos,
         desde,
         hasta,
+        sinTarifa: tarifa === null,
       };
 
       await db.ejecucionSync.update({
         where: { id: ejecucion.id },
         data: {
+          // Sin tarifa el barrido no ha fallado —leyó y guardó todo— pero
+          // tampoco ha hecho su trabajo. Se marca COMPLETADA con el motivo
+          // escrito, para que la tabla de barridos del panel no diga «todo
+          // bien» sobre una vuelta que no devengó un céntimo.
           estado: "COMPLETADA",
           terminadaEn: new Date(),
           filasLeidas: total.size,
           filasEscritas,
           asientosCreados,
+          ...(tarifa === null
+            ? { error: "Sin tarifa en vigor: no se ha devengado nada." }
+            : {}),
         },
       });
 

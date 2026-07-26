@@ -38,5 +38,15 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 USER nextjs
 EXPOSE 3000
 
-# Migrar antes de servir: en Skyway el contenedor se recrea en cada despliegue.
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node server.js"]
+# Migrar y sembrar antes de servir: en Skyway el contenedor se recrea en cada
+# despliegue.
+#
+# Los dos encadenados se comportan distinto a propósito. Migrar es un requisito:
+# si falla, el esquema no coincide con el código y arrancar solo serviría para
+# fallar más tarde y peor, así que `&&` corta. La semilla es una red de
+# seguridad para el arranque en frío —pone la tarifa inicial sin la cual nadie
+# devenga nada— y si falla se avisa y se sigue: el panel ya grita la ausencia de
+# tarifa en su portada, y dejar la aplicación caída por eso sería cambiar un
+# problema que se arregla desde una pantalla por otro que no se arregla desde
+# ninguna.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && { node --experimental-strip-types prisma/seed.ts || echo '[arranque] la semilla falló; pon la tarifa en /admin/tarifas'; } && node server.js"]

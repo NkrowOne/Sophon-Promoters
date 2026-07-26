@@ -35,6 +35,9 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
             <Link href="/admin/retiros" className="apoyo" style={{ textDecoration: "none" }}>
               Retiros
             </Link>
+            <Link href="/admin/tarifas" className="apoyo" style={{ textDecoration: "none" }}>
+              Tarifas
+            </Link>
           </nav>
           <form action="/admin/salir" method="post">
             <button type="submit" className="apoyo" style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}>
