@@ -41,5 +41,6 @@ npm-debug.log*
 # Documentación y configuración que no participa en el build.
 README.md
 docker-compose.yml
+docker-compose.local.yml
 Dockerfile
 .dockerignore

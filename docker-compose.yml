@@ -1,29 +1,37 @@
-# ══════════════ ESTO ES PARA LEVANTARLO EN LOCAL, NO PARA DESPLEGAR ══════════
+# ══════════════ LO QUE SKYWAY CONSTRUYE Y ARRANCA ═════════════════════════════
 #
-# **Skyway no lee este fichero.** Construye el `Dockerfile` directamente, le
-# inyecta las variables desde su panel y le da la URL interna de su Postgres
-# gestionado. Aquí abajo hay un servicio `db` propio y una `DATABASE_URL`
-# calculada, y en producción las dos sobran: el Postgres lo pone Skyway y la URL
-# viene de él.
+# Skyway lee este fichero: construye el `Dockerfile` con `build: .` e inyecta las
+# variables desde su panel. Aquí dentro está **solo la aplicación**, porque el
+# Postgres lo pone Skyway y su URL interna llega por `DATABASE_URL`.
 #
-# Se conserva porque levantar la aplicación entera en una máquina —con su base
-# de datos, sus migraciones y su semilla— sigue haciendo falta para trabajar, y
-# porque es donde está escrito por qué el reparto de servicios es este.
+# El Postgres para trabajar en local vive al lado, en `docker-compose.local.yml`.
+# Están separados por dos motivos medidos contra un Compose de verdad, no por
+# gusto:
 #
-# ── Cómo se despliega de verdad ──
+#  1. **`${POSTGRES_PASSWORD:?falta …}` rompe el fichero ENTERO**, aunque el
+#     servicio que la usa no se vaya a arrancar: la interpolación se evalúa antes
+#     que nada y responde «required variable is missing a value». Con el Postgres
+#     local aquí dentro, desplegar contra la base gestionada de Skyway obligaría a
+#     inventarse una contraseña para un servicio que nadie usa —o a quitar la
+#     comprobación y quedarse con una por defecto, que es peor: una base con
+#     credencial conocida y en silencio—.
+#  2. **`profiles: ["local"]` no lo salva.** En cuanto el perfil no está activo,
+#     `docker compose config` responde «service "app" depends on undefined service
+#     "db"». Un `depends_on` y un perfil no se llevan.
 #
-#   1. Conectar el repositorio en Skyway. Encuentra el `Dockerfile` y reconstruye
-#      en cada push.
-#   2. Añadir su Postgres gestionado y copiar su `DATABASE_URL` interna, con
-#      `?connection_limit=10` al final: sin ese tope Prisma abre
+# ── Cómo se despliega ──
+#
+#   1. Conectar el repositorio en Skyway. Reconstruye en cada push.
+#   2. Añadir su Postgres gestionado y poner su URL interna en `DATABASE_URL`,
+#      con `?connection_limit=10` al final: sin ese tope Prisma abre
 #      `núcleos × 2 + 1` conexiones y agota el cupo de una base pequeña.
 #   3. El resto de variables, en el panel. Están todas en `.env.example`.
 #   4. `npm run bot:configurar` desde un clon, con `APP_URL` apuntando ya al
 #      dominio. No se puede lanzar dentro del contenedor: la imagen final no
 #      copia `scripts/`.
 #   5. Las líneas de cron de `.env.example`. La que no puede faltar es la de las
-#      **16:05 UTC**: Sophon cierra su día a las 00:00 UTC+8 y es entonces
-#      cuando hay cifras nuevas que leer.
+#      **16:05 UTC**: Sophon cierra su día a las 00:00 UTC+8 y es entonces cuando
+#      hay cifras nuevas que leer.
 #
 # Las migraciones NO se lanzan a mano en ningún caso: el `CMD` de la imagen
 # ejecuta `prisma migrate deploy` antes de servir. Y hace falta **también** en
@@ -32,11 +40,10 @@
 #
 # ── Y en local ──
 #
-#   1. cp .env.example .env  y rellenarlo. `POSTGRES_PASSWORD` y la contraseña
-#      dentro de `DATABASE_URL` tienen que ser la misma.
-#   2. docker compose up -d --build
+#   cp .env.example .env   y rellenarlo
+#   npm run docker:local   ← levanta este fichero MÁS el Postgres de al lado
 #
-# ── Por qué solo dos servicios ──
+# ── Por qué un solo servicio ──
 #
 # El bot NO es un servicio aparte —vive dentro de la aplicación, en `/api/bot`,
 # porque funciona por webhook y no por polling— y el planificador tampoco: las
@@ -49,59 +56,39 @@ services:
     build: .
     restart: unless-stopped
     # `env_file` y no una lista de `environment`: cada variable enumerada aquí
-    # sería una que hay que acordarse de añadir en dos sitios el día que se
-    # sume una nueva, y la que se olvide fallará en producción y no en local.
-    env_file: .env
+    # sería una que hay que acordarse de añadir en dos sitios el día que se sume
+    # una nueva, y la que se olvide fallará en producción y no en local.
+    #
+    # Y en forma larga con `required: false` porque **`.env` está en
+    # `.gitignore`**: en el clon que hace Skyway ese fichero no existe, y la
+    # forma corta (`env_file: .env`) aborta con «env file not found» antes de
+    # construir nada. En local sí existe y se lee. Necesita Compose ≥ 2.24; si tu
+    # Skyway trae uno anterior, el error dirá que `path` no es válido ahí.
+    env_file:
+      - path: .env
+        required: false
     environment:
-      # Estas dos las fija la composición, no el fichero: dentro de la red de
-      # Docker el host de la base de datos es el nombre del servicio, y el
-      # puerto es el interno.
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sophon}:${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sophon_promoters}?connection_limit=10
-      NODE_ENV: production
-    depends_on:
-      db:
-        # No basta con que el contenedor exista: Postgres tarda en aceptar
-        # conexiones y `migrate deploy` fallaría en el primer arranque.
-        condition: service_healthy
-    # Sin `ports`: en Skyway quien publica es Traefik, y abrir el 3000 al host
-    # dejaría la aplicación accesible por HTTP saltándose el proxy —y con él el
-    # TLS que Telegram exige para las Mini Apps—.
+      # El reloj del contenedor va en UTC y el reparto por día lo hace la
+      # aplicación con `ZONA_HORARIA` (hoy UTC+8, la zona de Sophon). Son dos
+      # cosas distintas a propósito: si el contenedor tuviera su propia zona
+      # habría dos respuestas a «¿de qué día es este devengo?».
+      TZ: UTC
+    # Sin `ports`: quien publica es el Traefik de Skyway, y abrir el 3000 al
+    # anfitrión dejaría la aplicación accesible por HTTP saltándose el proxy —y
+    # con él el TLS que Telegram exige para las Mini Apps—.
     expose:
       - "3000"
     labels:
       traefik.enable: "true"
       traefik.http.services.sophon-promoters.loadbalancer.server.port: "3000"
-
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sophon}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-sophon_promoters}
-      # El corte contable es una decisión declarada (§5): el servidor va en UTC
-      # y el reparto por día lo hace la aplicación con `ZONA_HORARIA`. Dejar que
-      # la base de datos tuviera su propia zona sería una segunda respuesta a
-      # «¿de qué día es este devengo?».
-      TZ: UTC
-      PGTZ: UTC
-    volumes:
-      - datos-postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sophon} -d ${POSTGRES_DB:-sophon_promoters}"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      # El primer arranque inicializa el cluster y tarda: sin margen, `app`
-      # se daría por vencida antes de que la base de datos llegue a existir.
-      start_period: 30s
-    # Tampoco se publica: la base de datos solo la habla `app`. Para entrar a
-    # mano, `docker compose exec db psql -U sophon sophon_promoters`.
-    expose:
-      - "5432"
-
-volumes:
-  # Nombrado y no anónimo: un volumen anónimo se queda huérfano en cada
-  # `down -v` mal dado y el ledger es append-only, así que no hay de dónde
-  # reconstruirlo.
-  datos-postgres:
+      # ⚠️ AQUÍ FALTA EL ENRUTADOR, y falta a sabiendas. Un `rule=Host(...)` va
+      # acompañado de `entrypoints` y `certresolver`, y esos dos nombres son de
+      # la instalación de Traefik, no del proyecto: ponerlos a ojo daría un
+      # servicio que Traefik ve y no publica, o que publica sin TLS —y sin TLS
+      # Telegram no abre la Mini App—.
+      #
+      # Si Skyway no monta el enrutador solo a partir del dominio de su panel,
+      # se añaden aquí tres etiquetas con los nombres reales de tu instalación:
+      #   traefik.http.routers.sophon-promoters.rule: Host(`promoters.example.com`)
+      #   traefik.http.routers.sophon-promoters.entrypoints: <el de HTTPS>
+      #   traefik.http.routers.sophon-promoters.tls.certresolver: <el tuyo>

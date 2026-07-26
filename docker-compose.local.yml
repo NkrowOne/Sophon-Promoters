@@ -1,0 +1,66 @@
+# ══════════════ EL POSTGRES PARA TRABAJAR EN LOCAL ════════════════════════════
+#
+# Se superpone a `docker-compose.yml` y le añade lo único que en Skyway no hace
+# falta: una base de datos propia. Allí la pone Skyway y su URL llega por el
+# panel; aquí no hay panel ni base, así que las trae este fichero.
+#
+#   npm run docker:local
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+#
+# **El nombre importa.** Compose funde solo `docker-compose.override.yml`, así
+# que llamarlo así habría metido este Postgres también en el despliegue de
+# Skyway, que es justo lo que se separa. Con `.local.yml` hay que pedirlo con
+# `-f` y no puede colarse.
+#
+# Aquí sí se usa `${POSTGRES_PASSWORD:?…}`: este fichero no llega a producción,
+# y arrancar con una contraseña por defecto es peor que no arrancar.
+#
+# Para entrar a mano a la base:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml exec db \
+#     psql -U sophon sophon_promoters
+
+services:
+  app:
+    environment:
+      # Se fija aquí y no en `.env` porque **dentro de la red de Compose el host
+      # de la base de datos es el nombre del servicio** (`db`), no `localhost`.
+      # Y derivada de las mismas tres variables que la base, para que la
+      # contraseña no pueda estar puesta en un sitio y en el otro no.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sophon}:${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sophon_promoters}?connection_limit=10
+    depends_on:
+      db:
+        # No basta con que el contenedor exista: Postgres tarda en aceptar
+        # conexiones y el `migrate deploy` del arranque fallaría la primera vez.
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sophon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-sophon_promoters}
+      # El corte contable es una decisión declarada (§5.9): el servidor va en UTC
+      # y el reparto por día lo hace la aplicación con `ZONA_HORARIA`. Dejar que
+      # la base de datos tuviera su propia zona sería una segunda respuesta a
+      # «¿de qué día es este devengo?».
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - datos-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sophon} -d ${POSTGRES_DB:-sophon_promoters}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      # El primer arranque inicializa el cluster y tarda: sin margen, `app` se
+      # daría por vencida antes de que la base de datos llegue a existir.
+      start_period: 30s
+    # No se publica: la base de datos solo la habla `app`.
+    expose:
+      - "5432"
+
+volumes:
+  # Nombrado y no anónimo: un volumen anónimo se queda huérfano en cada `down -v`
+  # mal dado y el ledger es append-only, así que no hay de dónde reconstruirlo.
+  datos-postgres:

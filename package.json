@@ -18,6 +18,8 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "node --experimental-strip-types prisma/seed.ts",
     "db:studio": "prisma studio",
+    "docker:local": "docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build",
+    "docker:local:parar": "docker compose -f docker-compose.yml -f docker-compose.local.yml down",
     "sophon:diagnostico": "node --experimental-strip-types scripts/diagnostico-sophon.ts",
     "bot:configurar": "node --experimental-strip-types scripts/bot-configurar.ts",
     "prueba:e2e": "node --experimental-strip-types scripts/prueba-extremo-a-extremo.ts"
