@@ -25,6 +25,8 @@ import {
   type FilaDiaria,
   type Tarifa,
 } from "../devengo/motor.ts";
+import { planificarBonos, type Escalon } from "../devengo/bonos.ts";
+import { inicioDeMes, inicioDelMesSiguiente, mesAnterior, mesDe } from "../fechas.ts";
 import { normalizarEmail } from "../cripto.ts";
 import type { ClienteSophon } from "../sophon/cliente.ts";
 import { NivelAfiliado, type FilaRegistro } from "../sophon/tipos.ts";
@@ -44,6 +46,8 @@ export interface ResultadoBarrido {
    * será enorme: son todos los que llevaban desde el principio sin consolidar.
    */
   asientosConsolidados: number;
+  /** Bonos por hito emitidos en esta vuelta. Alimenta el aviso al agente. */
+  bonosEmitidos: BonoEmitido[];
   /**
    * No había ninguna `TarifaVersion` en vigor, así que este barrido guardó las
    * filas y **no devengó nada**.
@@ -146,6 +150,19 @@ export async function barrerRegistros(
         webmastersNuevos += r.webmasterNuevo ? 1 : 0;
       }
 
+      /*
+       * El bono va DESPUÉS del bucle y ANTES de consolidar.
+       *
+       * Después del bucle porque el hito es por agente y por mes: hace falta el
+       * total de toda su red, que no se puede saber fila a fila. Antes de
+       * consolidar para que el asiento de bono recién emitido entre en la misma
+       * pasada de consolidación que los demás y no se quede un ciclo atrás.
+       *
+       * Y todo dentro del cerrojo `SYNC_REGISTROS`, que es lo que garantiza que
+       * no hay otro barrido emitiendo asientos a la vez.
+       */
+      const bonos = await devengarBonos(hasta);
+
       const asientosConsolidados = await consolidarVencidos(hasta, dias);
 
       const resultado: ResultadoBarrido = {
@@ -153,6 +170,7 @@ export async function barrerRegistros(
         filasEscritas,
         asientosCreados,
         asientosConsolidados,
+        bonosEmitidos: bonos,
         webmastersNuevos,
         desde,
         hasta,
@@ -376,4 +394,184 @@ export async function tarifaVigente(): Promise<Tarifa | null> {
 
 function isoFecha(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+// ──────────────────────────── El bono por hitos ────────────────────────────
+
+/** Lo mínimo para poder avisar al agente de que ha cobrado un hito. */
+export interface BonoEmitido {
+  agenteId: string;
+  mes: string;
+  usuarios: number;
+  importeMicros: Micros;
+}
+
+/**
+ * Devenga el bono mensual de los agentes.
+ *
+ * Recalcula **el mes en curso y el anterior**. El anterior porque la ventana de
+ * revisión es de siete días: el 3 de agosto un día de julio todavía puede subir,
+ * y con él el hito de julio. Como el cálculo es una diferencia contra lo ya
+ * asentado, recalcular un mes que no ha cambiado no escribe nada.
+ *
+ * **Se evalúan TODOS los agentes activos, no solo aquellos cuya red aparece en
+ * la ventana de hoy.** La primera versión usaba el conjunto de agentes tocados
+ * por el bucle de filas, que parecía más barato y dejaba un agujero real: un
+ * agente cuyos webmasters no traen nada HOY no se recalculaba, así que si el
+ * hito lo había cruzado con los registros de días anteriores —o si la escalera
+ * se configuró después de que el mes ya hubiera avanzado— el bono no se emitía
+ * nunca. Se vio en la primera prueba contra base de datos, donde no salía un
+ * solo bono.
+ *
+ * El coste es un agregado por agente y mes. Con las decenas de agentes de este
+ * negocio es irrelevante, y compra que el bono no dependa de que Sophon
+ * devuelva actividad justo hoy.
+ */
+async function devengarBonos(hoy: string): Promise<BonoEmitido[]> {
+  const escalones = await escaleraVigente();
+  if (escalones.length === 0) return [];
+
+  const agentes = await db.agente.findMany({
+    where: { estado: "ACTIVO", webmasters: { some: {} } },
+    select: { id: true },
+  });
+  if (agentes.length === 0) return [];
+
+  const meses = [mesDe(hoy), mesAnterior(mesDe(hoy))];
+  const emitidos: BonoEmitido[] = [];
+
+  for (const { id } of agentes) {
+    for (const mes of meses) {
+      const bono = await devengarBonoDelMes(id, mes, hoy, escalones);
+      if (bono) emitidos.push(bono);
+    }
+  }
+  return emitidos;
+}
+
+/** La escalera en vigor, ordenada. Vacía si no hay ninguna configurada. */
+export async function escaleraVigente(): Promise<Escalon[]> {
+  const version = await db.bonoVersion.findFirst({
+    where: { validaHasta: null },
+    orderBy: { validaDesde: "desc" },
+    include: { escalones: { orderBy: { usuarios: "asc" } } },
+  });
+  if (!version) return [];
+  return version.escalones.map((e) => ({
+    id: e.id,
+    usuarios: e.usuarios,
+    recompensaMicros: e.recompensaMicros,
+  }));
+}
+
+/**
+ * Cuenta los registros que un agente se ha ganado en un mes.
+ *
+ * **Respeta `devengaDesde`**, y no es un detalle: un webmaster huérfano adoptado
+ * trae consigo su historial, que el agente no captó. Sin este filtro, adoptar a
+ * uno grande dispararía un hito de golpe con tráfico ajeno. Es la misma regla
+ * prospectiva que aplica el motor al CPA y al CPS.
+ *
+ * Como `devengaDesde` es por webmaster, no se puede resolver con un solo
+ * agregado: se piden los webmasters con su frontera y se suma por tramos.
+ */
+export async function registrosDelMes(agenteId: string, mes: string): Promise<number> {
+  const desde = inicioDeMes(mes);
+  const hasta = inicioDelMesSiguiente(mes);
+
+  const webmasters = await db.webmaster.findMany({
+    where: { agenteId },
+    select: { id: true, devengaDesde: true },
+  });
+  if (webmasters.length === 0) return 0;
+
+  let total = 0;
+  for (const wm of webmasters) {
+    // La frontera de atribución puede caer dentro del mes; entonces solo cuenta
+    // lo que hay a partir de ella.
+    const inicio =
+      wm.devengaDesde && wm.devengaDesde > desde ? wm.devengaDesde : desde;
+    if (inicio >= hasta) continue;
+
+    const agregado = await db.filaDiariaSophon.aggregate({
+      where: { webmasterId: wm.id, fecha: { gte: inicio, lt: hasta } },
+      _sum: { countRegister: true },
+    });
+    total += agregado._sum.countRegister ?? 0;
+  }
+  return total;
+}
+
+/** Devenga el bono de un agente para un mes concreto. */
+async function devengarBonoDelMes(
+  agenteId: string,
+  mes: string,
+  hoy: string,
+  escalones: readonly Escalon[],
+): Promise<BonoEmitido | null> {
+  const registros = await registrosDelMes(agenteId, mes);
+  if (registros <= 0) return null;
+
+  // Lo ya pagado de ESE mes. Se identifica por el prefijo de la clave, que lleva
+  // el agente y el mes dentro: es el mismo espacio de nombres que construye
+  // `planificarBonos` y no depende de la fecha de devengo, que puede haber caído
+  // en el mes siguiente si el hito se cruzó con una revisión tardía.
+  const previos = await db.asientoComision.findMany({
+    where: {
+      agenteId,
+      tipo: "BONO",
+      estado: { not: "ANULADO" },
+      claveIdempotencia: { startsWith: `bono:${agenteId}:${mes}:` },
+    },
+    select: { importeMicros: true },
+  });
+  const asentadoMicros = previos.reduce((a, p) => a + p.importeMicros, 0n);
+
+  const planificados = planificarBonos({
+    registrosDelMes: registros,
+    escalones,
+    asentadoMicros,
+    secuencia: previos.length,
+    agenteId,
+    mes,
+    fechaDevengo: hoy,
+  });
+  if (planificados.length === 0) return null;
+
+  const a = planificados[0]!;
+  const escalon = escalones.find((e) => e.id === a.bonoEscalonId)!;
+
+  try {
+    await db.asientoComision.create({
+      data: {
+        agenteId,
+        tipo: "BONO",
+        estado: "PROVISIONAL",
+        importeMicros: a.importeMicros,
+        // `filaId` y `webmasterId` van NULOS, y es obligatorio.
+        //
+        // `asentadoPrevio` suma los asientos de una fila y distingue CPA de CPS
+        // por `baseMicros !== null`, no por el tipo. Un bono colgado de una fila
+        // se sumaría al CPA previo de esa fila y el barrido siguiente emitiría
+        // un reverso espurio para «corregir» un exceso que no existe. Es un
+        // fallo silencioso que solo aparecería en la conciliación.
+        bonoEscalonId: a.bonoEscalonId,
+        fechaDevengo: new Date(a.fechaDevengo),
+        claveIdempotencia: a.claveIdempotencia,
+        nota: a.nota,
+      },
+    });
+  } catch (e) {
+    // Colisión de clave única: otro proceso lo emitió entre la lectura y la
+    // escritura. Es exactamente lo que la clave existe para impedir, así que no
+    // es un error: es el sistema funcionando.
+    if (esClaveDuplicada(e)) return null;
+    throw e;
+  }
+
+  return { agenteId, mes, usuarios: escalon.usuarios, importeMicros: a.importeMicros };
+}
+
+function esClaveDuplicada(e: unknown): boolean {
+  return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002";
 }

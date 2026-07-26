@@ -57,6 +57,7 @@ enum EstadoConcesion {
 enum TipoAsiento {
   CPA // comisión por registro de usuario
   CPS // comisión por compra de PRO
+  BONO // premio mensual por alcanzar un hito de registros
   AJUSTE_REVERSO // Sophon revisó a la baja un día ya cerrado
   AJUSTE_MANUAL
   RETIRO // salida de saldo al pagar al agente
@@ -368,6 +369,47 @@ model FilaDiariaSophon {
 
 /// Tarifa vigente en un intervalo. Cada asiento apunta a la suya, de modo que
 /// cambiar las comisiones nunca reescribe el histórico.
+/// La escalera de bonos vigente.
+///
+/// Versionada como `TarifaVersion` y por el mismo motivo: cada asiento de BONO
+/// apunta al escalón que lo explica, así que editar un escalón en sitio
+/// cambiaría la explicación de dinero ya pagado. Guardar cierra la vigente con
+/// `validaHasta` y abre otra.
+model BonoVersion {
+  id String @id @default(cuid())
+
+  validaDesde DateTime  @default(now())
+  validaHasta DateTime?
+  creadoPorId String?
+  nota        String?
+
+  escalones BonoEscalon[]
+
+  @@index([validaDesde, validaHasta])
+}
+
+/// Un peldaño: alcanzar `usuarios` registros en el mes paga `recompensaMicros`.
+///
+/// Las recompensas tienen que CRECER con los usuarios. El devengo asienta la
+/// diferencia entre el objetivo y lo ya pagado, así que un escalón alto que
+/// pagara menos que uno bajo daría una diferencia negativa —un asiento que le
+/// quita dinero al agente por haber trabajado más—. Se valida al guardar.
+model BonoEscalon {
+  id String @id @default(cuid())
+
+  versionId String
+  version   BonoVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  /// Registros del mes natural que hay que alcanzar.
+  usuarios         Int
+  recompensaMicros BigInt
+
+  asientos AsientoComision[]
+
+  @@unique([versionId, usuarios])
+  @@index([versionId])
+}
+
 model TarifaVersion {
   id String @id @default(cuid())
 
@@ -412,6 +454,10 @@ model AsientoComision {
 
   tarifaId String?
   tarifa   TarifaVersion? @relation(fields: [tarifaId], references: [id])
+
+  /// El escalón que explica un asiento de BONO. Nulo en todos los demás tipos.
+  bonoEscalonId String?
+  bonoEscalon   BonoEscalon? @relation(fields: [bonoEscalonId], references: [id])
 
   /// Fecha del hecho económico. Un reverso lleva la fecha del ajuste, no la del original.
   fechaDevengo DateTime @db.Date

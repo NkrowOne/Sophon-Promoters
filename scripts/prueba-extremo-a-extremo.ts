@@ -353,6 +353,75 @@ async function principal(): Promise<void> {
     }
   }
 
+  // ── 11. El bono por hitos: no acumulable e idempotente ────────────────────
+  //
+  // Las dos propiedades que pueden costar dinero de verdad si se rompen, más la
+  // trampa del `filaId`: un bono colgado de una fila diaria se sumaría al CPA
+  // previo de esa fila y el barrido siguiente emitiría un reverso espurio.
+  {
+    const { barrerRegistros, hoyContable } = await import("../lib/sync/registros.ts");
+    const { mesDe } = await import("../lib/fechas.ts");
+    const hoy = hoyContable();
+    const mes = mesDe(hoy);
+
+    const agente = await db.agente.findUnique({ where: { emailNormalizado: EMAIL } });
+    const escalera = await db.bonoVersion.findFirst({
+      where: { validaHasta: null },
+      include: { escalones: { orderBy: { usuarios: "asc" } } },
+    });
+
+    if (agente && escalera && escalera.escalones.length > 0) {
+      const primero = escalera.escalones[0]!;
+      const wm = await db.webmaster.create({
+        data: {
+          emailNormalizado: `bono-${Date.now()}@prueba.local`,
+          emailOriginal: "bono@prueba.local",
+          agenteId: agente.id,
+          origen: "VINCULADO_APP",
+          estadoSophon: "ACTIVO",
+        },
+      });
+      await db.filaDiariaSophon.create({
+        data: {
+          webmasterId: wm.id,
+          fecha: new Date(`${mes}-01T00:00:00Z`),
+          countRegister: primero.usuarios,
+          countT1Register: 0,
+          countT2Register: 0,
+          countT3Register: 0,
+          countPayingUsers: 0,
+          paymentAmountMicros: 0n,
+          gananciaTotalMicros: 0n,
+          gananciaWebmasterMicros: 0n,
+          gananciaSuperadminMicros: 0n,
+          cerrado: false,
+        },
+      });
+
+      const b1 = await barrerRegistros(clienteFalsoSinDatos(), { desde: hoy, hasta: hoy });
+      comprobar(
+        "alcanzar el primer hito emite su bono",
+        b1?.bonosEmitidos.length === 1 &&
+          b1.bonosEmitidos[0]!.importeMicros === primero.recompensaMicros,
+        `${b1?.bonosEmitidos.length} emitidos`,
+      );
+
+      const b2 = await barrerRegistros(clienteFalsoSinDatos(), { desde: hoy, hasta: hoy });
+      comprobar("un segundo barrido no vuelve a pagarlo", b2?.bonosEmitidos.length === 0);
+
+      const bonos = await db.asientoComision.findMany({
+        where: { agenteId: agente.id, tipo: "BONO" },
+        select: { filaId: true, baseMicros: true, bonoEscalonId: true },
+      });
+      comprobar("hay exactamente un asiento de bono", bonos.length === 1);
+      comprobar(
+        "y no cuelga de ninguna fila (rompería asentadoPrevio)",
+        bonos.every((b) => b.filaId === null && b.baseMicros === null),
+      );
+      comprobar("y apunta a su escalón", bonos.every((b) => b.bonoEscalonId !== null));
+    }
+  }
+
   // ── 11. Sin tarifa en vigor, el barrido lo DICE ───────────────────────────
   //
   // Este es el defecto que estuvo en el repositorio desde el primer día sin que
