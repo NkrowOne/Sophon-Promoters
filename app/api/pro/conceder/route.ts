@@ -56,8 +56,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (!webmaster) {
     return NextResponse.json(
       {
-        error: "El webmaster no consta en esta red.",
-        apoyo: "La renovación del PRO solo se aplica a los webmasters de esta red.",
+        error: "Ese webmaster no está en tu red.",
+        apoyo: "Solo puedes renovar el PRO de los webmasters que has activado tú.",
       },
       { status: 403 },
     );
@@ -100,8 +100,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (resultado.yaActivo) {
     return NextResponse.json(
       {
-        error: "El PRO sigue activo.",
-        apoyo: "La renovación se habilita al caducar el PRO.",
+        error: "Todavía le queda PRO.",
+        apoyo: "Podrás renovarlo cuando le caduque.",
         yaActivo: true,
         renovableEl: resultado.vigenteHasta,
       },

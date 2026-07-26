@@ -97,7 +97,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
     return NextResponse.json(
-      { error: "Importe o wallet con formato no válido." },
+      { error: "El importe o el monedero no tienen un formato válido." },
       { status: 400 },
     );
   }
@@ -118,7 +118,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: `El importe supera el saldo disponible de ${formatearMicros(saldo.disponibleMicros)}.`,
-        apoyo: "El devengo de los últimos días no es retirable hasta su consolidación.",
+        apoyo: "Lo devengado en los últimos días no lo puedes retirar hasta que se consolide.",
       },
       { status: 400 },
     );
@@ -182,7 +182,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
         {
           error: `Existe una solicitud de retiro pendiente de ${importe}.`,
           apoyo:
-            "Solo se admite una solicitud a la vez. Las revisiones son manuales; la solicitud en curso se puede cancelar.",
+            "Solo puedes tener una solicitud a la vez. Las revisiones son manuales; puedes cancelar la que tienes en curso.",
         },
         { status: 409 },
       );
@@ -190,8 +190,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     console.error("[retiro] solicitud fallida", e);
     return NextResponse.json(
       {
-        error: "No se ha podido registrar la solicitud.",
-        apoyo: "No se ha descontado nada del saldo. Se puede reintentar.",
+        error: "No hemos podido registrar tu solicitud.",
+        apoyo: "No te hemos descontado nada. Vuelve a intentarlo.",
       },
       { status: 500 },
     );

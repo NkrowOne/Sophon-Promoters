@@ -211,8 +211,8 @@ export async function concederAnio(
     return {
       ok: false,
       vigenteHasta: null,
-      error: "No se ha podido registrar el PRO.",
-      apoyo: "No se ha modificado nada. Se puede reintentar desde la ficha.",
+      error: "No hemos podido registrar el PRO.",
+      apoyo: "No hemos cambiado nada. Vuelve a intentarlo desde su ficha.",
       estado: 500,
     };
   }
@@ -273,15 +273,15 @@ export async function concederAnio(
         ok: false,
         vigenteHasta: null,
         error: "La cuenta no está autorizada en Sophon.",
-        apoyo: "La autorización se tramita manualmente con soporte.",
+        apoyo: "La autorización se tramita a mano con soporte.",
         estado: 503,
       };
     }
     return {
       ok: false,
       vigenteHasta: null,
-      error: "Sophon no ha concedido el PRO.",
-      apoyo: "Se puede reintentar desde la ficha del webmaster en un minuto.",
+      error: "Sophon no le ha dado el PRO.",
+      apoyo: "Vuelve a intentarlo desde su ficha en un minuto.",
       estado: 502,
     };
   }

@@ -27,7 +27,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const usuario = telegramDeLaPeticion(peticion);
   if (!usuario) {
     return NextResponse.json(
-      { error: "Acceso no verificado por Telegram. La vinculación se completa desde el bot." },
+      { error: "Telegram no ha verificado tu acceso. Vincula tu cuenta desde el bot." },
       { status: 401 },
     );
   }
@@ -52,7 +52,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: "Código de verificación caducado.",
-        apoyo: "Los códigos de verificación caducan a los 10 minutos. Se puede solicitar otro.",
+        apoyo: "Los códigos caducan a los 10 minutos. Pide otro.",
       },
       { status: 400 },
     );
@@ -61,8 +61,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (registro.intentos >= registro.maxIntentos) {
     return NextResponse.json(
       {
-        error: "Número máximo de intentos alcanzado.",
-        apoyo: "El código queda anulado. Se puede solicitar otro.",
+        error: "Has agotado los intentos.",
+        apoyo: "Ese código queda anulado. Pide otro.",
       },
       { status: 429 },
     );
@@ -93,8 +93,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (registro.telegramId !== null && registro.telegramId !== BigInt(usuario.id)) {
     return NextResponse.json(
       {
-        error: "El código se solicitó desde otra cuenta de Telegram.",
-        apoyo: "Solo es válido en la cuenta que lo solicitó.",
+        error: "Ese código se ha pedido desde otra cuenta de Telegram.",
+        apoyo: "Solo vale en la cuenta que lo pidió.",
       },
       { status: 403 },
     );
@@ -168,7 +168,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     const motivo = e instanceof Error ? e.message : "";
     if (motivo === "CODIGO_INVALIDO") {
       return NextResponse.json(
-        { error: "Código de activación no válido.", apoyo: "Lo facilita el superadmin." },
+        { error: "Ese código de activación no vale.", apoyo: "Te lo da el superadmin." },
         { status: 400 },
       );
     }
@@ -176,7 +176,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: "El correo ya está vinculado a otra cuenta de Telegram.",
-          apoyo: "La recuperación de acceso se solicita al superadmin.",
+          apoyo: "Escribe al superadmin para recuperar el acceso.",
         },
         { status: 409 },
       );
@@ -184,8 +184,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     console.error("[auth] alta fallida", e);
     return NextResponse.json(
       {
-        error: "No se ha podido completar la vinculación.",
-        apoyo: "El código de activación no se ha consumido. Se puede reintentar.",
+        error: "No hemos podido vincular tu cuenta.",
+        apoyo: "Tu código de activación sigue sin usar. Vuelve a intentarlo.",
       },
       { status: 500 },
     );

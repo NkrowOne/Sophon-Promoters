@@ -32,7 +32,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const usuario = telegramDeLaPeticion(peticion);
   if (!usuario) {
     return NextResponse.json(
-      { error: "Acceso no verificado por Telegram. La vinculación se completa desde el bot." },
+      { error: "Telegram no ha verificado tu acceso. Vincula tu cuenta desde el bot." },
       { status: 401 },
     );
   }
@@ -49,15 +49,15 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (!invitacion || invitacion.anuladoEn || invitacion.expiraEn < new Date()) {
     return NextResponse.json(
       {
-        error: "Código de activación no válido o caducado.",
-        apoyo: "Lo facilita el superadmin.",
+        error: "Ese código de activación no vale o ha caducado.",
+        apoyo: "Te lo da el superadmin.",
       },
       { status: 400 },
     );
   }
   if (invitacion.usosActuales >= invitacion.usosMaximos) {
     return NextResponse.json(
-      { error: "Código de activación ya utilizado.", apoyo: "Lo facilita el superadmin." },
+      { error: "Ese código de activación ya se ha usado.", apoyo: "Pídele otro al superadmin." },
       { status: 400 },
     );
   }
@@ -65,8 +65,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (invitacion.emailDestino && normalizarEmail(invitacion.emailDestino) !== emailNormalizado) {
     return NextResponse.json(
       {
-        error: "Código emitido para otro correo.",
-        apoyo: "El código solo es válido con el correo para el que se emitió.",
+        error: "Ese código se emitió para otro correo.",
+        apoyo: "Solo vale con el correo para el que se ha emitido.",
       },
       { status: 400 },
     );
@@ -82,7 +82,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: `Esta cuenta de Telegram ya está vinculada a ${yaVinculado.emailNormalizado}.`,
-        apoyo: "La recuperación de acceso se solicita al superadmin.",
+        apoyo: "Escribe al superadmin para recuperar el acceso.",
       },
       { status: 409 },
     );
@@ -97,7 +97,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       (SEGUNDOS_REENVIO * 1000 - (Date.now() - ultimo.creadoEn.getTime())) / 1000,
     );
     return NextResponse.json(
-      { error: `El siguiente código puede solicitarse en ${faltan} segundos.` },
+      { error: `Podrás pedir otro código en ${faltan} segundos.` },
       { status: 429 },
     );
   }
@@ -121,8 +121,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     console.error("[auth] fallo al enviar el OTP", e);
     return NextResponse.json(
       {
-        error: "No se ha podido enviar el correo.",
-        apoyo: "La dirección puede ser incorrecta. Se puede reintentar en un minuto.",
+        error: "No hemos podido enviarte el correo.",
+        apoyo: "Comprueba la dirección y vuelve a intentarlo en un minuto.",
       },
       { status: 502 },
     );

@@ -61,8 +61,8 @@ export async function GET(
   if (!webmaster) {
     return NextResponse.json(
       {
-        error: "El webmaster no consta en esta red.",
-        apoyo: "El correo puede ser incorrecto. La activación se hace desde «Activar webmaster».",
+        error: "Ese webmaster no está en tu red.",
+        apoyo: "Comprueba el correo. Si todavía no lo has dado de alta, hazlo desde «Activar webmaster».",
       },
       { status: 404 },
     );

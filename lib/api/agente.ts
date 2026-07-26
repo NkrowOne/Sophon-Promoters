@@ -33,14 +33,14 @@ export async function exigirAgente(
 ): Promise<Contexto | NextResponse> {
   if (!telegramDeLaPeticion(peticion)) {
     return NextResponse.json(
-      { error: "Acceso no verificado por Telegram. La aplicación se abre desde el bot." },
+      { error: "Telegram no ha verificado tu acceso. Abre la aplicación desde el bot." },
       { status: 401 },
     );
   }
   const sesion = await sesionActual();
   if (!sesion) {
     return NextResponse.json(
-      { error: "Sesión caducada.", apoyo: "El acceso se restablece con el correo de la cuenta." },
+      { error: "Se te ha caducado la sesión.", apoyo: "Vuelve a entrar con tu correo. No pierdes nada de lo tuyo." },
       { status: 401 },
     );
   }
