@@ -1,22 +1,31 @@
 /**
- * Avisos del bot al superadmin.
+ * Avisos del bot.
  *
- * El aviso de retiro es la vía por la que el superadmin se entera de que hay
- * algo que pagar, así que lleva **todo lo necesario para hacer la transferencia
- * sin abrir el panel**: importe, red y wallet completa.
+ * Van en las dos direcciones, y esa simetría es el punto:
+ *
+ *  - **Hacia arriba**: el superadmin se entera de que hay algo que pagar. El
+ *    aviso lleva todo lo necesario para hacer la transferencia sin abrir el
+ *    panel —importe, red y wallet completa—.
+ *  - **Hacia abajo**: el agente se entera de que le han pagado. Antes no había
+ *    nada: el agente pedía su dinero y la única forma de saber si había salido
+ *    era abrir la cartera y mirar. Un cobro que solo se descubre mirando es un
+ *    cobro que se pregunta por privado, y eso lo acaba pagando el superadmin en
+ *    tiempo.
  *
  * Ninguna de estas funciones puede tumbar la operación que las provoca. Si
- * Telegram no responde, la solicitud de retiro ya está registrada y el panel la
- * muestra igual; perder el aviso es un inconveniente, perder el retiro no.
+ * Telegram no responde, la solicitud ya está registrada y el panel la muestra
+ * igual; perder el aviso es un inconveniente, perder el retiro no.
  */
+
+import { cadenas } from "../i18n.ts";
+import { idiomaGuardado } from "../idiomas.ts";
 
 const API_TELEGRAM = "https://api.telegram.org";
 
-async function enviar(texto: string): Promise<void> {
+async function enviarA(destino: string | null, texto: string): Promise<void> {
   const token = process.env["TELEGRAM_BOT_TOKEN"];
-  const destino = process.env["TELEGRAM_SUPERADMIN_ID"];
   if (!token || !destino) {
-    console.warn("[bot] sin TELEGRAM_BOT_TOKEN o TELEGRAM_SUPERADMIN_ID: aviso omitido");
+    console.warn("[bot] sin token o sin destinatario: aviso omitido");
     return;
   }
 
@@ -36,6 +45,10 @@ async function enviar(texto: string): Promise<void> {
   } catch (e) {
     console.warn("[bot] no se pudo enviar el aviso:", e);
   }
+}
+
+async function enviar(texto: string): Promise<void> {
+  await enviarA(process.env["TELEGRAM_SUPERADMIN_ID"] ?? null, texto);
 }
 
 function escapar(s: string): string {
@@ -64,6 +77,51 @@ export async function avisarRetiroAlSuperadmin(datos: {
       `<i>Solicitud ${escapar(datos.id)}</i>`,
     ].join("\n"),
   );
+}
+
+/**
+ * El agente se entera de cómo acabó su retiro, en su idioma.
+ *
+ * Sin `telegramId` no hay a dónde mandarlo —un agente puede haberse dado de alta
+ * y no tener Telegram vinculado— y la función se calla: no es un error, es un
+ * canal que ese agente no tiene.
+ *
+ * El importe llega ya formateado por quien llama. Formatearlo aquí obligaría a
+ * este módulo a saber de micros, y este módulo solo sabe de mensajes.
+ */
+export async function avisarRetiroResueltoAlAgente(datos: {
+  telegramId: bigint | null;
+  idioma: string;
+  estado: "PAGADO" | "APROBADO" | "RECHAZADO";
+  importe: string;
+  red: string;
+  wallet: string;
+  referencia?: string | null;
+  motivo?: string | null;
+}): Promise<void> {
+  if (datos.telegramId === null) return;
+  const t = cadenas(idiomaGuardado(datos.idioma));
+
+  const lineas =
+    datos.estado === "PAGADO"
+      ? [
+          `<b>${escapar(t.botRetiroPagado(datos.importe))}</b>`,
+          "",
+          escapar(t.botRetiroPagadoRed(datos.red, datos.wallet)),
+          // La referencia va en bloque de código: es lo que el agente pega en un
+          // explorador de bloques para comprobar por sí mismo que salió.
+          ...(datos.referencia
+            ? [`${escapar(t.botRetiroReferencia(""))}<code>${escapar(datos.referencia)}</code>`]
+            : []),
+        ]
+      : datos.estado === "APROBADO"
+        ? [escapar(t.botRetiroAprobado(datos.importe))]
+        : [
+            `<b>${escapar(t.botRetiroRechazado(datos.importe))}</b>`,
+            ...(datos.motivo ? ["", escapar(t.botMotivo(datos.motivo))] : []),
+          ];
+
+  await enviarA(String(datos.telegramId), lineas.join("\n"));
 }
 
 /** Aviso de descuadre en la conciliación: no debe pasar desapercibido. */

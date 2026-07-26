@@ -1,9 +1,11 @@
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, type Context } from "grammy";
 
 import { db } from "../db.ts";
 import { crearEnlaceDeEntrada, MINUTOS_CANJE } from "../auth/admin.ts";
 import { formatearCodigo, generarCodigoActivacion, normalizarEmail } from "../cripto.ts";
 import { formatearMicros } from "../devengo/dinero.ts";
+import { cadenas, type Cadenas } from "../i18n.ts";
+import { idiomaDesdeTelegram } from "../idiomas.ts";
 
 /**
  * El bot.
@@ -73,12 +75,25 @@ function escapar(s: string): string {
  * exige actuar hoy —dar de alta y renovar—, después lo que se consulta.
  */
 const SECCIONES = [
-  { ruta: "/activar", etiqueta: "Activar webmaster" },
-  { ruta: "/pro", etiqueta: "Renovaciones" },
-  { ruta: "/red", etiqueta: "Tu red" },
-  { ruta: "/cartera", etiqueta: "Cartera" },
-  { ruta: "/historico", etiqueta: "Histórico" },
+  { ruta: "/activar", etiqueta: (t: Cadenas) => t.activarWebmaster },
+  { ruta: "/pro", etiqueta: (t: Cadenas) => t.colaRenovaciones },
+  { ruta: "/red", etiqueta: (t: Cadenas) => t.red },
+  { ruta: "/cartera", etiqueta: (t: Cadenas) => t.cartera },
+  { ruta: "/historico", etiqueta: (t: Cadenas) => t.historico },
 ] as const;
+
+/**
+ * El idioma de quien escribe.
+ *
+ * Sale del `language_code` del propio update, igual que la Mini App lo saca de
+ * `initDataUnsafe`: elegir catálogo no autoriza nada, así que no hace falta
+ * ningún dato firmado. Y no hace falta ir a la base de datos, que es lo que
+ * habría convertido cada `/red` en una consulta extra solo para saber en qué
+ * idioma escribir un rótulo.
+ */
+function idiomaDe(ctx: Context): Cadenas {
+  return cadenas(idiomaDesdeTelegram(ctx.from?.language_code));
+}
 
 /**
  * Teclado del menú.
@@ -88,11 +103,11 @@ const SECCIONES = [
  * ENTERO. Por eso devuelve `undefined` y quien llama manda el enlace en texto,
  * de modo que el bot sigue siendo usable mientras se desarrolla.
  */
-function menu(url: string): InlineKeyboard | undefined {
+function menu(url: string, t: Cadenas): InlineKeyboard | undefined {
   if (!url.startsWith("https://")) return undefined;
   const k = new InlineKeyboard();
   SECCIONES.forEach((s, i) => {
-    k.webApp(s.etiqueta, `${url}${s.ruta}`);
+    k.webApp(s.etiqueta(t), `${url}${s.ruta}`);
     // Dos por fila: los rótulos son cortos y cinco botones a lo ancho de un
     // móvil se cortarían.
     if (i % 2 === 1) k.row();
@@ -100,11 +115,30 @@ function menu(url: string): InlineKeyboard | undefined {
   return k;
 }
 
+/**
+ * Enlace profundo: `/start red` abre la Mini App directamente en esa pantalla.
+ *
+ * Telegram entrega el parámetro de `t.me/elbot?start=red` como argumento del
+ * comando. Existía a medias —se recogía y no se usaba—, así que un enlace
+ * compartido para «mira tu red» abría la portada y dejaba al agente navegando
+ * a mano hasta donde ya se le había dicho que fuera.
+ *
+ * Solo se aceptan rutas de `SECCIONES`: el parámetro viene de una URL que puede
+ * escribir cualquiera, y concatenarlo sin filtrar dejaría abrir la Mini App en
+ * una ruta arbitraria del dominio.
+ */
+function seccionDeParametro(parametro: string | undefined) {
+  if (!parametro) return null;
+  const ruta = `/${parametro.trim().toLowerCase()}`;
+  return SECCIONES.find((s) => s.ruta === ruta) ?? null;
+}
+
 
 function registrar(b: Bot): void {
   b.command("start", async (ctx) => {
     const url = urlMiniApp();
     const id = ctx.from?.id;
+    const t = idiomaDe(ctx);
 
     // Un agente ya vinculado entra directo; uno nuevo necesita saber que hace
     // falta un código antes de abrir nada, o se topará con el alta sin entender
@@ -112,39 +146,56 @@ function registrar(b: Bot): void {
     const vinculado = id
       ? await db.agente.findUnique({
           where: { telegramId: BigInt(id) },
-          select: { nombreVisible: true, estado: true },
+          select: { id: true, nombreVisible: true, estado: true, idioma: true },
         })
       : null;
 
     if (!url) {
-      await ctx.reply("La aplicación aún no está publicada. Avisa al superadmin.");
+      await ctx.reply(t.botSinPublicar);
       return;
     }
 
+    if (vinculado?.estado === "SUSPENDIDO") {
+      await ctx.reply(t.botSuspendido);
+      return;
+    }
+
+    // El idioma persistido se refresca aquí: es el único momento en que el
+    // servidor ve el `language_code` actual de alguien que ya tiene cuenta, y
+    // sin esto un agente que cambia el idioma de Telegram seguiría recibiendo
+    // los avisos de pago en el que tenía el día que se dio de alta.
+    const idiomaActual = idiomaDesdeTelegram(ctx.from?.language_code);
+    if (vinculado && vinculado.idioma !== idiomaActual) {
+      await db.agente.update({ where: { id: vinculado.id }, data: { idioma: idiomaActual } });
+    }
+
     const seguro = url.startsWith("https://");
+
+    // `/start red` abre esa pantalla y no la portada.
+    const seccion = seccionDeParametro(ctx.match?.trim() || undefined);
+    if (vinculado && seccion && seguro) {
+      await ctx.reply(seccion.etiqueta(t), {
+        reply_markup: new InlineKeyboard().webApp(seccion.etiqueta(t), `${url}${seccion.ruta}`),
+      });
+      return;
+    }
+
     // Un agente vinculado recibe el índice completo; uno nuevo, una sola puerta
     // —el alta—, porque las demás no le sirven todavía y ofrecérselas sería
     // mandarle a cinco pantallas que solo pueden decirle que no tiene cuenta.
     const teclado = !seguro
       ? undefined
       : vinculado
-        ? menu(url)
-        : new InlineKeyboard().webApp("Vincular mi cuenta", `${url}/alta`);
-
-    if (vinculado?.estado === "SUSPENDIDO") {
-      await ctx.reply(
-        "Tu cuenta está suspendida. Escribe al superadmin para reactivarla.",
-      );
-      return;
-    }
+        ? menu(url, t)
+        : new InlineKeyboard().webApp(t.botVincularCuenta, `${url}/alta`);
 
     const texto = vinculado
-      ? `Hola, ${escapar(vinculado.nombreVisible)}. Elige por dónde empiezas.`
+      ? t.botHola(escapar(vinculado.nombreVisible))
       : [
-          "<b>Sophon Promoters</b>",
+          `<b>${t.botTitulo}</b>`,
           "",
-          "Para entrar necesitas un código de activación del superadmin.",
-          "Cuando lo tengas, ábrelo aquí y vincula tu correo.",
+          t.botNecesitasCodigo,
+          t.botCuandoLoTengas,
         ].join("\n");
 
     await ctx.reply(seguro ? texto : `${texto}\n\n${escapar(url)}`, {
@@ -159,15 +210,17 @@ function registrar(b: Bot): void {
   for (const seccion of SECCIONES) {
     b.command(seccion.ruta.slice(1), async (ctx) => {
       const url = urlMiniApp();
+      const t = idiomaDe(ctx);
       if (!url) {
-        await ctx.reply("La aplicación aún no está publicada. Avisa al superadmin.");
+        await ctx.reply(t.botSinPublicar);
         return;
       }
+      const etiqueta = seccion.etiqueta(t);
       const destino = `${url}${seccion.ruta}`;
       const teclado = destino.startsWith("https://")
-        ? new InlineKeyboard().webApp(seccion.etiqueta, destino)
+        ? new InlineKeyboard().webApp(etiqueta, destino)
         : undefined;
-      await ctx.reply(teclado ? seccion.etiqueta : `${seccion.etiqueta}\n${destino}`, {
+      await ctx.reply(teclado ? etiqueta : `${etiqueta}\n${destino}`, {
         reply_markup: teclado,
       });
     });
@@ -198,15 +251,16 @@ function registrar(b: Bot): void {
   b.command("ayuda", async (ctx) => {
     if (!esSuperadmin(ctx.from?.id)) {
       const url = urlMiniApp();
+      const t = idiomaDe(ctx);
       await ctx.reply(
         [
-          "Cada comando abre una pantalla:",
+          t.botCadaComando,
           "",
-          ...SECCIONES.map((s) => `/${s.ruta.slice(1)} — ${s.etiqueta.toLowerCase()}`),
+          ...SECCIONES.map((s) => `/${s.ruta.slice(1)} — ${s.etiqueta(t).toLowerCase()}`),
           "",
-          "O /start para el menú completo.",
+          t.botOStart,
         ].join("\n"),
-        { reply_markup: menu(url) },
+        { reply_markup: menu(url, t) },
       );
       return;
     }
@@ -373,11 +427,12 @@ function registrar(b: Bot): void {
   // comandos de gestión son de uno a uno.
   b.on("message:text", async (ctx) => {
     if (ctx.chat.type !== "private") return;
+    const t = idiomaDe(ctx);
     if (ctx.message.text.startsWith("/")) {
-      await ctx.reply("No conozco ese comando. Prueba /ayuda.");
+      await ctx.reply(t.botComandoDesconocido);
       return;
     }
-    await ctx.reply("Usa /start para abrir la aplicación.");
+    await ctx.reply(t.botUsaStart);
   });
 
   b.catch((err) => {

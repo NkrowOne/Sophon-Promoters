@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth/admin";
+import { avisarRetiroResueltoAlAgente } from "@/lib/bot/avisos";
 import { formatearMicros } from "@/lib/devengo/dinero";
 import { revocarSesiones } from "@/lib/auth/sesion";
 
@@ -98,7 +99,15 @@ export async function resolverRetiro(
 
   const solicitud = await db.solicitudRetiro.findUnique({
     where: { id },
-    select: { id: true, estado: true, agenteId: true, importeMicros: true },
+    select: {
+      id: true,
+      estado: true,
+      agenteId: true,
+      importeMicros: true,
+      red: true,
+      wallet: true,
+      agente: { select: { telegramId: true, idioma: true } },
+    },
   });
   if (!solicitud) return;
 
@@ -158,6 +167,24 @@ export async function resolverRetiro(
     referencia: referencia || null,
     nota: nota || null,
   });
+
+  // Y ahora se lo decimos a quien está esperando el dinero.
+  //
+  // El aviso va DESPUÉS de la auditoría y sin `await` sobre su resultado en el
+  // camino crítico —la función se traga sus propios fallos—, porque el estado ya
+  // está guardado: que Telegram no conteste no puede deshacer un pago que ya
+  // consta hecho.
+  await avisarRetiroResueltoAlAgente({
+    telegramId: solicitud.agente.telegramId,
+    idioma: solicitud.agente.idioma,
+    estado: accion === "pagar" ? "PAGADO" : accion === "aprobar" ? "APROBADO" : "RECHAZADO",
+    importe: formatearMicros(solicitud.importeMicros),
+    red: solicitud.red,
+    wallet: solicitud.wallet,
+    referencia: referencia || null,
+    motivo: nota || null,
+  });
+
   revalidatePath("/admin/retiros");
   revalidatePath("/admin");
 }

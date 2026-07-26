@@ -8,10 +8,11 @@ import type { Config } from "tailwindcss";
  * fallback estático, porque un WebView antiguo que no inyecte esas variables
  * dejaría el texto sobre transparente.
  *
- * La paleta propia se reserva para lo que sí es nuestro: los estratos por tier
- * y la marca de sondeo. Los tres tiers usan colores de sedimento —índigo, verde
- * mineral y ocre— y además se distinguen por POSICIÓN fija en la banda, de modo
- * que la lectura sobrevive a cualquier daltonismo.
+ * La paleta propia se reserva para lo que sí es nuestro: los estratos por tier,
+ * las acciones y el suelo del sondeo. Es UNA familia —ciruela— en tres valores,
+ * más un ámbar que solo señala estado. Los tiers se distinguen además por
+ * POSICIÓN fija en la banda, de modo que la lectura sobrevive a cualquier
+ * daltonismo.
  */
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
@@ -33,34 +34,41 @@ const config: Config = {
         carril: "var(--carril)",
 
         /*
-         * NO hay color de marca. Es una decisión, no un olvido.
+         * La rampa: UNA familia de ciruela en tres valores (hue 335-338°).
          *
-         * Se probaron dos y los dos eran plantilla: un naranja de baliza, que
-         * sobre el tema oscuro reproducía el «fondo casi negro con un acento
-         * cálido», y un índigo-violeta, que es el color por defecto de todo
-         * producto de IA. Cualquier tercer tono habría sido la tercera versión
-         * del mismo reflejo.
+         * Se llegó aquí por descarte y por medida. Los dos primeros intentos
+         * fueron plantilla —un naranja de baliza, que sobre tema oscuro es el
+         * «fondo casi negro con acento cálido», y un índigo-violeta, que es el
+         * color por defecto de todo producto de IA—, así que se quitó el color
+         * entero. Eso pasó de largo: una app de datos en gris no es sobria, es
+         * ilegible de un vistazo, que es justo lo que se le pide.
          *
-         * El tier se codifica por DENSIDAD DE TINTA. Se probó darle un color a
-         * cada uno y se descartó con el argumento que está escrito en
-         * `lib/devengo/motor.ts`: el agente cobra lo mismo sea cual sea el
-         * tier. Gastar los tres colores más fuertes en el único dato que no
-         * cambia lo que hace es la definición de colorines.
+         * Un hue único y no tres: el argumento de `lib/devengo/motor.ts` sigue
+         * siendo cierto —el agente cobra lo mismo sea cual sea el tier—, así
+         * que el tier se sigue codificando por VALOR y por posición en la
+         * banda. Lo que ese argumento nunca sostuvo era que la aplicación
+         * entera fuese acromática.
          *
-         * La planitud no se combate con tono sino con MATERIA: la página se
-         * parte en bandas de superficie con juntas de 1 px —el 90 % de los
-         * píxeles— y el Testigo gana suelo opaco y canto. Ver `globals.css`.
+         * `tinta` es el T1 y es también la superficie de acción: `bg-tinta` en
+         * los botones principales y `focus:border-tinta` en los campos. Que
+         * botón y dato compartan color es deliberado —son la misma sustancia—,
+         * y el par está medido: blanco sobre ciruela 13,41:1 en claro, fondo
+         * sobre ciruela clara 9,17:1 en el peor caso oscuro.
+         *
+         * La planitud se combate además con MATERIA: la página se parte en
+         * bandas con juntas de 1 px —el 90 % de los píxeles— y el Testigo tiene
+         * suelo opaco y canto. Ver `globals.css`.
          */
         t1: "var(--tinta-t1)",
         t2: "var(--tinta-t2)",
         t3: "var(--tinta-t3)",
         tinta: "var(--tinta-plena)",
 
-        // Único croma propio de toda la app, y solo para estado, nunca para
-        // decorar: el ocre del corte fresco de un testigo recién extraído.
-        // Se desdobla por polaridad porque el valor único estaba flojo —3,97:1
-        // sobre blanco, y se usa justo en las etiquetas accionables—:
-        // #8A6414 en claro (5,37:1) y #D7A94A en oscuro (7,50:1).
+        // El segundo hue, y solo para estado, nunca para decorar: el ámbar del
+        // corte fresco de un testigo recién extraído. Contra la ciruela tiene
+        // poca diferencia de valor y ~100° de hue, así que un plazo que se
+        // apaga nunca se lee como un dato. #845E09 en claro y #D7A94A en
+        // oscuro, medidos también sobre la banda más profunda.
         vivo: "var(--vivo)",
 
         // El rojo de error lo pone el CLIENTE del usuario, no nosotros: es el

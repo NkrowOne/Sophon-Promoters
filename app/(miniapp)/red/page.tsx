@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Malla, DIAS_APAGADO, type WebmasterMalla } from "@/components/Malla";
-import { Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
+import { Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
 
@@ -78,22 +78,29 @@ export default function Red() {
 
   return (
     <Pantalla titulo={t.red} volverA="/">
-      {/* Lo primero es lo que exige actuar. Si no hay nada parado, se dice:
-          confirmar que está todo bien también es información. */}
-      <p className="mb-5 text-apoyo text-texto-apoyo">
-        {conProblema > 0 && (
-          <span className="text-vivo">{t.conIncidencia(conProblema)} · </span>
-        )}
-        <span className="tabular-nums">
-          {parados > 0
-            ? t.sinActividadDe(parados, DIAS_APAGADO, datos.webmasters.length)
-            : t.todosProduciendo(datos.webmasters.length)}
-        </span>
-      </p>
+      {/* Dos estratos, dos preguntas: «¿hay algo que atender?» y «¿quién».
+          El veredicto va en el fondo desnudo y el mosaico sobre superficie, que
+          es lo que le da a las teselas un suelo contra el que medirse en vez de
+          flotar sobre la página. */}
+      <Banda tono={0} como="header" className="pb-5">
+        {/* Lo primero es lo que exige actuar. Si no hay nada parado, se dice:
+            confirmar que está todo bien también es información. */}
+        <p className="text-apoyo text-texto-apoyo">
+          {conProblema > 0 && (
+            <span className="text-vivo">{t.conIncidencia(conProblema)} · </span>
+          )}
+          <span className="tabular-nums">
+            {parados > 0
+              ? t.sinActividadDe(parados, DIAS_APAGADO, datos.webmasters.length)
+              : t.todosProduciendo(datos.webmasters.length)}
+          </span>
+        </p>
+      </Banda>
 
-      <Malla webmasters={datos.webmasters} dias={datos.dias} onAbrir={abrir} />
-
-      <p className="mt-5 text-apoyo text-texto-apoyo">{t.escalaComun(datos.dias)}</p>
+      <Banda tono={1} etiqueta={t.red} className="py-6">
+        <Malla webmasters={datos.webmasters} dias={datos.dias} onAbrir={abrir} />
+        <p className="mt-5 text-apoyo text-texto-apoyo">{t.escalaComun(datos.dias)}</p>
+      </Banda>
     </Pantalla>
   );
 }

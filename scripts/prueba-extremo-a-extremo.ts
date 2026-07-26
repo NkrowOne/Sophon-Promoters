@@ -85,7 +85,14 @@ async function principal(): Promise<void> {
     process.exit(1);
   }
 
-  const initData = firmarInitData({ id: TELEGRAM_ID, first_name: "Prueba" });
+  // `language_code` va dentro del initData FIRMADO: es de ahí de donde el alta
+  // saca el idioma que persiste, y es lo que decidirá en qué lengua se le avisa
+  // al agente de que se le ha pagado.
+  const initData = firmarInitData({
+    id: TELEGRAM_ID,
+    first_name: "Prueba",
+    language_code: "pt-BR",
+  });
   const emailNormalizado = normalizarEmail(EMAIL);
 
   // ── Limpieza previa: la prueba tiene que poder repetirse ──────────────────
@@ -207,6 +214,19 @@ async function principal(): Promise<void> {
 
   const invitacion = await db.codigoActivacion.findUnique({ where: { codigo } });
   comprobar("el código de activación queda consumido", invitacion?.usosActuales === 1);
+
+  // El idioma tiene que quedar guardado y NORMALIZADO: llega «pt-BR» y se
+  // almacena «pt». Sin esto, `cadenas("pt-BR")` devolvería `undefined` y el
+  // aviso de «te hemos pagado» reventaría justo en el momento del cobro.
+  const reciente = await db.agente.findUnique({
+    where: { emailNormalizado },
+    select: { idioma: true },
+  });
+  comprobar(
+    "el alta guarda el idioma del initData firmado",
+    reciente?.idioma === "pt",
+    `idioma = ${reciente?.idioma}`,
+  );
 
   // ── 5. La sesión abre la API, y sin margen del superadmin ─────────────────
   const cabeceras = { "x-telegram-init-data": initData, cookie };

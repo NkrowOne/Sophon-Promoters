@@ -11,9 +11,24 @@
  * y `color-mix` lo pisa solo donde funciona.
  */
 :root {
-  --superficie: #f7f8fa;
-  --superficie-alta: #eef0f3;
-  --borde: #dfe3e8;
+  /*
+   * Tinte de las superficies: el mismo hue que la rampa.
+   *
+   * Antes las superficies se mezclaban con el COLOR DE TEXTO del usuario, así
+   * que las bandas salían gris azulado hiciera lo que hiciera la rampa. Ahora
+   * se mezclan con esto, y por eso una banda es un estrato de ciruela claro y
+   * no un gris más.
+   *
+   * En claro es literalmente el T1. En oscuro NO puede serlo: el fondo de
+   * Telegram (#17212B) es azul y con croma propio, y mezclarle un 6-25 % de un
+   * rosa tan lavado como el T1 oscuro deja el hue en 256° —el del fondo—. El
+   * tinte oscuro va más saturado a propósito: nunca se pinta, solo tiñe.
+   */
+  --tinte: #4a1f42;
+
+  --superficie: #f4f0f3;
+  --superficie-alta: #e8e1e6;
+  --borde: #d9ced6;
 
   /*
    * Suelo opaco del Testigo.
@@ -22,47 +37,55 @@
    * era una incógnita distinta en cada cliente. Con suelo propio pasa a ser una
    * cantidad conocida y el tema del usuario deja de importar dentro del raíl.
    */
-  --carril: #edeff2;
+  --carril: #ece6ea;
 
   /* Junta entre estratos. Más oscura que el borde: es un canto, no una línea
      de separación, y es lo que hace que las capas parezcan tener espesor. */
-  --junta: #d6dbe1;
+  --junta: #d2c5ce;
 
   /*
-   * Escala de estratos: DENSIDAD DE TINTA, sin tono.
+   * Escala de estratos: una sola familia de CIRUELA, tres valores.
    *
-   * Se probó darle a cada tier un color propio y se descartó por un motivo que
-   * está escrito en `lib/devengo/motor.ts`: **el agente cobra lo mismo sea cual
-   * sea el tier**. Gastar los tres colores más fuertes de la aplicación en el
-   * único dato que no cambia lo que el agente hace es la definición de
-   * colorines. El tier informa; no decide nada.
+   * Antes era gris puro. El argumento era el de `lib/devengo/motor.ts` —el
+   * agente cobra lo mismo sea cual sea el tier, así que gastar los tres colores
+   * más fuertes de la app en el único dato que no cambia lo que hace es la
+   * definición de colorines—. Ese argumento sigue en pie y por eso los tres
+   * tiers comparten hue (335-338°) y se distinguen solo por valor: el tier
+   * informa, no decide. Lo que NO sostenía era que la aplicación entera fuese
+   * acromática, y eso es lo que se corrige aquí.
    *
-   * Como escala de valor puro sobrevive además al sol, a un tema personalizado
-   * cualquiera y a todos los daltonismos, y se sigue leyendo en la marca de
-   * 7×3 px de La Malla, que es donde una escala de tono se habría deshecho.
+   * Como sigue siendo una rampa de valor dentro de un hue, sobrevive al sol, a
+   * un tema personalizado cualquiera y a todos los daltonismos, y se lee en la
+   * marca de 7×3 px de La Malla. El tier va además por POSICIÓN fija en la
+   * banda, así que la lectura no depende del color.
    *
-   * Los tres están MEDIDOS contra los seis fondos reales de Telegram por
-   * `test/contraste.test.ts`. El T3 anterior daba 2,19:1 sobre blanco y llevaba
-   * así desde el primer commit: nadie lo vio mirándolo, lo encontró la medida.
+   * Los seis valores están MEDIDOS por `test/contraste.test.ts` contra los seis
+   * fondos reales de Telegram Y contra las tres superficies de banda, que es lo
+   * que antes no se medía: sobre `--superficie-alta` el T3 se quedaba en 2,92:1
+   * y el acento en 4,18:1. Peor caso de cada uno:
    *
-   *   claro   T1 17,40:1   T2 7,15:1   T3 3,37:1   separación 2,31 / 2,12
-   *   oscuro  T1 15,349:1  T2 7,48:1   T3 3,79:1   separación 2,00 / 1,97
+   *   claro   T1 10,44:1   T2 6,09:1   T3 3,53:1   separación 1,71 / 1,72
+   *   oscuro  T1  9,17:1   T2 5,29:1   T3 3,06:1   separación 1,73 / 1,73
    */
-  --tinta-plena: #10151a;
-  --tinta-t1: #10151a;
-  --tinta-t2: #4a525a;
-  --tinta-t3: #7e858c;
+  --tinta-plena: #4a1f42;
+  --tinta-t1: #4a1f42;
+  --tinta-t2: #7c3a6d;
+  --tinta-t3: #a45f91;
 
   /*
-   * El único croma propio, y solo para estado.
+   * El acento de estado: ámbar, y solo para estado.
    *
-   * Estaba en #A8762F, que da 3,97:1 sobre blanco: flojo para texto, y se usa
-   * justo en las etiquetas accionables. Se oscurece en claro y se aclara en
-   * oscuro, midiendo las dos:
-   *   claro  #8A6414 → 5,37:1 sobre #ffffff
-   *   oscuro #D7A94A → 7,50:1 sobre #17212b
+   * Es el segundo hue de la aplicación y su trabajo es no confundirse nunca con
+   * un dato. Contra la rampa tiene poca diferencia de VALOR (1,15-1,34:1) y
+   * ~100° de diferencia de HUE: un plazo que se apaga no se lee como un
+   * estrato, se lee como una alarma.
+   *
+   * Se oscurece un punto respecto a #8A6414 porque sobre la banda más profunda
+   * daba 4,18:1 y se usa en etiquetas de texto, no en filetes:
+   *   claro  #845E09 → 4,56:1 en el peor caso (#E8E1E6)
+   *   oscuro #D7A94A → 6,08:1 en el peor caso (#2E2F3D)
    */
-  --vivo: #8a6414;
+  --vivo: #845e09;
 
   /*
    * Rojo de peligro: el del CLIENTE, no el nuestro.
@@ -80,44 +103,48 @@
 }
 
 :root[data-luz="oscuro"] {
-  --superficie: #1c2229;
-  --superficie-alta: #262e37;
-  --borde: #333d48;
-  --carril: #222a32;
-  --junta: #38424d;
+  /* Ver arriba: más saturado que el T1 oscuro porque tiñe sobre un fondo azul
+     con croma propio. Nunca se pinta. */
+  --tinte: #f2a6da;
 
-  /* En oscuro la escala se invierte: lo denso es lo luminoso. */
-  --tinta-plena: #f5f7f9;
-  --tinta-t1: #f5f7f9;
-  --tinta-t2: #a8b2bc;
-  --tinta-t3: #727c86;
+  --superficie: #232834;
+  --superficie-alta: #2e2f3d;
+  --borde: #3e394a;
+  --carril: #2a2d3a;
+  --junta: #463e50;
+
+  /* En oscuro la escala se invierte: lo denso es lo luminoso. Mismo hue. */
+  --tinta-plena: #f0cde6;
+  --tinta-t1: #f0cde6;
+  --tinta-t2: #c994b8;
+  --tinta-t3: #9a6b8e;
 
   --vivo: #d7a94a;
   --peligro: var(--tg-theme-destructive-text-color, #f2837a);
 }
 
 /*
- * Adaptación al tema del usuario.
+ * Adaptación al tema del usuario — SOLO las superficies.
  *
- * Los valores medidos de arriba son el respaldo para los WebView de Android
- * anteriores a Chrome 111, donde `color-mix` no existe y sin respaldo quedaría
- * texto sobre transparente.
+ * La rampa de estratos ya NO se deriva aquí. Se derivaba mezclando el color de
+ * texto del usuario con su fondo, de modo que lo que medía
+ * `test/contraste.test.ts` no era lo que veía nadie: el test comprobaba unos
+ * literales y la pantalla pintaba otra cosa. Con la rampa fija, la puerta de
+ * contraste vuelve a ser una garantía en vez de una aproximación, y de paso el
+ * hue de la aplicación deja de depender de que el tema del usuario sea neutro.
+ *
+ * Las superficies sí siguen adaptándose, porque ahí un desvío es cosmético y a
+ * cambio las bandas se apoyan en el fondo real del cliente en lugar de flotar
+ * sobre él. Los valores de arriba son el respaldo medido para los WebView de
+ * Android anteriores a Chrome 111, donde `color-mix` no existe.
  */
 @supports (background: color-mix(in oklab, red, blue)) {
   :root {
-    --tinta-plena: var(--tg-theme-text-color, #10151a);
-    --tinta-t1: var(--tg-theme-text-color, #10151a);
-    /* Los porcentajes suben respecto a los originales (62 % / 30 %) porque el
-       T3 de entonces daba 2,19:1 sobre blanco: por debajo del suelo, y era el
-       estrato que más superficie ocupa en el Testigo y en La Malla. */
-    --tinta-t2: color-mix(in oklab, var(--tg-theme-text-color, #10151a) 72%, var(--tg-theme-bg-color, #fff));
-    --tinta-t3: color-mix(in oklab, var(--tg-theme-text-color, #10151a) 50%, var(--tg-theme-bg-color, #fff));
-
-    --superficie: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 94%, var(--tg-theme-text-color, #10151a));
-    --superficie-alta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 88%, var(--tg-theme-text-color, #10151a));
-    --carril: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 90%, var(--tg-theme-text-color, #10151a));
-    --borde: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 80%, var(--tg-theme-text-color, #10151a));
-    --junta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 76%, var(--tg-theme-text-color, #10151a));
+    --superficie: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 94%, var(--tinte));
+    --superficie-alta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 88%, var(--tinte));
+    --carril: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 90%, var(--tinte));
+    --borde: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 80%, var(--tinte));
+    --junta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 76%, var(--tinte));
   }
 }
 
@@ -216,11 +243,15 @@ body {
  * a sangre con su propio tono, separada de la siguiente por una junta de 1 px,
  * igual que las capas de un testigo.
  *
- * Se hace con las superficies que YA se derivan del tema del usuario, así que
- * no introduce ningún tono nuevo, el contraste está garantizado en cualquier
- * cliente —claro, oscuro o personalizado— y la metáfora pasa a ocupar el 90 %
- * de los píxeles en vez de solo los 44 px del raíl. Recolorear el raíl habría
- * cambiado un 5 % de la pantalla: por eso la queja era «está todo blanco».
+ * Las tres superficies se derivan del fondo del usuario teñido con `--tinte`,
+ * así que la banda comparte hue con la rampa de datos y con los botones: es el
+ * mismo estrato visto de lejos. La metáfora pasa a ocupar el 90 % de los
+ * píxeles en vez de solo los 44 px del raíl —recolorear el raíl habría cambiado
+ * un 5 % de la pantalla, y por eso la queja seguía siendo «está todo blanco»—.
+ *
+ * Las bandas son fondo de contenido, así que `test/contraste.test.ts` mide la
+ * rampa TAMBIÉN contra ellas. No es teórico: con las bandas puestas, el T3
+ * oscuro caía a 2,92:1 y el acento claro a 4,18:1 sobre `--superficie-alta`.
  */
 .banda {
   position: relative;

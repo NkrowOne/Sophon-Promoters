@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Importe } from "@/components/Importe";
-import { Aviso, Cargando, FalloDeCarga, Pantalla } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 import { formatearMicros, microsACadena } from "@/lib/devengo/dinero";
@@ -106,9 +106,11 @@ export default function CarteraPagina() {
   const [enviando, setEnviando] = useState(false);
   const idempotencia = useRef(nuevaIdempotencia());
 
+  // Devuelve la promesa a propósito: `solicitar` necesita esperar a que la
+  // recarga confirme que el retiro quedó guardado antes de tocar el formulario.
   const cargar = useCallback(() => {
     setError(null);
-    api
+    return api
       .get<Respuesta>("/api/retiro")
       .then(setDatos)
       .catch((e) =>
@@ -116,7 +118,9 @@ export default function CarteraPagina() {
       );
   }, []);
 
-  useEffect(cargar, [cargar]);
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
 
   const viva = useMemo(
     () => datos?.historial.find((h) => h.estado === "SOLICITADO" || h.estado === "APROBADO") ?? null,
@@ -154,12 +158,17 @@ export default function CarteraPagina() {
         idempotencia: idempotencia.current,
       });
       haptica("exito");
-      setImporte("");
-      setWallet("");
       // Clave nueva: la siguiente solicitud es otra intención, no un reintento
       // de esta.
       idempotencia.current = nuevaIdempotencia();
-      cargar();
+      // El formulario se vacía DESPUÉS de recargar, no antes. Se limpiaba nada
+      // más responder el POST, así que si la recarga fallaba el agente se
+      // quedaba con la pantalla en blanco: ni la solicitud viva —que no había
+      // podido leer— ni el importe y la wallet que acababa de escribir, y sin
+      // saber si su retiro existía o no.
+      await cargar();
+      setImporte("");
+      setWallet("");
     } catch (e) {
       haptica("error");
       setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
@@ -185,30 +194,49 @@ export default function CarteraPagina() {
 
   return (
     <Pantalla titulo={t.cartera} volverA="/">
-      <Escalera cartera={datos.cartera} etiquetas={t} />
+      <Banda tono={0} className="pb-6">
+        <Escalera cartera={datos.cartera} etiquetas={t} />
 
-      {/* Una sola línea aquí: la que explica por qué disponible < devengado, que
-          es la pregunta que nace al mirar la escalera. Lo que tarda el
-          superadmin se dice junto al botón de pedir, que es cuando importa. */}
-      <p className="mt-3 text-apoyo text-texto-apoyo">{t.soloConsolidado}</p>
+        {/* Una sola línea aquí: la que explica por qué disponible < devengado, que
+            es la pregunta que nace al mirar la escalera. Lo que tarda el
+            superadmin se dice junto al botón de pedir, que es cuando importa. */}
+        <p className="mt-3 text-apoyo text-texto-apoyo">{t.soloConsolidado}</p>
+
+        {/* El aviso vive FUERA del ternario de abajo. Estaba dentro de la rama
+            que solo se pinta cuando no hay solicitud viva, así que un fallo al
+            recargar después de enviar —justo el momento en que el agente más
+            necesita saber qué ha pasado con su dinero— no se veía en ninguna
+            parte. */}
+        {error && (
+          <div className="mt-5">
+            <Aviso error={error.message} apoyo={error.apoyo} onReintentar={() => void cargar()} />
+          </div>
+        )}
+      </Banda>
 
       {viva ? (
-        <section className="mt-8 border-s-2 border-vivo ps-3" aria-label={t.solicitudEnCurso}>
-          <p className="text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
-          <p className="mt-1.5">
-            <Importe texto={viva.importe.texto} className="text-cifra" />
-          </p>
-          <p className="mt-1 text-apoyo text-texto-apoyo">
-            {estadoLegible(viva.estado, t)} · {viva.red} ·{" "}
-            <span className="cifra">{viva.wallet}</span>
-          </p>
-          <p className="mt-2 text-apoyo text-texto-apoyo">
-            {t.pedidaEl(formatoFecha(viva.solicitadoEn))} {t.soloUnaALaVez}
-          </p>
-        </section>
+        <Banda tono={1} etiqueta={t.solicitudEnCurso} className="py-6">
+          <div className="border-s-2 border-vivo ps-3">
+            <p className="text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
+            <p className="mt-1.5">
+              <Importe texto={viva.importe.texto} className="text-cifra" />
+            </p>
+            {/* `break-all` en la wallet: son 42 caracteres en mono sin ningún
+                sitio por donde partir, así que sin esto la línea se sale de la
+                banda. En árabe se veía desbordar por la izquierda; en español
+                desbordaba igual, solo que hacia fuera de la pantalla. */}
+            <p className="mt-1 break-all text-apoyo text-texto-apoyo">
+              {estadoLegible(viva.estado, t)} · {viva.red} ·{" "}
+              <span className="cifra">{viva.wallet}</span>
+            </p>
+            <p className="mt-2 text-apoyo text-texto-apoyo">
+              {t.pedidaEl(formatoFecha(viva.solicitadoEn))} {t.soloUnaALaVez}
+            </p>
+          </div>
+        </Banda>
       ) : (
-        <section className="mt-8" aria-label={t.solicitarRetiro}>
-          <p className="text-rotulo mb-3 border-b border-borde pb-2 text-texto-apoyo">
+        <Banda tono={1} etiqueta={t.solicitarRetiro} className="py-6">
+          <p className="text-rotulo mb-3 border-b border-junta pb-2 text-texto-apoyo">
             {t.solicitarRetiro.toUpperCase()}
           </p>
 
@@ -307,15 +335,9 @@ export default function CarteraPagina() {
 
           {/* Lo que tarda, junto al botón: es donde la espera se convierte en
               una expectativa concreta y no en una duda. */}
-          <p className="mt-6 border-s-2 border-borde ps-3 text-apoyo text-texto-apoyo">
+          <p className="mt-6 border-s-2 border-tinta ps-3 text-apoyo text-texto-apoyo">
             {t.revisionManual}
           </p>
-
-          {error && (
-            <div className="mt-5">
-              <Aviso error={error.message} apoyo={error.apoyo} />
-            </div>
-          )}
 
           <BotonPrincipalAccion
             texto={
@@ -325,15 +347,15 @@ export default function CarteraPagina() {
             activo={importeValido && walletValida}
             cargando={enviando}
           />
-        </section>
+        </Banda>
       )}
 
       {/* Historial SIN la solicitud viva: ya está arriba, con más detalle. Que
           apareciera dos veces en la misma pantalla hacía dudar de si eran dos
           solicitudes distintas, que es justo la confusión que este flujo —una
           sola viva a la vez— tiene que evitar. */}
-      <section className="mt-10" aria-label="Solicitudes anteriores">
-        <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">
+      <Banda tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
+        <p className="text-rotulo mb-1 border-b border-junta pb-2 text-texto-apoyo">
           {t.solicitudesAnteriores}
         </p>
         {resueltas.length === 0 ? (
@@ -352,7 +374,7 @@ export default function CarteraPagina() {
                     {estadoLegible(h.estado, t)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-apoyo text-texto-apoyo">
+                <p className="mt-0.5 break-all text-apoyo text-texto-apoyo">
                   {formatoFecha(h.solicitadoEn)} · {h.red} ·{" "}
                   <span className="cifra">{h.wallet}</span>
                 </p>
@@ -377,7 +399,7 @@ export default function CarteraPagina() {
             ))}
           </ul>
         )}
-      </section>
+      </Banda>
     </Pantalla>
   );
 }

@@ -112,7 +112,11 @@ export function Mecha({
 
       <div className="flex h-6 items-stretch" aria-hidden>
         {Array.from({ length: marcasGastadas }, (_, i) => (
-          <Marca key={`gastada-${i}`} className="bg-superficie-alta" />
+          // `bg-borde` y no `bg-superficie-alta`: la parte gastada define la
+          // longitud total, que es la referencia contra la que se lee lo que
+          // queda. Con el tono de la banda más profunda desaparecía justo
+          // dentro de esa banda, y entonces media mecha no medía nada.
+          <Marca key={`gastada-${i}`} className="bg-borde" />
         ))}
         {Array.from({ length: marcasVivas }, (_, i) => (
           <Marca key={`viva-${i}`} className={urgente ? "bg-vivo" : "bg-tinta"} />

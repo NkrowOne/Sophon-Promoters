@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { normalizarCodigo, normalizarEmail, verificarOtp } from "@/lib/cripto";
+import { idiomaDesdeTelegram } from "@/lib/idiomas";
 import { emitirSesion, opcionesCookie, NOMBRE_COOKIE, telegramDeLaPeticion } from "@/lib/auth/sesion";
 
 /**
@@ -93,6 +94,11 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     parseado.data.email.split("@")[0] ||
     "Agente";
 
+  // El idioma sale del `language_code` FIRMADO, no del `initDataUnsafe` que usa
+  // la interfaz. Aquí se persiste, así que tiene que venir de datos verificados:
+  // es lo que decidirá en qué idioma se le avisa de que se le ha pagado.
+  const idioma = idiomaDesdeTelegram(usuario.language_code);
+
   let agenteId: string;
   try {
     agenteId = await db.$transaction(async (tx) => {
@@ -121,6 +127,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
             telegramId: BigInt(usuario.id),
             telegramUsuario: usuario.username ?? null,
             estado: "ACTIVO",
+            idioma,
           },
         });
         return existente.id;
@@ -134,6 +141,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
           telegramId: BigInt(usuario.id),
           telegramUsuario: usuario.username ?? null,
           estado: "ACTIVO",
+          idioma,
         },
       });
 

@@ -15,10 +15,16 @@
   --p-fondo: #ffffff;
   --p-texto: #10151a;
   --p-apoyo: #5b636c;
-  --p-superficie: #f7f8fa;
-  --p-superficie-alta: #eef0f3;
-  --p-borde: #dfe3e8;
-  --p-vivo: #a8762f;
+  /* Superficies teñidas con la misma ciruela que la Mini App: el panel es la
+     otra cara de la misma aplicación, no otro producto. */
+  --p-superficie: #f4f0f3;
+  --p-superficie-alta: #e8e1e6;
+  --p-borde: #d9ced6;
+  --p-accion: #4a1f42;
+  /* Estaba en #A8762F: 3,97:1 sobre blanco, en el filete que marca la ÚNICA
+     cifra que solo puede ver una persona. Es el mismo defecto que
+     `test/contraste.test.ts` cazó en la Mini App, y aquí seguía. */
+  --p-vivo: #845e09;
 
   min-height: 100vh;
   background: var(--p-fondo);
@@ -31,9 +37,11 @@
     --p-fondo: #14181d;
     --p-texto: #f5f7f9;
     --p-apoyo: #98a2ac;
-    --p-superficie: #1c2229;
-    --p-superficie-alta: #262e37;
-    --p-borde: #333d48;
+    --p-superficie: #1f1f26;
+    --p-superficie-alta: #2a2730;
+    --p-borde: #3a313e;
+    --p-accion: #f0cde6;
+    --p-vivo: #d7a94a;
   }
 }
 
@@ -105,9 +113,9 @@
 }
 
 .panel .boton.primario {
-  background: var(--p-texto);
+  background: var(--p-accion);
   color: var(--p-fondo);
-  border-color: var(--p-texto);
+  border-color: var(--p-accion);
   font-weight: 600;
 }
 
@@ -130,7 +138,7 @@
 .panel input:focus,
 .panel select:focus {
   outline: none;
-  border-color: var(--p-texto);
+  border-color: var(--p-accion);
 }
 
 .panel .vivo {

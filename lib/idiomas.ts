@@ -25,3 +25,17 @@ export function idiomaDesdeTelegram(codigo: string | undefined | null): Idioma {
 export function esRtl(idioma: Idioma): boolean {
   return IDIOMAS_RTL.includes(idioma);
 }
+
+/**
+ * Convierte lo que hay guardado en `Agente.idioma` en un idioma de verdad.
+ *
+ * La columna es `TEXT`, así que puede traer cualquier cosa: una fila anterior a
+ * la migración, un idioma que se retiró, o un valor puesto a mano. Cae al
+ * español en vez de dejar que un `catalogos[valor]` devuelva `undefined` y
+ * reviente al leer la primera cadena.
+ */
+export function idiomaGuardado(valor: string | null | undefined): Idioma {
+  return valor && (IDIOMAS as readonly string[]).includes(valor)
+    ? (valor as Idioma)
+    : IDIOMA_POR_DEFECTO;
+}

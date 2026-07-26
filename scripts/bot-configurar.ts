@@ -66,18 +66,35 @@ async function principal(): Promise<void> {
 
   // Un comando por sección: es lo que hace que el menú «/» de Telegram sea un
   // índice de la aplicación y no una sola puerta.
-  await llamar("setMyCommands", {
-    commands: [
-      { command: "start", description: "Menú" },
-      { command: "activar", description: "Activar un webmaster" },
-      { command: "pro", description: "Renovaciones de PRO" },
-      { command: "red", description: "Tu red" },
-      { command: "cartera", description: "Cartera y retiros" },
-      { command: "historico", description: "Histórico" },
-      { command: "ayuda", description: "Qué puedo hacer aquí" },
-    ],
-    scope: { type: "all_private_chats" },
-  });
+  //
+  // Y en los cinco idiomas. Telegram elige la lista por el `language_code` del
+  // cliente y cae a la que no lleva idioma cuando no hay ninguna que encaje, así
+  // que el español se registra dos veces: una sin `language_code` —el respaldo
+  // para todos los demás idiomas— y otra como `es`.
+  //
+  // Los NOMBRES de comando no se traducen: son las rutas de la Mini App, y un
+  // `/rete` italiano obligaría a que el bot conociera cinco alfabetos de
+  // comandos para abrir la misma pantalla.
+  const DESCRIPCIONES = {
+    es: ["Menú", "Activar un webmaster", "Renovaciones de PRO", "Tu red", "Cartera y retiros", "Histórico", "Qué puedo hacer aquí"],
+    en: ["Menu", "Activate a webmaster", "PRO renewals", "Your network", "Wallet and payouts", "History", "What I can do here"],
+    it: ["Menu", "Attiva un webmaster", "Rinnovi del PRO", "La tua rete", "Portafoglio e prelievi", "Storico", "Cosa posso fare qui"],
+    pt: ["Menu", "Ativar um webmaster", "Renovações de PRO", "A tua rede", "Carteira e levantamentos", "Histórico", "O que posso fazer aqui"],
+    ar: ["القائمة", "تفعيل مشرف", "تجديدات PRO", "شبكتك", "المحفظة والسحوبات", "السجل", "ما الذي يمكنني فعله هنا"],
+  } as const;
+  const NOMBRES = ["start", "activar", "pro", "red", "cartera", "historico", "ayuda"] as const;
+
+  for (const [idioma, textos] of Object.entries(DESCRIPCIONES)) {
+    const commands = NOMBRES.map((command, i) => ({ command, description: textos[i]! }));
+    if (idioma === "es") {
+      await llamar("setMyCommands", { commands, scope: { type: "all_private_chats" } });
+    }
+    await llamar("setMyCommands", {
+      commands,
+      scope: { type: "all_private_chats" },
+      language_code: idioma,
+    });
+  }
 
   // Comandos de gestión, solo en el chat del superadmin: un agente no debería
   // ni ver en el menú lo que no puede usar.

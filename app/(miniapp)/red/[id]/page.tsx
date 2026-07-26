@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Mecha, MechaApagada } from "@/components/Mecha";
-import { Aviso, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
@@ -151,7 +151,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   return (
     <Pantalla volverA="/red">
       <Aparece orden={0}>
-        <header className="mb-6">
+        <Banda tono={0} como="header" className="pb-6">
           {/* El correo entero, sin recortar: es el identificador con el que el
               agente habla con esta persona. Pero rompe por la ARROBA, no por
               caracteres: `break-all` partía «…@gmail.c / om», que es más difícil
@@ -163,12 +163,14 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             {estadoLegible(datos.estado, t)}
             {datos.activadoEn && ` · ${t.enTuRedDesde(formatoDia(datos.activadoEn))}`}
           </p>
-        </header>
+        </Banda>
       </Aparece>
 
-      {/* La mecha primero: es lo único con fecha límite. */}
+      {/* La mecha primero: es lo único con fecha límite. Va en su propio estrato
+          porque es la única parte de la ficha en la que se actúa; el resto se
+          mira. */}
       <Aparece orden={1}>
-        <div className="mb-7">
+        <Banda tono={1} etiqueta={t.colaRenovaciones} className="py-6">
           {datos.pro ? (
             <Mecha
               diasRestantes={datos.pro.diasRestantes}
@@ -196,14 +198,18 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
               y queda claro qué acción falló. */}
           {errorRenovar && (
             <div className="mt-3">
-              <Aviso error={errorRenovar.message} apoyo={errorRenovar.apoyo} />
+              <Aviso
+                error={errorRenovar.message}
+                apoyo={errorRenovar.apoyo}
+                onReintentar={renovar}
+              />
             </div>
           )}
-        </div>
+        </Banda>
       </Aparece>
 
       <Aparece orden={2}>
-        <section className="mb-7 border-t border-borde pt-5">
+        <Banda tono={0} etiqueta={t.teHaDado} className="py-6">
           <p className="text-rotulo text-texto-apoyo">{t.teHaDado}</p>
           <div className="mt-1.5">
             <CifraProtagonista micros={BigInt(tot.ganado.micros)} />
@@ -247,22 +253,22 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           {/* Atribución prospectiva: si no se dice, el agente ve registros
               antiguos sin importe y cree que falta dinero. */}
           {datos.devengaDesde && (
-            <p className="mt-4 border-s-2 border-borde ps-3 text-apoyo text-texto-apoyo">
+            <p className="mt-4 border-s-2 border-tinta ps-3 text-apoyo text-texto-apoyo">
               {t.cobrasDesde(formatoDia(datos.devengaDesde))}
             </p>
           )}
-        </section>
+        </Banda>
       </Aparece>
 
       <Aparece orden={3}>
-        <section aria-label={t.registroDeSondeo}>
+        <Banda tono={2} etiqueta={t.registroDeSondeo} className="py-6">
           <p className="text-rotulo mb-3 text-texto-apoyo">{t.ultimosDias(datos.dias)}</p>
           {serie.length > 0 ? (
             <TestigoAncho dias={serie} denso etiquetas={t} />
           ) : (
             <p className="text-apoyo text-texto-apoyo">{t.todaviaSinRegistros}</p>
           )}
-        </section>
+        </Banda>
       </Aparece>
     </Pantalla>
   );

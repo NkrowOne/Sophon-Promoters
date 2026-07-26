@@ -12,18 +12,29 @@
 import Link from "next/link";
 
 import type { ErrorApi } from "@/lib/api/cliente";
+import { TestigoVacio } from "./testigo/Testigo";
 import { useCadenas } from "./TelegramProvider";
 
 export function Pantalla({
   titulo,
   volverA,
   tarea = false,
+  carril = "trama",
   children,
 }: {
   titulo?: string;
   volverA?: string;
   /** Colapsa el raíl y aprieta los márgenes. */
   tarea?: boolean;
+  /**
+   * Qué se pinta dentro del raíl.
+   *
+   * `vacio` es para quien todavía no ha perforado: la columna hueca con las
+   * marcas del propio `TestigoVacio`. No lleva `testigo-terreno` porque esa
+   * trama y esas marcas son la misma retícula dibujada dos veces, y
+   * superpuestas se ven como un rayado sucio en vez de como profundidad.
+   */
+  carril?: "trama" | "vacio";
   children: React.ReactNode;
 }) {
   const { volver: etiquetaVolver } = useCadenas();
@@ -31,11 +42,13 @@ export function Pantalla({
   return (
     <main className={`relative min-h-dvh ${tarea ? "ps-testigo-min" : "ps-testigo"}`}>
       <div
-        className={`carril-testigo testigo-terreno fixed inset-y-0 start-0 ${
-          tarea ? "w-testigo-min" : "w-testigo"
-        }`}
-        aria-hidden={tarea}
-      />
+        className={`carril-testigo fixed inset-y-0 start-0 overflow-hidden ${
+          carril === "trama" ? "testigo-terreno" : ""
+        } ${tarea ? "w-testigo-min" : "w-testigo"}`}
+        aria-hidden={tarea || carril === "vacio"}
+      >
+        {carril === "vacio" && !tarea && <TestigoVacio alto={900} />}
+      </div>
 
       <div className="pb-16 pt-6" style={{ paddingInline: "var(--margen-pantalla)" }}>
         {(titulo || volverA) && (
@@ -55,6 +68,45 @@ export function Pantalla({
         {children}
       </div>
     </main>
+  );
+}
+
+/**
+ * Un estrato de página.
+ *
+ * La página no es una superficie: es una secuencia de capas a sangre, cada una
+ * con su tono y separada de la siguiente por una junta de 1 px. Es lo que hace
+ * que la metáfora del sondeo ocupe el 90 % de los píxeles en vez de los 44 px
+ * del raíl —y lo que responde a «no lo dejes todo blanco» sin recurrir a
+ * tarjetas, que son la forma por defecto de partir una pantalla y no significan
+ * nada aquí—.
+ *
+ * Criterio para partir: **una banda por pregunta**, no por bloque visual. Si
+ * dos trozos contestan a lo mismo van en la misma banda aunque se vean
+ * distintos.
+ *
+ * El relleno vertical NO tiene valor por defecto a propósito: cada banda lo
+ * declara. Un `py-6` heredado obligaría a pelearse con él en la primera y la
+ * última, que son justo las que necesitan un ritmo distinto.
+ */
+export function Banda({
+  tono = 0,
+  como: Elemento = "section",
+  etiqueta,
+  className = "",
+  children,
+}: {
+  tono?: 0 | 1 | 2;
+  como?: "section" | "header" | "nav" | "div";
+  /** `aria-label`: obligatorio de hecho en `section`, que sin nombre no es una región. */
+  etiqueta?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Elemento aria-label={etiqueta} className={`banda banda-${tono} ${className}`}>
+      {children}
+    </Elemento>
   );
 }
 

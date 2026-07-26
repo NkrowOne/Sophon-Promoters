@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Importe } from "@/components/Importe";
-import { Aviso, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
 import { useCadenas } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
@@ -141,43 +141,52 @@ export default function Historico() {
 
   return (
     <Pantalla titulo={t.historico} volverA="/">
-      <p className="mb-1 text-apoyo text-texto-apoyo">
-        <Importe micros={total} className="text-cuerpo font-semibold text-texto" />{" "}
-        {t.enDias(serie.length)}
-      </p>
-      {/* Solo se explica lo que no se descubre solo. Que bajando se va hacia
-          atrás lo enseña la propia lista en el primer gesto; que una banda se
-          abre al tocarla, no. */}
-      <p className="mb-5 text-apoyo text-texto-apoyo">{t.tocaUnDia}</p>
+      <Banda tono={0} como="header" className="pb-5">
+        <p className="text-apoyo text-texto-apoyo">
+          <Importe micros={total} className="text-cuerpo font-semibold text-texto" />{" "}
+          {t.enDias(serie.length)}
+        </p>
+        {/* Solo se explica lo que no se descubre solo. Que bajando se va hacia
+            atrás lo enseña la propia lista en el primer gesto; que una banda se
+            abre al tocarla, no. */}
+        <p className="text-apoyo text-texto-apoyo">{t.tocaUnDia}</p>
+      </Banda>
 
-      {/* Cabecera de la columna de importes: la unidad se dice una vez aquí y
-          desaparece de las setenta filas de abajo. */}
-      <div className="mb-1 flex items-baseline justify-between border-b border-borde pb-1.5">
-        <span className="text-rotulo text-texto-apoyo">{t.columnaDia}</span>
-        <span className="text-rotulo text-texto-apoyo">{t.columnaDolares}</span>
-      </div>
+      {/* El testigo va sobre superficie y no sobre el fondo desnudo: las bandas
+          de días son el dato, y necesitan un suelo propio contra el que medirse
+          igual que el raíl lo tiene en las demás pantallas. */}
+      <Banda tono={1} etiqueta={t.historico} className="pb-2 pt-4">
+        {/* Cabecera de la columna de importes: la unidad se dice una vez aquí y
+            desaparece de las setenta filas de abajo. */}
+        <div className="mb-1 flex items-baseline justify-between border-b border-junta pb-1.5">
+          <span className="text-rotulo text-texto-apoyo">{t.columnaDia}</span>
+          <span className="text-rotulo text-texto-apoyo">{t.columnaDolares}</span>
+        </div>
 
-      <TestigoAncho dias={serie} meses={meses} etiquetas={t} />
+        <TestigoAncho dias={serie} meses={meses} etiquetas={t} />
+      </Banda>
 
-      <div ref={centinela} className="pt-6">
-        {agotado ? (
-          // El fondo del sondeo tiene que verse: sin este cierre, el scroll
-          // acaba en blanco y no se distingue de una carga que falló.
-          <div className="border-t-2 border-borde pt-3 text-apoyo text-texto-apoyo">
-            {t.aquiEmpieza}
-          </div>
-        ) : error ? (
-          <Aviso
-            error={error.message}
-            apoyo={error.apoyo}
-            onReintentar={() => void cargar(cursor)}
-          />
-        ) : (
-          <p className="text-rotulo text-texto-apoyo" aria-live="polite">
-            {t.perforando.toUpperCase()}…
-          </p>
-        )}
-      </div>
+      <Banda tono={0}>
+        <div ref={centinela} className="pt-6">
+          {agotado ? (
+            // El fondo del sondeo tiene que verse: sin este cierre, el scroll
+            // acaba en blanco y no se distingue de una carga que falló.
+            <div className="border-t-2 border-tinta pt-3 text-apoyo text-texto-apoyo">
+              {t.aquiEmpieza}
+            </div>
+          ) : error ? (
+            <Aviso
+              error={error.message}
+              apoyo={error.apoyo}
+              onReintentar={() => void cargar(cursor)}
+            />
+          ) : (
+            <p className="text-rotulo text-texto-apoyo" aria-live="polite">
+              {t.perforando.toUpperCase()}…
+            </p>
+          )}
+        </div>
+      </Banda>
     </Pantalla>
   );
 }

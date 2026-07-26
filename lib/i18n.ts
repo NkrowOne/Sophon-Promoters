@@ -142,6 +142,10 @@ export const es = {
   // ── PRO: siempre un año y atado al alta ───────────────────────────────────
   quedaRegistrado: "Quedará registrado con tu nombre y hora.",
   incluyeUnAnio: "Al activarlo le das un año de PRO. No hay que hacer nada más.",
+  continuar: "CONTINUAR",
+  vasAActivar: "VAS A ACTIVAR",
+  corregirElCorreo: "Corregir el correo",
+  altaNoSeDeshace: "El alta no se deshace: queda vinculado a ti en Sophon.",
   proConcedido: (fecha: string) => `Le has dado un año de PRO, hasta el ${fecha}.`,
   proNoConcedido: "El webmaster ya está en tu red, pero el PRO no ha entrado.",
   proNoConcedidoApoyo: "Reinténtalo desde su ficha; el alta no hay que repetirla.",
@@ -202,6 +206,36 @@ export const es = {
   sesionCaducadaApoyo: "Vuelve a entrar con tu correo. No pierdes nada de lo tuyo.",
   algoHaFallado: "Algo ha fallado.",
   comoCobras: "Cobras 0,03 $ por cada usuario que registre, sea cual sea su país.",
+
+  // ── El bot ────────────────────────────────────────────────────────────────
+  //
+  // El bot habla el idioma del agente igual que la Mini App. Los dos son la
+  // misma aplicación vista desde sitios distintos, y un menú en español delante
+  // de una pantalla en árabe delata que la traducción se hizo por encima.
+  //
+  // Los comandos de gestión —/codigo, /agentes, /retiros, /panel— NO están
+  // aquí: los usa una sola persona y traducirlos sería trabajo sin destino.
+  botTitulo: "Sophon Promoters",
+  botNecesitasCodigo: "Para entrar necesitas un código de activación del superadmin.",
+  botCuandoLoTengas: "Cuando lo tengas, ábrelo aquí y vincula tu correo.",
+  botHola: (nombre: string) => `Hola, ${nombre}. Elige por dónde empiezas.`,
+  botVincularCuenta: "Vincular mi cuenta",
+  botSuspendido: "Tu cuenta está suspendida. Escribe al superadmin para reactivarla.",
+  botSinPublicar: "La aplicación aún no está publicada. Avisa al superadmin.",
+  botCadaComando: "Cada comando abre una pantalla:",
+  botOStart: "O /start para el menú completo.",
+  botComandoDesconocido: "No conozco ese comando. Prueba /ayuda.",
+  botUsaStart: "Usa /start para abrir la aplicación.",
+
+  // Avisos que salen del panel hacia el agente.
+  botRetiroPagado: (importe: string) => `Te hemos pagado ${importe}.`,
+  botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
+  botRetiroReferencia: (referencia: string) => `Referencia: ${referencia}`,
+  botRetiroAprobado: (importe: string) =>
+    `Tu retiro de ${importe} está aprobado. El pago sale en breve.`,
+  botRetiroRechazado: (importe: string) =>
+    `Tu retiro de ${importe} no ha salido. El saldo vuelve a estar disponible.`,
+  botMotivo: (motivo: string) => `Motivo: ${motivo}`,
 } as const;
 
 /**
@@ -330,6 +364,10 @@ const en: Cadenas = {
 
   quedaRegistrado: "It will be logged with your name and the time.",
   incluyeUnAnio: "Activating them gives them a year of PRO. Nothing else to do.",
+  continuar: "CONTINUE",
+  vasAActivar: "YOU'RE ACTIVATING",
+  corregirElCorreo: "Fix the email",
+  altaNoSeDeshace: "Activating can't be undone: they're tied to you in Sophon.",
   proConcedido: (fecha: string) => `You gave them a year of PRO, until ${fecha}.`,
   proNoConcedido: "The webmaster is in your network, but the PRO didn't go through.",
   proNoConcedidoApoyo: "Retry from their page; you don't need to activate them again.",
@@ -386,6 +424,27 @@ const en: Cadenas = {
   sesionCaducadaApoyo: "Sign in again with your email. Nothing of yours is lost.",
   algoHaFallado: "Something went wrong.",
   comoCobras: "You earn $0.03 for every user they sign up, whatever the country.",
+
+  botTitulo: "Sophon Promoters",
+  botNecesitasCodigo: "You need an activation code from the superadmin to get in.",
+  botCuandoLoTengas: "Once you have it, open it here and link your email.",
+  botHola: (nombre: string) => `Hi ${nombre}. Pick where you start.`,
+  botVincularCuenta: "Link my account",
+  botSuspendido: "Your account is suspended. Message the superadmin to reactivate it.",
+  botSinPublicar: "The app isn't published yet. Let the superadmin know.",
+  botCadaComando: "Each command opens a screen:",
+  botOStart: "Or /start for the full menu.",
+  botComandoDesconocido: "I don't know that command. Try /ayuda.",
+  botUsaStart: "Use /start to open the app.",
+
+  botRetiroPagado: (importe: string) => `We've paid you ${importe}.`,
+  botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
+  botRetiroReferencia: (referencia: string) => `Reference: ${referencia}`,
+  botRetiroAprobado: (importe: string) =>
+    `Your ${importe} payout is approved. The transfer goes out shortly.`,
+  botRetiroRechazado: (importe: string) =>
+    `Your ${importe} payout didn't go through. The balance is available again.`,
+  botMotivo: (motivo: string) => `Reason: ${motivo}`,
 };
 
 const it: Cadenas = {
@@ -501,6 +560,10 @@ const it: Cadenas = {
 
   quedaRegistrado: "Resterà registrato con il tuo nome e l'ora.",
   incluyeUnAnio: "Attivandolo gli dai un anno di PRO. Non serve altro.",
+  continuar: "CONTINUA",
+  vasAActivar: "STAI ATTIVANDO",
+  corregirElCorreo: "Correggi l'email",
+  altaNoSeDeshace: "L'attivazione non si annulla: resta legato a te su Sophon.",
   proConcedido: (fecha: string) => `Gli hai dato un anno di PRO, fino al ${fecha}.`,
   proNoConcedido: "Il webmaster è nella tua rete, ma il PRO non è passato.",
   proNoConcedidoApoyo: "Riprova dalla sua scheda; l'attivazione non va rifatta.",
@@ -558,6 +621,27 @@ const it: Cadenas = {
   sesionCaducadaApoyo: "Rientra con la tua email. Non perdi niente di tuo.",
   algoHaFallado: "Qualcosa è andato storto.",
   comoCobras: "Guadagni 0,03 $ per ogni utente che registra, da qualunque paese arrivi.",
+
+  botTitulo: "Sophon Promoters",
+  botNecesitasCodigo: "Per entrare ti serve un codice di attivazione del superadmin.",
+  botCuandoLoTengas: "Quando ce l'hai, aprilo qui e collega la tua email.",
+  botHola: (nombre: string) => `Ciao ${nombre}. Scegli da dove inizi.`,
+  botVincularCuenta: "Collega il mio account",
+  botSuspendido: "Il tuo account è sospeso. Scrivi al superadmin per riattivarlo.",
+  botSinPublicar: "L'applicazione non è ancora pubblicata. Avvisa il superadmin.",
+  botCadaComando: "Ogni comando apre una schermata:",
+  botOStart: "Oppure /start per il menu completo.",
+  botComandoDesconocido: "Non conosco questo comando. Prova /ayuda.",
+  botUsaStart: "Usa /start per aprire l'applicazione.",
+
+  botRetiroPagado: (importe: string) => `Ti abbiamo pagato ${importe}.`,
+  botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
+  botRetiroReferencia: (referencia: string) => `Riferimento: ${referencia}`,
+  botRetiroAprobado: (importe: string) =>
+    `Il tuo prelievo di ${importe} è approvato. Il pagamento parte a breve.`,
+  botRetiroRechazado: (importe: string) =>
+    `Il tuo prelievo di ${importe} non è andato a buon fine. Il saldo è di nuovo disponibile.`,
+  botMotivo: (motivo: string) => `Motivo: ${motivo}`,
 };
 
 const pt: Cadenas = {
@@ -671,6 +755,10 @@ const pt: Cadenas = {
 
   quedaRegistrado: "Fica registado com o teu nome e a hora.",
   incluyeUnAnio: "Ao ativá-lo dás-lhe um ano de PRO. Não é preciso mais nada.",
+  continuar: "CONTINUAR",
+  vasAActivar: "VAIS ATIVAR",
+  corregirElCorreo: "Corrigir o email",
+  altaNoSeDeshace: "A ativação não se desfaz: fica ligado a ti na Sophon.",
   proConcedido: (fecha: string) => `Deste-lhe um ano de PRO, até ${fecha}.`,
   proNoConcedido: "O webmaster já está na tua rede, mas o PRO não entrou.",
   proNoConcedidoApoyo: "Tenta outra vez a partir da ficha dele; a ativação não se repete.",
@@ -728,6 +816,27 @@ const pt: Cadenas = {
   sesionCaducadaApoyo: "Entra outra vez com o teu email. Não perdes nada do que é teu.",
   algoHaFallado: "Alguma coisa correu mal.",
   comoCobras: "Ganhas 0,03 $ por cada utilizador que ele registar, seja de que país for.",
+
+  botTitulo: "Sophon Promoters",
+  botNecesitasCodigo: "Para entrar precisas de um código de ativação do superadmin.",
+  botCuandoLoTengas: "Quando o tiveres, abre-o aqui e liga o teu email.",
+  botHola: (nombre: string) => `Olá, ${nombre}. Escolhe por onde começas.`,
+  botVincularCuenta: "Ligar a minha conta",
+  botSuspendido: "A tua conta está suspensa. Escreve ao superadmin para a reativar.",
+  botSinPublicar: "A aplicação ainda não está publicada. Avisa o superadmin.",
+  botCadaComando: "Cada comando abre um ecrã:",
+  botOStart: "Ou /start para o menu completo.",
+  botComandoDesconocido: "Não conheço esse comando. Experimenta /ayuda.",
+  botUsaStart: "Usa /start para abrir a aplicação.",
+
+  botRetiroPagado: (importe: string) => `Pagámos-te ${importe}.`,
+  botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
+  botRetiroReferencia: (referencia: string) => `Referência: ${referencia}`,
+  botRetiroAprobado: (importe: string) =>
+    `O teu levantamento de ${importe} está aprovado. O pagamento sai em breve.`,
+  botRetiroRechazado: (importe: string) =>
+    `O teu levantamento de ${importe} não saiu. O saldo volta a estar disponível.`,
+  botMotivo: (motivo: string) => `Motivo: ${motivo}`,
 };
 
 /**
@@ -845,6 +954,10 @@ const ar: Cadenas = {
 
   quedaRegistrado: "سيُسجَّل باسمك ووقته.",
   incluyeUnAnio: "بتفعيله تمنحه سنة من PRO. لا شيء آخر عليك فعله.",
+  continuar: "متابعة",
+  vasAActivar: "ستفعّل",
+  corregirElCorreo: "تصحيح البريد",
+  altaNoSeDeshace: "التفعيل لا يُلغى: يبقى مرتبطًا بك في Sophon.",
   proConcedido: (fecha: string) => `منحته سنة من PRO، حتى ${fecha}.`,
   proNoConcedido: "المشرف صار في شبكتك، لكن الـ PRO لم يُمنح.",
   proNoConcedidoApoyo: "أعد المحاولة من صفحته؛ لا داعي لتكرار التفعيل.",
@@ -901,6 +1014,27 @@ const ar: Cadenas = {
   sesionCaducadaApoyo: "ادخل مرة أخرى ببريدك. لا تفقد شيئًا مما لك.",
   algoHaFallado: "حدث خطأ ما.",
   comoCobras: "تربح 0,03 $ عن كل مستخدم يسجّله، أيًّا كان بلده.",
+
+  botTitulo: "Sophon Promoters",
+  botNecesitasCodigo: "للدخول تحتاج رمز تفعيل من المشرف العام.",
+  botCuandoLoTengas: "حين تحصل عليه، افتحه هنا واربط بريدك.",
+  botHola: (nombre: string) => `مرحبًا ${nombre}. اختر من أين تبدأ.`,
+  botVincularCuenta: "اربط حسابي",
+  botSuspendido: "حسابك موقوف. راسل المشرف العام لإعادة تفعيله.",
+  botSinPublicar: "التطبيق لم يُنشر بعد. أبلغ المشرف العام.",
+  botCadaComando: "كل أمر يفتح شاشة:",
+  botOStart: "أو /start للقائمة الكاملة.",
+  botComandoDesconocido: "لا أعرف هذا الأمر. جرّب /ayuda.",
+  botUsaStart: "استخدم /start لفتح التطبيق.",
+
+  botRetiroPagado: (importe: string) => `حوّلنا لك ${importe}.`,
+  botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
+  botRetiroReferencia: (referencia: string) => `المرجع: ${referencia}`,
+  botRetiroAprobado: (importe: string) =>
+    `طلب سحبك بقيمة ${importe} تمت الموافقة عليه. التحويل قريبًا.`,
+  botRetiroRechazado: (importe: string) =>
+    `طلب سحبك بقيمة ${importe} لم يتم. الرصيد متاح من جديد.`,
+  botMotivo: (motivo: string) => `السبب: ${motivo}`,
 };
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };

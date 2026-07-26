@@ -134,6 +134,15 @@ model Agente {
   /// Poner además un cupo mensual habría frenado justo lo que da dinero. Para
   /// parar a un agente concreto está `estado`, que corta también su sesión.
 
+  /// Idioma en el que se le habla desde el SERVIDOR.
+  ///
+  /// La Mini App no lo necesita —lo saca de `initDataUnsafe` en cada carga—,
+  /// pero el bot sí: cuando el superadmin resuelve un retiro no hay ninguna
+  /// actualización de Telegram de la que leer `language_code`, así que sin esta
+  /// columna el aviso de «te hemos pagado» saldría en español para todo el
+  /// mundo. Se escribe al vincular la cuenta y se refresca en cada `/start`.
+  idioma String @default("es")
+
   /// Invalidación instantánea de todas las sesiones: basta con incrementarlo.
   epocaSesion Int @default(0)
 

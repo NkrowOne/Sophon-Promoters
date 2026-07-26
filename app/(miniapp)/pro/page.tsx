@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Mecha, unidadComun } from "@/components/Mecha";
-import { Aviso, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
@@ -56,6 +56,9 @@ export default function Renovaciones() {
   const [error, setError] = useState<ErrorApi | null>(null);
   const [enCurso, setEnCurso] = useState<string | null>(null);
   const [hecho, setHecho] = useState<{ email: string; vigenteHasta: string | null } | null>(null);
+  // A quién se intentó renovar por última vez: es lo que el aviso de error
+  // necesita para poder ofrecer «reintentar» en vez de solo dar la mala noticia.
+  const [ultimo, setUltimo] = useState<WebmasterPro | null>(null);
 
   // Una clave por webmaster, generada UNA vez por intención: si el agente pulsa
   // dos veces sobre la misma fila, el servidor reconoce el duplicado en vez de
@@ -76,6 +79,7 @@ export default function Renovaciones() {
     async (w: WebmasterPro) => {
       if (enCurso) return;
       setEnCurso(w.id);
+      setUltimo(w);
       setError(null);
       let clave = claves.current.get(w.id);
       if (!clave) {
@@ -134,40 +138,55 @@ export default function Renovaciones() {
 
   return (
     <Pantalla titulo={t.colaRenovaciones} volverA="/">
-      {/* Lo primero es cuántos piden actuar. Que no haya ninguno también es
-          información: confirma que hoy no hay nada que hacer aquí. */}
-      <p className={`mb-6 text-apoyo ${datos.urgentes > 0 ? "text-vivo" : "text-texto-apoyo"}`}>
-        {datos.urgentes > 0 ? t.seApagan(datos.urgentes) : t.ningunoSeApaga(datos.diasAviso)}
-      </p>
-
-      {hecho && (
-        <p className="mb-6 border-s-2 border-borde ps-3 text-apoyo">
-          {t.renovado(hecho.email, hecho.vigenteHasta ? formatoDia(hecho.vigenteHasta) : "—")}
+      <Banda tono={0} como="header" className="pb-6">
+        {/* Lo primero es cuántos piden actuar. Que no haya ninguno también es
+            información: confirma que hoy no hay nada que hacer aquí. */}
+        <p className={`text-apoyo ${datos.urgentes > 0 ? "text-vivo" : "text-texto-apoyo"}`}>
+          {datos.urgentes > 0 ? t.seApagan(datos.urgentes) : t.ningunoSeApaga(datos.diasAviso)}
         </p>
-      )}
 
-      {error && (
-        <div className="mb-6">
-          <Aviso error={error.message} apoyo={error.apoyo} />
-        </div>
-      )}
+        {hecho && (
+          <p className="mt-4 border-s-2 border-tinta ps-3 text-apoyo">
+            {t.renovado(hecho.email, hecho.vigenteHasta ? formatoDia(hecho.vigenteHasta) : "—")}
+          </p>
+        )}
 
-      <ul className="divide-y divide-borde border-y border-borde" role="list">
-        {datos.webmasters.map((w) => (
-          <li key={w.id} className="py-4">
-            <Fila
-              w={w}
-              t={t}
-              porSemanas={porSemanas}
-              cargando={enCurso === w.id}
-              deshabilitado={Boolean(enCurso)}
-              onRenovar={() => renovar(w)}
+        {/* El error de una renovación se reintenta renovando otra vez, así que
+            el aviso lleva la acción: sin ella el agente solo podía volver a
+            buscar la fila y adivinar si el toque anterior llegó a contar. */}
+        {error && (
+          <div className="mt-4">
+            <Aviso
+              error={error.message}
+              apoyo={error.apoyo}
+              onReintentar={ultimo ? () => renovar(ultimo) : undefined}
             />
-          </li>
-        ))}
-      </ul>
+          </div>
+        )}
+      </Banda>
 
-      {datos.urgentes === 0 && <p className="mt-5 text-apoyo text-texto-apoyo">{t.todoAlDia}</p>}
+      <Banda tono={1} etiqueta={t.colaRenovaciones} className="py-2">
+        <ul className="divide-y divide-borde" role="list">
+          {datos.webmasters.map((w) => (
+            <li key={w.id} className="py-4">
+              <Fila
+                w={w}
+                t={t}
+                porSemanas={porSemanas}
+                cargando={enCurso === w.id}
+                deshabilitado={Boolean(enCurso)}
+                onRenovar={() => renovar(w)}
+              />
+            </li>
+          ))}
+        </ul>
+      </Banda>
+
+      {datos.urgentes === 0 && (
+        <Banda tono={0} className="pt-5">
+          <p className="text-apoyo text-texto-apoyo">{t.todoAlDia}</p>
+        </Banda>
+      )}
     </Pantalla>
   );
 }

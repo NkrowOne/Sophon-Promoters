@@ -18,5 +18,8 @@ npm-debug.log*
 
 /data
 coverage/
-.tsbuildinfo
+# Con el punto delante NO casaba con `tsconfig.tsbuildinfo`, que es como lo
+# llama tsc de verdad: la caché de compilación se estaba versionando y ensuciaba
+# el diff de cada commit con un blob que nadie lee.
+*.tsbuildinfo
 next-env.d.ts
