@@ -119,8 +119,12 @@ async function principal(): Promise<void> {
     console.warn("· sin TELEGRAM_SUPERADMIN_ID: no se registran los comandos de gestión");
   }
 
+  // «Panel» y no el nombre del producto: es el botón que abre la Mini App desde
+  // el chat, y dentro de Telegram el nombre del bot ya está encima. Se queda sin
+  // localizar como estaba —es el único literal así del fichero—, pero al menos
+  // no cambia de significado.
   await llamar("setChatMenuButton", {
-    menu_button: { type: "web_app", text: "Sophon Promoters", web_app: { url } },
+    menu_button: { type: "web_app", text: "Panel", web_app: { url } },
   });
 
   console.log(`\nBot apuntando a ${url}/api/bot`);

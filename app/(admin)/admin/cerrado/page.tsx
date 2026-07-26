@@ -7,11 +7,13 @@
  * inútil para quien no.
  */
 
+import { MINUTOS_CANJE } from "@/lib/auth/admin";
+
 export const dynamic = "force-dynamic";
 
 const MOTIVOS: Record<string, string> = {
   falta: "Enlace incompleto: falta el token de entrada.",
-  caducado: "Enlace no válido: ya se ha usado o ha caducado.",
+  caducado: `Enlace no válido: ya se ha usado o han pasado sus ${MINUTOS_CANJE} minutos de vigencia.`,
 };
 
 export default async function Cerrado({

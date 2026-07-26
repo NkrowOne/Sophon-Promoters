@@ -98,10 +98,15 @@ export default async function Panel() {
                 {s.error ? `: ${s.error.slice(0, 120)}` : ""}.
               </li>
             ))}
+            {/* La consecuencia va en la línea, no sobreentendida. Un descuadre
+                sin decir qué hacer con él se lee como una nota informativa, y lo
+                que este aviso existe para evitar es que se resuelva un retiro
+                sobre un libro que no cuadra. */}
             {conciliacion && !conciliacion.cuadra && (
               <li>
                 Conciliación del {fecha(conciliacion.fecha)}: descuadre de{" "}
-                {formatearMicros(conciliacion.descuadreMicros)}.
+                {formatearMicros(conciliacion.descuadreMicros)}. No se deben resolver retiros
+                hasta cuadrarla.
               </li>
             )}
           </ul>
