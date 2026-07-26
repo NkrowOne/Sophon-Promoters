@@ -37,6 +37,14 @@ export interface ResultadoBarrido {
   desde: string;
   hasta: string;
   /**
+   * Asientos que este barrido ha promovido de `PROVISIONAL` a `CONSOLIDADO`.
+   *
+   * En un sistema en régimen es un número pequeño —los asientos de un día que
+   * acaba de salir de la ventana—. La primera vez que corra después del arreglo
+   * será enorme: son todos los que llevaban desde el principio sin consolidar.
+   */
+  asientosConsolidados: number;
+  /**
    * No había ninguna `TarifaVersion` en vigor, así que este barrido guardó las
    * filas y **no devengó nada**.
    *
@@ -138,10 +146,13 @@ export async function barrerRegistros(
         webmastersNuevos += r.webmasterNuevo ? 1 : 0;
       }
 
+      const asientosConsolidados = await consolidarVencidos(hasta, dias);
+
       const resultado: ResultadoBarrido = {
         filasLeidas: total.size,
         filasEscritas,
         asientosCreados,
+        asientosConsolidados,
         webmastersNuevos,
         desde,
         hasta,
@@ -319,6 +330,34 @@ async function asentadoPrevio(
     else cpaMicros += a.importeMicros;
   }
   return { cpaMicros, cpsMicros, secuencia: asientos.length };
+}
+
+/**
+ * Promueve a `CONSOLIDADO` los asientos cuyo día ya salió de la ventana.
+ *
+ * **Hace falta además del arreglo de `estaCerrado`, y no es redundante.** Aquel
+ * decide bien el estado de un asiento *en el momento de escribirlo*, pero solo
+ * alcanza a las filas que el barrido vuelve a leer, que son las de los últimos
+ * siete días. Todo lo devengado antes de ese arreglo está ya en la base de datos
+ * marcado `PROVISIONAL`, fuera de la ventana y por tanto fuera del alcance de
+ * cualquier barrido futuro: sin este paso se quedaría así para siempre y el
+ * saldo retirable de los agentes seguiría congelado.
+ *
+ * Es un `updateMany` acotado por fecha y por estado, así que es idempotente: la
+ * segunda vuelta no encuentra nada que promover.
+ *
+ * **No toca los importes.** Consolidar es declarar que un día ya no se revisa;
+ * el dinero ya estaba asentado y aquí solo cambia de estado. Un asiento anulado
+ * queda fuera a propósito.
+ */
+async function consolidarVencidos(hoy: string, dias: number): Promise<number> {
+  const frontera = new Date(Date.parse(`${hoy}T00:00:00Z`) - dias * 86_400_000);
+
+  const { count } = await db.asientoComision.updateMany({
+    where: { estado: "PROVISIONAL", fechaDevengo: { lte: frontera } },
+    data: { estado: "CONSOLIDADO" },
+  });
+  return count;
 }
 
 /** Tarifa en vigor. Si no hay ninguna configurada, no se devenga nada. */

@@ -308,7 +308,52 @@ async function principal(): Promise<void> {
     inventado.headers.get("location") ?? "",
   );
 
-  // ── 10. Sin tarifa en vigor, el barrido lo DICE ───────────────────────────
+  // ── 10. El disponible: lo que sale de la ventana se puede retirar ─────────
+  //
+  // Es la comprobación del fallo que tenía parado todo el dinero: `estaCerrado`
+  // comparaba con `>` estricto contra una ventana que empieza exactamente en
+  // hoy−7, así que ningún asiento llegaba nunca a CONSOLIDADO y el disponible de
+  // todos los agentes era cero. Aquí se mide el circuito entero —devengar,
+  // consolidar, ver saldo— porque el fallo era invisible en cada pieza suelta.
+  {
+    const { saldos } = await import("../lib/api/agente.ts");
+    const { barrerRegistros, hoyContable } = await import("../lib/sync/registros.ts");
+    const hoy = hoyContable();
+    const hace = (d: number) => new Date(Date.parse(`${hoy}T00:00:00Z`) - d * 86_400_000);
+
+    const agente = await db.agente.findUnique({ where: { emailNormalizado: EMAIL } });
+    if (agente) {
+      await db.asientoComision.create({
+        data: {
+          agenteId: agente.id,
+          tipo: "CPA",
+          estado: "PROVISIONAL",
+          importeMicros: 42_000_000n,
+          fechaDevengo: hace(20),
+          claveIdempotencia: `e2e-vencido:${Date.now()}`,
+        },
+      });
+
+      const antes = await saldos(agente.id);
+      comprobar("un asiento vencido nace sin poder retirarse", antes.disponibleMicros === 0n);
+
+      const r = await barrerRegistros(clienteFalsoSinDatos(), { desde: hoy, hasta: hoy });
+      comprobar(
+        "el barrido lo consolida",
+        (r?.asientosConsolidados ?? 0) >= 1,
+        `${r?.asientosConsolidados} consolidados`,
+      );
+
+      const despues = await saldos(agente.id);
+      comprobar(
+        "y entonces SÍ está disponible para retirar",
+        despues.disponibleMicros === 42_000_000n,
+        `${despues.disponibleMicros} micros`,
+      );
+    }
+  }
+
+  // ── 11. Sin tarifa en vigor, el barrido lo DICE ───────────────────────────
   //
   // Este es el defecto que estuvo en el repositorio desde el primer día sin que
   // nada lo delatara: `TarifaVersion` tenía un lector y ningún escritor, así que

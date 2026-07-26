@@ -239,11 +239,29 @@ export function conciliar(
  */
 export const DIAS_VENTANA_REVISION = 7;
 
+/**
+ * Un día ya no puede revisarse, así que su devengo es definitivo.
+ *
+ * **La comparación es `>=` y no `>`, y esa diferencia de un carácter tenía
+ * parado todo el dinero de la aplicación.**
+ *
+ * El barrido lee `[inicioVentana(hoy, 7), hoy]`, e `inicioVentana` devuelve
+ * exactamente `hoy − 7`. Así que la fila más antigua que el barrido llega a ver
+ * tiene 7 días justos, y con `> 7` eso daba falso: **ninguna fila leída por el
+ * barrido se cerraba nunca**. Todos los asientos nacían `PROVISIONAL`, nada los
+ * promovía después, y como `disponible` solo suma lo consolidado
+ * (`lib/api/agente.ts`), el disponible de todos los agentes era cero y **toda
+ * solicitud de retiro se rechazaba por importe superior al saldo**.
+ *
+ * No había error en ningún log: solo una cifra clavada en 0,00 $ mientras el
+ * devengado subía. Con `>=`, el día que sale de la ventana queda cerrado y el
+ * barrido consolida por sí solo.
+ */
 export function estaCerrado(fecha: string, hoy: string, dias = DIAS_VENTANA_REVISION): boolean {
   const f = Date.parse(`${fecha}T00:00:00Z`);
   const h = Date.parse(`${hoy}T00:00:00Z`);
   if (Number.isNaN(f) || Number.isNaN(h)) return false;
-  return (h - f) / 86_400_000 > dias;
+  return (h - f) / 86_400_000 >= dias;
 }
 
 /** Primer día del rango que hay que volver a leer en cada barrido. */

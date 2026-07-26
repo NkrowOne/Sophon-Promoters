@@ -242,7 +242,43 @@ test("la conciliación detecta un descuadre real y tolera el redondeo", () => {
 
 test("la ventana de revisión distingue días abiertos de cerrados", () => {
   assert.equal(estaCerrado("2026-07-24", "2026-07-25"), false, "ayer sigue abierto");
-  assert.equal(estaCerrado("2026-07-18", "2026-07-25"), false, "el borde no cierra todavía");
+  assert.equal(estaCerrado("2026-07-19", "2026-07-25"), false, "a 6 días sigue abierto");
   assert.equal(estaCerrado("2026-07-17", "2026-07-25"), true, "más allá de 7 días, cerrado");
   assert.equal(inicioVentana("2026-07-25"), "2026-07-18");
+});
+
+/*
+ * REGRESIÓN: el borde exacto de la ventana, que tenía parado todo el dinero.
+ *
+ * Esta prueba decía antes que el día de 7 días «no cierra todavía», y con ella
+ * en verde el sistema llevaba desde el principio sin consolidar un solo asiento:
+ *
+ *   - el barrido lee desde `inicioVentana(hoy, 7)`, que es exactamente hoy − 7;
+ *   - `estaCerrado` comparaba con `>` estricto, así que 7 > 7 daba falso;
+ *   - luego la fila MÁS ANTIGUA que el barrido llega a ver nunca se cerraba,
+ *     ningún asiento pasaba a CONSOLIDADO, y como el disponible solo suma lo
+ *     consolidado, todos los agentes tenían 0,00 $ retirables.
+ *
+ * El borde y la ventana tienen que encajar: lo que el barrido ya no vuelve a
+ * leer tiene que estar cerrado, o queda en tierra de nadie para siempre.
+ */
+test("REGRESIÓN: el día que sale de la ventana queda cerrado, no en tierra de nadie", () => {
+  const hoy = "2026-07-25";
+  const masAntiguoQueSeLee = inicioVentana(hoy); // 2026-07-18, siete días justos
+
+  assert.equal(
+    estaCerrado(masAntiguoQueSeLee, hoy),
+    true,
+    "el día más antiguo de la ventana tiene que cerrar: es el último barrido que lo ve",
+  );
+
+  // Y la propiedad general que lo sostiene, sea cual sea la ventana.
+  for (const dias of [1, 3, 7, 14, 30]) {
+    const borde = inicioVentana(hoy, dias);
+    assert.equal(
+      estaCerrado(borde, hoy, dias),
+      true,
+      `con ventana de ${dias} días, el borde tiene que quedar cerrado`,
+    );
+  }
 });
