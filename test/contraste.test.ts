@@ -121,6 +121,22 @@ function separacionHue(a: string, b: string): number {
   return d > 180 ? 360 - d : d;
 }
 
+/**
+ * Composición alfa en sRGB: lo que hace de verdad `opacity` en CSS.
+ *
+ * Existe porque medir el token no basta. El Testigo atenuaba los días antiguos
+ * con `opacity` y el token seguía pasando la puerta mientras lo que se pintaba
+ * en pantalla no llegaba ni a 2,4:1.
+ */
+function componer(frente: string, fondo: string, alfa: number): string {
+  const canal = (hex: string, i: number) => parseInt(hex.slice(i, i + 2), 16);
+  const mezcla = [1, 3, 5]
+    .map((i) => Math.round(canal(frente, i) * alfa + canal(fondo, i) * (1 - alfa)))
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("");
+  return `#${mezcla}`;
+}
+
 describe("contraste de los tokens", () => {
   it("el texto pasa 4,5:1 en todos los fondos de su polaridad", () => {
     for (const f of CLAROS) {
@@ -209,6 +225,43 @@ describe("contraste de los tokens", () => {
       const { tintaT1, tintaT2, tintaT3 } = TOKENS[tema];
       assert.ok(separacionHue(tintaT1, tintaT2) <= 15, `${tema}: T1 y T2 no son la misma familia`);
       assert.ok(separacionHue(tintaT1, tintaT3) <= 15, `${tema}: T1 y T3 no son la misma familia`);
+    }
+  });
+
+  it("atenuar un estrato con `opacity` NO es viable a ninguna alfa útil", () => {
+    /*
+     * El Testigo apagaba los días antiguos con `opacity`, con suelo 0,68. La
+     * puerta no lo veía porque medía el token y no lo que se pinta.
+     *
+     * Este test fija el hallazgo: la alfa mínima a la que el T3 sigue pasando
+     * 3:1 sobre su propia superficie está tan cerca de 1 que el degradado sería
+     * invisible. O se ve el desvanecido o se ve el dato; no las dos.
+     *
+     * Si alguien vuelve a atenuar estratos, este test le dice el número.
+     */
+    for (const [tema, fondo] of [
+      ["claro", FONDOS.claroBanda2],
+      ["oscuro", FONDOS.oscuroBanda2],
+    ] as const) {
+      const t3 = TOKENS[tema].tintaT3;
+
+      // A la alfa que llevaba el código, el estrato mayor era ilegible.
+      const conLaAlfaQueHabia = contraste(componer(t3, fondo, 0.68), fondo);
+      assert.ok(
+        conLaAlfaQueHabia < 3,
+        `${tema}: 0,68 daba ${conLaAlfaQueHabia.toFixed(2)}:1, ya no hace falta el aviso`,
+      );
+
+      // Y la alfa mínima viable no deja margen para un degradado perceptible.
+      let minima = 1;
+      for (let a = 1; a >= 0.5; a -= 0.005) {
+        if (contraste(componer(t3, fondo, a), fondo) >= 3) minima = a;
+        else break;
+      }
+      assert.ok(
+        minima >= 0.85,
+        `${tema}: la alfa mínima es ${minima.toFixed(2)}; si baja de 0,85 reconsidera el desvanecido`,
+      );
     }
   });
 

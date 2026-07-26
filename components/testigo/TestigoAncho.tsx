@@ -10,8 +10,9 @@
  * inventar una capa de eventos sobre un `<svg>`.
  *
  * Lo que NO cambia respecto al raíl, porque es lo que lo hace el mismo objeto:
- * longitud = raíz del ingreso, tiers en orden fijo T1 · T2 · T3, los estratos
- * antiguos pierden intensidad y el día abierto se ve inacabado.
+ * longitud = raíz del ingreso, tiers en orden fijo T1 · T2 · T3, y el día
+ * abierto se ve inacabado. Los estratos antiguos **ya no pierden intensidad**:
+ * ver la medición en `Testigo.tsx`.
  *
  * Dos densidades:
  *  - `denso`: 60 días en media pantalla. Sirve para ver la forma de la racha.
@@ -92,23 +93,20 @@ export function TestigoAncho({
         const raiz = raizEntera(d.importeMicros);
         const largo =
           raiz === 0n ? 0 : Math.max(LARGO_MINIMO, Number((raiz * 100n) / maxRaiz));
-        // La profundidad se insinúa, no se borra: mismo suelo de opacidad que
-        // el raíl, por la misma razón —sobre el tema claro los estratos del
-        // fondo se desvanecían hasta ser ilegibles—.
-        const intensidad = Math.max(0.68, 1 - i * 0.006);
-
+        // Sin desvanecido por antigüedad: ver la explicación medida en
+        // `Testigo.tsx`. Aquí la curva era más suave (0,006/día) y aun así
+        // dejaba el T3 en 2,25:1 sobre la banda más profunda.
         return (
           <li key={d.fecha}>
             {d.abreMes && (
               <Junta mes={d.fecha.slice(0, 7)} total={meses?.[d.fecha.slice(0, 7)]} />
             )}
             {denso ? (
-              <FilaDensa dia={d} largo={largo} intensidad={intensidad} />
+              <FilaDensa dia={d} largo={largo} />
             ) : (
               <FilaTocable
                 dia={d}
                 largo={largo}
-                intensidad={intensidad}
                 etiquetas={etiquetas}
                 abierto={abierto === d.fecha}
                 onAlternar={() => setAbierto(abierto === d.fecha ? null : d.fecha)}
@@ -148,12 +146,10 @@ function Junta({ mes, total }: { mes: string; total?: string }) {
 function Banda({
   dia,
   largo,
-  intensidad,
   alto,
 }: {
   dia: DiaAncho;
   largo: number;
-  intensidad: number;
   alto: number;
 }) {
   const tiers = dia.registrosT1 + dia.registrosT2 + dia.registrosT3;
@@ -161,11 +157,7 @@ function Banda({
 
   return (
     <span className="relative flex min-w-0 flex-1 items-center" style={{ height: alto }}>
-      <span
-        className="flex h-full"
-        style={{ width: `${largo}%`, opacity: intensidad }}
-        aria-hidden
-      >
+      <span className="flex h-full" style={{ width: `${largo}%` }} aria-hidden>
         {tiers === 0 ? (
           <span className="h-full w-full bg-t2" />
         ) : (
@@ -198,15 +190,7 @@ function Banda({
 }
 
 /** 60 días en media pantalla: aquí se lee la forma de la racha, no el detalle. */
-function FilaDensa({
-  dia,
-  largo,
-  intensidad,
-}: {
-  dia: DiaAncho;
-  largo: number;
-  intensidad: number;
-}) {
+function FilaDensa({ dia, largo }: { dia: DiaAncho; largo: number }) {
   const dow = new Date(`${dia.fecha}T00:00:00Z`).getUTCDay();
   return (
     <div className="flex items-center gap-2 py-[1px]">
@@ -215,7 +199,7 @@ function FilaDensa({
       <span className="w-6 shrink-0 text-end text-[10px] leading-none text-texto-apoyo">
         {dow === 1 ? dia.fecha.slice(8) : ""}
       </span>
-      <Banda dia={dia} largo={largo} intensidad={intensidad} alto={7} />
+      <Banda dia={dia} largo={largo} alto={7} />
     </div>
   );
 }
@@ -223,14 +207,12 @@ function FilaDensa({
 function FilaTocable({
   dia,
   largo,
-  intensidad,
   etiquetas,
   abierto,
   onAlternar,
 }: {
   dia: DiaAncho;
   largo: number;
-  intensidad: number;
   etiquetas: EtiquetasTestigo;
   abierto: boolean;
   onAlternar: () => void;
@@ -238,16 +220,21 @@ function FilaTocable({
   const meses = usarMeses();
   return (
     <>
+      {/* `min-h-11` = 44 px. Medida la caja renderizada, estas filas daban
+          314×31: son el ÚNICO gesto de la pantalla —«toca un día para ver de
+          dónde salió»— y ninguna llegaba al mínimo táctil. Va como altura
+          mínima y no como `py-` para que no dependa de cuánto ocupe el texto
+          de dentro en cada idioma. */}
       <button
         type="button"
         onClick={onAlternar}
         aria-expanded={abierto}
-        className="flex w-full items-center gap-2.5 py-1.5 text-start"
+        className="flex min-h-11 w-full items-center gap-2.5 py-1.5 text-start"
       >
         <span className="cifra w-11 shrink-0 text-[11px] text-texto-apoyo">
           {dia.fecha.slice(8)} {meses[Number(dia.fecha.slice(5, 7)) - 1]}
         </span>
-        <Banda dia={dia} largo={largo} intensidad={intensidad} alto={14} />
+        <Banda dia={dia} largo={largo} alto={14} />
         {/* Sin `$` en cada fila: la unidad se dice una vez en la cabecera de la
             columna. Repetirla setenta veces no aporta precisión, y en mono el
             espacio previo al símbolo mide un dígito entero, así que además

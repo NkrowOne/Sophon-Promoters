@@ -118,19 +118,31 @@ export function Testigo({
           const anchoT2 = tiers ? (longitud * dia.registrosT2) / tiers : 0;
           const anchoT3 = tiers ? longitud - anchoT1 - anchoT2 : 0;
 
-          // La profundidad se ve: cuanto más antiguo, más apagado el estrato.
-          // El suelo es 0,68 y no 0,45 porque sobre el tema claro de Telegram
-          // los estratos del fondo se desvanecían hasta ser ilegibles: la
-          // profundidad debe insinuarse, no borrar el dato.
-          const desvanecido = Math.max(0.68, 1 - i * 0.022);
-
+          /*
+           * Los estratos van a OPACIDAD PLENA. Aquí había un desvanecido por
+           * antigüedad —`max(0.68, 1 - i * 0.022)`— y se ha quitado porque no
+           * era viable, no porque no gustara.
+           *
+           * Medido, componiendo el estrato sobre `--carril`: con esa curva el
+           * T3 cae por debajo de 3:1 a partir del **día 7** y se queda en
+           * 2,32:1 (claro) y 2,20:1 (oscuro) desde el día 15. Es decir, 23 de
+           * los 30 días del raíl tenían su estrato mayor por debajo del suelo
+           * de legibilidad, en el elemento que sale en todas las pantallas.
+           *
+           * Y no se arregla subiendo el suelo: para que el T3 aguantara 3:1 la
+           * alfa mínima es 0,89 en claro y 0,98 en oscuro. A 0,98 no hay
+           * desvanecido que ver. O se ve el degradado o se ve el dato.
+           *
+           * No se pierde nada: la antigüedad ya está codificada por la POSICIÓN
+           * —arriba hoy, abajo el pasado— y el día abierto se distingue por su
+           * veta, no por ser el más opaco. El desvanecido era el accesorio.
+           */
           const estilo = animar
             ? {
                 animationDelay: `${Math.min(i * 40, MAX_RETARDO_MS)}ms`,
                 transformOrigin: "left center",
-                opacity: desvanecido,
               }
-            : { opacity: desvanecido };
+            : undefined;
 
           return (
             <g key={dia.fecha} className={animar ? "animate-depositar" : undefined} style={estilo}>
