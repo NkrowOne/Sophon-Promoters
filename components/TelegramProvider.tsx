@@ -131,6 +131,31 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
     for (const [clave, valor] of Object.entries(app.themeParams ?? {})) {
       document.documentElement.style.setProperty(`--tg-theme-${clave.replace(/_/g, "-")}`, valor);
     }
+
+    /*
+     * El botón principal NATIVO se pinta con nuestros tokens.
+     *
+     * `setParams` estaba declarado en la interfaz y no se llamaba nunca, así que
+     * la acción principal de las ocho pantallas —el único botón que el agente
+     * pulsa de verdad en cada una— salía del azul por defecto del cliente. Es
+     * decir: el botón más importante de la aplicación era el único elemento que
+     * no pertenecía a su sistema visual.
+     *
+     * Los colores se LEEN del CSS en vez de escribirse aquí. Así el botón nativo
+     * y el de reserva del DOM no pueden separarse nunca: cambiar la paleta es
+     * cambiar `globals.css`, y este puente se entera solo.
+     *
+     * Va dentro de `aplicarTema` a propósito, que es lo que se vuelve a ejecutar
+     * en `themeChanged`: al cambiar de claro a oscuro con la app abierta,
+     * Telegram reestampa su botón con SUS colores y se llevaría los nuestros por
+     * delante.
+     */
+    const estilo = getComputedStyle(document.documentElement);
+    const fondo = estilo.getPropertyValue("--boton-fondo").trim();
+    const tinta = estilo.getPropertyValue("--boton-tinta").trim();
+    if (fondo && tinta) {
+      app.MainButton.setParams({ color: fondo, text_color: tinta });
+    }
   }, []);
 
   useEffect(() => {

@@ -97,6 +97,23 @@
    */
   --peligro: var(--tg-theme-destructive-text-color, #b3261e);
 
+  /*
+   * El par del botón principal, declarado UNA vez.
+   *
+   * Lo leen dos consumidores que antes no se hablaban: la clase del botón de
+   * reserva del DOM y `MainButton.setParams`, que pinta el botón NATIVO de
+   * Telegram. Mientras el segundo no existía, la acción principal de cada
+   * pantalla salía del azul del cliente y era el único elemento de la
+   * aplicación fuera de su propio sistema visual.
+   *
+   * Tienen que ser valores RESUELTOS y no `var(--otra-cosa)`: Telegram recibe
+   * una cadena de color por la API del puente, no una hoja de estilos, y
+   * `getComputedStyle` de una custom property devuelve el texto tal cual está
+   * escrito, sin sustituir.
+   */
+  --boton-fondo: #4a1f42;
+  --boton-tinta: #ffffff;
+
   --margen-pantalla: 1rem;
   --fuente-texto: system-ui;
   --fuente-cifras: ui-monospace;
@@ -121,6 +138,9 @@
 
   --vivo: #d7a94a;
   --peligro: var(--tg-theme-destructive-text-color, #f2837a);
+
+  --boton-fondo: #f0cde6;
+  --boton-tinta: #17212b;
 }
 
 /*
