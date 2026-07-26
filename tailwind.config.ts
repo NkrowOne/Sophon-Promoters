@@ -1,18 +1,21 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Sistema visual «SONDA».
+ * Sistema visual «LA PLACA».
  *
  * La app se abre DENTRO de Telegram, así que el fondo y el color de texto los
  * pone el cliente del usuario, no nosotros: se consumen vía `--tg-theme-*` con
  * fallback estático, porque un WebView antiguo que no inyecte esas variables
  * dejaría el texto sobre transparente.
  *
- * La paleta propia se reserva para lo que sí es nuestro: los estratos por tier,
- * las acciones y el suelo del sondeo. Es UNA familia —ciruela— en tres valores,
- * más un ámbar que solo señala estado. Los tiers se distinguen además por
- * POSICIÓN fija en la banda, de modo que la lectura sobrevive a cualquier
- * daltonismo.
+ * Lo nuestro son los dos colores de Sophon y nada más:
+ *
+ *   AMARILLO  #F9D027  campo macizo con tinta oscura. Acción e identidad.
+ *   MARRÓN    hue 55°  rampa de tres valores. Datos.
+ *
+ * El amarillo NUNCA es tinta: 1,49:1 sobre blanco. Ese hecho medido es lo que
+ * decide el sistema entero —campo, no acento— y de paso lo que hace que el par
+ * campo/tinta valga igual en las dos polaridades.
  */
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
@@ -23,7 +26,10 @@ const config: Config = {
         fondo: "var(--tg-theme-bg-color, #ffffff)",
         "fondo-secundario": "var(--tg-theme-secondary-bg-color, #f2f3f5)",
         texto: "var(--tg-theme-text-color, #10151a)",
-        "texto-apoyo": "var(--tg-theme-hint-color, #6b7681)",
+        // NO es el hint de Telegram: aquel es un gris azulado que sobre este
+        // papel cálido da 4,17:1 —por debajo del umbral de texto— y era lo que
+        // dejaba frío cada rótulo de la aplicación. Ver `globals.css`.
+        "texto-apoyo": "var(--tinta-apoyo)",
         enlace: "var(--tg-theme-link-color, #2a7ec4)",
 
         // Superficies derivadas, con respaldo estático (ver globals.css).
@@ -31,111 +37,89 @@ const config: Config = {
         "superficie-alta": "var(--superficie-alta)",
         borde: "var(--borde)",
         junta: "var(--junta)",
-        carril: "var(--carril)",
 
         /*
-         * La rampa: UNA familia de ciruela en tres valores (hue 335-338°).
+         * EL CAMPO. El amarillo de Sophon, y el único color que no cambia entre
+         * claro y oscuro: el campo lleva su propio contraste (12,43:1 con su
+         * tinta), así que no necesita variante por polaridad.
          *
-         * Se llegó aquí por descarte y por medida. Los dos primeros intentos
-         * fueron plantilla —un naranja de baliza, que sobre tema oscuro es el
-         * «fondo casi negro con acento cálido», y un índigo-violeta, que es el
-         * color por defecto de todo producto de IA—, así que se quitó el color
-         * entero. Eso pasó de largo: una app de datos en gris no es sobria, es
-         * ilegible de un vistazo, que es justo lo que se le pide.
+         * Regla de uso, no estilo: todo lo que el agente tiene que HACER o
+         * SABER va sobre campo. Nada más es amarillo. Por eso `--vivo`
+         * desapareció —«esto exige acción» y «esto es la marca» son lo mismo y
+         * no necesitaban dos colores— y el sistema bajó de cuatro colores
+         * semánticos a tres.
+         */
+        campo: "var(--campo)",
+        "campo-tinta": "var(--campo-tinta)",
+
+        /*
+         * LA RAMPA: marrón, hue 55°, croma 0,070. El otro color de Sophon.
          *
-         * Un hue único y no tres: el argumento de `lib/devengo/motor.ts` sigue
-         * siendo cierto —el agente cobra lo mismo sea cual sea el tier—, así
-         * que el tier se sigue codificando por VALOR y por posición en la
-         * banda. Lo que ese argumento nunca sostuvo era que la aplicación
-         * entera fuese acromática.
+         * Se llegó aquí por descarte y por medida. Naranja de baliza e
+         * índigo-violeta eran plantilla; el gris no era sobrio sino ilegible de
+         * un vistazo; la ciruela se vio y se llamó «lila». El error repetido
+         * fue elegir el segundo color por criterio estético en vez de tomarlo
+         * de la marca: Sophon es amarillo y marrón, y no había nada que elegir.
          *
-         * `tinta` es el T1 y es también la superficie de acción: `bg-tinta` en
-         * los botones principales y `focus:border-tinta` en los campos. Que
-         * botón y dato compartan color es deliberado —son la misma sustancia—,
-         * y el par está medido: blanco sobre ciruela 13,41:1 en claro, fondo
-         * sobre ciruela clara 9,17:1 en el peor caso oscuro.
+         * Un hue único y no tres, porque los tiers son ORDINALES —T1 paga
+         * 0,30 $, T2 0,25, T3 0,20—, así que se ordenan por valor. Va además
+         * por posición fija en la banda: la lectura no depende del color.
          *
-         * La planitud se combate además con MATERIA: la página se parte en
-         * bandas con juntas de 1 px —el 90 % de los píxeles— y el Testigo tiene
-         * suelo opaco y canto. Ver `globals.css`.
+         * `tinta` es el T1 y es la tinta de datos. La acción NO comparte color
+         * con el dato: para eso está el campo.
          */
         t1: "var(--tinta-t1)",
         t2: "var(--tinta-t2)",
         t3: "var(--tinta-t3)",
         tinta: "var(--tinta-plena)",
 
-        // El segundo hue, y solo para estado, nunca para decorar: el ámbar del
-        // corte fresco de un testigo recién extraído. Contra la ciruela tiene
-        // poca diferencia de valor y ~100° de hue, así que un plazo que se
-        // apaga nunca se lee como un dato. #845E09 en claro y #D7A94A en
-        // oscuro, medidos también sobre la banda más profunda.
-        vivo: "var(--vivo)",
-
         // El rojo de error lo pone el CLIENTE del usuario, no nosotros: es el
         // que él reconoce como error en su propio Telegram.
         peligro: "var(--peligro)",
       },
       fontFamily: {
-        // Una sola familia de texto y una mono para cifras: tres familias no
-        // caben en el presupuesto de una Mini App sobre datos móviles.
-        sans: ["var(--fuente-texto)", "system-ui", "-apple-system", "sans-serif"],
+        // El texto corrido va en la del sistema por una razón, no por ahorro:
+        // la Mini App vive dentro de Telegram, cuyo cromo usa esa misma cara.
+        // Igualarla hace que se sienta nativa en vez de una web incrustada.
+        sans: ["system-ui", "-apple-system", "sans-serif"],
+        rotulo: ["var(--fuente-rotulo)", "system-ui", "sans-serif"],
         mono: ["var(--fuente-cifras)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
-      /* La escala es el punto de vista tipográfico: los rótulos van diminutos y
-         muy abiertos, como la anotación de un registro de sondeo, y las cifras
-         van enormes y muy cerradas. El contraste entre ambos —no una fuente
-         llamativa— es lo que da carácter, y cuesta cero bytes de red. */
+      /* LA INVERSIÓN: la cara de display se usa a 11 px y la mono a 48.
+         Los rótulos quedan como letras estarcidas de señalización y las cifras
+         como la lectura de un instrumento —que es literalmente lo que son—.
+         Ese contraste, y no una serif llamativa, es lo que da carácter. */
       fontSize: {
         rotulo: [
           "0.6875rem",
-          { lineHeight: "1rem", letterSpacing: "0.14em", fontWeight: "600" },
+          { lineHeight: "1rem", letterSpacing: "0.16em", fontWeight: "600" },
         ],
         apoyo: ["0.8125rem", { lineHeight: "1.2rem" }],
         cuerpo: ["0.9375rem", { lineHeight: "1.45rem" }],
-        titulo: ["1.3125rem", { lineHeight: "1.65rem", letterSpacing: "-0.015em", fontWeight: "600" }],
-        cifra: ["1.75rem", { lineHeight: "2rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+        titulo: ["1.3125rem", { lineHeight: "1.65rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+        cifra: ["1.75rem", { lineHeight: "2rem", letterSpacing: "-0.03em", fontWeight: "600" }],
+        // 3rem en Martian Mono estrechada: la cifra de la placa.
         "cifra-mayor": [
           "3rem",
-          { lineHeight: "3rem", letterSpacing: "-0.035em", fontWeight: "620" },
+          { lineHeight: "3.1rem", letterSpacing: "-0.045em", fontWeight: "600" },
         ],
       },
-      spacing: {
-        // Anchos del Testigo: colapsa en las pantallas de tarea para devolver ancho.
-        testigo: "44px",
-        "testigo-min": "8px",
-      },
       borderRadius: {
-        // 4 px, no 14. Un radio grande y blando es la firma de «app moderna»
-        // genérica; uno pequeño y constante lee como instrumento. Cero radio
+        // 2 px, no 14. Un radio grande y blando es la firma de «app moderna»
+        // genérica; uno mínimo y constante lee como chapa troquelada. Cero
         // habría caído en el otro extremo, el de la maqueta tipo periódico.
-        pieza: "4px",
+        pieza: "2px",
       },
       transitionTimingFunction: {
         sonda: "cubic-bezier(.2,.8,.2,1)",
       },
       keyframes: {
-        /* La carga de la app ES el depósito de los estratos: cada banda crece
-           desde cero, escalonada. Es el único momento con permiso para llamar
-           la atención, y la animación cuenta la metáfora en vez de decorarla. */
-        depositar: {
-          from: { transform: "scaleX(0)", opacity: "0" },
-          to: { transform: "scaleX(1)", opacity: "1" },
-        },
-        /* Barrido luminoso sobre la banda de hoy: dice «esto aún se está
-           formando» sin el parpadeo de un latido, que en una app de dinero
-           lee como error. */
-        veta: {
-          "0%": { transform: "translateY(-100%)" },
-          "100%": { transform: "translateY(400%)" },
-        },
         emerger: {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
-        depositar: "depositar 420ms cubic-bezier(.2,.8,.2,1) both",
-        veta: "veta 3200ms cubic-bezier(.4,0,.6,1) infinite",
         // Vertical, nunca horizontal: el gesto de retroceso de Telegram es horizontal.
         emerger: "emerger 180ms ease-out both",
       },

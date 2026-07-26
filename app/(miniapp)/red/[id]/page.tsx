@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Mecha, MechaApagada } from "@/components/Mecha";
-import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
@@ -120,7 +120,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
 
   if (error) {
     return (
-      <Pantalla titulo={t.webmaster} volverA="/red">
+      <Pantalla titulo={t.webmaster}>
         {/* Un 404 no se reintenta: ese webmaster no es de este agente y
             reintentar dará 404 otra vez. La salida es volver a la red, que es
             además desde donde se llega aquí. */}
@@ -138,7 +138,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   }
   if (!datos) {
     return (
-      <Pantalla titulo={t.webmaster} volverA="/red">
+      <Pantalla titulo={t.webmaster}>
         <Cargando que={t.sondeando} />
       </Pantalla>
     );
@@ -149,7 +149,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
   const conTier = tot.registrosT1 + tot.registrosT2 + tot.registrosT3;
 
   return (
-    <Pantalla volverA="/red">
+    <Pantalla>
       <Aparece orden={0}>
         <Banda tono={0} como="header" className="pb-6">
           {/* El correo entero, sin recortar: es el identificador con el que el
@@ -159,8 +159,12 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           <h1 className="text-titulo">
             <Correo email={datos.email} />
           </h1>
-          <p className={`mt-1 text-apoyo ${problema ? "text-vivo" : "text-texto-apoyo"}`}>
-            {estadoLegible(datos.estado, t)}
+          <p className="mt-1.5 text-apoyo text-texto-apoyo">
+            {problema ? (
+              <Marca>{estadoLegible(datos.estado, t)}</Marca>
+            ) : (
+              estadoLegible(datos.estado, t)
+            )}
             {datos.activadoEn && ` · ${t.enTuRedDesde(formatoDia(datos.activadoEn))}`}
           </p>
         </Banda>

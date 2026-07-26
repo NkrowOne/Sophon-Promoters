@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
+import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
-import { Aviso, Cargando, Vacio } from "@/components/Pantalla";
-import { Testigo, TestigoVacio, type DiaTestigo } from "@/components/testigo/Testigo";
+import { Aviso, Cargando, Placa, Vacio } from "@/components/Pantalla";
+import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
 import { formatearMicros } from "@/lib/devengo/dinero";
@@ -13,14 +13,16 @@ import { formatearMicros } from "@/lib/devengo/dinero";
 /**
  * Inicio del agente.
  *
- * El raíl del Testigo es permanente y ocupa 44 px del borde izquierdo. Es caro
- * en un móvil de 390 px, pero sustituye a la cabecera de KPIs que costaría 96 px
- * de ALTO en cada pantalla: cuesta ancho y devuelve alto, que es lo escaso
- * cuando el teclado y el botón principal se comen la parte de abajo. Y responde
- * "¿estoy ganando?" sin leer, desde cualquier pantalla.
+ * La portada abre con **la Placa**: campo amarillo a sangre con lo devengado del
+ * mes. Sustituye al raíl de 44 px que ocupaba el borde izquierdo de todas las
+ * pantallas —el 11 % del ancho de un móvil, gastado en identidad—. La placa
+ * cuesta alto, que es lo que sobra, y encima lleva un dato.
  *
- * La jerarquía es deliberadamente plana salvo en un punto: la cifra devengada
- * del mes. Todo lo demás es apoyo de esa cifra.
+ * El menú de abajo deja de ser un botón ancho más una retícula de cuatro cajas
+ * idénticas —el menú por defecto de cualquier aplicación— y pasa a ser una
+ * columna en el orden de la jornada del agente, la misma que usa el bot. Cada
+ * fila lleva SU PROPIO dato, así que el menú es además un cuadro de mando, y
+ * solo lleva marca amarilla lo que exige actuar hoy.
  */
 
 interface DiaApi extends Omit<DiaTestigo, "importeMicros"> {
@@ -99,23 +101,23 @@ export default function Inicio() {
   const cartera = datos?.cartera;
 
   return (
-    <main className="relative min-h-dvh ps-testigo">
-      {/* El raíl: identidad, gráfico principal, indicador de estado y estado
-          vacío, todo en la misma pieza.
+    <main className="relative min-h-dvh">
+      {/* La Placa: lo devengado del mes sobre campo amarillo. Es la identidad y
+          es el dato, en la misma pieza. Solo aparece cuando hay una respuesta
+          que dar: sin datos todavía no hay nada que plantear. */}
+      {datos && dias.length > 0 && (
+        <Placa
+          rotulo={t.devengadoTreintaDias}
+          valor={<CifraProtagonista micros={devengadoMes} />}
+          apoyo={
+            <span className="tabular-nums">
+              {t.registrosYWebmasters(totalTiers, datos.webmasters)}
+            </span>
+          }
+        />
+      )}
 
-          La trama de terreno solo se pone cuando hay bandas que apoyar. Con el
-          raíl vacío se solapaba con las marcas del propio TestigoVacio —la
-          misma retícula dibujada dos veces— y el resultado era un rayado sucio
-          en lugar de una columna sin perforar. */}
-      <div
-        className={`carril-testigo fixed inset-y-0 start-0 w-testigo overflow-hidden ${
-          dias.length > 0 ? "testigo-terreno" : ""
-        }`}
-      >
-        {dias.length > 0 ? <Testigo dias={dias} /> : <TestigoVacio />}
-      </div>
-
-      <div className="pb-16 pt-7" style={{ paddingInline: "var(--margen-pantalla)" }}>
+      <div className="pb-16 pt-6" style={{ paddingInline: "var(--margen-pantalla)" }}>
         {error ? (
           <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
         ) : !datos ? (
@@ -132,50 +134,35 @@ export default function Inicio() {
           />
         ) : (
           <>
-            {/* La cifra vive en el fondo desnudo: es el estrato de superficie,
-                lo primero que se ve al sacar el testigo. */}
-            <Aparece orden={0}>
-              <header className="banda banda-0 pb-7">
-                <p className="text-rotulo text-texto-apoyo">{t.devengadoTreintaDias}</p>
-                <div className="mt-1.5">
-                  <CifraProtagonista micros={devengadoMes} />
-                </div>
-                <p className="mt-2 text-apoyo tabular-nums text-texto-apoyo">
-                  {t.registrosYWebmasters(totalTiers, datos.webmasters)}
-                </p>
-              </header>
-            </Aparece>
-
             {/* La Cinta: una sola marca de 8 px responde «¿de dónde viene el
                 volumen?». Sustituye a tres donuts y ocupa una décima parte. */}
             {totalTiers > 0 && (
-              <Aparece orden={1}>
-                <section aria-label={t.repartoPorTier} className="banda banda-1 py-6">
-                  <div className="flex h-2 overflow-hidden bg-superficie-alta">
-                    <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
-                    <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
-                    <BarraCreciente porcentaje={(t3 / totalTiers) * 100} className="bg-t3" retardoMs={120} />
-                  </div>
-                  <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
-                    <Leyenda color="bg-t1" etiqueta="T1" valor={t1} />
-                    <Leyenda color="bg-t2" etiqueta="T2" valor={t2} />
-                    <Leyenda color="bg-t3" etiqueta="T3" valor={t3} />
-                  </div>
-                </section>
-              </Aparece>
+              <section aria-label={t.repartoPorTier} className="banda banda-1 py-6">
+                <p className="rotulo mb-2.5 text-rotulo text-texto-apoyo">{t.repartoPorTier}</p>
+                {/* `gap-0.5` = 2 px de superficie entre segmentos. Es la
+                    especificación de marcas apiladas: lo que separa es el
+                    hueco, nunca un borde dibujado alrededor del dato. */}
+                <div className="flex h-2.5 gap-0.5">
+                  <BarraCreciente porcentaje={(t1 / totalTiers) * 100} className="bg-t1" />
+                  <BarraCreciente porcentaje={(t2 / totalTiers) * 100} className="bg-t2" retardoMs={60} />
+                  <BarraCreciente porcentaje={(t3 / totalTiers) * 100} className="bg-t3" retardoMs={120} />
+                </div>
+                <div className="mt-2.5 flex gap-4 text-apoyo text-texto-apoyo">
+                  <Leyenda color="bg-t1" etiqueta="T1" valor={t1} />
+                  <Leyenda color="bg-t2" etiqueta="T2" valor={t2} />
+                  <Leyenda color="bg-t3" etiqueta="T3" valor={t3} />
+                </div>
+              </section>
             )}
 
             {/* La Escalera: el dinero es un flujo con estados, no cuatro saldos
                 sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
             {cartera && (
-              <Aparece orden={2}>
-                <div className="banda banda-2 py-6">
-                  <Escalera cartera={cartera} titulo={t.cartera.toUpperCase()} etiquetas={t} />
-                  <p className="mt-3 text-apoyo text-texto-apoyo">{t.revisionManual}</p>
-                </div>
-              </Aparece>
+              <div className="banda banda-2 py-6">
+                <Escalera cartera={cartera} titulo={t.cartera.toUpperCase()} etiquetas={t} />
+                <p className="mt-3 text-apoyo text-texto-apoyo">{t.revisionManual}</p>
+              </div>
             )}
-
           </>
         )}
 
@@ -184,20 +171,28 @@ export default function Inicio() {
             ventana de treinta días sin devengo dejaban la portada —la única
             pantalla con enlaces a todo lo demás— sin una sola salida. El agente
             se quedaba encerrado en un aviso con un botón de reintentar. */}
-        <Aparece orden={4}>
-          <nav
-            aria-label={t.acciones}
-            className="banda banda-1 space-y-2.5 pb-2 pt-6"
+        <nav aria-label={t.acciones} className="banda banda-0 pb-2 pt-7">
+          <a
+            href="/activar"
+            className="chapa flex min-h-[52px] items-center justify-center text-cuerpo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
           >
-            <Accion href="/activar" etiqueta={t.activarWebmaster} principal />
-            <div className="grid grid-cols-2 gap-2.5">
-              <Accion href="/red" etiqueta={t.red} />
-              <Accion href="/pro" etiqueta={t.colaRenovaciones} />
-              <Accion href="/historico" etiqueta={t.historico} />
-              <Accion href="/cartera" etiqueta={t.cartera} />
-            </div>
-          </nav>
-        </Aparece>
+            {t.activarWebmaster}
+          </a>
+
+          {/* Cuatro filas en el orden de la jornada, cada una con su dato. Antes
+              era una retícula de 2×2 con cuatro cajas idénticas y vacías: el
+              menú por defecto de cualquier app, y cuatro toques a ciegas. */}
+          <ul className="mt-2 divide-y divide-junta" role="list">
+            <Fila href="/red" etiqueta={t.red} dato={datos ? String(datos.webmasters) : null} />
+            <Fila href="/pro" etiqueta={t.colaRenovaciones} />
+            <Fila href="/historico" etiqueta={t.historico} />
+            <Fila
+              href="/cartera"
+              etiqueta={t.cartera}
+              dato={cartera ? cartera.disponible.texto : null}
+            />
+          </ul>
+        </nav>
       </div>
     </main>
   );
@@ -206,36 +201,25 @@ export default function Inicio() {
 function Leyenda({ color, etiqueta, valor }: { color: string; etiqueta: string; valor: number }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2 w-2 rounded-sm ${color}`} aria-hidden />
+      <span className={`h-2 w-2 ${color}`} aria-hidden />
       {etiqueta} <span className="cifra">{valor}</span>
     </span>
   );
 }
 
-function Accion({
-  href,
-  etiqueta,
-  principal = false,
-}: {
-  href: string;
-  etiqueta: string;
-  principal?: boolean;
-}) {
+/**
+ * Fila del menú: destino y estado en el mismo renglón.
+ *
+ * `min-h-14` son 56 px, muy por encima del mínimo táctil de 44: es una lista de
+ * navegación que se usa con el pulgar y de pie.
+ */
+function Fila({ href, etiqueta, dato }: { href: string; etiqueta: string; dato?: string | null }) {
   return (
-    <a
-      href={href}
-      className={[
-        "flex items-center justify-center rounded-pieza px-3 py-3.5 text-center",
-        "transition-transform duration-150 ease-sonda active:scale-[0.99]",
-        // El énfasis es una INVERSIÓN, no un color: el botón principal es tinta
-        // plena sobre el fondo del tema. Funciona igual en claro y oscuro y no
-        // introduce un tono de marca que compita con los estratos.
-        principal
-          ? "bg-tinta text-cuerpo font-semibold text-fondo"
-          : "border border-borde text-apoyo font-medium hover:bg-superficie",
-      ].join(" ")}
-    >
-      {etiqueta}
-    </a>
+    <li>
+      <a href={href} className="flex min-h-14 items-center justify-between gap-3 text-cuerpo">
+        <span>{etiqueta}</span>
+        {dato && <span className="cifra text-apoyo text-texto-apoyo">{dato}</span>}
+      </a>
+    </li>
   );
 }

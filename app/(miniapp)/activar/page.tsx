@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Aviso, Banda, Pantalla } from "@/components/Pantalla";
+import { Aviso, Banda, Marca, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 
@@ -106,7 +106,7 @@ function ActivarPasos() {
 
   if (hecho) {
     return (
-      <Pantalla titulo={t.activarWebmaster} volverA="/" tarea>
+      <Pantalla titulo={t.activarWebmaster}>
         <Banda tono={0} className="pb-6">
           <p className="text-cuerpo font-medium">{t.yaEstaEnTuRed(hecho.email)}</p>
           <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.cobrarasDesdeHoy}</p>
@@ -120,8 +120,10 @@ function ActivarPasos() {
             <p className="text-apoyo">{t.proConcedido(formatoDia(hecho.pro.vigenteHasta))}</p>
           )}
           {hecho.pro && !hecho.pro.concedido && (
-            <div className="border-s-2 border-vivo ps-3">
-              <p className="text-apoyo text-vivo">{t.proNoConcedido}</p>
+            <div>
+              <p className="text-apoyo">
+                <Marca>{t.proNoConcedido}</Marca>
+              </p>
               <p className="mt-1 text-apoyo text-texto-apoyo">{t.proNoConcedidoApoyo}</p>
             </div>
           )}
@@ -162,7 +164,7 @@ function ActivarPasos() {
 
   if (paso === "confirmar") {
     return (
-      <Pantalla titulo={t.activarWebmaster} volverA="/activar" tarea>
+      <Pantalla titulo={t.activarWebmaster}>
         <Banda tono={0} className="pb-6">
           <p className="text-rotulo text-texto-apoyo">{t.vasAActivar}</p>
           {/* El correo grande y entero: es lo único que hay que revisar aquí, y
@@ -195,7 +197,7 @@ function ActivarPasos() {
   }
 
   return (
-    <Pantalla titulo={t.activarWebmaster} volverA="/" tarea>
+    <Pantalla titulo={t.activarWebmaster}>
       <Banda tono={0} className="pb-6">
         <label htmlFor="email" className="text-rotulo block text-texto-apoyo">
           {t.correoDelWebmaster}

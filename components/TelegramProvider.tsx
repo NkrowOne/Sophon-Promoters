@@ -265,12 +265,20 @@ export function BotonPrincipalAccion({
   if (webApp && !botonTapado) return null;
 
   return (
-    <div className="sticky bottom-0 z-10 -mx-4 border-t border-borde bg-fondo px-4 pb-[env(safe-area-inset-bottom)] pt-3">
+    <div className="sticky bottom-0 z-10 -mx-4 border-t border-junta bg-fondo px-4 pb-[env(safe-area-inset-bottom)] pt-3">
+      {/*
+        Chapa: campo amarillo macizo con tinta oscura, 52 px de alto.
+
+        El deshabilitado NO baja la opacidad —eso dejaba una chapa lavada del
+        mismo color, que sigue pareciendo pulsable—: pierde el campo entero. Si
+        no está amarillo, no se puede pulsar, y eso se lee sin depender del
+        color porque también desaparece el relleno. Ver `.chapa:disabled`.
+      */}
       <button
         type="button"
         onClick={onClick}
         disabled={!activo || cargando}
-        className="w-full rounded-pieza bg-tinta py-3.5 text-cuerpo font-semibold text-fondo transition-opacity duration-150 disabled:opacity-40"
+        className="chapa min-h-[52px] w-full text-cuerpo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
       >
         {cargando ? "…" : texto}
       </button>

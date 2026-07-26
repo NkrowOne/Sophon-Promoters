@@ -38,6 +38,16 @@ export interface DiaAncho {
 }
 
 /**
+ * Alias que sobrevive a la muerte del raíl.
+ *
+ * Vivía en `Testigo.tsx`, el componente de la barra lateral de 44 px, que se ha
+ * borrado entero. La portada lo sigue necesitando para tipar la respuesta de
+ * `/api/agente/resumen`, así que se muda aquí —al componente que sí queda— en
+ * vez de dejar un fichero de 233 líneas vivo por un tipo.
+ */
+export type DiaTestigo = DiaAncho;
+
+/**
  * Meses abreviados en el idioma del agente.
  *
  * Antes era una lista fija en español —«ENE», «FEB»— que se colaba tal cual en
@@ -256,7 +266,13 @@ function FilaTocable({
         <div className="mb-1.5 ms-[54px] border-s-2 border-borde ps-2.5 text-apoyo tabular-nums text-texto-apoyo">
           {etiquetas.desglose(dia.registros, dia.registrosT1, dia.registrosT2, dia.registrosT3)}
           {dia.usuariosPago > 0 && <> · {etiquetas.dePago(dia.usuariosPago)}</>}
-          {dia.provisional && <span className="block text-vivo">{etiquetas.diaAbierto}</span>}
+          {dia.provisional && (
+            <span className="mt-1 block">
+              <span className="chapa inline-block px-1.5 py-0.5 font-semibold">
+                {etiquetas.diaAbierto}
+              </span>
+            </span>
+          )}
         </div>
       )}
     </>

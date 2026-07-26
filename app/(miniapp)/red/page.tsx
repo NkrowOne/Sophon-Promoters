@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Malla, DIAS_APAGADO, type WebmasterMalla } from "@/components/Malla";
-import { Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
+import { Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
 
@@ -47,21 +47,21 @@ export default function Red() {
 
   if (error) {
     return (
-      <Pantalla titulo={t.red} volverA="/">
+      <Pantalla titulo={t.red}>
         <FalloDeCarga error={error} onReintentar={cargar} />
       </Pantalla>
     );
   }
   if (!datos) {
     return (
-      <Pantalla titulo={t.red} volverA="/">
+      <Pantalla titulo={t.red}>
         <Cargando que={t.sondeando} />
       </Pantalla>
     );
   }
   if (datos.webmasters.length === 0) {
     return (
-      <Pantalla titulo={t.red} volverA="/">
+      <Pantalla titulo={t.red}>
         <Vacio
           titulo={t.sinWebmasters}
           apoyo={t.sinWebmastersApoyo}
@@ -77,7 +77,7 @@ export default function Red() {
   const conProblema = datos.webmasters.filter((w) => w.estado !== "ACTIVO").length;
 
   return (
-    <Pantalla titulo={t.red} volverA="/">
+    <Pantalla titulo={t.red}>
       {/* Dos estratos, dos preguntas: «¿hay algo que atender?» y «¿quién».
           El veredicto va en el fondo desnudo y el mosaico sobre superficie, que
           es lo que le da a las teselas un suelo contra el que medirse en vez de
@@ -87,7 +87,9 @@ export default function Red() {
             confirmar que está todo bien también es información. */}
         <p className="text-apoyo text-texto-apoyo">
           {conProblema > 0 && (
-            <span className="text-vivo">{t.conIncidencia(conProblema)} · </span>
+            <>
+              <Marca>{t.conIncidencia(conProblema)}</Marca>{" "}
+            </>
           )}
           <span className="tabular-nums">
             {parados > 0

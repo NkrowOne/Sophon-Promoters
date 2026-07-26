@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Mecha, unidadComun } from "@/components/Mecha";
-import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
@@ -109,21 +109,21 @@ export default function Renovaciones() {
 
   if (error && !datos) {
     return (
-      <Pantalla titulo={t.colaRenovaciones} volverA="/">
+      <Pantalla titulo={t.colaRenovaciones}>
         <FalloDeCarga error={error} onReintentar={cargar} />
       </Pantalla>
     );
   }
   if (!datos) {
     return (
-      <Pantalla titulo={t.colaRenovaciones} volverA="/">
+      <Pantalla titulo={t.colaRenovaciones}>
         <Cargando />
       </Pantalla>
     );
   }
   if (datos.webmasters.length === 0) {
     return (
-      <Pantalla titulo={t.colaRenovaciones} volverA="/">
+      <Pantalla titulo={t.colaRenovaciones}>
         <Vacio
           titulo={t.sinWebmasters}
           apoyo={t.sinWebmastersApoyo}
@@ -137,13 +137,25 @@ export default function Renovaciones() {
   const porSemanas = unidadComun(datos.webmasters.map((w) => w.diasRestantes));
 
   return (
-    <Pantalla titulo={t.colaRenovaciones} volverA="/">
+    <Pantalla
+      titulo={t.colaRenovaciones}
+      /* La respuesta de esta pantalla es cuántos piden actuar, así que es lo
+         que va sobre la placa. Cuando no hay ninguno la placa NO aparece: no
+         hay nada que hacer aquí hoy, y decirlo en amarillo sería gritar una
+         buena noticia. */
+      placa={
+        datos.urgentes > 0
+          ? {
+              rotulo: t.colaRenovaciones,
+              valor: <p className="text-titulo font-semibold">{t.seApagan(datos.urgentes)}</p>,
+            }
+          : undefined
+      }
+    >
       <Banda tono={0} como="header" className="pb-6">
-        {/* Lo primero es cuántos piden actuar. Que no haya ninguno también es
-            información: confirma que hoy no hay nada que hacer aquí. */}
-        <p className={`text-apoyo ${datos.urgentes > 0 ? "text-vivo" : "text-texto-apoyo"}`}>
-          {datos.urgentes > 0 ? t.seApagan(datos.urgentes) : t.ningunoSeApaga(datos.diasAviso)}
-        </p>
+        {datos.urgentes === 0 && (
+          <p className="text-apoyo text-texto-apoyo">{t.ningunoSeApaga(datos.diasAviso)}</p>
+        )}
 
         {hecho && (
           <p className="mt-4 border-s-2 border-tinta ps-3 text-apoyo">
@@ -217,8 +229,12 @@ function Fila({
           // Sin PRO no hay mecha que dibujar: hay un hueco. Decirlo con palabras
           // es más honesto que pintar un raíl vacío, que se leería como un plazo
           // agotado en vez de como un plazo que nunca existió.
-          <p className={`text-apoyo ${w.bloqueado ? "text-texto-apoyo" : "text-vivo"}`}>
-            {t.nuncaTuvoPro}
+          <p className="text-apoyo">
+            {w.bloqueado ? (
+              <span className="text-texto-apoyo">{t.nuncaTuvoPro}</span>
+            ) : (
+              <Marca>{t.nuncaTuvoPro}</Marca>
+            )}
           </p>
         ) : (
           <Mecha
@@ -231,16 +247,22 @@ function Fila({
         )}
       </div>
 
+      {/*
+        Solo lleva CAMPO lo que exige actuar hoy; el resto es un filete. Así en
+        una lista de seis filas el amarillo sigue significando algo, que es toda
+        la razón de que sea escaso.
+
+        `min-h-11` porque estos botones medían 314×43: un píxel por debajo del
+        mínimo táctil, y son la acción de la pantalla.
+      */}
       <button
         type="button"
         onClick={onRenovar}
         disabled={deshabilitado || w.bloqueado}
         className={[
-          "mt-3 w-full rounded-pieza py-3 text-apoyo font-semibold",
+          "mt-3 min-h-11 w-full rounded-pieza text-apoyo font-semibold",
           "transition-transform duration-150 ease-sonda active:scale-[0.99]",
-          "disabled:opacity-40",
-          // El énfasis solo va a lo que exige acción hoy; lo demás es un filete.
-          urgente ? "bg-tinta text-fondo" : "border border-borde",
+          urgente ? "chapa" : "border border-borde disabled:opacity-40",
         ].join(" ")}
       >
         {cargando ? "…" : w.sinPro ? t.darUnAnio : t.renovarUnAnio}

@@ -29,8 +29,18 @@
  */
 const PASO_PX = 5;
 const ANCHO_MARCA_PX = 3;
-/** Tope de marcas que caben en el ancho útil de un móvil de 390 px. */
-const MARCAS_MAXIMAS = 58;
+/**
+ * Tope de marcas que caben en el ancho útil de un móvil de 390 px.
+ *
+ * Sube de 58 a 70 al quitar la barra lateral: el ancho de contenido pasa de
+ * 390 − 44 − 32 = 314 px a 390 − 32 = 358, y a paso de 5 px caben 71. Se deja
+ * uno de margen.
+ *
+ * No es cosmético. Este número decide también la UNIDAD —días o semanas— en
+ * `unidadComun`, así que subirlo cambia el texto que lee el agente para los
+ * plazos de entre 58 y 70 días: ahora los ve en días, que es como los piensa.
+ */
+const MARCAS_MAXIMAS = 70;
 /**
  * Por debajo de este plazo la mecha se marca como urgente.
  *
@@ -104,8 +114,8 @@ export function Mecha({
       <div className="mb-2 flex items-baseline justify-between gap-3">
         {/* Sin nombre de plan: solo hay uno y rotularlo en cada ficha sería
             repetir «AÑO» por toda la aplicación para no distinguir nada. */}
-        <span className="text-rotulo text-texto-apoyo">PRO</span>
-        <span className={`text-apoyo ${urgente || caducado ? "text-vivo" : "text-texto-apoyo"}`}>
+        <span className="rotulo text-rotulo text-texto-apoyo">PRO</span>
+        <span className="text-apoyo text-texto-apoyo">
           {caducado ? etiquetas.caducado : etiquetas.venceEl(formatoDia(vigenteHasta))}
         </span>
       </div>
@@ -118,23 +128,46 @@ export function Mecha({
           // dentro de esa banda, y entonces media mecha no medía nada.
           <Marca key={`gastada-${i}`} className="bg-borde" />
         ))}
+        {/*
+          Lo que queda encendido va del CAMPO cuando urge y de la tinta cuando
+          no. Es la única marca de dato de la aplicación que se pinta de
+          amarillo, y se lo ha ganado: aquí el amarillo no informa, avisa.
+        */}
         {Array.from({ length: marcasVivas }, (_, i) => (
-          <Marca key={`viva-${i}`} className={urgente ? "bg-vivo" : "bg-tinta"} />
+          <Marca key={`viva-${i}`} className={urgente ? "bg-campo" : "bg-tinta"} />
         ))}
-        {caducado && <span className="w-16 self-end border-b-2 border-vivo" />}
+        {caducado && <span className="w-16 self-end border-b-2 border-peligro" />}
       </div>
 
-      <p className={`mt-2 text-apoyo tabular-nums ${urgente || caducado ? "text-vivo" : ""}`}>
-        {caducado
-          ? etiquetas.proYaCaducado
-          : `${
-              rotuloEnSemanas
-                ? etiquetas.semanasDePro(Math.floor(restan / 7))
-                : etiquetas.diasDePro(restan)
-            }${urgente ? etiquetas.renuevaloAntes : "."}`}
+      {/*
+        El plazo urgente va sobre PLACA, no teñido de amarillo.
+        `#F9D027` como texto da 1,49:1 sobre papel claro: pintarlo de amarillo
+        sería esconderlo justo cuando hay que leerlo. Sobre campo son 12,43:1.
+      */}
+      <p className="mt-2 text-apoyo tabular-nums">
+        {caducado || urgente ? (
+          <PlacaTexto>
+            {caducado
+              ? etiquetas.proYaCaducado
+              : `${
+                  rotuloEnSemanas
+                    ? etiquetas.semanasDePro(Math.floor(restan / 7))
+                    : etiquetas.diasDePro(restan)
+                }${etiquetas.renuevaloAntes}`}
+          </PlacaTexto>
+        ) : rotuloEnSemanas ? (
+          `${etiquetas.semanasDePro(Math.floor(restan / 7))}.`
+        ) : (
+          `${etiquetas.diasDePro(restan)}.`
+        )}
       </p>
     </section>
   );
+}
+
+/** Placa de texto: campo amarillo con tinta oscura, dentro de una línea. */
+function PlacaTexto({ children }: { children: React.ReactNode }) {
+  return <span className="chapa inline-block px-1.5 py-0.5 font-semibold">{children}</span>;
 }
 
 /**

@@ -115,21 +115,21 @@ export default function Historico() {
 
   if (error && dias.length === 0) {
     return (
-      <Pantalla titulo={t.historico} volverA="/">
+      <Pantalla titulo={t.historico}>
         <FalloDeCarga error={error} onReintentar={() => void cargar(null)} />
       </Pantalla>
     );
   }
   if (cargando && dias.length === 0) {
     return (
-      <Pantalla titulo={t.historico} volverA="/">
+      <Pantalla titulo={t.historico}>
         <Cargando que={t.sondeando} />
       </Pantalla>
     );
   }
   if (dias.length === 0) {
     return (
-      <Pantalla titulo={t.historico} volverA="/">
+      <Pantalla titulo={t.historico}>
         <Vacio
           titulo={t.sinIngresos}
           apoyo={t.sinIngresosApoyo}
@@ -140,7 +140,7 @@ export default function Historico() {
   }
 
   return (
-    <Pantalla titulo={t.historico} volverA="/">
+    <Pantalla titulo={t.historico}>
       <Banda tono={0} como="header" className="pb-5">
         <p className="text-apoyo text-texto-apoyo">
           <Importe micros={total} className="text-cuerpo font-semibold text-texto" />{" "}

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Importe } from "@/components/Importe";
-import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
 import { formatearMicros, microsACadena } from "@/lib/devengo/dinero";
@@ -179,21 +179,32 @@ export default function CarteraPagina() {
 
   if (error && !datos) {
     return (
-      <Pantalla titulo={t.cartera} volverA="/">
+      <Pantalla titulo={t.cartera}>
         <FalloDeCarga error={error} onReintentar={cargar} />
       </Pantalla>
     );
   }
   if (!datos) {
     return (
-      <Pantalla titulo={t.cartera} volverA="/">
+      <Pantalla titulo={t.cartera}>
         <Cargando />
       </Pantalla>
     );
   }
 
   return (
-    <Pantalla titulo={t.cartera} volverA="/">
+    <Pantalla
+      titulo={t.cartera}
+      /* «¿Cuándo cobro?» empieza por «¿cuánto puedo pedir ya?». Eso es lo que
+         va sobre la placa; la Escalera de debajo explica por qué el disponible
+         no es igual al devengado. */
+      placa={{
+        rotulo: t.disponible,
+        valor: (
+          <Importe texto={datos.cartera.disponible.texto} className="cifra text-cifra-mayor" />
+        ),
+      }}
+    >
       <Banda tono={0} className="pb-6">
         <Escalera cartera={datos.cartera} etiquetas={t} />
 
@@ -216,18 +227,24 @@ export default function CarteraPagina() {
 
       {viva ? (
         <Banda tono={1} etiqueta={t.solicitudEnCurso} className="py-6">
-          <div className="border-s-2 border-vivo ps-3">
-            <p className="text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
+          {/* Un filete amarillo de 2 px sería invisible sobre papel claro
+              —1,49:1—. El estado de la solicitud viva va sobre PLACA, que es
+              donde el amarillo se lee y además es lo que el agente ha venido a
+              mirar. */}
+          <div>
+            <p className="rotulo text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
             <p className="mt-1.5">
               <Importe texto={viva.importe.texto} className="text-cifra" />
+            </p>
+            <p className="mt-1.5">
+              <Marca>{estadoLegible(viva.estado, t)}</Marca>
             </p>
             {/* `break-all` en la wallet: son 42 caracteres en mono sin ningún
                 sitio por donde partir, así que sin esto la línea se sale de la
                 banda. En árabe se veía desbordar por la izquierda; en español
                 desbordaba igual, solo que hacia fuera de la pantalla. */}
-            <p className="mt-1 break-all text-apoyo text-texto-apoyo">
-              {estadoLegible(viva.estado, t)} · {viva.red} ·{" "}
-              <span className="cifra">{viva.wallet}</span>
+            <p className="mt-2 break-all text-apoyo text-texto-apoyo">
+              {viva.red} · <span className="cifra">{viva.wallet}</span>
             </p>
             <p className="mt-2 text-apoyo text-texto-apoyo">
               {t.pedidaEl(formatoFecha(viva.solicitadoEn))} {t.soloUnaALaVez}
@@ -269,14 +286,14 @@ export default function CarteraPagina() {
             {t.minimo} <Importe texto={datos.minimo.texto} />
           </p>
           {importeMicros !== null && importeMicros > disponibleMicros && (
-            <p className="mt-1 text-apoyo text-vivo">
+            <p className="mt-1 text-apoyo text-peligro">
               {t.tePasasEn(formatearMicros(importeMicros - disponibleMicros))}
             </p>
           )}
           {importeMicros !== null &&
             importeMicros < minimoMicros &&
             importeMicros > 0n && (
-              <p className="mt-1 text-apoyo text-vivo">
+              <p className="mt-1 text-apoyo text-peligro">
                 {t.teFaltanParaElMinimo(formatearMicros(minimoMicros - importeMicros))}
               </p>
             )}
@@ -292,8 +309,17 @@ export default function CarteraPagina() {
                     haptica("seleccion");
                     setRed(r.id);
                   }}
+                  /*
+                    `min-h-11`: medían 114×41 y elegir la red de un pago es el
+                    control donde menos conviene fallar un toque —una wallet en
+                    la red equivocada no se recupera—.
+
+                    La red elegida va de TINTA, no de campo: es un estado, no
+                    una acción. Reservar el amarillo para lo que hay que pulsar
+                    es lo que hace que signifique algo cuando aparece.
+                  */
                   className={[
-                    "rounded-pieza py-2.5 text-apoyo font-medium",
+                    "flex min-h-11 items-center justify-center rounded-pieza text-apoyo font-medium",
                     "transition-transform duration-150 ease-sonda active:scale-[0.98]",
                     red === r.id ? "bg-tinta text-fondo" : "border border-borde",
                   ].join(" ")}
@@ -324,7 +350,7 @@ export default function CarteraPagina() {
             />
             <p
               className={`mt-2 text-apoyo ${
-                wallet && !walletValida ? "text-vivo" : "text-texto-apoyo"
+                wallet && !walletValida ? "text-peligro" : "text-texto-apoyo"
               }`}
             >
               {wallet && !walletValida
@@ -368,7 +394,7 @@ export default function CarteraPagina() {
                   <Importe texto={h.importe.texto} className="text-cuerpo" />
                   <span
                     className={`text-apoyo ${
-                      h.estado === "RECHAZADO" ? "text-vivo" : "text-texto-apoyo"
+                      h.estado === "RECHAZADO" ? "text-peligro" : "text-texto-apoyo"
                     }`}
                   >
                     {estadoLegible(h.estado, t)}
@@ -380,7 +406,7 @@ export default function CarteraPagina() {
                 </p>
                 {/* Un rechazo sin motivo obliga a preguntar por Telegram; con el
                     motivo, el agente corrige y vuelve a pedir. */}
-                {h.motivo && <p className="mt-1 text-apoyo text-vivo">{h.motivo}</p>}
+                {h.motivo && <p className="mt-1 text-apoyo text-peligro">{h.motivo}</p>}
                 {/* El hash de la transacción va recortado por los dos extremos,
                     que es como se compara de verdad contra un explorador de
                     bloques. Los cuarenta caracteres enteros ocupaban tres

@@ -137,7 +137,11 @@ function Tesela({
           "transition-transform duration-150 ease-sonda active:scale-[0.99]",
           // El estado se dibuja en el MARCO, no con un icono al lado: así el
           // problema se ve a la misma distancia que el volumen.
-          problema ? "border-vivo" : apagado ? "border-borde" : "border-tinta",
+          //
+          // El marco de problema NO puede ser amarillo: un filete de 1 px de
+          // campo da 1,49:1 sobre papel claro y desaparece. El aviso va abajo,
+          // sobre placa, que es donde el amarillo se lee.
+          problema ? "border-peligro" : apagado ? "border-borde" : "border-tinta",
         ].join(" ")}
         style={{ minWidth: ANCHO_TESELA }}
       >
@@ -170,12 +174,23 @@ function Tesela({
             vecinas y la retícula se desalineaba —justo lo que rompe una
             superficie cuya razón de ser es comparar unas con otras—.
             Y el texto va en una sola línea: partido en dos volvía a descuadrarla. */}
-        <span
-          className={`text-rotulo mt-1.5 block h-4 truncate ${
-            problema || avisoPro ? "text-vivo" : "text-texto-apoyo"
-          }`}
-        >
-          {etiqueta}
+        {/*
+          El campo marca lo ACCIONABLE, no lo malo.
+
+          «PRO vence en 12 d» es algo que el agente puede arreglar hoy —renovar—
+          así que va sobre placa. «Bloqueado» es un problema de Sophon que él no
+          puede tocar: va del rojo de peligro, igual que el marco de la tesela,
+          y así los dos dicen lo mismo en vez de contradecirse.
+        */}
+        <span className="text-rotulo mt-1.5 flex h-4 items-center">
+          {etiqueta &&
+            (problema ? (
+              <span className="truncate text-peligro">{etiqueta}</span>
+            ) : avisoPro ? (
+              <span className="chapa truncate px-1 py-px font-semibold">{etiqueta}</span>
+            ) : (
+              <span className="truncate text-texto-apoyo">{etiqueta}</span>
+            ))}
         </span>
       </button>
     </li>

@@ -33,7 +33,7 @@ export function Importe({
   return (
     <span className={`cifra whitespace-nowrap ${apagado ? "text-texto-apoyo" : ""} ${className}`}>
       <span aria-hidden>{numero}</span>
-      <span aria-hidden className="ms-[0.22em] text-[0.85em] text-texto-apoyo">
+      <span aria-hidden className="ms-[0.22em] text-[0.85em] opacity-60">
         $
       </span>
       <span className="sr-only">{numero} dólares</span>

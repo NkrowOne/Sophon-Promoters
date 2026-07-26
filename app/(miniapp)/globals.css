@@ -12,80 +12,87 @@
  */
 :root {
   /*
-   * Tinte de las superficies: el mismo hue que la rampa.
+   * EL CAMPO: el amarillo de Sophon, medido sobre su propio logo.
    *
-   * Antes las superficies se mezclaban con el COLOR DE TEXTO del usuario, así
-   * que las bandas salían gris azulado hiciera lo que hiciera la rampa. Ahora
-   * se mezclan con esto, y por eso una banda es un estrato de ciruela claro y
-   * no un gris más.
+   * #F9D027 da **1,49:1 sobre blanco**. No es un color flojo: es que a esa
+   * luminosidad no puede ser tinta ni marca de dato sobre un fondo claro, y no
+   * hay forma de arreglarlo oscureciéndolo —para que pase 4,5:1 sobre blanco
+   * hay que bajarlo hasta ≈#946F00, un oliva apagado y fuera de gamut—.
    *
-   * En claro es literalmente el T1. En oscuro NO puede serlo: el fondo de
-   * Telegram (#17212B) es azul y con croma propio, y mezclarle un 6-25 % de un
-   * rosa tan lavado como el T1 oscuro deja el hue en 256° —el del fondo—. El
-   * tinte oscuro va más saturado a propósito: nunca se pinta, solo tiñe.
+   * Así que se usa como se usa un amarillo de verdad: **campo macizo con tinta
+   * oscura encima**, 12,43:1. Y como el campo lleva su propio contraste, este
+   * par vale IGUAL en claro y en oscuro. Que no necesite desdoblarse por
+   * polaridad es la señal de que la elección es estructural y no un adorno: es
+   * el único par de toda la hoja que se declara una sola vez.
    */
-  --tinte: #4a1f42;
-
-  --superficie: #f4f0f3;
-  --superficie-alta: #e8e1e6;
-  --borde: #d9ced6;
+  --campo: #f9d027;
+  --campo-tinta: #1a1206;
 
   /*
-   * Suelo opaco del Testigo.
+   * Tinte de las superficies: el AMARILLO, no el marrón.
    *
-   * El raíl flotaba sobre el fondo que pusiera Telegram, así que su contraste
-   * era una incógnita distinta en cada cliente. Con suelo propio pasa a ser una
-   * cantidad conocida y el tema del usuario deja de importar dentro del raíl.
+   * Se probaron los dos y está medido: teñendo de marrón, el papel se apaga lo
+   * suficiente para que el escalón claro de la rampa caiga a 2,87:1 —por debajo
+   * del suelo de 3:1—. Con el amarillo se queda en 3,34 y además el papel sale
+   * cálido en vez de gris.
    */
-  --carril: #ece6ea;
+  --tinte: #f9d027;
 
-  /* Junta entre estratos. Más oscura que el borde: es un canto, no una línea
-     de separación, y es lo que hace que las capas parezcan tener espesor. */
-  --junta: #d2c5ce;
+  --superficie: #fffcf5;
+  --superficie-alta: #fefaeb;
+  --borde: #f0e4c4;
 
-  /*
-   * Escala de estratos: una sola familia de CIRUELA, tres valores.
-   *
-   * Antes era gris puro. El argumento era el de `lib/devengo/motor.ts` —el
-   * agente cobra lo mismo sea cual sea el tier, así que gastar los tres colores
-   * más fuertes de la app en el único dato que no cambia lo que hace es la
-   * definición de colorines—. Ese argumento sigue en pie y por eso los tres
-   * tiers comparten hue (335-338°) y se distinguen solo por valor: el tier
-   * informa, no decide. Lo que NO sostenía era que la aplicación entera fuese
-   * acromática, y eso es lo que se corrige aquí.
-   *
-   * Como sigue siendo una rampa de valor dentro de un hue, sobrevive al sol, a
-   * un tema personalizado cualquiera y a todos los daltonismos, y se lee en la
-   * marca de 7×3 px de La Malla. El tier va además por POSICIÓN fija en la
-   * banda, así que la lectura no depende del color.
-   *
-   * Los seis valores están MEDIDOS por `test/contraste.test.ts` contra los seis
-   * fondos reales de Telegram Y contra las tres superficies de banda, que es lo
-   * que antes no se medía: sobre `--superficie-alta` el T3 se quedaba en 2,92:1
-   * y el acento en 4,18:1. Peor caso de cada uno:
-   *
-   *   claro   T1 10,44:1   T2 6,09:1   T3 3,53:1   separación 1,71 / 1,72
-   *   oscuro  T1  9,17:1   T2 5,29:1   T3 3,06:1   separación 1,73 / 1,73
-   */
-  --tinta-plena: #4a1f42;
-  --tinta-t1: #4a1f42;
-  --tinta-t2: #7c3a6d;
-  --tinta-t3: #a45f91;
+  /* Junta entre estratos. Es un canto, no una línea de separación: eso es lo
+     que hace que las capas parezcan tener espesor. */
+  --junta: #fef5d6;
 
   /*
-   * El acento de estado: ámbar, y solo para estado.
+   * LA RAMPA: MARRÓN. Los colores de Sophon son amarillo y marrón, así que el
+   * segundo color de la aplicación no se elige, viene dado.
    *
-   * Es el segundo hue de la aplicación y su trabajo es no confundirse nunca con
-   * un dato. Contra la rampa tiene poca diferencia de VALOR (1,15-1,34:1) y
-   * ~100° de diferencia de HUE: un plazo que se apaga no se lee como un
-   * estrato, se lee como una alarma.
+   * hue 55° · croma 0,070. Tres cosas que costó encontrar:
    *
-   * Se oscurece un punto respecto a #8A6414 porque sobre la banda más profunda
-   * daba 4,18:1 y se usa en etiquetas de texto, no en filetes:
-   *   claro  #845E09 → 4,56:1 en el peor caso (#E8E1E6)
-   *   oscuro #D7A94A → 6,08:1 en el peor caso (#2E2F3D)
+   *  1. **El croma no es decorativo.** La primera versión iba a 0,022 y el
+   *     validador de la skill `dataviz` la marcó como «reads gray». Una rampa
+   *     de datos gris al lado de un botón amarillo es exactamente la queja que
+   *     se repitió tres veces: «todo en blancos y grises».
+   *  2. **El hue tenía que bajar a 55°.** A 88° el croma llega más alto pero el
+   *     resultado es caqui, y «oliva» es otra palabra que ya se descartó. A 55°
+   *     sale chocolate, marrón y caramelo de verdad.
+   *  3. **El escalón claro del tema oscuro tenía que bajar de L 0,95 a 0,88.**
+   *     Ese casi-blanco era lo que estrangulaba el gamut; bajarlo más que dobla
+   *     el croma alcanzable en marrón.
+   *
+   * Los tiers son ORDINALES —T1 paga 0,30 $, T2 0,25, T3 0,20—, así que van en
+   * una sola familia ordenada por valor y no en tres colores distintos. Se
+   * validan con `validateOrdinal` y no con las comprobaciones categóricas, que
+   * como dice el propio script «FAIL a correct ramp by design». El tier va
+   * además por POSICIÓN fija en la banda: la lectura no depende del color.
+   *
+   * Peor caso sobre los seis fondos de Telegram más las superficies de banda:
+   *   claro   T1 chocolate  T2 marrón    T3 caramelo   3,34:1
+   *   oscuro  T1 crema      T2 caramelo  T3 marrón     3,14:1
+   *
+   * Separación de hue con el amarillo: 40°. Misma familia, inconfundibles.
    */
-  --vivo: #845e09;
+  --tinta-plena: #421d00;
+  --tinta-t1: #421d00;
+  --tinta-t2: #764d30;
+  --tinta-t3: #a87b5d;
+
+  /*
+   * Tinta secundaria: cálida y NUESTRA, no la de Telegram.
+   *
+   * Estaba en `--tg-theme-hint-color`, que es un gris azulado. Sobre el papel
+   * cálido de esta paleta da **4,17:1**: por debajo del umbral de texto, y
+   * encima de eso es lo que seguía tiñendo de gris frío cada rótulo y cada
+   * etiqueta de la aplicación —justo la sensación que había que quitar—.
+   *
+   * Croma 0,025, muy por debajo del de la rampa: es TEXTO. La especificación
+   * de marcas dice que el texto no lleva el color del dato, y este no lo lleva;
+   * solo comparte la temperatura del papel sobre el que se lee. 5,02:1.
+   */
+  --tinta-apoyo: #75655b;
 
   /*
    * Rojo de peligro: el del CLIENTE, no el nuestro.
@@ -109,38 +116,31 @@
    * Tienen que ser valores RESUELTOS y no `var(--otra-cosa)`: Telegram recibe
    * una cadena de color por la API del puente, no una hoja de estilos, y
    * `getComputedStyle` de una custom property devuelve el texto tal cual está
-   * escrito, sin sustituir.
+   * escrito, sin sustituir. Por eso repiten el campo en vez de referenciarlo.
    */
-  --boton-fondo: #4a1f42;
-  --boton-tinta: #ffffff;
+  --boton-fondo: #f9d027;
+  --boton-tinta: #1a1206;
 
   --margen-pantalla: 1rem;
-  --fuente-texto: system-ui;
-  --fuente-cifras: ui-monospace;
 }
 
 :root[data-luz="oscuro"] {
-  /* Ver arriba: más saturado que el T1 oscuro porque tiñe sobre un fondo azul
-     con croma propio. Nunca se pinta. */
-  --tinte: #f2a6da;
+  /* El campo NO se redeclara: vale igual en las dos polaridades. Ver arriba. */
 
-  --superficie: #232834;
-  --superficie-alta: #2e2f3d;
-  --borde: #3e394a;
-  --carril: #2a2d3a;
-  --junta: #463e50;
+  --superficie: #222a2f;
+  --superficie-alta: #2e3432;
+  --borde: #3f4640;
+  --junta: #464738;
 
-  /* En oscuro la escala se invierte: lo denso es lo luminoso. Mismo hue. */
-  --tinta-plena: #f0cde6;
-  --tinta-t1: #f0cde6;
-  --tinta-t2: #c994b8;
-  --tinta-t3: #9a6b8e;
+  /* En oscuro la escala se invierte: lo denso es lo luminoso. Mismo hue 55°. */
+  --tinta-plena: #fdccac;
+  --tinta-t1: #fdccac;
+  --tinta-t2: #cb9d7e;
+  --tinta-t3: #a17557;
 
-  --vivo: #d7a94a;
+  --tinta-apoyo: #b2a196;
+
   --peligro: var(--tg-theme-destructive-text-color, #f2837a);
-
-  --boton-fondo: #f0cde6;
-  --boton-tinta: #17212b;
 }
 
 /*
@@ -162,8 +162,7 @@
   :root {
     --superficie: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 94%, var(--tinte));
     --superficie-alta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 88%, var(--tinte));
-    --carril: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 90%, var(--tinte));
-    --borde: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 80%, var(--tinte));
+    --borde: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 84%, var(--tinte));
     --junta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 76%, var(--tinte));
   }
 }
@@ -184,53 +183,83 @@ body {
   min-height: var(--tg-viewport-stable-height, 100vh);
 }
 
-/* Cifras siempre tabulares: sin esto las columnas de importes bailan al cambiar de dígito. */
+/*
+ * Cifras: Martian Mono ESTRECHADA.
+ *
+ * Es una cara de instrumento —tabular por diseño, industrial— y se usa grande,
+ * que es la mitad de la inversión tipográfica de esta app: el rótulo va en la
+ * cara de display a 11 px y la cifra en la mono a 48. Al revés de lo normal.
+ *
+ * `wdth: 87.5` porque a anchura nominal una wallet de 42 caracteres no cabe en
+ * 358 px, y el importe con separador de miles tampoco.
+ */
 .cifra {
   font-family: var(--fuente-cifras), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
-}
-
-/* Foco visible de verdad: es el suelo de calidad, no un extra. */
-:focus-visible {
-  outline: 2px solid theme("colors.vivo");
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* El raíl del Testigo no captura eventos: compite con el gesto de retroceso
-   horizontal de Telegram si es interactivo pegado al borde. */
-.testigo-rail {
-  pointer-events: none;
-  user-select: none;
+  font-variation-settings: "wdth" 87.5;
 }
 
 /*
- * Terreno sin perforar. Por debajo del último día la columna continúa con la
- * retícula de profundidad: sin esto el raíl se cortaba a media altura y dejaba
- * un bloque de color muerto que no significaba nada.
+ * Rótulos: Archivo ENSANCHADA, versalitas, muy abierta.
  *
- * Va en un PSEUDOELEMENTO y no en el propio contenedor. Estaba como
- * `opacity: 0.5` sobre el div, que también contiene el SVG del Testigo, así
- * que la mitad de la opacidad se la comía el propio dato: las bandas se veían
- * lavadas y el estrato T3 quedaba por debajo de cualquier umbral legible. El
- * fondo tiene que ser el que se atenúa, no lo que se dibuja encima.
+ * Es la letra estarcida de una señal, y el contraste con la cifra enorme es lo
+ * que da carácter sin pagar una serif de alto contraste —que es el reflejo de
+ * plantilla número uno—.
  */
-.testigo-terreno::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--borde) 0,
-    var(--borde) 1px,
-    transparent 1px,
-    transparent 24px
-  );
-  background-size: 33% 24px;
-  background-repeat: repeat-y;
+.rotulo {
+  font-family: var(--fuente-rotulo), system-ui, sans-serif;
+  font-variation-settings: "wdth" 115;
+  text-transform: uppercase;
+}
+
+/* Foco visible de verdad: es el suelo de calidad, no un extra. Va del color de
+   la tinta y no del campo: un anillo amarillo sobre la propia placa no se vería. */
+:focus-visible {
+  outline: 2px solid var(--tinta-plena);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ──────────────────────────────── LA PLACA ────────────────────────────────
+ *
+ * La firma de la aplicación, y una regla de uso antes que un estilo:
+ *
+ *     todo lo que el agente tiene que HACER o SABER va sobre campo amarillo
+ *     con tinta oscura. Nada más es amarillo.
+ *
+ * Sustituye al raíl de 44 px que ocupaba el borde izquierdo de todas las
+ * pantallas. Aquel gastaba el 11 % del ancho de un móvil en identidad; esta
+ * gasta alto, que es lo que sobra, y encima lleva un dato.
+ *
+ * El par campo/tinta no se desdobla por polaridad —el campo lleva su propio
+ * contraste, 12,43:1—, así que esta regla es idéntica en claro y en oscuro.
+ * Es el único bloque de la hoja del que se puede decir eso.
+ */
+.placa {
+  background: var(--campo);
+  color: var(--campo-tinta);
+}
+
+/* Radio 2 px: uno grande y blando es la firma de «app moderna» genérica, y cero
+   habría caído en el otro extremo, el de la maqueta tipo periódico. */
+.chapa {
+  background: var(--campo);
+  color: var(--campo-tinta);
+  border-radius: 2px;
+}
+
+/*
+ * Deshabilitado: pierde el campo, no la opacidad.
+ *
+ * Estaba como `disabled:opacity-40` sobre el botón lleno, que deja una chapa
+ * lavada del mismo color y sigue pareciendo pulsable. Si no está amarillo, no
+ * se puede pulsar: esa es toda la regla, y funciona sin depender del color
+ * porque también desaparece el relleno.
+ */
+.chapa:disabled {
+  background: var(--superficie-alta);
+  color: var(--tinta-t3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -241,18 +270,6 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 120ms !important;
   }
-  /* Sobrevive la opacidad; ningún transform ni altura animada. */
-  .cabeza-sonda {
-    animation: none !important;
-    outline: 2px solid theme("colors.vivo");
-    outline-offset: 1px;
-  }
-}
-
-/* Árabe: el layout se invierte entero, incluido el raíl del Testigo. */
-[dir="rtl"] .testigo-rail {
-  left: auto;
-  right: 0;
 }
 
 
@@ -263,15 +280,15 @@ body {
  * a sangre con su propio tono, separada de la siguiente por una junta de 1 px,
  * igual que las capas de un testigo.
  *
- * Las tres superficies se derivan del fondo del usuario teñido con `--tinte`,
- * así que la banda comparte hue con la rampa de datos y con los botones: es el
- * mismo estrato visto de lejos. La metáfora pasa a ocupar el 90 % de los
- * píxeles en vez de solo los 44 px del raíl —recolorear el raíl habría cambiado
- * un 5 % de la pantalla, y por eso la queja seguía siendo «está todo blanco»—.
+ * Las tres superficies se derivan del fondo del usuario teñido con el AMARILLO
+ * de marca, así que el papel es cálido y no gris. Se probó teñirlas de marrón
+ * —el otro color de Sophon— y está medido que no vale: el papel se apaga lo
+ * justo para que el escalón claro de la rampa caiga a 2,87:1, por debajo del
+ * suelo. Con el amarillo se queda en 3,34.
  *
  * Las bandas son fondo de contenido, así que `test/contraste.test.ts` mide la
- * rampa TAMBIÉN contra ellas. No es teórico: con las bandas puestas, el T3
- * oscuro caía a 2,92:1 y el acento claro a 4,18:1 sobre `--superficie-alta`.
+ * rampa TAMBIÉN contra ellas. No es teórico: es lo que ha cazado dos veces un
+ * escalón por debajo del suelo antes de que llegara a pantalla.
  */
 .banda {
   position: relative;
@@ -290,11 +307,6 @@ body {
 .banda-2 { background: var(--superficie-alta); }
 
 /*
- * Canto del Testigo.
- *
- * Una sombra interior de 1 px en el borde de salida. Es lo que separa «barras
- * pintadas sobre el fondo» de «una columna con espesor», y cuesta una línea.
- *
  * NO hay grano de `feTurbulence` en ninguna parte, y es una decisión medida:
  * a pleno sol modula por debajo del umbral de percepción —invisible justo en
  * el escenario para el que se pedía—, sobre negro es estridente, y a pantalla
@@ -303,11 +315,31 @@ body {
  * de verdad se lee como barato en un móvil. Y «ponle grano» es hoy LA
  * respuesta por defecto a «que no parezca IA», lo que la convierte en señal.
  */
-.carril-testigo {
-  background: var(--carril);
-  box-shadow: inset -1px 0 0 var(--junta);
+
+/*
+ * El único momento con permiso para llamar la atención: la carga.
+ *
+ * La placa entra primero y las bandas se depositan detrás, escalonadas. Un
+ * momento orquestado aterriza mejor que efectos sueltos por toda la interfaz, y
+ * cuenta la metáfora en lugar de decorarla. Nada supera los 420 ms.
+ */
+@keyframes depositar {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-[dir="rtl"] .carril-testigo {
-  box-shadow: inset 1px 0 0 var(--junta);
+.banda {
+  animation: depositar 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
+
+/* Vertical y nunca horizontal: el gesto de retroceso de Telegram es horizontal
+   y una entrada lateral compite con él. */
+.banda:nth-child(2) { animation-delay: 40ms; }
+.banda:nth-child(3) { animation-delay: 80ms; }
+.banda:nth-child(4) { animation-delay: 120ms; }

@@ -121,7 +121,7 @@ function AltaPasos() {
 
   if (paso === "otp") {
     return (
-      <Pantalla titulo={t.confirmaQueEresTu} volverA="/alta" carril="vacio">
+      <Pantalla titulo={t.confirmaQueEresTu}>
         <Banda tono={0} className="pb-6">
           <p className="text-apoyo text-texto-apoyo">{t.otpEnviado(email.trim())}</p>
 
@@ -199,7 +199,7 @@ function AltaPasos() {
   }
 
   return (
-    <Pantalla titulo={t.vinculaTuCuenta} carril="vacio">
+    <Pantalla titulo={t.vinculaTuCuenta}>
       <Aparece orden={0}>
         <Banda tono={0} className="pb-7">
           <p className="text-apoyo text-texto-apoyo">{t.soloSeHaceUnaVez}</p>

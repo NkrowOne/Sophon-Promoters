@@ -14,17 +14,24 @@
 .panel {
   --p-fondo: #ffffff;
   --p-texto: #10151a;
-  --p-apoyo: #5b636c;
-  /* Superficies teñidas con la misma ciruela que la Mini App: el panel es la
-     otra cara de la misma aplicación, no otro producto. */
-  --p-superficie: #f4f0f3;
-  --p-superficie-alta: #e8e1e6;
-  --p-borde: #d9ced6;
-  --p-accion: #4a1f42;
-  /* Estaba en #A8762F: 3,97:1 sobre blanco, en el filete que marca la ÚNICA
-     cifra que solo puede ver una persona. Es el mismo defecto que
-     `test/contraste.test.ts` cazó en la Mini App, y aquí seguía. */
-  --p-vivo: #845e09;
+  --p-apoyo: #75655b;
+  /* Los dos colores de Sophon, igual que en la Mini App: el panel es la otra
+     cara de la misma aplicación, no otro producto. Papel cálido, dato marrón. */
+  --p-superficie: #fffcf5;
+  --p-superficie-alta: #fefaeb;
+  --p-borde: #f0e4c4;
+  --p-tinta: #421d00;
+
+  /* El campo. Idéntico en claro y oscuro, como allí, y por la misma razón:
+     lleva su propio contraste (12,43:1 con su tinta). */
+  --p-campo: #f9d027;
+  --p-campo-tinta: #1a1206;
+
+  /* `.vivo` marca fallos de sincronización y retiros rechazados. Eso NO es la
+     marca, es un problema, así que va del rojo de peligro y no del amarillo.
+     Confundir «esto hay que mirarlo» con «esto es Sophon» era lo que hacía que
+     ninguno de los dos significara nada. */
+  --p-vivo: #b3261e;
 
   min-height: 100vh;
   background: var(--p-fondo);
@@ -36,12 +43,13 @@
   .panel {
     --p-fondo: #14181d;
     --p-texto: #f5f7f9;
-    --p-apoyo: #98a2ac;
-    --p-superficie: #1f1f26;
-    --p-superficie-alta: #2a2730;
-    --p-borde: #3a313e;
-    --p-accion: #f0cde6;
-    --p-vivo: #d7a94a;
+    --p-apoyo: #b2a196;
+    --p-superficie: #1f1f1a;
+    --p-superficie-alta: #2a2722;
+    --p-borde: #3a3428;
+    --p-tinta: #fdccac;
+    /* El campo no se redeclara: vale igual en las dos polaridades. */
+    --p-vivo: #f2837a;
   }
 }
 
@@ -112,11 +120,21 @@
   background: var(--p-superficie);
 }
 
+/* Chapa amarilla con tinta oscura, igual que en la Mini App. */
 .panel .boton.primario {
-  background: var(--p-accion);
-  color: var(--p-fondo);
-  border-color: var(--p-accion);
+  background: var(--p-campo);
+  color: var(--p-campo-tinta);
+  border-color: var(--p-campo);
   font-weight: 600;
+}
+
+/* Deshabilitado: pierde el campo, no la opacidad. Una chapa lavada del mismo
+   color sigue pareciendo pulsable. */
+.panel .boton.primario:disabled {
+  background: var(--p-superficie-alta);
+  color: var(--p-apoyo);
+  border-color: var(--p-borde);
+  opacity: 1;
 }
 
 .panel .boton:disabled {
@@ -138,7 +156,7 @@
 .panel input:focus,
 .panel select:focus {
   outline: none;
-  border-color: var(--p-accion);
+  border-color: var(--p-tinta);
 }
 
 .panel .vivo {
@@ -149,6 +167,6 @@
    ver una persona, y lo lleva escrito encima en vez de fiarlo a que quien
    mira una captura ya lo sepa. */
 .panel .privado {
-  border-left: 2px solid var(--p-vivo);
+  border-left: 2px solid var(--p-tinta);
   padding-left: 0.75rem;
 }
