@@ -129,24 +129,30 @@ export function Mecha({
           <Marca key={`gastada-${i}`} className="bg-borde" />
         ))}
         {/*
-          Lo que queda encendido va del CAMPO cuando urge y de la tinta cuando
-          no. Es la única marca de dato de la aplicación que se pinta de
-          amarillo, y se lo ha ganado: aquí el amarillo no informa, avisa.
+          Lo que queda encendido va del CAMPO cuando urge y del T1 cuando no. Es
+          la única marca de dato de la aplicación que se pinta de amarillo, y se
+          lo ha ganado: aquí el amarillo no informa, avisa —que es exactamente el
+          trabajo que tiene asignado en el resto del sistema—.
+
+          `bg-t1` y no `bg-tinta`: el escalón denso de la rampa es la tinta de
+          DATOS, y esto es un dato. `--tinta-plena` dejó de ser el T1 al bajar la
+          rampa a marrón de verdad, así que seguir usándola aquí habría pintado
+          la mecha del color de los controles.
         */}
         {Array.from({ length: marcasVivas }, (_, i) => (
-          <Marca key={`viva-${i}`} className={urgente ? "bg-campo" : "bg-tinta"} />
+          <Marca key={`viva-${i}`} className={urgente ? "bg-campo" : "bg-t1"} />
         ))}
         {caducado && <span className="w-16 self-end border-b-2 border-peligro" />}
       </div>
 
       {/*
-        El plazo urgente va sobre PLACA, no teñido de amarillo.
+        El plazo urgente va sobre CHAPA, no teñido de amarillo.
         `#F9D027` como texto da 1,49:1 sobre papel claro: pintarlo de amarillo
         sería esconderlo justo cuando hay que leerlo. Sobre campo son 12,43:1.
       */}
       <p className="mt-2 text-apoyo tabular-nums">
         {caducado || urgente ? (
-          <PlacaTexto>
+          <ChapaTexto>
             {caducado
               ? etiquetas.proYaCaducado
               : `${
@@ -154,7 +160,7 @@ export function Mecha({
                     ? etiquetas.semanasDePro(Math.floor(restan / 7))
                     : etiquetas.diasDePro(restan)
                 }${etiquetas.renuevaloAntes}`}
-          </PlacaTexto>
+          </ChapaTexto>
         ) : rotuloEnSemanas ? (
           `${etiquetas.semanasDePro(Math.floor(restan / 7))}.`
         ) : (
@@ -165,8 +171,8 @@ export function Mecha({
   );
 }
 
-/** Placa de texto: campo amarillo con tinta oscura, dentro de una línea. */
-function PlacaTexto({ children }: { children: React.ReactNode }) {
+/** Chapa de texto: campo amarillo con tinta oscura, dentro de una línea. */
+function ChapaTexto({ children }: { children: React.ReactNode }) {
   return <span className="chapa inline-block px-1.5 py-0.5 font-semibold">{children}</span>;
 }
 

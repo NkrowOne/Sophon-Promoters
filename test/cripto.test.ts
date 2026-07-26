@@ -68,6 +68,18 @@ describe("códigos de activación", () => {
 });
 
 describe("OTP", () => {
+  /*
+   * La pimienta vive en el entorno a propósito —quien se lleve un volcado de la
+   * tabla no puede probar seis dígitos contra ella— y eso significa que sin
+   * variable de entorno `hashOtp` lanza. Estos dos casos llevaban fallando desde
+   * que se escribieron, y no por lo que comprueban: `npm test` daba 2 en rojo y
+   * el resultado se leía como ruido de fondo en vez de como una puerta.
+   *
+   * El valor es arbitrario porque lo que se verifica es que el hash quede atado
+   * al correo, no cuál sea la pimienta.
+   */
+  process.env["PIMIENTA_OTP"] ??= "pimienta-de-prueba";
+
   it("son seis dígitos", () => {
     for (let i = 0; i < 100; i++) assert.match(generarOtp(), /^\d{6}$/);
   });

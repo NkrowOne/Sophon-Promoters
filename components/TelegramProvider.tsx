@@ -66,6 +66,9 @@ interface WebApp {
   };
   ready: () => void;
   expand: () => void;
+  /** Bot API 6.1+. Opcionales: un cliente antiguo simplemente no los trae. */
+  setBackgroundColor?: (color: string) => void;
+  setHeaderColor?: (color: string) => void;
   onEvent: (evento: string, cb: () => void) => void;
   offEvent: (evento: string, cb: () => void) => void;
   showPopup?: (p: unknown, cb?: (id: string) => void) => void;
@@ -155,6 +158,33 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
     const tinta = estilo.getPropertyValue("--boton-tinta").trim();
     if (fondo && tinta) {
       app.MainButton.setParams({ color: fondo, text_color: tinta });
+    }
+
+    /*
+     * El cromo del cliente sigue a la app, no al revés.
+     *
+     * Las superficies dejaron de derivarse del tema del usuario porque mezclar
+     * su azul-negro con el amarillo de marca aterriza en verde oliva —medido—.
+     * Pero elegir el fondo abre un hueco nuevo: si la app pinta marrón-negro y
+     * la barra de Telegram sigue azul, se ve la costura justo arriba, que es lo
+     * primero que mira cualquiera.
+     *
+     * `setBackgroundColor` cubre además el rebote del scroll, donde el fondo del
+     * cliente asoma por debajo del contenido.
+     *
+     * En try/catch porque el hex arbitrario es de Bot API 6.9: un cliente
+     * anterior puede rechazarlo, y quedarse sin barra teñida es cosmético
+     * mientras que una excepción aquí dejaría el tema a medio estampar —sin
+     * `data-luz`, que es lo que sostiene TODA la paleta—.
+     */
+    const papel = estilo.getPropertyValue("--fondo").trim();
+    if (papel) {
+      try {
+        app.setBackgroundColor?.(papel);
+        app.setHeaderColor?.(papel);
+      } catch {
+        // Cliente antiguo: se queda con su color y la app se ve igual de bien.
+      }
     }
   }, []);
 

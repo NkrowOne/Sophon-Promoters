@@ -3,54 +3,69 @@ import type { Config } from "tailwindcss";
 /**
  * Sistema visual «LA PLACA».
  *
- * La app se abre DENTRO de Telegram, así que el fondo y el color de texto los
- * pone el cliente del usuario, no nosotros: se consumen vía `--tg-theme-*` con
- * fallback estático, porque un WebView antiguo que no inyecte esas variables
- * dejaría el texto sobre transparente.
+ * Dos colores, y cada uno hace UN trabajo:
  *
- * Lo nuestro son los dos colores de Sophon y nada más:
+ *   AMARILLO  #F9D027  la ACCIÓN. Solo lo que se pulsa y las marcas de urgencia.
+ *   MARRÓN    hue 55°  todo lo demás: la placa de cabecera y la rampa de datos.
  *
- *   AMARILLO  #F9D027  campo macizo con tinta oscura. Acción e identidad.
- *   MARRÓN    hue 55°  rampa de tres valores. Datos.
+ * Esa división es la corrección de un defecto concreto. La versión anterior
+ * ponía la cabecera y el botón del mismo amarillo bajo la regla «todo lo que hay
+ * que hacer o saber va sobre campo», y el resultado fue *«ese amarillo se
+ * camufla con los botones»*: dos trabajos distintos con una sola apariencia. Con
+ * el amarillo restringido a lo pulsable no hay nada con lo que camuflarse.
  *
  * El amarillo NUNCA es tinta: 1,49:1 sobre blanco. Ese hecho medido es lo que
  * decide el sistema entero —campo, no acento— y de paso lo que hace que el par
  * campo/tinta valga igual en las dos polaridades.
+ *
+ * Los fondos y la tinta de texto **son nuestros**, no de `--tg-theme-*`. Se
+ * derivaban del tema del cliente hasta que se midió que mezclar su azul-negro
+ * con el amarillo de marca aterriza en verde oliva. El puente le pasa nuestros
+ * colores al cliente con `setBackgroundColor`, así que el cromo de Telegram
+ * sigue a la app y no al revés.
  */
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Superficies: heredadas de Telegram, con fallback claro.
-        fondo: "var(--tg-theme-bg-color, #ffffff)",
-        "fondo-secundario": "var(--tg-theme-secondary-bg-color, #f2f3f5)",
-        texto: "var(--tg-theme-text-color, #10151a)",
+        // Los tres estratos de papel, elegidos por polaridad (ver globals.css).
+        fondo: "var(--fondo)",
+        superficie: "var(--superficie)",
+        "superficie-alta": "var(--superficie-alta)",
+        borde: "var(--borde)",
+        junta: "var(--junta)",
+
+        texto: "var(--texto)",
         // NO es el hint de Telegram: aquel es un gris azulado que sobre este
         // papel cálido da 4,17:1 —por debajo del umbral de texto— y era lo que
         // dejaba frío cada rótulo de la aplicación. Ver `globals.css`.
         "texto-apoyo": "var(--tinta-apoyo)",
         enlace: "var(--tg-theme-link-color, #2a7ec4)",
 
-        // Superficies derivadas, con respaldo estático (ver globals.css).
-        superficie: "var(--superficie)",
-        "superficie-alta": "var(--superficie-alta)",
-        borde: "var(--borde)",
-        junta: "var(--junta)",
+        /*
+         * LA PLACA: espresso. Es la cabecera, y es marrón y no amarilla porque
+         * la cabecera y el botón no pueden compartir apariencia —era el defecto
+         * de la versión anterior—. Lo más oscuro informa, lo más brillante se
+         * pulsa: la jerarquía se lee sin leer nada.
+         */
+        placa: "var(--placa)",
+        "placa-tinta": "var(--placa-tinta)",
 
         /*
          * EL CAMPO. El amarillo de Sophon, y el único color que no cambia entre
          * claro y oscuro: el campo lleva su propio contraste (12,43:1 con su
          * tinta), así que no necesita variante por polaridad.
          *
-         * Regla de uso, no estilo: todo lo que el agente tiene que HACER o
-         * SABER va sobre campo. Nada más es amarillo. Por eso `--vivo`
-         * desapareció —«esto exige acción» y «esto es la marca» son lo mismo y
-         * no necesitaban dos colores— y el sistema bajó de cuatro colores
-         * semánticos a tres.
+         * Regla de uso, no estilo: **el amarillo es la ACCIÓN**. El botón
+         * principal, la fila que exige actuar y las marcas de urgencia; nada
+         * más. Por eso `--vivo` desapareció —«esto exige acción» y «esto es la
+         * marca» son lo mismo y no necesitaban dos colores— y el sistema bajó de
+         * cuatro colores semánticos a tres.
          */
         campo: "var(--campo)",
         "campo-tinta": "var(--campo-tinta)",
+        "campo-canto": "var(--campo-canto)",
 
         /*
          * LA RAMPA: marrón, hue 55°, croma 0,070. El otro color de Sophon.
@@ -65,8 +80,11 @@ const config: Config = {
          * 0,30 $, T2 0,25, T3 0,20—, así que se ordenan por valor. Va además
          * por posición fija en la banda: la lectura no depende del color.
          *
-         * `tinta` es el T1 y es la tinta de datos. La acción NO comparte color
-         * con el dato: para eso está el campo.
+         * `tinta` YA NO es el T1. Eran el mismo valor, y eso ataba la tinta de
+         * los controles —chip de red seleccionada, filetes, anillo de foco— al
+         * escalón más oscuro de la rampa de datos: bajar la rampa a marrón de
+         * verdad arrastraba los controles con ella. Separarlos es lo que
+         * permitió mover una cosa sin mover la otra.
          */
         t1: "var(--tinta-t1)",
         t2: "var(--tinta-t2)",

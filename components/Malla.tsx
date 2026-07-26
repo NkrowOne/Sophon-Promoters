@@ -140,7 +140,7 @@ function Tesela({
           //
           // El marco de problema NO puede ser amarillo: un filete de 1 px de
           // campo da 1,49:1 sobre papel claro y desaparece. El aviso va abajo,
-          // sobre placa, que es donde el amarillo se lee.
+          // sobre chapa, que es donde el amarillo se lee.
           problema ? "border-peligro" : apagado ? "border-borde" : "border-tinta",
         ].join(" ")}
         style={{ minWidth: ANCHO_TESELA }}

@@ -22,38 +22,30 @@ import { describe, it } from "node:test";
  */
 
 /**
- * Todo lo que puede quedar DEBAJO de un token.
+ * Todo lo que puede quedar DEBAJO de un token: los tres estratos de cada
+ * polaridad, que ahora son NUESTROS.
  *
- * Los cuatro primeros de cada polaridad son fondos reales de clientes de
- * Telegram; los tres últimos son nuestras superficies —las tres bandas y el
- * suelo del raíl—, con los valores de respaldo de `globals.css`.
+ * Antes esta lista mezclaba los fondos de los clientes de Telegram con las
+ * bandas, porque las bandas se derivaban del fondo del cliente. Esa derivación
+ * se ha retirado —mezclar el azul-negro de Telegram con el amarillo de marca
+ * aterriza en verde oliva, ver el test de hue— así que lo que se pinta son
+ * exactamente estos diez valores y nada más.
  */
 const FONDOS = {
-  blanco: "#FFFFFF",
-  claroSecundario: "#F2F3F5",
+  claroFondo: "#FFFFFF",
   claroBanda1: "#FFFCF5",
-  claroBanda2: "#FEFAEB",
+  claroBanda2: "#FBF4E6",
 
-  oscuroTelegram: "#17212B",
-  oscuroNoche: "#18222D",
-  oscuroAmoled: "#1C1C1D",
-  negro: "#000000",
-  oscuroBanda1: "#222A2F",
-  oscuroBanda2: "#2E3432",
+  oscuroFondo: "#12100D",
+  oscuroBanda1: "#1A1511",
+  oscuroBanda2: "#26201C",
 } as const;
 
-const CLAROS = ["blanco", "claroSecundario", "claroBanda1", "claroBanda2"] as const;
-const OSCUROS = [
-  "oscuroTelegram",
-  "oscuroNoche",
-  "oscuroAmoled",
-  "negro",
-  "oscuroBanda1",
-  "oscuroBanda2",
-] as const;
+const CLAROS = ["claroFondo", "claroBanda1", "claroBanda2"] as const;
+const OSCUROS = ["oscuroFondo", "oscuroBanda1", "oscuroBanda2"] as const;
 
 /**
- * EL CAMPO: el amarillo de Sophon y su tinta.
+ * EL CAMPO: el amarillo de Sophon, su tinta y su canto.
  *
  * Fuera del objeto por polaridad a propósito, porque **no tiene polaridad**. El
  * campo lleva su propio contraste, así que el par vale igual en claro y en
@@ -61,21 +53,31 @@ const OSCUROS = [
  */
 const CAMPO = "#F9D027";
 const CAMPO_TINTA = "#1A1206";
+const CAMPO_CANTO = "#A8850B";
+
+/** La tinta de la placa tampoco tiene polaridad: la placa la lleva encima. */
+const PLACA_TINTA = "#FFF6E8";
 
 /** Los mismos valores que declara `app/(miniapp)/globals.css`. */
 const TOKENS = {
   claro: {
-    texto: "#10151A",
-    tintaT1: "#421D00",
-    tintaT2: "#764D30",
-    tintaT3: "#A87B5D",
+    texto: "#1F1710",
+    apoyo: "#6E5B4A",
+    placa: "#482304",
+    tintaPlena: "#2A1B0E",
+    tintaT1: "#482304",
+    tintaT2: "#7C5336",
+    tintaT3: "#AB7E60",
     peligro: "#B3261E",
   },
   oscuro: {
-    texto: "#F5F7F9",
-    tintaT1: "#FDCCAC",
-    tintaT2: "#CB9D7E",
-    tintaT3: "#A17557",
+    texto: "#F6EFE6",
+    apoyo: "#B0A092",
+    placa: "#533520",
+    tintaPlena: "#EFD9C4",
+    tintaT1: "#D7A583",
+    tintaT2: "#B38363",
+    tintaT3: "#916343",
     peligro: "#F2837A",
   },
 } as const;
@@ -127,6 +129,28 @@ function separacionHue(a: string, b: string): number {
 }
 
 /**
+ * Luminosidad en oklab, de 0 a 1.
+ *
+ * Hace falta porque «pasa 3:1» no impide que un marrón sea melocotón. La rampa
+ * oscura estuvo en L 0,88 cuando a 0,50 ya pasaba el umbral: esos 0,38 de más no
+ * compraban legibilidad, solo lavaban el color hasta sacarlo de la marca. El
+ * contraste pone el suelo; esto pone el techo.
+ */
+function luz(hex: string): number {
+  const canal = (i: number) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const r = canal(1);
+  const g = canal(3);
+  const b = canal(5);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
+}
+
+/**
  * Croma en oklab: cuánto color tiene, con independencia de lo claro que sea.
  *
  * Hace falta porque «pasa el contraste» y «se ve de color» son dos cosas
@@ -167,13 +191,15 @@ function componer(frente: string, fondo: string, alfa: number): string {
 
 describe("contraste de los tokens", () => {
   it("el texto pasa 4,5:1 en todos los fondos de su polaridad", () => {
-    for (const f of CLAROS) {
-      const r = contraste(TOKENS.claro.texto, FONDOS[f]);
-      assert.ok(r >= 4.5, `texto claro sobre ${f}: ${r.toFixed(2)}:1`);
-    }
-    for (const f of OSCUROS) {
-      const r = contraste(TOKENS.oscuro.texto, FONDOS[f]);
-      assert.ok(r >= 4.5, `texto oscuro sobre ${f}: ${r.toFixed(2)}:1`);
+    for (const clave of ["texto", "apoyo"] as const) {
+      for (const f of CLAROS) {
+        const r = contraste(TOKENS.claro[clave], FONDOS[f]);
+        assert.ok(r >= 4.5, `${clave} claro sobre ${f}: ${r.toFixed(2)}:1`);
+      }
+      for (const f of OSCUROS) {
+        const r = contraste(TOKENS.oscuro[clave], FONDOS[f]);
+        assert.ok(r >= 4.5, `${clave} oscuro sobre ${f}: ${r.toFixed(2)}:1`);
+      }
     }
   });
 
@@ -220,15 +246,131 @@ describe("contraste de los tokens", () => {
   });
 
   it("el par del CAMPO pasa 4,5:1 y vale igual en las dos polaridades", () => {
-    // Es el botón principal, la placa de cabecera y cada marca de urgencia.
+    // Es el botón principal y cada marca de urgencia. Ya NO es la cabecera:
+    // compartir apariencia con el botón fue el defecto que hundió la versión
+    // anterior, y la separación se comprueba abajo.
     const r = contraste(CAMPO_TINTA, CAMPO);
     assert.ok(r >= 4.5, `tinta sobre campo: ${r.toFixed(2)}:1`);
+  });
 
-    // Y la placa se recorta contra CUALQUIER fondo del cliente: si el campo no
-    // se distinguiera del fondo, la placa dejaría de ser una placa.
+  it("el CANTO del campo da 3:1, que es lo que hace visible el botón en claro", () => {
+    /*
+     * El campo saca 1,49:1 contra el papel: un botón macizo sin filete no tiene
+     * un contorno perceptible, y WCAG 1.4.11 pide 3:1 para el de un control.
+     *
+     * Es la consecuencia incómoda de un amarillo de marca a plena luminosidad, y
+     * la salida no es oscurecer el campo —eso lleva al oliva ya descartado— sino
+     * ponerle un borde del mismo hue en sombra.
+     */
+    for (const f of CLAROS) {
+      const r = contraste(CAMPO_CANTO, FONDOS[f]);
+      assert.ok(r >= 3, `el canto no define el botón sobre ${f}: ${r.toFixed(2)}:1`);
+    }
+    // Y sigue siendo el mismo amarillo, no un segundo color.
+    assert.ok(
+      separacionHue(CAMPO, CAMPO_CANTO) <= 10,
+      `el canto se ha ido de tono: ${separacionHue(CAMPO, CAMPO_CANTO).toFixed(0)}°`,
+    );
+  });
+
+  it("LA PLACA no puede parecerse al botón: es la corrección de §12", () => {
+    /*
+     * «Ese amarillo se camufla con los botones.»
+     *
+     * La cabecera y el botón principal eran los dos `#F9D027`, así que lo que
+     * informa y lo que se pulsa tenían una sola apariencia. Este test fija la
+     * separación para que la placa no pueda volver a ser amarilla en silencio.
+     */
+    for (const tema of ["claro", "oscuro"] as const) {
+      const { placa } = TOKENS[tema];
+
+      const r = contraste(placa, CAMPO);
+      assert.ok(r >= 4.5, `${tema}: la placa y el botón se confunden (${r.toFixed(2)}:1)`);
+
+      // La tinta crema se lee sobre la placa en las dos polaridades.
+      const rt = contraste(PLACA_TINTA, placa);
+      assert.ok(rt >= 4.5, `${tema}: tinta sobre placa ${rt.toFixed(2)}:1`);
+
+      // Y la placa se recorta del papel sobre el que se apoya. En oscuro el
+      // margen es estrecho a propósito —subirla le quitaría contraste a su
+      // tinta y la acercaría al amarillo— y por eso lleva canto.
+      for (const f of tema === "claro" ? CLAROS : OSCUROS) {
+        const rf = contraste(placa, FONDOS[f]);
+        assert.ok(rf >= 1.4, `${tema}: la placa se funde con ${f} (${rf.toFixed(2)}:1)`);
+      }
+    }
+  });
+
+  it("EL BOTÓN es lo más brillante del tema oscuro", () => {
+    // Es lo que debe ser una acción, y es lo que no pasaba: con la cabecera
+    // amarilla había dos objetos peleando por ese puesto.
+    for (const f of OSCUROS) {
+      const r = contraste(CAMPO, FONDOS[f]);
+      assert.ok(r >= 10, `el campo solo saca ${r.toFixed(2)}:1 sobre ${f}`);
+    }
+  });
+
+  it("NINGUNA superficie nuestra cae en el verde", () => {
+    /*
+     * El defecto que el usuario vio y yo no: `banda-2` en oscuro era hue **174°**,
+     * verde oliva. No fue mala suerte. Las superficies se derivaban mezclando el
+     * fondo del cliente con el amarillo de marca, y el azul-negro de Telegram es
+     * casi complementario del amarillo, así que la mezcla **pasa por el verde por
+     * construcción**: medido, 88 % de `#17212B` con `#F9D027` da `#2E3432`.
+     *
+     * Por eso la derivación se retiró y las superficies son literales. Este test
+     * es lo que impide que vuelva.
+     */
     for (const f of [...CLAROS, ...OSCUROS]) {
-      const r2 = contraste(CAMPO, FONDOS[f]);
-      assert.ok(r2 >= 1.3, `el campo se funde con ${f}: ${r2.toFixed(2)}:1`);
+      const h = hue(FONDOS[f]);
+      const c = croma(FONDOS[f]);
+      assert.ok(
+        c < 0.005 || h < 120 || h > 200,
+        `${f} está en verde: hue ${h.toFixed(0)}° con croma ${c.toFixed(3)}`,
+      );
+    }
+
+    // Y la mezcla que lo produjo sigue produciéndolo: si alguien la reintroduce,
+    // este número le dice por qué no.
+    assert.ok(hue("#2E3432") > 120 && hue("#2E3432") < 200);
+  });
+
+  it("la rampa oscura es MARRÓN y no melocotón", () => {
+    /*
+     * Estaba en L 0,88. A L 0,50 ya pasa 3:1 sobre su superficie, así que esos
+     * 0,38 no compraban legibilidad: lavaban el marrón hasta convertirlo en un
+     * melocotón que no es de la marca. El contraste pone el suelo y esto pone el
+     * techo, que es la mitad que faltaba.
+     */
+    assert.ok(
+      luz(TOKENS.oscuro.tintaT1) <= 0.8,
+      `T1 oscuro a L ${luz(TOKENS.oscuro.tintaT1).toFixed(2)}: eso es melocotón, no marrón`,
+    );
+
+    // Y las dos rampas tienen que tener color de verdad, no ser marrones lavados.
+    for (const tema of ["claro", "oscuro"] as const) {
+      for (const tier of ["tintaT1", "tintaT2", "tintaT3"] as const) {
+        const c = croma(TOKENS[tema][tier]);
+        assert.ok(c >= 0.05, `${tema} ${tier} lee gris: croma ${c.toFixed(3)}`);
+      }
+    }
+  });
+
+  it("`--tinta-plena` ya NO es el T1", () => {
+    /*
+     * Eran el mismo valor, y eso ataba la tinta de los controles —chip de red
+     * seleccionada, filetes, anillo de foco— al escalón más oscuro de la rampa
+     * de datos: bajar la rampa a marrón de verdad arrastraba los controles con
+     * ella. Separarlos es lo que permitió mover una cosa sin mover la otra.
+     */
+    for (const tema of ["claro", "oscuro"] as const) {
+      const { tintaPlena, tintaT1 } = TOKENS[tema];
+      assert.notEqual(tintaPlena, tintaT1, `${tema}: los volvieron a atar`);
+
+      // Es tinta de control: lleva texto invertido encima y tiene que pasarlo.
+      const fondo = tema === "claro" ? FONDOS.claroFondo : FONDOS.oscuroFondo;
+      const r = contraste(tintaPlena, fondo);
+      assert.ok(r >= 4.5, `${tema}: tinta-plena sobre fondo ${r.toFixed(2)}:1`);
     }
   });
 
@@ -309,11 +451,11 @@ describe("contraste de los tokens", () => {
 
   it("los valores anteriores NO habrían pasado, que es por lo que existe", () => {
     // El acento se usaba en etiquetas accionables con 3,97:1 sobre blanco.
-    assert.ok(contraste("#A8762F", FONDOS.blanco) < 4.5);
+    assert.ok(contraste("#A8762F", "#FFFFFF") < 4.5);
     // Y el estrato T3, el que más superficie ocupa, con 2,19:1. Llevaba así
     // desde el primer commit y no lo vio nadie mirándolo.
-    assert.ok(contraste("#A9B0B7", FONDOS.blanco) < 3);
-    assert.ok(contraste("#59636D", FONDOS.oscuroTelegram) < 3);
+    assert.ok(contraste("#A9B0B7", "#FFFFFF") < 3);
+    assert.ok(contraste("#59636D", "#17212B") < 3);
     // Y los dos que encontró el día que se añadieron las bandas al barrido: el
     // T3 oscuro y el acento claro pasaban contra el fondo de Telegram y fallaban
     // contra la superficie que la propia app pinta encima.
@@ -324,5 +466,20 @@ describe("contraste de los tokens", () => {
     // amarillo es la queja que se repitió tres veces.
     assert.ok(croma("#635D50") < 0.03, "aquella rampa leía como grafito");
     assert.ok(croma(TOKENS.claro.tintaT2) >= 0.05, "la rampa de marrón tiene que verse marrón");
+
+    /*
+     * Y los tres del rediseño amarillo, que son los que el usuario vio antes que
+     * yo. Ninguno era un fallo de contraste: los tres PASABAN la puerta. Es la
+     * lección de este cambio —medir no es diseñar— y por eso los tres tienen
+     * ahora su propia comprobación arriba, que mide otra cosa.
+     */
+    // 1. Placa y botón eran el mismo amarillo: 1,00:1 entre sí.
+    assert.equal(contraste("#F9D027", "#F9D027"), 1, "se camuflaban por definición");
+    // 2. `banda-2` en oscuro salía verde oliva de mezclar azul con amarillo.
+    assert.ok(hue("#2E3432") > 120 && hue("#2E3432") < 200, "aquello era verde");
+    // 3. La rampa oscura estaba a L 0,88: melocotón, no marrón.
+    assert.ok(luz("#FDCCAC") > 0.85, "aquello era melocotón");
+    // Y no costaba contraste bajarla: el valor nuevo pasa 3:1 de sobra.
+    assert.ok(contraste(TOKENS.oscuro.tintaT3, FONDOS.oscuroBanda2) >= 3);
   });
 });

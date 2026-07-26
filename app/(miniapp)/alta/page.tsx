@@ -143,7 +143,7 @@ function AltaPasos() {
               autoComplete="one-time-code"
               maxLength={6}
               placeholder="000000"
-              className="cifra w-full rounded-pieza border border-borde bg-superficie px-3.5 pb-4 pt-3.5 text-center text-cifra tracking-[0.55em] indent-[0.55em] outline-none placeholder:text-texto-apoyo focus:border-tinta"
+              className="cifra w-full rounded-pieza border border-borde bg-superficie px-3.5 pb-4 pt-3.5 text-center text-cifra tracking-[0.55em] indent-[0.55em] outline-none focus:border-tinta"
             />
             <span
               className="pointer-events-none absolute inset-x-3.5 bottom-2.5 flex gap-1.5"

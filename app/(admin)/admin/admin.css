@@ -18,14 +18,17 @@
   /* Los dos colores de Sophon, igual que en la Mini App: el panel es la otra
      cara de la misma aplicación, no otro producto. Papel cálido, dato marrón. */
   --p-superficie: #fffcf5;
-  --p-superficie-alta: #fefaeb;
-  --p-borde: #f0e4c4;
-  --p-tinta: #421d00;
+  --p-superficie-alta: #fbf4e6;
+  --p-borde: #eadfc6;
+  --p-tinta: #482304;
 
   /* El campo. Idéntico en claro y oscuro, como allí, y por la misma razón:
-     lleva su propio contraste (12,43:1 con su tinta). */
+     lleva su propio contraste (12,43:1 con su tinta). El canto tampoco es
+     decorativo: sobre papel claro el amarillo da 1,49:1 contra el fondo, así que
+     sin filete el botón no tiene contorno perceptible. */
   --p-campo: #f9d027;
   --p-campo-tinta: #1a1206;
+  --p-campo-canto: #a8850b;
 
   /* `.vivo` marca fallos de sincronización y retiros rechazados. Eso NO es la
      marca, es un problema, así que va del rojo de peligro y no del amarillo.
@@ -39,16 +42,23 @@
   font-family: system-ui, -apple-system, sans-serif;
 }
 
+/*
+ * El oscuro del panel también se ELIGE.
+ *
+ * Iba de gris-azul con superficies que no eran de la misma casa que la Mini App.
+ * Ahora es el mismo marrón-negro medido de allí —hue 56-61°— por el mismo
+ * motivo: la app y su panel son dos caras de un producto, no dos productos.
+ */
 @media (prefers-color-scheme: dark) {
   .panel {
-    --p-fondo: #14181d;
-    --p-texto: #f5f7f9;
-    --p-apoyo: #b2a196;
-    --p-superficie: #1f1f1a;
-    --p-superficie-alta: #2a2722;
-    --p-borde: #3a3428;
-    --p-tinta: #fdccac;
-    /* El campo no se redeclara: vale igual en las dos polaridades. */
+    --p-fondo: #12100d;
+    --p-texto: #f6efe6;
+    --p-apoyo: #b0a092;
+    --p-superficie: #1a1511;
+    --p-superficie-alta: #26201c;
+    --p-borde: #3a312a;
+    --p-tinta: #d7a583;
+    /* El campo y su canto no se redeclaran: valen igual en las dos polaridades. */
     --p-vivo: #f2837a;
   }
 }
@@ -120,11 +130,12 @@
   background: var(--p-superficie);
 }
 
-/* Chapa amarilla con tinta oscura, igual que en la Mini App. */
+/* Chapa amarilla con tinta oscura, igual que en la Mini App: el amarillo es la
+   ACCIÓN y no aparece en ningún otro sitio del panel. */
 .panel .boton.primario {
   background: var(--p-campo);
   color: var(--p-campo-tinta);
-  border-color: var(--p-campo);
+  border-color: var(--p-campo-canto);
   font-weight: 600;
 }
 
@@ -151,6 +162,15 @@
   padding: 0.45rem 0.6rem;
   font-size: 0.875rem;
   font-family: inherit;
+}
+
+/* El mismo gris cálido de la Mini App, y por el mismo motivo: sin esto caen al
+   `#9CA3AF` azulado del Preflight de Tailwind. Con `input`/`textarea` para
+   igualar la especificidad de aquella regla, que si no gana ella. */
+.panel input::placeholder,
+.panel textarea::placeholder {
+  color: var(--p-apoyo);
+  opacity: 1;
 }
 
 .panel input:focus,

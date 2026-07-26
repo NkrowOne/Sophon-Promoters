@@ -117,7 +117,14 @@ export default function Inicio() {
         />
       )}
 
-      <div className="pb-16 pt-6" style={{ paddingInline: "var(--margen-pantalla)" }}>
+      {/* Sin relleno superior cuando hay placa: la Cinta muerde la placa en vez
+          de dejar una franja de fondo entre las dos. La placa solo se pinta
+          cuando hay datos, y en esa rama el primer hijo es siempre una banda con
+          su propio `py-6`, así que el aire no se pierde: cambia de dueño. */}
+      <div
+        className={datos && dias.length > 0 ? "pb-16" : "pb-16 pt-6"}
+        style={{ paddingInline: "var(--margen-pantalla)" }}
+      >
         {error ? (
           <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
         ) : !datos ? (

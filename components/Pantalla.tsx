@@ -6,9 +6,9 @@
  * **Ya no hay barra lateral.** El raíl del Testigo ocupaba 44 px del borde
  * izquierdo de todas las pantallas —el 11 % del ancho de un móvil de 390— para
  * hacer de identidad, y se ha quitado entero. Lo que ocupa su papel es la
- * Placa: una banda de campo amarillo que lleva **la respuesta de la pantalla**,
- * no su nombre. Cuesta alto en vez de ancho, que en un móvil es lo que sobra, y
- * a cambio devuelve 44 px a los datos.
+ * Placa: una banda de espresso que lleva **la respuesta de la pantalla**, no su
+ * nombre. Cuesta alto en vez de ancho, que en un móvil es lo que sobra, y a
+ * cambio devuelve 44 px a los datos.
  *
  * La flecha «‹» también se ha ido. Medía 16×21 px —menos de la mitad del mínimo
  * táctil— y vivía en `x < 44`, justo encima del gesto de retroceso horizontal
@@ -28,7 +28,7 @@ export function Pantalla({
 }: {
   titulo?: string;
   /**
-   * La respuesta de la pantalla, sobre campo amarillo.
+   * La respuesta de la pantalla, sobre espresso.
    *
    * `rotulo` es de qué va la cifra y `valor` la cifra. `apoyo` es la línea
    * pequeña de debajo. Si no hay respuesta que dar —las pantallas de tarea, que
@@ -42,8 +42,19 @@ export function Pantalla({
     <main className="relative min-h-dvh">
       {placa && <Placa {...placa} />}
 
+      {/*
+        Con placa, CERO relleno superior: la primera banda tiene que morder la
+        placa. Con `pt-5` quedaba una franja del fondo de página entre las dos
+        —blanca en claro, casi negra en oscuro— que se lee como una costura mal
+        cerrada, justo debajo de la pieza que abre la pantalla.
+
+        No es un descuido que se pueda dejar: la metáfora es una secuencia de
+        estratos, y un estrato no flota sobre el anterior. Las dos pantallas con
+        placa abren con `Banda`, que ya trae su propio `py`, así que el aire no
+        se pierde: cambia de dueño.
+      */}
       <div
-        className={placa ? "pb-16 pt-5" : "pb-16 pt-7"}
+        className={placa ? "pb-16" : "pb-16 pt-7"}
         style={{ paddingInline: "var(--margen-pantalla)" }}
       >
         {/* Con placa NO se repite el título: el rótulo de la placa ya nombra la
@@ -58,15 +69,24 @@ export function Pantalla({
 }
 
 /**
- * La Placa: campo amarillo a sangre con la respuesta encima.
+ * La Placa: espresso a sangre con la respuesta encima.
  *
  * Las dos caras trabajan aquí y en direcciones opuestas: el rótulo va en
  * Archivo ensanchada a 11 px —letra de señal— y la cifra en Martian Mono
  * estrechada a 48 —lectura de instrumento—. Esa inversión es la firma
  * tipográfica de la aplicación.
  *
- * No lleva variante clara ni oscura porque no la necesita: el campo tiene
- * 12,43:1 con su tinta pase lo que pase con el tema del usuario.
+ * **Era amarilla, y ese era el defecto que hundió la versión anterior.** Placa
+ * y botón compartían `#F9D027`, de modo que lo que informa y lo que se pulsa se
+ * veían idénticos: *«ese amarillo se camufla con los botones»*. En espresso son
+ * dos objetos que no se pueden confundir, y la pantalla se ordena sola —lo más
+ * oscuro informa, lo más brillante se pulsa—.
+ *
+ * Las opacidades de abajo están medidas contra la placa y no puestas a ojo: con
+ * 12,91:1 en claro y 10,33:1 en oscuro, el rótulo al 70 % se queda en 7,09:1 y
+ * 5,97:1. Es la misma comprobación que en el Testigo demostró que atenuar por
+ * opacidad tiraba el estrato mayor por debajo del suelo; aquí hay margen de
+ * sobra, pero se verifica igual en vez de suponerlo.
  */
 export function Placa({
   rotulo,

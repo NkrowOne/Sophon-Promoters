@@ -3,12 +3,21 @@
 @tailwind utilities;
 
 /*
- * Superficies derivadas del tema de Telegram.
+ * La paleta se ELIGE, no se deduce.
  *
- * `color-mix` no existe en WebViews de Android anteriores a Chrome 111. Sin el
- * bloque @supports de más abajo, cada superficie resolvería a un valor inválido
- * y la app quedaría en texto sobre transparente. El respaldo estático va primero
- * y `color-mix` lo pisa solo donde funciona.
+ * Antes, las superficies salían de mezclar el fondo del cliente con el amarillo
+ * de marca vía `color-mix`. Sobre el azul-negro de Telegram esa mezcla aterriza
+ * en **hue 174°: verde oliva** —medido: 88 % de `#17212B` con `#F9D027` da
+ * `#2E3432`—. Ese verde es la mitad de «qué horrible el diseño, sobre todo modo
+ * oscuro», y no era un descuido de cálculo: azul y amarillo son casi
+ * complementarios, así que su mezcla **pasa por el verde por construcción**.
+ *
+ * Ahora las diez superficies son literales por polaridad. Cuesta que la
+ * aplicación no se camufle con temas exóticos de Telegram —por eso el puente
+ * llama a `setBackgroundColor` y `setHeaderColor`, para que el cromo del cliente
+ * siga a la app en vez de al revés—, y a cambio lo que mide
+ * `test/contraste.test.ts` es exactamente lo que se pinta. Es el mismo motivo
+ * por el que la rampa de tiers dejó de derivarse hace dos cambios.
  */
 :root {
   /*
@@ -24,27 +33,64 @@
    * par vale IGUAL en claro y en oscuro. Que no necesite desdoblarse por
    * polaridad es la señal de que la elección es estructural y no un adorno: es
    * el único par de toda la hoja que se declara una sola vez.
+   *
+   * ⚠️ **El amarillo es LA ACCIÓN, y nada más es amarillo.** La versión
+   * anterior lo usaba a la vez en la cabecera y en el botón —«todo lo que hay
+   * que hacer o saber va en amarillo»—, que es fundir dos trabajos distintos en
+   * una sola apariencia: lo que informa y lo que se pulsa se veían idénticos.
+   * De ahí «ese amarillo se camufla con los botones». Con el campo restringido a
+   * lo pulsable, es imposible que algo se camufle con el botón: es lo único de
+   * ese color en toda la pantalla.
    */
   --campo: #f9d027;
   --campo-tinta: #1a1206;
 
   /*
-   * Tinte de las superficies: el AMARILLO, no el marrón.
-   *
-   * Se probaron los dos y está medido: teñendo de marrón, el papel se apaga lo
-   * suficiente para que el escalón claro de la rampa caiga a 2,87:1 —por debajo
-   * del suelo de 3:1—. Con el amarillo se queda en 3,34 y además el papel sale
-   * cálido en vez de gris.
+   * Canto del campo. Sobre papel claro el amarillo da 1,49:1, así que un botón
+   * macizo sin borde no tiene un límite perceptible —y WCAG 1.4.11 pide 3:1 para
+   * el contorno de un control—. Este oro oscuro da **3,18:1 sobre el papel más
+   * claro** manteniendo el hue a 90°, cuatro grados del campo: es el mismo
+   * amarillo en sombra, no un segundo color.
    */
-  --tinte: #f9d027;
+  --campo-canto: #a8850b;
 
+  /*
+   * LA PLACA: espresso. Es el otro color de Sophon, que hasta ahora solo pintaba
+   * barritas de datos.
+   *
+   * La cabecera y el botón tienen que ser inconfundibles a un metro de
+   * distancia, así que no pueden compartir color. Marrón oscuro arriba y
+   * amarillo en la acción es la combinación que la marca ya traía sin usar, y
+   * ordena la pantalla sola: lo más oscuro informa, lo más brillante se pulsa.
+   */
+  --placa: #482304;
+  --placa-tinta: #fff6e8;
+  /* En claro la placa se recorta sola del papel (13,84:1), así que el canto es
+     el propio espresso y no se ve. En oscuro sí hace falta: ver más abajo. */
+  --placa-canto: #482304;
+
+  /*
+   * Los tres estratos de papel. Cálidos, teñidos de amarillo —el papel de esta
+   * aplicación no es blanco de oficina—, y ahora literales.
+   */
+  --fondo: #ffffff;
   --superficie: #fffcf5;
-  --superficie-alta: #fefaeb;
-  --borde: #f0e4c4;
+  --superficie-alta: #fbf4e6;
+  --borde: #eadfc6;
 
   /* Junta entre estratos. Es un canto, no una línea de separación: eso es lo
      que hace que las capas parezcan tener espesor. */
-  --junta: #fef5d6;
+  --junta: #f2e7ce;
+
+  /*
+   * Texto. NUESTRO, no el del cliente.
+   *
+   * Al elegir el fondo hay que elegir la tinta: heredar
+   * `--tg-theme-text-color` sobre un papel que ya no es el suyo es apostar a que
+   * el tema del usuario sea neutro. Y este es cálido —H 55°, el mismo del
+   * espresso—, que es lo que quita el último gris frío de la pantalla. 17,67:1.
+   */
+  --texto: #1f1710;
 
   /*
    * LA RAMPA: MARRÓN. Los colores de Sophon son amarillo y marrón, así que el
@@ -59,9 +105,10 @@
    *  2. **El hue tenía que bajar a 55°.** A 88° el croma llega más alto pero el
    *     resultado es caqui, y «oliva» es otra palabra que ya se descartó. A 55°
    *     sale chocolate, marrón y caramelo de verdad.
-   *  3. **El escalón claro del tema oscuro tenía que bajar de L 0,95 a 0,88.**
-   *     Ese casi-blanco era lo que estrangulaba el gamut; bajarlo más que dobla
-   *     el croma alcanzable en marrón.
+   *  3. **El escalón claro del tema oscuro va a L 0,76.** Estuvo en 0,88 y eso
+   *     es lo que lo convertía en MELOCOTÓN: a 0,50 ya pasa 3:1, así que 0,88
+   *     era 0,38 de luminosidad regalada a cambio de perder el marrón. Bajarlo
+   *     no cuesta contraste —el peor caso sigue en 3,12:1— y devuelve el color.
    *
    * Los tiers son ORDINALES —T1 paga 0,30 $, T2 0,25, T3 0,20—, así que van en
    * una sola familia ordenada por valor y no en tres colores distintos. Se
@@ -69,16 +116,25 @@
    * como dice el propio script «FAIL a correct ramp by design». El tier va
    * además por POSICIÓN fija en la banda: la lectura no depende del color.
    *
-   * Peor caso sobre los seis fondos de Telegram más las superficies de banda:
-   *   claro   T1 chocolate  T2 marrón    T3 caramelo   3,34:1
-   *   oscuro  T1 crema      T2 caramelo  T3 marrón     3,14:1
+   * Peor caso sobre los tres estratos de su polaridad:
+   *   claro   T1 chocolate  T2 marrón    T3 caramelo   3,26:1
+   *   oscuro  T1 caramelo   T2 marrón    T3 chocolate  3,12:1
    *
-   * Separación de hue con el amarillo: 40°. Misma familia, inconfundibles.
+   * Separación de hue con el amarillo: 38°. Misma familia, inconfundibles.
    */
-  --tinta-plena: #421d00;
-  --tinta-t1: #421d00;
-  --tinta-t2: #764d30;
-  --tinta-t3: #a87b5d;
+  --tinta-t1: #482304;
+  --tinta-t2: #7c5336;
+  --tinta-t3: #ab7e60;
+
+  /*
+   * Tinta densa para chips, filetes y foco. **Ya no es el T1.**
+   *
+   * Eran el mismo valor, y eso ataba la tinta de los controles al escalón más
+   * oscuro de la rampa de datos: bajar la rampa a marrón de verdad arrastraba
+   * con ella el chip de red seleccionada y el anillo de foco. Separarlos es lo
+   * que permitió mover la rampa sin tocar los controles.
+   */
+  --tinta-plena: #2a1b0e;
 
   /*
    * Tinta secundaria: cálida y NUESTRA, no la de Telegram.
@@ -88,11 +144,12 @@
    * encima de eso es lo que seguía tiñendo de gris frío cada rótulo y cada
    * etiqueta de la aplicación —justo la sensación que había que quitar—.
    *
-   * Croma 0,025, muy por debajo del de la rampa: es TEXTO. La especificación
-   * de marcas dice que el texto no lleva el color del dato, y este no lo lleva;
-   * solo comparte la temperatura del papel sobre el que se lee. 5,02:1.
+   * Croma bajo, muy por debajo del de la rampa: es TEXTO. La especificación de
+   * marcas dice que el texto no lleva el color del dato, y este no lo lleva;
+   * solo comparte la temperatura del papel sobre el que se lee. 5,89:1 en el
+   * peor estrato.
    */
-  --tinta-apoyo: #75655b;
+  --tinta-apoyo: #6e5b4a;
 
   /*
    * Rojo de peligro: el del CLIENTE, no el nuestro.
@@ -124,53 +181,55 @@
   --margen-pantalla: 1rem;
 }
 
+/*
+ * EL TEMA OSCURO, ELEGIDO.
+ *
+ * El anterior salió de aritmética sobre el claro y no lo abrí ni una vez. Tenía
+ * dos defectos que solo se ven mirando: las bandas en verde oliva (hue 174°) y
+ * una rampa a L 0,88 que no era marrón sino melocotón.
+ *
+ * Este es marrón-negro de verdad —hue 56-61°, el mismo del espresso—, así que la
+ * aplicación es la misma casa en las dos polaridades en vez de una versión fría
+ * de sí misma. Y el amarillo de la acción, que aquí saca **12,73:1 contra el
+ * fondo**, es con diferencia lo más brillante de la pantalla: exactamente lo que
+ * debe ser una acción.
+ */
 :root[data-luz="oscuro"] {
-  /* El campo NO se redeclara: vale igual en las dos polaridades. Ver arriba. */
+  /* El campo, su canto y la tinta de la placa NO se redeclaran: valen igual en
+     las dos polaridades. Ver arriba. */
 
-  --superficie: #222a2f;
-  --superficie-alta: #2e3432;
-  --borde: #3f4640;
-  --junta: #464738;
+  /* La placa sí sube: sobre negro, el espresso claro se hunde en el fondo. Con
+     este valor mantiene 10,33:1 con su tinta crema. */
+  --placa: #533520;
+  /* Y aquí el canto sí trabaja: la placa saca solo 1,45-1,72:1 contra los
+     estratos oscuros, que para un bloque macizo se ve pero se ve poco. El filete
+     le pone un límite inequívoco sin subir la placa —subirla le quitaría
+     contraste a su tinta y la acercaría al amarillo del botón—. */
+  --placa-canto: #7a5439;
+
+  --fondo: #12100d;
+  --superficie: #1a1511;
+  --superficie-alta: #26201c;
+  --borde: #3a312a;
+  --junta: #2f2823;
+
+  --texto: #f6efe6;
 
   /* En oscuro la escala se invierte: lo denso es lo luminoso. Mismo hue 55°. */
-  --tinta-plena: #fdccac;
-  --tinta-t1: #fdccac;
-  --tinta-t2: #cb9d7e;
-  --tinta-t3: #a17557;
+  --tinta-t1: #d7a583;
+  --tinta-t2: #b38363;
+  --tinta-t3: #916343;
 
-  --tinta-apoyo: #b2a196;
+  --tinta-plena: #efd9c4;
+  --tinta-apoyo: #b0a092;
 
   --peligro: var(--tg-theme-destructive-text-color, #f2837a);
 }
 
-/*
- * Adaptación al tema del usuario — SOLO las superficies.
- *
- * La rampa de estratos ya NO se deriva aquí. Se derivaba mezclando el color de
- * texto del usuario con su fondo, de modo que lo que medía
- * `test/contraste.test.ts` no era lo que veía nadie: el test comprobaba unos
- * literales y la pantalla pintaba otra cosa. Con la rampa fija, la puerta de
- * contraste vuelve a ser una garantía en vez de una aproximación, y de paso el
- * hue de la aplicación deja de depender de que el tema del usuario sea neutro.
- *
- * Las superficies sí siguen adaptándose, porque ahí un desvío es cosmético y a
- * cambio las bandas se apoyan en el fondo real del cliente en lugar de flotar
- * sobre él. Los valores de arriba son el respaldo medido para los WebView de
- * Android anteriores a Chrome 111, donde `color-mix` no existe.
- */
-@supports (background: color-mix(in oklab, red, blue)) {
-  :root {
-    --superficie: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 94%, var(--tinte));
-    --superficie-alta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 88%, var(--tinte));
-    --borde: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 84%, var(--tinte));
-    --junta: color-mix(in oklab, var(--tg-theme-bg-color, #ffffff) 76%, var(--tinte));
-  }
-}
-
 html,
 body {
-  background: var(--tg-theme-bg-color, #ffffff);
-  color: var(--tg-theme-text-color, #10151a);
+  background: var(--fondo);
+  color: var(--texto);
   /* El cuerpo nunca hace scroll horizontal: lo que desborda scrollea en su caja. */
   overflow-x: hidden;
 }
@@ -213,6 +272,34 @@ body {
   text-transform: uppercase;
 }
 
+/*
+ * Los marcadores de posición, en NUESTRO gris cálido.
+ *
+ * Cinco de los seis campos de la aplicación no declaraban color de placeholder,
+ * así que caían al `#9CA3AF` del Preflight de Tailwind: un gris AZULADO, y
+ * ocupando el elemento más visible de cada pantalla de formulario. Es
+ * literalmente la queja que se repitió tres veces —«todo en blancos y grises»—
+ * sobreviviendo en el único sitio donde nadie fue a mirarla.
+ *
+ * Va en una regla global y no clase a clase a propósito: el defecto no fue que
+ * alguien eligiera mal el color, fue que había que acordarse de elegirlo. Así el
+ * próximo campo lo hereda sin que nadie tenga que saberlo.
+ *
+ * El selector lleva `input`/`textarea` para IGUALAR la especificidad del
+ * Preflight, que declara `input::placeholder, textarea::placeholder`. Con un
+ * `::placeholder` a secas la regla se escribe, se sirve y no se aplica: pierde
+ * por especificidad aunque vaya después. Se comprobó en captura, que es la única
+ * forma de haberlo visto.
+ *
+ * `opacity: 1` porque Firefox aplica una propia a los placeholders y, sin esto,
+ * el color medido no es el que se pinta.
+ */
+input::placeholder,
+textarea::placeholder {
+  color: var(--tinta-apoyo);
+  opacity: 1;
+}
+
 /* Foco visible de verdad: es el suelo de calidad, no un extra. Va del color de
    la tinta y no del campo: un anillo amarillo sobre la propia placa no se vería. */
 :focus-visible {
@@ -223,29 +310,39 @@ body {
 
 /* ──────────────────────────────── LA PLACA ────────────────────────────────
  *
- * La firma de la aplicación, y una regla de uso antes que un estilo:
+ * La firma de la aplicación: una banda de espresso a sangre que abre cada
+ * pantalla llevando **la respuesta**, no el nombre. Sustituye al raíl de 44 px
+ * que ocupaba el borde izquierdo de todas las pantallas: aquel gastaba el 11 %
+ * del ancho de un móvil en identidad, esta gasta alto —que en un móvil es lo que
+ * sobra— y encima lleva un dato.
  *
- *     todo lo que el agente tiene que HACER o SABER va sobre campo amarillo
- *     con tinta oscura. Nada más es amarillo.
- *
- * Sustituye al raíl de 44 px que ocupaba el borde izquierdo de todas las
- * pantallas. Aquel gastaba el 11 % del ancho de un móvil en identidad; esta
- * gasta alto, que es lo que sobra, y encima lleva un dato.
- *
- * El par campo/tinta no se desdobla por polaridad —el campo lleva su propio
- * contraste, 12,43:1—, así que esta regla es idéntica en claro y en oscuro.
- * Es el único bloque de la hoja del que se puede decir eso.
+ * **Era amarilla y ese era el defecto.** Placa y botón compartían `#F9D027`, así
+ * que lo que informa y lo que se pulsa tenían una sola apariencia. En espresso
+ * son dos objetos que no se pueden confundir ni de lejos, y la jerarquía se lee
+ * sin leer nada: lo más oscuro informa, lo más brillante se pulsa.
  */
 .placa {
-  background: var(--campo);
-  color: var(--campo-tinta);
+  background: var(--placa);
+  color: var(--placa-tinta);
+  border-bottom: 1px solid var(--placa-canto);
 }
 
-/* Radio 2 px: uno grande y blando es la firma de «app moderna» genérica, y cero
-   habría caído en el otro extremo, el de la maqueta tipo periódico. */
+/*
+ * LA CHAPA: el amarillo, y el único sitio donde aparece.
+ *
+ * Radio 2 px: uno grande y blando es la firma de «app moderna» genérica, y cero
+ * habría caído en el otro extremo, el de la maqueta tipo periódico.
+ *
+ * El canto no es un adorno. Sobre papel claro el campo da 1,49:1 contra el
+ * fondo, así que un botón macizo sin borde no tiene un límite perceptible; el
+ * filete de oro oscuro le da 3,18:1, que es lo que WCAG 1.4.11 pide para el
+ * contorno de un control. En oscuro no hace falta —el campo saca 12,73:1— pero
+ * se conserva porque ahí actúa de bisel y no molesta.
+ */
 .chapa {
   background: var(--campo);
   color: var(--campo-tinta);
+  border: 1px solid var(--campo-canto);
   border-radius: 2px;
 }
 
@@ -259,7 +356,8 @@ body {
  */
 .chapa:disabled {
   background: var(--superficie-alta);
-  color: var(--tinta-t3);
+  color: var(--tinta-apoyo);
+  border-color: var(--borde);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -280,15 +378,15 @@ body {
  * a sangre con su propio tono, separada de la siguiente por una junta de 1 px,
  * igual que las capas de un testigo.
  *
- * Las tres superficies se derivan del fondo del usuario teñido con el AMARILLO
- * de marca, así que el papel es cálido y no gris. Se probó teñirlas de marrón
- * —el otro color de Sophon— y está medido que no vale: el papel se apaga lo
- * justo para que el escalón claro de la rampa caiga a 2,87:1, por debajo del
- * suelo. Con el amarillo se queda en 3,34.
+ * Los tres estratos son papel cálido en claro y marrón-negro en oscuro, con la
+ * misma temperatura que el espresso de la placa. **Ya no se derivan del fondo
+ * del cliente**: derivarlos era lo que producía el verde oliva en oscuro, y de
+ * paso hacía que `test/contraste.test.ts` midiera unos literales mientras la
+ * pantalla pintaba otra cosa.
  *
- * Las bandas son fondo de contenido, así que `test/contraste.test.ts` mide la
- * rampa TAMBIÉN contra ellas. No es teórico: es lo que ha cazado dos veces un
- * escalón por debajo del suelo antes de que llegara a pantalla.
+ * Las bandas son fondo de contenido, así que el test mide la rampa TAMBIÉN
+ * contra ellas. No es teórico: es lo que ha cazado dos veces un escalón por
+ * debajo del suelo antes de que llegara a pantalla.
  */
 .banda {
   position: relative;
@@ -302,7 +400,7 @@ body {
   border-top: 1px solid var(--junta);
 }
 
-.banda-0 { background: var(--tg-theme-bg-color, #ffffff); }
+.banda-0 { background: var(--fondo); }
 .banda-1 { background: var(--superficie); }
 .banda-2 { background: var(--superficie-alta); }
 
