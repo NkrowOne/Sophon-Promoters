@@ -20,11 +20,13 @@ import Link from "next/link";
 
 import type { ErrorApi } from "@/lib/api/cliente";
 import { Icono, type NombreIcono } from "./Icono";
+import { Isotipo } from "./Isotipo";
 import { useCadenas } from "./TelegramProvider";
 
 export function Pantalla({
   titulo,
   placa,
+  marca,
   children,
 }: {
   titulo?: string;
@@ -37,6 +39,15 @@ export function Pantalla({
    * saber es lo que le da significado.
    */
   placa?: { rotulo: string; valor: React.ReactNode; apoyo?: React.ReactNode };
+  /**
+   * Enseña el isotipo de Sophon sobre el título.
+   *
+   * Solo lo pide `/alta`, y a propósito: es la única pantalla en la que el
+   * agente todavía no sabe dónde está —llega desde un enlace del bot, sin datos
+   * y sin red—. En las demás la aplicación ya se presentó, y repetir la marca en
+   * cada cabecera gastaría espacio de datos para decir algo ya dicho.
+   */
+  marca?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -62,6 +73,19 @@ export function Pantalla({
             pantalla, y ponerlo dos veces —«RENOVACIONES» arriba y
             «Renovaciones» debajo— es decir lo mismo gastando una línea de 21 px
             y la primera pantalla de scroll. La placa lleva su propio `h1`. */}
+        {/* El isotipo, cuando lo hay, va ENCIMA del título y no debajo.
+            Puesto como primer hijo de la primera banda quedaba entre el título
+            y el texto de apoyo, y ahí no identifica nada: se lee como un dibujo
+            suelto en medio de una frase. Arriba es lo primero que se ve y hace
+            el trabajo que se le pide —decir de qué aplicación es esto— antes de
+            que empiece el contenido. */}
+        {marca && (
+          <Isotipo
+            ancho={64}
+            titulo="Sophon"
+            className="mb-5 block text-texto"
+          />
+        )}
         {titulo && !placa && <h1 className="mb-6 text-titulo">{titulo}</h1>}
         {children}
       </div>

@@ -68,6 +68,19 @@ const arabe = Noto_Sans_Arabic({
 export const metadata: Metadata = {
   title: "Sophon Promoters",
   description: "Gestiona tus webmasters de Sophon y consulta tus ganancias.",
+  /*
+   * Un solo SVG y ningún PNG.
+   *
+   * La marca es geometría —tres trazos circulares—, así que un vectorial de
+   * 600 bytes sirve para el favicon de 16 px, para el icono de la pantalla de
+   * inicio de iOS y para cualquier densidad futura, sin generar el juego de
+   * ocho PNG que normalmente acompaña a esto. Es la ventaja concreta de haber
+   * vectorizado en vez de incrustar el bitmap que llegó.
+   */
+  icons: {
+    icon: "/icono.svg",
+    apple: "/icono.svg",
+  },
 };
 
 export const viewport: Viewport = {

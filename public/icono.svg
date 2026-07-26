@@ -1,0 +1,20 @@
+<!--
+  Icono de la aplicación: el isotipo sobre el campo de marca.
+
+  Es la ÚNICA aparición del logotipo en la que los colores van fijos en vez de
+  heredarse: un favicon lo pinta el navegador fuera de nuestro documento, así
+  que no hay `currentColor` que valga ni tema al que seguir. Se usa la pareja de
+  la marca —campo #F9D027 con tinta #1A1206, 12,4:1— que es además el lockup que
+  mandó el cliente.
+
+  Cuadrado y con la marca al 62 % del ancho: por debajo de ese aire el dibujo
+  toca el borde del cuadro y en la pestaña se ve recortado.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#F9D027"/>
+  <g transform="translate(97.60 165.95) scale(2.64)" fill="none" stroke="#1A1206" stroke-linecap="round">
+    <circle cx="19.61" cy="46.57" r="13.56" stroke-width="12.10"/>
+    <path d="M31.20 18.50A27.49 27.49 0 1 1 45.73 60.37" stroke-width="13.23"/>
+    <path d="M97.90 31.68A14.25 14.25 0 1 1 91.13 57.21" stroke-width="12.12"/>
+  </g>
+</svg>

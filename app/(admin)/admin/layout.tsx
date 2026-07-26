@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Isotipo } from "@/components/Isotipo";
+
 /**
  * Armazón del panel.
  *
@@ -25,9 +27,18 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
             flexWrap: "wrap",
           }}
         >
-          <nav style={{ display: "flex", gap: "1.25rem", alignItems: "baseline" }}>
-            <Link href="/admin" style={{ fontWeight: 600, textDecoration: "none" }}>
-              Panel
+          <nav style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
+            {/* El isotipo hace de inicio, y sustituye a la palabra «Panel».
+                Un rótulo de navegación que dice «Panel» dentro del panel no
+                informa de nada: el sitio ya se sabe. La marca sí dice algo —de
+                qué producto es esto— y ocupa el mismo hueco. Toma la tinta del
+                enlace, así que sigue al tema del panel sin tocar nada. */}
+            <Link
+              href="/admin"
+              aria-label="Panel de Sophon Promoters"
+              style={{ display: "inline-flex", textDecoration: "none", color: "var(--p-tinta)" }}
+            >
+              <Isotipo ancho={44} />
             </Link>
             <Link href="/admin/agentes" className="apoyo" style={{ textDecoration: "none" }}>
               Agentes

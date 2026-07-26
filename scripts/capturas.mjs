@@ -125,6 +125,9 @@ const RUTAS = [
 const PANTALLAS = [
   ["inicio", "/"],
   ["ficha", `/red/${encodeURIComponent(ficha.email)}`],
+  // La primera pantalla, y la única que lleva el isotipo: es donde el agente
+  // todavía no sabe en qué aplicación está.
+  ["alta", "/alta"],
 ];
 
 await mkdir(SALIDA, { recursive: true });
@@ -194,15 +197,28 @@ for (const [nombre, luz] of [
         offEvent: noOp,
         setBackgroundColor: noOp,
         setHeaderColor: noOp,
+        /*
+         * El MainButton necesita su interfaz COMPLETA, no la mitad.
+         *
+         * La primera versión de este simulacro se dejó `setText`, `enable` y
+         * `disable`, y `/alta` —la única pantalla capturada que usa
+         * `BotonPrincipalAccion`— reventaba contra su frontera de error y salía
+         * fotografiada como «Algo se ha roto». Las otras dos pantallas no lo
+         * tocan, así que el fallo parecía de la pantalla y era del simulacro.
+         */
         MainButton: {
+          setText: noOp,
           setParams: noOp,
           show: noOp,
           hide: noOp,
+          enable: noOp,
+          disable: noOp,
           showProgress: noOp,
           hideProgress: noOp,
           onClick: noOp,
           offClick: noOp,
           isVisible: false,
+          isActive: true,
         },
         BackButton: { show: noOp, hide: noOp, onClick: noOp, offClick: noOp },
         HapticFeedback: { impactOccurred: noOp, notificationOccurred: noOp },

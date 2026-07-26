@@ -198,7 +198,9 @@ function AltaPasos() {
   }
 
   return (
-    <Pantalla titulo={t.vinculaTuCuenta}>
+    // `marca`: el isotipo sobre el título. Es la única pantalla de la Mini App
+    // que lo lleva; el porqué está en la prop, en `Pantalla`.
+    <Pantalla titulo={t.vinculaTuCuenta} marca>
       <Banda orden={0} tono={0} className="pb-7">
           <p className="text-apoyo text-texto-apoyo">{t.soloSeHaceUnaVez}</p>
 
