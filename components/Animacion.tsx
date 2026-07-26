@@ -120,29 +120,18 @@ function CifraAnimadaSinMoneda({ micros }: { micros: bigint }) {
   return <span aria-hidden>{formatearMicros(valor).replace(/\s*\$$/, "")}</span>;
 }
 
-/**
- * Aparición escalonada. El orden importa: los bloques entran de arriba abajo
- * con 60 ms de diferencia, que es justo lo que se percibe como secuencia sin
- * que la pantalla parezca lenta.
+/*
+ * `Aparece` se ha ido.
+ *
+ * Era un `div` que envolvía cada banda solo para llevar el retardo de entrada, y
+ * no pintaba nada: un nivel de caja por bloque, en dos pantallas. Peor, ROMPÍA
+ * las juntas —la separación entre estratos es `.banda + .banda`, hermano
+ * adyacente, y con un div en medio las bandas dejaban de ser hermanas—, así que
+ * `/red/[id]` y `/alta` se quedaban sin una sola junta dibujada.
+ *
+ * El retardo vive ahora en la prop `orden` de `Banda`: misma animación, un
+ * contenedor menos, y las juntas de vuelta.
  */
-export function Aparece({
-  children,
-  orden = 0,
-  className = "",
-}: {
-  children: React.ReactNode;
-  orden?: number;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`animate-emerger ${className}`}
-      style={{ animationDelay: `${Math.min(orden * 60, 420)}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
 
 /**
  * Barra que crece desde cero al entrar. Se usa en la Cinta y en la Escalera,

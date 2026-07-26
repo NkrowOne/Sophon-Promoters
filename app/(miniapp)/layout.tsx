@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Martian_Mono } from "next/font/google";
+import { Archivo, Noto_Sans_Arabic } from "next/font/google";
 import Script from "next/script";
 
 import { AtrasDeTelegram } from "@/components/AtrasDeTelegram";
@@ -7,48 +7,62 @@ import { TelegramProvider } from "@/components/TelegramProvider";
 import "./globals.css";
 
 /*
- * Dos caras, y la inversión que las hace memorables.
+ * UNA sola cara. Eran tres, y ese era el defecto.
  *
- * La app no tenía tipografía: tenía `system-ui`, que en Android es Roboto y en
- * iOS SF. El ajuste por defecto de todo el mundo.
+ * La versión anterior montaba una «inversión» tipográfica: Archivo ENSANCHADA a
+ * wdth 115, en versalitas y con 0,16em de tracking, para todos los rótulos a
+ * 11 px; y Martian Mono ESTRECHADA para todas las cifras, hasta 44 px. La tesis
+ * era que usar la cara de display pequeña y la mono grande daba personalidad.
  *
- * Las dos son VARIABLES y las dos traen eje de anchura (`wdth`), que es de
- * donde sale el carácter sin pagar una segunda familia:
+ * Daba otra cosa. Se puso el espécimen en pantalla y se miró, que es lo que no
+ * se había hecho:
  *
- *  - **Archivo ensanchada** para los rótulos, a 11 px: letra estarcida de señal.
- *  - **Martian Mono estrechada** para las cifras, a 20-48 px: lectura de
- *    instrumento, y tabular por diseño, que es lo que impide que una columna de
- *    importes baile al cambiar de dígito.
+ *  - Martian Mono es una mono de novedad. Al ser monoespaciada, la COMA de un
+ *    importe ocupa una casilla entera, así que «8,88 $» se pinta con huecos
+ *    enormes alrededor de la coma. En una aplicación cuyo contenido principal
+ *    son importes en euros y dólares, eso es el peor sitio posible para una
+ *    mono. Es literalmente lo que el usuario llamó «aberrante».
+ *  - Archivo a wdth 115 en versalitas tracadas, repetida 27 veces por pantalla,
+ *    convierte cada rótulo en un cartel de señalización.
  *
- * La inversión es que la cara de display se usa PEQUEÑA y la mono GRANDE, al
- * revés de lo habitual. Es lo que da personalidad sin recurrir a una serif de
- * alto contraste, que es hoy el primer reflejo de plantilla.
+ * Y la mono NO hacía falta: **Archivo ya trae cifras tabulares** (`tnum`,
+ * verificado en el fichero). Es decir, la segunda familia estaba pagando el
+ * primer pintado para dar algo que la primera ya tenía, y encima peor.
  *
- * El texto corrido se queda en la pila del sistema, y es una decisión: la Mini
- * App vive dentro de Telegram, cuyo propio cromo va en la cara del sistema.
- * Igualarla hace que se sienta nativa en vez de una web incrustada, y cuesta
- * cero bytes de datos móviles.
+ * Así que el arreglo es una RESTA: fuera Martian Mono, fuera el eje de anchura,
+ * y la jerarquía pasa a hacerse con lo que siempre debió hacerla —tamaño y
+ * peso—. Archivo es un grotesco con carácter propio (altura de x grande, 'g' de
+ * un piso), no una neutra de catálogo, y sostiene sola desde los 13 px de una
+ * etiqueta hasta los 40 de la cifra protagonista.
+ *
+ * **El árabe deja de caer a la del sistema.** Noto Sans Arabic cubre el bloque
+ * árabe completo y también trae `tnum`, así que la versión RTL deja de ser la
+ * única que se ve de otra tipografía. Va sin `preload` y se aplica solo bajo
+ * `[lang="ar"]`: quien lee en español no descarga un solo byte de ella.
  *
  * `next/font` las descarga en tiempo de BUILD y las sirve desde nuestro propio
- * origen: no hay petición a Google en ejecución. `adjustFontFallback` calcula
- * las métricas de la cara de respaldo para que no haya salto de maquetación
- * mientras cargan —importante en árabe, que no tiene subconjunto en ninguna de
- * las dos y se queda en la del sistema—.
+ * origen: no hay petición a Google en ejecución. `adjustFontFallback` ajusta las
+ * métricas de la cara de respaldo para que no haya salto de maquetación.
  */
-const rotulo = Archivo({
+const texto = Archivo({
+  // Solo `latin`: los cinco idiomas latinos de la aplicación —es, en, it, pt—
+  // caben en él (ñ, á, ã, ç, à, ù están todos dentro). `latin-ext` añadía un
+  // segundo fichero PRECARGADO de 32 kB para cubrir alfabetos que la app no
+  // traduce, y el primer pintado se paga en la calle con datos móviles.
   subsets: ["latin"],
   weight: "variable",
-  axes: ["wdth"],
   display: "swap",
-  variable: "--fuente-rotulo",
+  variable: "--fuente",
 });
 
-const cifras = Martian_Mono({
-  subsets: ["latin"],
+const arabe = Noto_Sans_Arabic({
+  subsets: ["arabic"],
   weight: "variable",
-  axes: ["wdth"],
   display: "swap",
-  variable: "--fuente-cifras",
+  variable: "--fuente-arabe",
+  // Solo lo descarga quien lee en árabe: precargarlo para todos sería pagar una
+  // familia entera por el 1 % de las sesiones.
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -66,7 +80,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" data-luz="claro" className={`${rotulo.variable} ${cifras.variable}`}>
+    <html lang="es" data-luz="claro" className={`${texto.variable} ${arabe.variable}`}>
       <head>
         {/* Antes de pintar: si el WebView no expone las variables de tema, los
             respaldos estáticos ya están puestos y no hay destello de texto invisible. */}

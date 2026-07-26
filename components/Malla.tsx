@@ -13,12 +13,18 @@
  * que la pantalla hace evidente.
  *
  * Cada marca codifica una cantidad real: altura de barra = registros del día,
- * densidad de tinta = tier, y el estado del webmaster se dibuja en el marco, no
- * con un icono decorativo al lado.
+ * densidad de tinta = tier.
+ *
+ * El estado se dibujaba en el MARCO de la tesela. Ya no: la tesela era una caja
+ * con borde dentro de una banda con fondo dentro de la pantalla, y seis marcos
+ * dibujados a la vez compiten con los datos que hay dentro de ellos. Ahora lo
+ * lleva un icono en la línea de abajo, que se localiza igual de rápido en una
+ * retícula y no obliga a envolver cada webmaster en su propia caja.
  */
 
 import { useMemo } from "react";
 
+import { Icono, type NombreIcono } from "./Icono";
 import { useCadenas } from "./TelegramProvider";
 
 export interface DiaWebmaster {
@@ -72,7 +78,16 @@ export function Malla({
   );
 
   return (
-    <ul className="grid grid-cols-2 gap-2.5" role="list">
+    /*
+       El hueco separa las teselas, así que tiene que ser lo bastante ancho para
+       hacerlo SOLO: al quitarles el marco, con `gap-2.5` las dos columnas se
+       leían como una sola línea —«186   237,80 $   41   12,45 $»— y el ojo
+       saltaba de una tesela a la de al lado a mitad de cifra.
+
+       El hueco horizontal es mayor que el vertical a propósito: en vertical ya
+       separa el cambio de nombre, en horizontal no hay nada más que separe.
+    */
+    <ul className="grid grid-cols-2 gap-x-6 gap-y-7" role="list">
       {webmasters.map((w) => (
         <Tesela key={w.id} w={w} maximo={maximo} dias={dias} onAbrir={onAbrir} />
       ))}
@@ -120,12 +135,36 @@ function Tesela({
         ? t.seVaABorrar
         : t.desaparecido
     : proApagado
-      ? t.proCaducado
+      ? // «PRO caducado» es falso para quien nunca lo tuvo, y ese es justo el
+        // caso más frecuente: un alta que se quedó a medias. `diasHastaCaducidad`
+        // en null significa que no hay fecha porque no hubo concesión.
+        w.diasHastaCaducidad === null
+        ? t.nuncaTuvoPro
+        : t.proCaducado
       : apagado
         ? w.diasSinActividad === null
           ? t.sinActividad
           : t.diasParado(w.diasSinActividad)
         : "";
+
+  /*
+   * El icono va PAREADO con la etiqueta, no elegido aparte.
+   *
+   * Es lo que sustituye al marco de color: en una retícula de seis teselas, el
+   * ojo encuentra un símbolo distinto antes que leer seis textos. Y como sale
+   * del mismo árbol de condiciones que el texto, no pueden desincronizarse.
+   */
+  const icono: NombreIcono | null = problema
+    ? w.estado === "BLOQUEADO"
+      ? "bloqueado"
+      : w.estado === "PENDIENTE_BORRADO"
+        ? "seBorra"
+        : "desaparecido"
+    : proApagado
+      ? "caducado"
+      : apagado
+        ? "parado"
+        : null;
 
   // La serie llega ordenada de reciente a antigua; se pinta al revés para que
   // el tiempo avance de izquierda a derecha, como se lee.
@@ -137,17 +176,18 @@ function Tesela({
       <button
         type="button"
         onClick={() => onAbrir?.(w.id)}
-        className={[
-          "w-full rounded-pieza border p-2.5 text-start",
-          "transition-transform duration-150 ease-sonda active:scale-[0.99]",
-          // El estado se dibuja en el MARCO, no con un icono al lado: así el
-          // problema se ve a la misma distancia que el volumen.
-          //
-          // El marco de problema NO puede ser amarillo: un filete de 1 px de
-          // campo da 1,49:1 sobre papel claro y desaparece. El aviso va abajo,
-          // sobre chapa, que es donde el amarillo se lee.
-          problema ? "border-peligro" : apagado ? "border-borde" : "border-tinta",
-        ].join(" ")}
+        /*
+         * SIN MARCO. La tesela era una caja con borde dentro de una banda con
+         * fondo dentro de la pantalla: tres niveles de contenedor para enseñar
+         * catorce barras y dos cifras, y en una retícula de seis, seis marcos
+         * dibujados compiten con el dato que hay dentro de ellos.
+         *
+         * Lo que separa ahora es el HUECO de la retícula, que es como se separa
+         * una serie de múltiplos pequeños. El estado, que antes se codificaba en
+         * el color del marco, baja al icono de la línea de abajo: se lee a la
+         * misma distancia y no necesita dibujar una caja para decirlo.
+         */
+        className="w-full rounded-panel py-1 text-start transition-transform duration-150 ease-sonda active:scale-[0.98]"
         style={{ minWidth: ANCHO_TESELA }}
       >
         <span className="block truncate text-apoyo font-medium" title={w.email}>
@@ -155,22 +195,25 @@ function Tesela({
         </span>
 
         <span
-          className="mt-2 flex h-[34px] items-end gap-[2px]"
+          className="mt-2.5 flex items-end gap-[2px]"
           style={{ height: ALTO_BARRAS }}
           aria-hidden
         >
-          {/* Días sin datos: hueco explícito, no cero. Un cero dibujado y un
-              «no hay dato» son cosas distintas y confundirlas engaña. */}
+          {/* Día sin datos: NADA. Iba de `bg-superficie`, que es exactamente el
+              color de la banda donde vive la Malla —1,000:1—, así que pintaba un
+              rectángulo invisible: el gasto de un elemento por día para no
+              enseñar nada. La ausencia ya es la señal, y así se distingue del
+              día con cero registros, que sí deja una muesca al pie. */}
           {Array.from({ length: faltan }, (_, i) => (
-            <span key={`hueco-${i}`} className="h-full flex-1 bg-superficie" />
+            <span key={`hueco-${i}`} className="h-full flex-1" />
           ))}
           {serie.map((d) => (
             <BarraDia key={d.fecha} dia={d} maximo={maximo} />
           ))}
         </span>
 
-        <span className="mt-2 flex items-baseline justify-between gap-2">
-          <span className="cifra text-apoyo">{w.registrosVentana}</span>
+        <span className="mt-2.5 flex items-baseline justify-between gap-2">
+          <span className="cifra text-cuerpo">{w.registrosVentana}</span>
           <span className="cifra text-apoyo text-texto-apoyo">{w.ganadoTotal.texto}</span>
         </span>
 
@@ -178,25 +221,23 @@ function Tesela({
             Sin altura reservada, una tesela con etiqueta crecía más que sus
             vecinas y la retícula se desalineaba —justo lo que rompe una
             superficie cuya razón de ser es comparar unas con otras—.
-            Y el texto va en una sola línea: partido en dos volvía a descuadrarla. */}
-        {/*
-          El campo marca lo ACCIONABLE, no lo malo.
 
-          «PRO apagado» es algo que el agente puede arreglar hoy —conceder— así
-          que va sobre chapa. «Bloqueado» es un problema de Sophon que él no
-          puede tocar: va del rojo de peligro, igual que el marco de la tesela,
-          y así los dos dicen lo mismo en vez de contradecirse. Y «9 días
-          parado» no es ni una cosa ni la otra: va en tinta de apoyo.
-        */}
-        <span className="text-rotulo mt-1.5 flex h-4 items-center">
-          {etiqueta &&
-            (problema ? (
-              <span className="truncate text-peligro">{etiqueta}</span>
-            ) : proApagado ? (
-              <span className="chapa truncate px-1 py-px font-semibold">{etiqueta}</span>
-            ) : (
-              <span className="truncate text-texto-apoyo">{etiqueta}</span>
-            ))}
+            Y ahora la lleva un ICONO, que es lo que sustituye al marco de color:
+            un webmaster con problema se localiza en la retícula sin leer, y sin
+            que la tesela tenga que dibujar una caja alrededor de sí misma. */}
+        <span className="mt-2 flex h-5 items-center gap-1.5 text-rotulo">
+          {etiqueta && (
+            <>
+              <Icono
+                nombre={icono!}
+                tam={15}
+                className={problema ? "text-peligro" : proApagado ? "text-t2" : "text-texto-apoyo"}
+              />
+              <span className={`truncate ${problema ? "text-peligro" : "text-texto-apoyo"}`}>
+                {etiqueta}
+              </span>
+            </>
+          )}
         </span>
       </button>
     </li>
@@ -206,9 +247,10 @@ function Tesela({
 /** Una barra por día, partida por tier en orden fijo T1 · T2 · T3 de abajo arriba. */
 function BarraDia({ dia, maximo }: { dia: DiaWebmaster; maximo: number }) {
   if (dia.registros === 0) {
-    // Día sin registros: una marca mínima al pie. Dejarlo en blanco lo haría
-    // indistinguible de un día sin datos.
-    return <span className="h-[2px] flex-1 self-end bg-superficie-alta" />;
+    // Día sin registros: una muesca al pie. Va de `borde` y no de
+    // `superficie-alta`, que sobre la banda de la Malla casi no se veía: si la
+    // muesca no se ve, un día de cero y un día sin datos vuelven a ser lo mismo.
+    return <span className="h-[2px] flex-1 self-end bg-borde" />;
   }
 
   const alto = Math.max(4, Math.round((dia.registros / maximo) * ALTO_BARRAS));

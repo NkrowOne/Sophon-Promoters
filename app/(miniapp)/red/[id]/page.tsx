@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 
-import { Aparece, BarraCreciente, CifraProtagonista } from "@/components/Animacion";
+import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
+import { Icono } from "@/components/Icono";
 import { Mecha, MechaApagada } from "@/components/Mecha";
 import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
@@ -135,7 +136,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           <Vacio
             titulo={error.message}
             apoyo={error.apoyo ?? undefined}
-            accion={{ texto: t.red, href: "/red" }}
+            accion={{ texto: t.red, href: "/red", icono: "red" }}
           />
         ) : (
           <FalloDeCarga error={error} onReintentar={cargar} />
@@ -157,8 +158,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
 
   return (
     <Pantalla>
-      <Aparece orden={0}>
-        <Banda tono={0} como="header" className="pb-6">
+              <Banda orden={0} tono={0} como="header" className="pb-6">
           {/* El correo entero, sin recortar: es el identificador con el que el
               agente habla con esta persona. Pero rompe por la ARROBA, no por
               caracteres: `break-all` partía «…@gmail.c / om», que es más difícil
@@ -168,20 +168,20 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           </h1>
           <p className="mt-1.5 text-apoyo text-texto-apoyo">
             {problema ? (
-              <Marca>{estadoLegible(datos.estado, t)}</Marca>
+              <Marca icono="bloqueado" tono="peligro">
+                {estadoLegible(datos.estado, t)}
+              </Marca>
             ) : (
               estadoLegible(datos.estado, t)
             )}
             {datos.activadoEn && ` · ${t.enTuRedDesde(formatoDia(datos.activadoEn))}`}
           </p>
         </Banda>
-      </Aparece>
 
       {/* La mecha primero: es lo único con fecha límite. Va en su propio estrato
           porque es la única parte de la ficha en la que se actúa; el resto se
           mira. */}
-      <Aparece orden={1}>
-        <Banda tono={1} etiqueta={t.colaRenovaciones} className="py-6">
+              <Banda orden={1} tono={1} etiqueta={t.colaRenovaciones} className="py-6">
           {datos.pro ? (
             <Mecha
               diasRestantes={datos.pro.diasRestantes}
@@ -207,9 +207,16 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
               type="button"
               onClick={renovar}
               disabled={renovando}
-              className="chapa mt-3 min-h-11 w-full py-3 text-cuerpo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
+              className="chapa mt-4 w-full text-cuerpo transition-transform duration-150 ease-sonda active:scale-[0.99]"
             >
-              {renovando ? "…" : datos.pro ? t.renovarUnAnio : t.darUnAnio}
+              {renovando ? (
+                "…"
+              ) : (
+                <>
+                  <Icono nombre={datos.pro ? "renovar" : "pro"} tam={19} />
+                  {datos.pro ? t.renovarUnAnio : t.darUnAnio}
+                </>
+              )}
             </button>
           ) : (
             <p className="mt-3 text-apoyo text-texto-apoyo">
@@ -229,10 +236,8 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             </div>
           )}
         </Banda>
-      </Aparece>
 
-      <Aparece orden={2}>
-        <Banda tono={0} etiqueta={t.teHaDado} className="py-6">
+              <Banda orden={2} tono={0} etiqueta={t.teHaDado} className="py-6">
           <p className="text-rotulo text-texto-apoyo">{t.teHaDado}</p>
           <div className="mt-1.5">
             <CifraProtagonista micros={BigInt(tot.ganado.micros)} />
@@ -281,10 +286,8 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             </p>
           )}
         </Banda>
-      </Aparece>
 
-      <Aparece orden={3}>
-        <Banda tono={2} etiqueta={t.registroDeSondeo} className="py-6">
+              <Banda orden={3} tono={2} etiqueta={t.registroDeSondeo} className="py-6">
           <p className="text-rotulo mb-3 text-texto-apoyo">{t.ultimosDias(datos.dias)}</p>
           {serie.length > 0 ? (
             <TestigoAncho dias={serie} denso etiquetas={t} />
@@ -292,7 +295,6 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             <p className="text-apoyo text-texto-apoyo">{t.todaviaSinRegistros}</p>
           )}
         </Banda>
-      </Aparece>
     </Pantalla>
   );
 }
@@ -300,7 +302,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
 function Tier({ color, etiqueta, valor }: { color: string; etiqueta: string; valor: number }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2 w-2 rounded-sm ${color}`} aria-hidden />
+      <span className={`h-2.5 w-2.5 rounded-marca ${color}`} aria-hidden />
       {etiqueta} <span className="cifra">{valor}</span>
     </span>
   );

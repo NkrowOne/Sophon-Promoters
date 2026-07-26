@@ -139,7 +139,7 @@ function ActivarPasos() {
                 clave.current = nuevaIdempotencia();
                 router.replace("/activar");
               }}
-              className="flex-1 rounded-pieza border border-borde px-4 py-3 text-cuerpo font-medium"
+              className="flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde px-4 text-cuerpo font-medium"
             >
               {t.activarOtro}
             </button>
@@ -152,7 +152,7 @@ function ActivarPasos() {
                     : "/red",
                 )
               }
-              className="flex-1 rounded-pieza bg-tinta px-4 py-3 text-cuerpo font-semibold text-fondo"
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-control bg-tinta px-4 text-cuerpo font-semibold text-fondo"
             >
               {hecho.pro && !hecho.pro.concedido ? t.verSuFicha : t.verMiRed}
             </button>
@@ -212,7 +212,7 @@ function ActivarPasos() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="correo@ejemplo.com"
-          className="mt-2 w-full rounded-pieza border border-borde bg-superficie px-3.5 py-3.5 text-cuerpo outline-none focus:border-tinta"
+          className="mt-2 w-full rounded-control border border-borde bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta"
         />
         <p className="mt-2 text-apoyo text-texto-apoyo">{t.tieneQueExistirYa}</p>
       </Banda>

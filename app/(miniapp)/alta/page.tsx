@@ -3,7 +3,6 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Aparece } from "@/components/Animacion";
 import { Aviso, Banda, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
@@ -143,7 +142,7 @@ function AltaPasos() {
               autoComplete="one-time-code"
               maxLength={6}
               placeholder="000000"
-              className="cifra w-full rounded-pieza border border-borde bg-superficie px-3.5 pb-4 pt-3.5 text-center text-cifra tracking-[0.55em] indent-[0.55em] outline-none focus:border-tinta"
+              className="cifra w-full rounded-control border border-borde bg-fondo px-3.5 pb-4 pt-3.5 text-center text-cifra tracking-[0.5em] indent-[0.5em] outline-none focus:border-tinta"
             />
             <span
               className="pointer-events-none absolute inset-x-3.5 bottom-2.5 flex gap-1.5"
@@ -200,8 +199,7 @@ function AltaPasos() {
 
   return (
     <Pantalla titulo={t.vinculaTuCuenta}>
-      <Aparece orden={0}>
-        <Banda tono={0} className="pb-7">
+      <Banda orden={0} tono={0} className="pb-7">
           <p className="text-apoyo text-texto-apoyo">{t.soloSeHaceUnaVez}</p>
 
           <div className="mt-7">
@@ -216,7 +214,7 @@ function AltaPasos() {
               autoCapitalize="characters"
               spellCheck={false}
               placeholder="XXXX-XXXX"
-              className="cifra mt-2 w-full rounded-pieza border border-borde bg-superficie px-3.5 py-3.5 text-cuerpo tracking-[0.2em] outline-none focus:border-tinta"
+              className="cifra mt-2 w-full rounded-control border border-borde bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta tracking-[0.18em]"
             />
             {/* La ayuda no repite el rótulo: bajo «CÓDIGO DE ACTIVACIÓN», una
                 línea que dice «escribe el código de activación» ocupa sitio para
@@ -239,7 +237,7 @@ function AltaPasos() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="correo@ejemplo.com"
-              className="mt-2 w-full rounded-pieza border border-borde bg-superficie px-3.5 py-3.5 text-cuerpo outline-none focus:border-tinta"
+              className="mt-2 w-full rounded-control border border-borde bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta"
             />
             <p className="mt-2 text-apoyo text-texto-apoyo">{t.seraTuIdentificador}</p>
           </div>
@@ -250,7 +248,6 @@ function AltaPasos() {
             </div>
           )}
         </Banda>
-      </Aparece>
 
       <BotonPrincipalAccion
         texto={t.enviarmeElCodigo}

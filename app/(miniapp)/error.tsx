@@ -33,13 +33,13 @@ export default function ErrorMiniApp({
         <button
           type="button"
           onClick={reset}
-          className="flex-1 rounded-pieza bg-tinta py-3 text-cuerpo font-semibold text-fondo"
+          className="flex min-h-12 flex-1 items-center justify-center rounded-control bg-tinta text-cuerpo font-semibold text-fondo"
         >
           Reintentar
         </button>
         <a
           href="/"
-          className="flex-1 rounded-pieza border border-borde py-3 text-center text-cuerpo font-medium"
+          className="flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde text-cuerpo font-medium"
         >
           Ir al inicio
         </a>

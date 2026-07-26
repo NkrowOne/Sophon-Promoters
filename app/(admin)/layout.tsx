@@ -1,6 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Archivo } from "next/font/google";
 
 import "./admin/admin.css";
+
+/*
+ * La misma cara que la Mini App, cargada aquí porque el panel tiene su propia
+ * raíz y no hereda sus variables.
+ *
+ * `admin.css` pide `var(--fuente)` y sin esto resolvía a nada y caía a la del
+ * sistema: el panel se veía de otra tipografía que la aplicación de la que es la
+ * otra cara.
+ */
+const texto = Archivo({ subsets: ["latin"], weight: "variable", variable: "--fuente" });
 
 /**
  * Raíz del panel, separada de la de la Mini App.
@@ -33,7 +44,7 @@ export const viewport: Viewport = {
 
 export default function RaizAdmin({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" className={texto.variable}>
       <body>{children}</body>
     </html>
   );

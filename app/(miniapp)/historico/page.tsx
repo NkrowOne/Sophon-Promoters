@@ -182,7 +182,7 @@ export default function Historico() {
             />
           ) : (
             <p className="text-rotulo text-texto-apoyo" aria-live="polite">
-              {t.perforando.toUpperCase()}…
+              {t.perforando}…
             </p>
           )}
         </div>

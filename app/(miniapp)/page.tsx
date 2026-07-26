@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
+import { Icono, type NombreIcono } from "@/components/Icono";
 import { Aviso, Cargando, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
@@ -135,8 +136,8 @@ export default function Inicio() {
             apoyo={datos.webmasters === 0 ? t.sinWebmastersApoyo : t.sinIngresosApoyo}
             accion={
               datos.webmasters === 0
-                ? { texto: t.activarWebmaster, href: "/activar" }
-                : { texto: t.red, href: "/red" }
+                ? { texto: t.activarWebmaster, href: "/activar", icono: "activar" as const }
+                : { texto: t.red, href: "/red", icono: "red" as const }
             }
           />
         ) : (
@@ -145,7 +146,7 @@ export default function Inicio() {
                 volumen?». Sustituye a tres donuts y ocupa una décima parte. */}
             {totalTiers > 0 && (
               <section aria-label={t.repartoPorTier} className="banda banda-1 py-6">
-                <p className="rotulo mb-2.5 text-rotulo text-texto-apoyo">{t.repartoPorTier}</p>
+                <p className="mb-2.5 text-rotulo text-texto-apoyo">{t.repartoPorTier}</p>
                 {/* `gap-0.5` = 2 px de superficie entre segmentos. Es la
                     especificación de marcas apiladas: lo que separa es el
                     hueco, nunca un borde dibujado alrededor del dato. */}
@@ -166,7 +167,7 @@ export default function Inicio() {
                 sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
             {cartera && (
               <div className="banda banda-2 py-6">
-                <Escalera cartera={cartera} titulo={t.cartera.toUpperCase()} etiquetas={t} />
+                <Escalera cartera={cartera} titulo={t.cartera} etiquetas={t} />
                 <p className="mt-3 text-apoyo text-texto-apoyo">{t.revisionManual}</p>
               </div>
             )}
@@ -181,20 +182,28 @@ export default function Inicio() {
         <nav aria-label={t.acciones} className="banda banda-0 pb-2 pt-7">
           <a
             href="/activar"
-            className="chapa flex min-h-[52px] items-center justify-center text-cuerpo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
+            className="chapa text-cuerpo transition-transform duration-150 ease-sonda active:scale-[0.99]"
           >
+            <Icono nombre="activar" />
             {t.activarWebmaster}
           </a>
 
           {/* Cuatro filas en el orden de la jornada, cada una con su dato. Antes
               era una retícula de 2×2 con cuatro cajas idénticas y vacías: el
-              menú por defecto de cualquier app, y cuatro toques a ciegas. */}
-          <ul className="mt-2 divide-y divide-junta" role="list">
-            <Fila href="/red" etiqueta={t.red} dato={datos ? String(datos.webmasters) : null} />
-            <Fila href="/pro" etiqueta={t.colaRenovaciones} />
-            <Fila href="/historico" etiqueta={t.historico} />
+              menú por defecto de cualquier app, y cuatro toques a ciegas.
+
+              Cada una lleva ahora su ICONO delante y su chevron detrás. El icono
+              hace que la fila se reconozca sin leerla —es la diferencia entre un
+              menú y una lista de palabras— y el chevron dice que lleva a algún
+              sitio, que es lo que distingue una fila de navegación de una fila
+              de datos. La aplicación no tenía ni uno. */}
+          <ul className="mt-3 divide-y divide-junta" role="list">
+            <Fila href="/red" icono="red" etiqueta={t.red} dato={datos ? String(datos.webmasters) : null} />
+            <Fila href="/pro" icono="renovar" etiqueta={t.colaRenovaciones} />
+            <Fila href="/historico" icono="historico" etiqueta={t.historico} />
             <Fila
               href="/cartera"
+              icono="cartera"
               etiqueta={t.cartera}
               dato={cartera ? cartera.disponible.texto : null}
             />
@@ -208,8 +217,11 @@ export default function Inicio() {
 function Leyenda({ color, etiqueta, valor }: { color: string; etiqueta: string; valor: number }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2 w-2 ${color}`} aria-hidden />
-      {etiqueta} <span className="cifra">{valor}</span>
+      {/* `rounded-marca`: 3 px. La muestra de la leyenda tiene que ser el MISMO
+          objeto que el segmento de la cinta al que se refiere, y un dato con la
+          esquina blanda de un control mentiría sobre dónde acaba el valor. */}
+      <span className={`h-2.5 w-2.5 rounded-marca ${color}`} aria-hidden />
+      {etiqueta} <span className="cifra font-semibold text-texto">{valor}</span>
     </span>
   );
 }
@@ -220,12 +232,27 @@ function Leyenda({ color, etiqueta, valor }: { color: string; etiqueta: string; 
  * `min-h-14` son 56 px, muy por encima del mínimo táctil de 44: es una lista de
  * navegación que se usa con el pulgar y de pie.
  */
-function Fila({ href, etiqueta, dato }: { href: string; etiqueta: string; dato?: string | null }) {
+function Fila({
+  href,
+  icono,
+  etiqueta,
+  dato,
+}: {
+  href: string;
+  icono: NombreIcono;
+  etiqueta: string;
+  dato?: string | null;
+}) {
   return (
     <li>
-      <a href={href} className="flex min-h-14 items-center justify-between gap-3 text-cuerpo">
+      <a href={href} className="flex min-h-14 items-center gap-3.5 text-cuerpo">
+        {/* El icono va del T1 —la tinta densa de los datos— y no del texto: así
+            la columna de iconos se lee como una sola cosa y no compite con los
+            nombres de las secciones. */}
+        <Icono nombre={icono} tam={22} className="text-t1" />
         <span>{etiqueta}</span>
-        {dato && <span className="cifra text-apoyo text-texto-apoyo">{dato}</span>}
+        {dato && <span className="cifra ms-auto text-apoyo text-texto-apoyo">{dato}</span>}
+        <Icono nombre="avance" tam={18} className={`text-texto-apoyo ${dato ? "" : "ms-auto"}`} />
       </a>
     </li>
   );

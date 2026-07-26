@@ -58,8 +58,11 @@ function usarMeses(): string[] {
   const { idioma } = useTelegram();
   return useMemo(() => {
     const formato = new Intl.DateTimeFormat(idioma, { month: "short", timeZone: "UTC" });
+    // Sin `toUpperCase`: `Intl` ya devuelve la abreviatura como se escribe en
+    // cada idioma, y forzarla a versalitas era parte del efecto estarcido que
+    // había que quitar. En árabe además no significaba nada: no tiene caja.
     return Array.from({ length: 12 }, (_, i) =>
-      formato.format(new Date(Date.UTC(2026, i, 1))).toUpperCase(),
+      formato.format(new Date(Date.UTC(2026, i, 1))),
     );
   }, [idioma]);
 }

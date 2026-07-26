@@ -19,6 +19,7 @@
 import Link from "next/link";
 
 import type { ErrorApi } from "@/lib/api/cliente";
+import { Icono, type NombreIcono } from "./Icono";
 import { useCadenas } from "./TelegramProvider";
 
 export function Pantalla({
@@ -71,10 +72,12 @@ export function Pantalla({
 /**
  * La Placa: espresso a sangre con la respuesta encima.
  *
- * Las dos caras trabajan aquí y en direcciones opuestas: el rótulo va en
- * Archivo ensanchada a 11 px —letra de señal— y la cifra en Martian Mono
- * estrechada a 48 —lectura de instrumento—. Esa inversión es la firma
- * tipográfica de la aplicación.
+ * Una sola cara y una sola idea: el rótulo pequeño, la cifra grande. Aquí vivía
+ * la «inversión tipográfica» —rótulo en Archivo ensanchada a 11 px, cifra en
+ * Martian Mono a 48— y era justo lo que el usuario llamó «aberrante»: la mono
+ * ponía la coma de «8,88 $» en una casilla propia, con un hueco a cada lado.
+ * Ahora la jerarquía la hacen el tamaño y el peso, que es como se ha hecho
+ * siempre y no llama la atención sobre sí misma.
  *
  * **Era amarilla, y ese era el defecto que hundió la versión anterior.** Placa
  * y botón compartían `#F9D027`, de modo que lo que informa y lo que se pulsa se
@@ -100,9 +103,9 @@ export function Placa({
   return (
     <header className="placa pb-6 pt-7" style={{ paddingInline: "var(--margen-pantalla)" }}>
       {/* El rótulo ES el título de la pantalla, así que es el `h1`: no hay otro
-          debajo. Va en la cara de display ensanchada a 11 px —la mitad pequeña
-          de la inversión tipográfica— sobre la cifra, que va en la mono a 48. */}
-      <h1 className="rotulo text-rotulo opacity-70">{rotulo}</h1>
+          debajo. En caja baja: sobre la placa, unas versalitas tracadas a 11 px
+          eran lo primero que se leía de toda la aplicación. */}
+      <h1 className="text-rotulo opacity-75">{rotulo}</h1>
       <div className="mt-2">{valor}</div>
       {apoyo && <p className="mt-2.5 text-apoyo opacity-80">{apoyo}</p>}
     </header>
@@ -131,6 +134,7 @@ export function Banda({
   tono = 0,
   como: Elemento = "section",
   etiqueta,
+  orden,
   className = "",
   children,
 }: {
@@ -138,11 +142,29 @@ export function Banda({
   como?: "section" | "header" | "nav" | "div";
   /** `aria-label`: obligatorio de hecho en `section`, que sin nombre no es una región. */
   etiqueta?: string;
+  /**
+   * Puesto en la secuencia de entrada, si la pantalla la usa.
+   *
+   * La animación la llevaba `<Aparece>`, un `div` envolviendo cada banda. Ese
+   * envoltorio no pintaba absolutamente nada y además ROMPÍA LAS JUNTAS: la
+   * separación entre estratos es `.banda + .banda`, un selector de hermano
+   * adyacente, y con un `div` en medio las bandas dejaban de ser hermanas. En
+   * `/red/[id]` —cuatro bandas, cuatro envoltorios— no se dibujaba ni una sola
+   * junta, y en `/alta` tampoco.
+   *
+   * Traerla aquí quita un nivel de caja en las dos pantallas y devuelve las
+   * juntas sin tocar el CSS.
+   */
+  orden?: number;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <Elemento aria-label={etiqueta} className={`banda banda-${tono} ${className}`}>
+    <Elemento
+      aria-label={etiqueta}
+      className={`banda banda-${tono} ${orden !== undefined ? "animate-emerger" : ""} ${className}`}
+      style={orden !== undefined ? { animationDelay: `${Math.min(orden * 60, 420)}ms` } : undefined}
+    >
       {children}
     </Elemento>
   );
@@ -161,17 +183,15 @@ export function Vacio({
 }: {
   titulo: string;
   apoyo?: string;
-  accion?: { texto: string; href: string };
+  accion?: { texto: string; href: string; icono?: NombreIcono };
 }) {
   return (
     <div className="py-10">
-      <p className="text-cuerpo font-medium">{titulo}</p>
-      {apoyo && <p className="mt-1.5 text-apoyo text-texto-apoyo">{apoyo}</p>}
+      <p className="text-titulo">{titulo}</p>
+      {apoyo && <p className="mt-2 text-cuerpo text-texto-apoyo">{apoyo}</p>}
       {accion && (
-        <Link
-          href={accion.href}
-          className="chapa mt-5 inline-flex min-h-11 items-center px-5 text-cuerpo font-semibold"
-        >
+        <Link href={accion.href} className="chapa mt-6 text-cuerpo">
+          {accion.icono && <Icono nombre={accion.icono} />}
           {accion.texto}
         </Link>
       )}
@@ -180,19 +200,36 @@ export function Vacio({
 }
 
 /**
- * Marca de urgencia: una placa pequeña dentro del texto.
+ * Píldora de estado: lo que la fila ES, nunca lo que se puede hacer con ella.
  *
- * Es lo que sustituye al antiguo `--vivo`. Aquel era un ámbar de estado, un
- * cuarto color semántico que existía solo para decir «esto exige acción» —lo
- * mismo que dice la marca—. Fundirlos baja el sistema de cuatro colores a tres
- * y hace que el amarillo signifique una cosa sola en toda la aplicación.
+ * Era una chapa amarilla —la misma clase que el botón— y ese fue el defecto que
+ * el usuario rodeó con un círculo rojo: «Nunca llegó a tener PRO» pegado encima
+ * de «DAR UN AÑO DE PRO», mismo color, mismo ancho, mismo radio. La etiqueta
+ * parecía un botón porque tenía forma de botón.
  *
- * Y de paso arregla una infracción: pintar el valor del color del dato. Aquí el
- * texto va sobre el campo, no teñido de él, así que sigue siendo tinta.
+ * Ahora es una cápsula ceñida a su texto, con filete y tinta de apoyo. La
+ * distinción se sostiene aunque alguien no perciba el color: 26 px de alto
+ * pegados al texto frente a un bloque de 50 px a sangre.
+ *
+ * `tono` elige la tinta. No hay tono amarillo a propósito: el amarillo es de la
+ * acción y este componente nunca es una acción.
  */
-export function Marca({ children }: { children: React.ReactNode }) {
+export function Marca({
+  children,
+  icono,
+  tono = "neutro",
+}: {
+  children: React.ReactNode;
+  icono?: NombreIcono;
+  tono?: "neutro" | "peligro";
+}) {
   return (
-    <span className="chapa inline-block px-1.5 py-0.5 text-apoyo font-semibold">{children}</span>
+    <span
+      className={`pildora text-rotulo ${tono === "peligro" ? "text-peligro" : "text-texto-apoyo"}`}
+    >
+      {icono && <Icono nombre={icono} tam={15} />}
+      {children}
+    </span>
   );
 }
 
@@ -216,10 +253,15 @@ export function Aviso({
   onReintentar?: () => void;
 }) {
   return (
-    <div role="alert" className="border-s-2 border-peligro py-2 ps-3">
-      <p className="text-cuerpo">{error}</p>
-      {apoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{apoyo}</p>}
-      {onReintentar && <BotonReintentar onReintentar={onReintentar} />}
+    // El icono sustituye al filete de 2 px: dice «esto va mal» antes de leer, y
+    // libera la sangría que el filete se llevaba. Una caja menos.
+    <div role="alert" className="flex gap-3 py-2">
+      <Icono nombre="aviso" tam={20} className="mt-0.5 text-peligro" />
+      <div className="min-w-0">
+        <p className="text-cuerpo">{error}</p>
+        {apoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{apoyo}</p>}
+        {onReintentar && <BotonReintentar onReintentar={onReintentar} />}
+      </div>
     </div>
   );
 }
@@ -250,7 +292,7 @@ export function FalloDeCarga({
       <Vacio
         titulo={t.sesionCaducada}
         apoyo={t.sesionCaducadaApoyo}
-        accion={{ texto: t.vincularCuenta, href: "/alta" }}
+        accion={{ texto: t.vincularCuenta, href: "/alta", icono: "activar" }}
       />
     );
   }
@@ -266,8 +308,9 @@ function BotonReintentar({ onReintentar }: { onReintentar: () => void }) {
     <button
       type="button"
       onClick={onReintentar}
-      className="-my-2 mt-0.5 inline-flex min-h-11 items-center text-apoyo font-medium underline underline-offset-4"
+      className="-my-2 mt-0.5 inline-flex min-h-11 items-center gap-2 text-cuerpo font-semibold underline underline-offset-4"
     >
+      <Icono nombre="reintentar" tam={17} />
       {reintentar}
     </button>
   );
@@ -278,8 +321,10 @@ export function Cargando({ que }: { que?: string }) {
   const { cargando } = useCadenas();
   const texto = que ?? cargando;
   return (
-    <p className="py-10 text-rotulo text-texto-apoyo" aria-live="polite">
-      {texto.toUpperCase()}…
+    // Sin `toUpperCase`. Las versalitas eran parte del «efecto estarcido»: un
+    // «CARGANDO…» a 11 px tracado grita para decir que espere.
+    <p className="py-10 text-cuerpo text-texto-apoyo" aria-live="polite">
+      {texto}…
     </p>
   );
 }

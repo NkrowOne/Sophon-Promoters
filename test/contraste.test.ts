@@ -33,12 +33,12 @@ import { describe, it } from "node:test";
  */
 const FONDOS = {
   claroFondo: "#FFFFFF",
-  claroBanda1: "#FFFCF5",
-  claroBanda2: "#FBF4E6",
+  claroBanda1: "#FDF7EA",
+  claroBanda2: "#F7EEDA",
 
-  oscuroFondo: "#12100D",
-  oscuroBanda1: "#1A1511",
-  oscuroBanda2: "#26201C",
+  oscuroFondo: "#100E0B",
+  oscuroBanda1: "#1C1713",
+  oscuroBanda2: "#282119",
 } as const;
 
 const CLAROS = ["claroFondo", "claroBanda1", "claroBanda2"] as const;
@@ -308,6 +308,34 @@ describe("contraste de los tokens", () => {
       const r = contraste(CAMPO, FONDOS[f]);
       assert.ok(r >= 10, `el campo solo saca ${r.toFixed(2)}:1 sobre ${f}`);
     }
+  });
+
+  it("los tres estratos SE DISTINGUEN entre sí", () => {
+    /*
+     * La aplicación entera se estructura en tres estratos de papel, y estaban a
+     * 1,025:1 y 1,068:1 en claro. Es decir: toda la jerarquía de contenedores
+     * —bandas a sangre, juntas, tres tonos— sostenía una diferencia que no se
+     * percibe. Se gastaban niveles de caja para no separar nada, que es la mitad
+     * del «cajas dentro de cajas» de la queja.
+     *
+     * El umbral es bajo a propósito: un estrato NO es un borde, y pasarse
+     * convierte el papel en tarjetas. Lo que se exige es que exista el escalón.
+     */
+    for (const [tema, estratos] of [
+      ["claro", CLAROS],
+      ["oscuro", OSCUROS],
+    ] as const) {
+      for (let i = 0; i < estratos.length - 1; i++) {
+        const r = contraste(FONDOS[estratos[i]!], FONDOS[estratos[i + 1]!]);
+        assert.ok(r >= 1.06, `${tema}: ${estratos[i]} y ${estratos[i + 1]} a ${r.toFixed(3)}:1`);
+      }
+      const extremos = contraste(FONDOS[estratos[0]!], FONDOS[estratos[2]!]);
+      assert.ok(extremos >= 1.14, `${tema}: del primer estrato al último solo ${extremos.toFixed(3)}:1`);
+    }
+
+    // Y los valores que había NO habrían pasado, que es por lo que existe.
+    assert.ok(contraste("#FFFFFF", "#FFFCF5") < 1.06, "aquello no se veía");
+    assert.ok(contraste("#FFFFFF", "#FBF4E6") < 1.14);
   });
 
   it("NINGUNA superficie nuestra cae en el verde", () => {

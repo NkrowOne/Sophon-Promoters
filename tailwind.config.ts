@@ -96,37 +96,71 @@ const config: Config = {
         peligro: "var(--peligro)",
       },
       fontFamily: {
-        // El texto corrido va en la del sistema por una razón, no por ahorro:
-        // la Mini App vive dentro de Telegram, cuyo cromo usa esa misma cara.
-        // Igualarla hace que se sienta nativa en vez de una web incrustada.
-        sans: ["system-ui", "-apple-system", "sans-serif"],
-        rotulo: ["var(--fuente-rotulo)", "system-ui", "sans-serif"],
-        mono: ["var(--fuente-cifras)", "ui-monospace", "SFMono-Regular", "monospace"],
+        // UNA familia. Eran tres —Archivo ensanchada, Martian Mono y la del
+        // sistema— y la mono sobraba: Archivo ya trae cifras tabulares. Ver la
+        // nota larga en `app/(miniapp)/layout.tsx`.
+        sans: ["var(--fuente)", "var(--fuente-arabe)", "system-ui", "sans-serif"],
       },
-      /* LA INVERSIÓN: la cara de display se usa a 11 px y la mono a 48.
-         Los rótulos quedan como letras estarcidas de señalización y las cifras
-         como la lectura de un instrumento —que es literalmente lo que son—.
-         Ese contraste, y no una serif llamativa, es lo que da carácter. */
+      /*
+       * LA ESCALA. Ratio 1,25 desde 13, y sin un solo escalón por debajo.
+       *
+       * La anterior iba de 11 a 48 con 69 usos a 13 px frente a 22 a 15: la
+       * aplicación entera estaba escrita en letra de nota al pie, que es lo que
+       * el usuario llamó «sin cuidar en cuanto tamaño de letra».
+       *
+       * Ahora el suelo es 14 (`apoyo`) y el cuerpo 16 —el mínimo que iOS y
+       * Android usan en sus propias listas—, y lo que era un rótulo estarcido de
+       * 11 px pasa a 13 px en caja baja: sigue siendo lo más pequeño, pero es
+       * legible de pie y en la calle, que es donde se usa esto.
+       *
+       * Los pesos hacen el trabajo que hacían las mayúsculas y el tracking. Es
+       * más barato, no grita, y sobrevive a la traducción: una versalita tracada
+       * en árabe no significa nada.
+       */
       fontSize: {
-        rotulo: [
-          "0.6875rem",
-          { lineHeight: "1rem", letterSpacing: "0.16em", fontWeight: "600" },
-        ],
-        apoyo: ["0.8125rem", { lineHeight: "1.2rem" }],
-        cuerpo: ["0.9375rem", { lineHeight: "1.45rem" }],
-        titulo: ["1.3125rem", { lineHeight: "1.65rem", letterSpacing: "-0.01em", fontWeight: "600" }],
-        cifra: ["1.75rem", { lineHeight: "2rem", letterSpacing: "-0.03em", fontWeight: "600" }],
-        // 3rem en Martian Mono estrechada: la cifra de la placa.
+        // Etiqueta de grupo y rótulo de dato. En CAJA BAJA: las versalitas con
+        // 0,16em de tracking eran el «efecto estarcido» que había que enterrar.
+        rotulo: ["0.8125rem", { lineHeight: "1.15rem", letterSpacing: "0.005em", fontWeight: "600" }],
+        // Texto secundario. Sube de 13 a 14: es el escalón más usado de la app.
+        apoyo: ["0.875rem", { lineHeight: "1.3rem" }],
+        // Texto y filas. Sube de 15 a 16.
+        cuerpo: ["1rem", { lineHeight: "1.45rem" }],
+        titulo: ["1.25rem", { lineHeight: "1.6rem", letterSpacing: "-0.011em", fontWeight: "600" }],
+        cifra: ["1.375rem", { lineHeight: "1.7rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+        // La cifra protagonista de la placa. Baja de 48 a 40: a 48 en una caja
+        // de 390 px, un importe con separador de miles se comía el ancho entero.
         "cifra-mayor": [
-          "3rem",
-          { lineHeight: "3.1rem", letterSpacing: "-0.045em", fontWeight: "600" },
+          "2.5rem",
+          { lineHeight: "2.6rem", letterSpacing: "-0.03em", fontWeight: "600" },
         ],
       },
+      /*
+       * LA FORMA DISTINGUE ACCIÓN DE ESTADO, y esta es la corrección central.
+       *
+       * El usuario rodeó con un círculo rojo una etiqueta amarilla («Nunca llegó
+       * a tener PRO») pegada a un botón amarillo («DAR UN AÑO DE PRO»): dos
+       * bloques del mismo color, del mismo ancho y del mismo radio, uno encima
+       * del otro. La etiqueta parecía un botón porque TENÍA FORMA DE BOTÓN.
+       *
+       * A partir de aquí la forma es semántica y no decoración:
+       *
+       *   pildora (999px)  ESTADO. Nunca se pulsa. Compacta, al ancho de su
+       *                    texto, con filete y tinta de apoyo.
+       *   control (12px)   ACCIÓN. Se pulsa. Rectángulo de esquina blanda,
+       *                    macizo, de ancho completo.
+       *   panel   (16px)   Agrupación de contenido.
+       *   marca   (3px)    Dato. Las barras conservan el canto casi vivo porque
+       *                    una marca de dato con esquina blanda miente sobre
+       *                    dónde acaba el valor.
+       *
+       * Los 2 px de antes eran un valor único para todo: no distinguían nada y
+       * además se leían duros —«bordes afilados»—.
+       */
       borderRadius: {
-        // 2 px, no 14. Un radio grande y blando es la firma de «app moderna»
-        // genérica; uno mínimo y constante lee como chapa troquelada. Cero
-        // habría caído en el otro extremo, el de la maqueta tipo periódico.
-        pieza: "2px",
+        marca: "3px",
+        control: "12px",
+        panel: "16px",
+        pildora: "999px",
       },
       transitionTimingFunction: {
         sonda: "cubic-bezier(.2,.8,.2,1)",

@@ -74,8 +74,8 @@
    * aplicación no es blanco de oficina—, y ahora literales.
    */
   --fondo: #ffffff;
-  --superficie: #fffcf5;
-  --superficie-alta: #fbf4e6;
+  --superficie: #fdf7ea;
+  --superficie-alta: #f7eeda;
   --borde: #eadfc6;
 
   /* Junta entre estratos. Es un canto, no una línea de separación: eso es lo
@@ -178,6 +178,19 @@
   --boton-fondo: #f9d027;
   --boton-tinta: #1a1206;
 
+  /*
+   * La escala de radios. Los 2 px de antes eran un valor único para TODO
+   * —botones, etiquetas, teselas, campos— así que no distinguía nada y encima se
+   * leía duro: los «bordes afilados» de la queja.
+   *
+   * Ahora cada radio nombra un tipo de objeto, y eso es lo que permite que la
+   * forma signifique algo. Ver el bloque de la chapa y la píldora más abajo.
+   */
+  --radio-marca: 3px;
+  --radio-control: 12px;
+  --radio-panel: 16px;
+  --radio-pildora: 999px;
+
   --margen-pantalla: 1rem;
 }
 
@@ -207,9 +220,9 @@
      contraste a su tinta y la acercaría al amarillo del botón—. */
   --placa-canto: #7a5439;
 
-  --fondo: #12100d;
-  --superficie: #1a1511;
-  --superficie-alta: #26201c;
+  --fondo: #100e0b;
+  --superficie: #1c1713;
+  --superficie-alta: #282119;
   --borde: #3a312a;
   --junta: #2f2823;
 
@@ -235,7 +248,7 @@ body {
 }
 
 body {
-  font-family: var(--fuente-texto), system-ui, -apple-system, sans-serif;
+  font-family: var(--fuente), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   /* La Mini App ocupa el alto estable, no el visual: con el teclado abierto
      el viewport se reajusta y usar 100vh dejaría contenido bajo el teclado. */
@@ -243,34 +256,54 @@ body {
 }
 
 /*
- * Cifras: Martian Mono ESTRECHADA.
+ * Árabe: la cara que cubre el bloque, no la del sistema.
  *
- * Es una cara de instrumento —tabular por diseño, industrial— y se usa grande,
- * que es la mitad de la inversión tipográfica de esta app: el rótulo va en la
- * cara de display a 11 px y la cifra en la mono a 48. Al revés de lo normal.
+ * Archivo no tiene subconjunto árabe, así que hasta ahora la versión RTL —la
+ * única que nadie miraba— se pintaba con la tipografía del móvil y era la única
+ * que no se parecía al resto del producto. Noto Sans Arabic cubre el bloque
+ * completo y también trae cifras tabulares, así que las columnas de dinero
+ * siguen cuadrando en árabe.
  *
- * `wdth: 87.5` porque a anchura nominal una wallet de 42 caracteres no cabe en
- * 358 px, y el importe con separador de miles tampoco.
+ * Se aplica por `lang` y no por `dir` porque son cosas distintas: el hebreo
+ * también es RTL y no se escribe con esta cara.
  */
-.cifra {
-  font-family: var(--fuente-cifras), ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-  font-variation-settings: "wdth" 87.5;
+:lang(ar) {
+  font-family: var(--fuente-arabe), var(--fuente), system-ui, sans-serif;
 }
 
 /*
- * Rótulos: Archivo ENSANCHADA, versalitas, muy abierta.
+ * Cifras: la MISMA cara, en tabular.
  *
- * Es la letra estarcida de una señal, y el contraste con la cifra enorme es lo
- * que da carácter sin pagar una serif de alto contraste —que es el reflejo de
- * plantilla número uno—.
+ * Aquí vivía Martian Mono. Se retiró después de poner el espécimen en pantalla
+ * y mirarlo: al ser monoespaciada, la coma de un importe ocupa una casilla
+ * entera, así que «8,88 $» se pintaba con un hueco a cada lado de la coma. En
+ * una aplicación cuyo contenido principal son importes, eso es el peor sitio
+ * posible para una mono, y es lo que el usuario llamó «aberrante».
+ *
+ * No hacía falta ninguna mono: **Archivo ya trae `tnum`** —verificado en el
+ * propio fichero de la fuente—, que es lo único que se necesitaba de ella, o sea
+ * que una columna de importes no baile al cambiar de dígito. La segunda familia
+ * estaba pagando el primer pintado para dar peor algo que la primera ya tenía.
  */
-.rotulo {
-  font-family: var(--fuente-rotulo), system-ui, sans-serif;
-  font-variation-settings: "wdth" 115;
-  text-transform: uppercase;
+.cifra {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
+
+/*
+ * La clase `.rotulo` SE HA IDO, y su desaparición es parte del arreglo.
+ *
+ * Declaraba Archivo a wdth 115, MAYÚSCULAS y 0,16em de tracking, y se aplicaba
+ * junto a `text-rotulo` en 27 sitios. Cada etiqueta de la aplicación era un
+ * cartel de señalización, y todas juntas eran el «efecto estarcido» que se leía
+ * como una maqueta de periódico.
+ *
+ * Ahora el escalón `text-rotulo` de Tailwind lleva ya su tamaño y su peso, en
+ * caja baja, así que no hace falta una segunda clase encima. La jerarquía la
+ * hace el PESO: es más barato, no grita, y sobrevive a la traducción —unas
+ * versalitas tracadas en árabe no significan nada, porque el árabe no tiene
+ * caja—.
+ */
 
 /*
  * Los marcadores de posición, en NUESTRO gris cálido.
@@ -305,7 +338,9 @@ textarea::placeholder {
 :focus-visible {
   outline: 2px solid var(--tinta-plena);
   outline-offset: 2px;
-  border-radius: 2px;
+  /* Sin `border-radius` propio: el anillo sigue la forma del objeto que rodea,
+     que ahora es lo que dice si se pulsa o se lee. Forzarlo a un valor único
+     volvía a poner esquinas duras alrededor de una píldora. */
 }
 
 /* ──────────────────────────────── LA PLACA ────────────────────────────────
@@ -327,11 +362,30 @@ textarea::placeholder {
   border-bottom: 1px solid var(--placa-canto);
 }
 
-/*
- * LA CHAPA: el amarillo, y el único sitio donde aparece.
+/* ═══════════════ LA FORMA DISTINGUE ACCIÓN DE ESTADO ═══════════════
  *
- * Radio 2 px: uno grande y blando es la firma de «app moderna» genérica, y cero
- * habría caído en el otro extremo, el de la maqueta tipo periódico.
+ * Esta es la corrección central de esta pasada, y viene de un círculo rojo:
+ * el usuario rodeó en /pro la etiqueta amarilla «Nunca llegó a tener PRO» pegada
+ * al botón amarillo «DAR UN AÑO DE PRO». Dos bloques del mismo color, del mismo
+ * ancho y del mismo radio, uno encima del otro.
+ *
+ * El diagnóstico no es que hubiera demasiado amarillo: es que **la etiqueta
+ * tenía forma de botón**. Se distinguían solo por el texto, y eso obliga a leer
+ * para saber qué se puede pulsar.
+ *
+ * A partir de aquí la forma es semántica:
+ *
+ *     .chapa    rectángulo de esquina blanda, macizo, ancho completo  → SE PULSA
+ *     .pildora  cápsula compacta, con filete, al ancho de su texto    → SE LEE
+ *
+ * Y la regla se sostiene sin color: aunque los dos fueran amarillos, una cápsula
+ * de 26 px pegada al texto no se confunde con un bloque de 50 px de alto a
+ * sangre. Que además solo la acción lleve campo es la segunda barrera, no la
+ * primera.
+ */
+
+/*
+ * LA CHAPA: la acción. El único objeto amarillo de la aplicación.
  *
  * El canto no es un adorno. Sobre papel claro el campo da 1,49:1 contra el
  * fondo, así que un botón macizo sin borde no tiene un límite perceptible; el
@@ -340,10 +394,17 @@ textarea::placeholder {
  * se conserva porque ahí actúa de bisel y no molesta.
  */
 .chapa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 50px;
+  padding-inline: 1rem;
   background: var(--campo);
   color: var(--campo-tinta);
   border: 1px solid var(--campo-canto);
-  border-radius: 2px;
+  border-radius: var(--radio-control);
+  font-weight: 600;
 }
 
 /*
@@ -358,6 +419,50 @@ textarea::placeholder {
   background: var(--superficie-alta);
   color: var(--tinta-apoyo);
   border-color: var(--borde);
+}
+
+/*
+ * LA PÍLDORA: el estado. Nunca se pulsa, y su forma lo dice.
+ *
+ * Compacta y ceñida a su texto: no puede confundirse con un control de ancho
+ * completo. Va de filete y tinta de apoyo, no maciza, porque un estado no compite
+ * con la acción de su propia fila.
+ *
+ * `--pildora-tinta` la fija cada sitio de uso: gris de apoyo para lo neutro
+ * —«PRO 12 días»— y peligro para lo que va mal —«Bloqueado en Sophon»—. El
+ * amarillo NO entra aquí: es de la acción.
+ */
+.pildora {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.75rem 0.3125rem 0.5625rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radio-pildora);
+  font-weight: 600;
+  /* El filete al 45 % de la tinta: a plena opacidad, una cápsula perfilada pesa
+     más que el texto que contiene y la fila se convierte en un cartel. */
+  border-color: color-mix(in oklab, currentColor 45%, transparent);
+}
+
+/*
+ * La TINTA no se declara aquí, y es a propósito.
+ *
+ * Estuvo un rato como `color: var(--tinta-apoyo)` dentro de `.pildora`, que
+ * parece inofensivo y silencia `text-peligro`: las dos reglas tienen la misma
+ * especificidad y esta hoja se escribe después de las utilidades de Tailwind,
+ * así que ganaba siempre. La píldora de «Bloqueado en Sophon» salía gris en vez
+ * de roja, y se vio en captura, no leyendo el código.
+ *
+ * Ahora el tono lo pone `Marca` con una utilidad —`text-texto-apoyo` o
+ * `text-peligro`—, así que solo hay una regla de color en juego y no puede
+ * haber empate.
+ */
+
+@supports not (color: color-mix(in oklab, red, blue)) {
+  .pildora {
+    border-color: var(--borde);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

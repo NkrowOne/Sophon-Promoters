@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Icono } from "@/components/Icono";
 import { Mecha, unidadComun } from "@/components/Mecha";
 import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
@@ -205,10 +206,10 @@ export default function Renovaciones() {
 
       {renovables.length > 0 && (
         <Banda tono={1} etiqueta={t.puedesRenovarAhora} className="py-2">
-          <p className="rotulo pb-1 pt-4 text-rotulo text-texto-apoyo">{t.puedesRenovarAhora}</p>
-          <ul className="divide-y divide-borde" role="list">
+          <p className="pb-1 pt-4 text-rotulo text-texto-apoyo">{t.puedesRenovarAhora}</p>
+          <ul className="divide-y divide-junta" role="list">
             {renovables.map((w) => (
-              <li key={w.id} className="py-4">
+              <li key={w.id} className="py-5">
                 <Fila
                   w={w}
                   t={t}
@@ -229,10 +230,10 @@ export default function Renovaciones() {
            cuándo tendrá que volver. Pero no piden nada hoy, y el estrato lo
            dice sin escribirlo. */
         <Banda tono={2} etiqueta={t.proActivo} className="py-2">
-          <p className="rotulo pb-1 pt-4 text-rotulo text-texto-apoyo">{t.proActivo}</p>
-          <ul className="divide-y divide-borde" role="list">
+          <p className="pb-1 pt-4 text-rotulo text-texto-apoyo">{t.proActivo}</p>
+          <ul className="divide-y divide-junta" role="list">
             {activos.map((w) => (
-              <li key={w.id} className="py-4">
+              <li key={w.id} className="py-5">
                 <Fila w={w} t={t} porSemanas={porSemanas} cargando={false} deshabilitado onRenovar={noop} />
               </li>
             ))}
@@ -264,18 +265,16 @@ function Fila({
     <>
       <p className="break-all text-cuerpo">{w.email}</p>
 
-      <div className="mt-2">
+      <div className="mt-2.5">
         {w.sinPro || w.proVigenteHasta === null ? (
           // Sin PRO no hay mecha que dibujar: hay un hueco. Decirlo con palabras
           // es más honesto que pintar un raíl vacío, que se leería como un plazo
           // agotado en vez de como un plazo que nunca existió.
-          <p className="text-apoyo">
-            {w.bloqueado ? (
-              <span className="text-texto-apoyo">{t.nuncaTuvoPro}</span>
-            ) : (
-              <Marca>{t.nuncaTuvoPro}</Marca>
-            )}
-          </p>
+          //
+          // Y va en PÍLDORA, no en chapa: era la etiqueta amarilla que el usuario
+          // rodeó con un círculo rojo justo encima del botón amarillo. Una
+          // cápsula perfilada de 26 px no se confunde con un bloque de 50.
+          <Marca icono="caducado">{t.nuncaTuvoPro}</Marca>
         ) : (
           <Mecha
             diasRestantes={w.diasRestantes ?? 0}
@@ -308,19 +307,26 @@ function Fila({
           type="button"
           onClick={onRenovar}
           disabled={deshabilitado || w.bloqueado}
-          className="chapa mt-3 min-h-11 w-full text-apoyo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
+          className="chapa mt-4 w-full text-cuerpo transition-transform duration-150 ease-sonda active:scale-[0.99]"
         >
-          {cargando ? "…" : w.sinPro ? t.darUnAnio : t.renovarUnAnio}
+          {cargando ? (
+            "…"
+          ) : (
+            <>
+              <Icono nombre={w.sinPro ? "pro" : "renovar"} tam={19} />
+              {w.sinPro ? t.darUnAnio : t.renovarUnAnio}
+            </>
+          )}
         </button>
-      ) : (
-        // Sin repetir la fecha: la Mecha de arriba ya escribe «vence el
-        // 06/08/26» y «12 días de PRO», así que decirla una tercera vez en la
-        // misma fila la convierte en ruido. Lo único que esta línea añade —y por
-        // lo que existe— es que hasta entonces no hay nada que hacer.
-        <p className="mt-2.5 text-apoyo text-texto-apoyo">{t.podrasRenovarloCuandoSeApague}</p>
-      )}
+      ) : null}
 
-      {w.bloqueado && <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.bloqueadoEnSophon}</p>}
+      {w.bloqueado && (
+        <p className="mt-2.5">
+          <Marca icono="bloqueado" tono="peligro">
+            {t.bloqueadoEnSophon}
+          </Marca>
+        </p>
+      )}
     </>
   );
 }

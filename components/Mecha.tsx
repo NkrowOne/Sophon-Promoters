@@ -61,6 +61,8 @@ const MARCAS_MAXIMAS = 70;
  * dos.
  */
 
+import { Marca } from "./Pantalla";
+
 /** Lo que necesita traducido. Se pasa desde la pantalla, que ya tiene el catálogo. */
 export interface EtiquetasMecha {
   tiempoRestanteDePro: string;
@@ -123,7 +125,7 @@ export function Mecha({
       <div className="mb-2 flex items-baseline justify-between gap-3">
         {/* Sin nombre de plan: solo hay uno y rotularlo en cada ficha sería
             repetir «AÑO» por toda la aplicación para no distinguir nada. */}
-        <span className="rotulo text-rotulo text-texto-apoyo">PRO</span>
+        <span className="text-rotulo text-texto-apoyo">PRO</span>
         <span className="text-apoyo text-texto-apoyo">
           {caducado ? etiquetas.caducado : etiquetas.venceEl(formatoDia(vigenteHasta))}
         </span>
@@ -135,7 +137,7 @@ export function Mecha({
           // longitud total, que es la referencia contra la que se lee lo que
           // queda. Con el tono de la banda más profunda desaparecía justo
           // dentro de esa banda, y entonces media mecha no medía nada.
-          <Marca key={`gastada-${i}`} className="bg-borde" />
+          <Muesca key={`gastada-${i}`} className="bg-borde" />
         ))}
         {/*
           Lo encendido va del T1, siempre. Ya no hay variante amarilla para los
@@ -150,7 +152,7 @@ export function Mecha({
           la mecha del color de los controles.
         */}
         {Array.from({ length: marcasVivas }, (_, i) => (
-          <Marca key={`viva-${i}`} className="bg-t1" />
+          <Muesca key={`viva-${i}`} className="bg-t1" />
         ))}
         {caducado && <span className="w-16 self-end border-b-2 border-peligro" />}
       </div>
@@ -160,9 +162,11 @@ export function Mecha({
         Un plazo corto se dice y ya: «12 días de PRO.» El amarillo se guarda para
         la fila que tiene botón.
       */}
-      <p className="mt-2 text-apoyo tabular-nums">
+      <p className="mt-2.5 text-apoyo tabular-nums">
         {caducado ? (
-          <ChapaTexto>{etiquetas.proYaCaducado}</ChapaTexto>
+          <Marca icono="caducado" tono="peligro">
+            {etiquetas.proYaCaducado}
+          </Marca>
         ) : rotuloEnSemanas ? (
           `${etiquetas.semanasDePro(Math.floor(restan / 7))}.`
         ) : (
@@ -171,11 +175,6 @@ export function Mecha({
       </p>
     </section>
   );
-}
-
-/** Chapa de texto: campo amarillo con tinta oscura, dentro de una línea. */
-function ChapaTexto({ children }: { children: React.ReactNode }) {
-  return <span className="chapa inline-block px-1.5 py-0.5 font-semibold">{children}</span>;
 }
 
 /**
@@ -190,8 +189,14 @@ export function unidadComun(diasRestantes: readonly (number | null)[]): boolean 
   return mayor > MARCAS_MAXIMAS;
 }
 
-/** Una marca de la mecha: paso fijo, para que la longitud mida el tiempo. */
-function Marca({ className }: { className: string }) {
+/**
+ * Una muesca de la mecha: paso fijo, para que la longitud mida el tiempo.
+ *
+ * Se llamaba `Marca`, igual que la píldora de estado de `Pantalla.tsx`, y eran
+ * dos cosas distintas con el mismo nombre. Aquí es una muesca de una escala
+ * temporal; allí es una etiqueta de estado.
+ */
+function Muesca({ className }: { className: string }) {
   return (
     <span
       className={`shrink-0 ${className}`}

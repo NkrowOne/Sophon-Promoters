@@ -3,7 +3,7 @@
  *
  * La Mini App vive dentro de Telegram y hereda su tema; el panel se abre en un
  * navegador de escritorio y no tiene de quién heredarlo, así que fija el suyo.
- * Mismo lenguaje —tinta, filetes, radio de 4 px, cifras tabulares— y ninguna
+ * Mismo lenguaje —tinta, filetes, radios de 12 px, cifras tabulares— y ninguna
  * variable `--tg-theme-*`, que aquí no existirían y dejarían texto sobre
  * transparente.
  *
@@ -39,7 +39,10 @@
   min-height: 100vh;
   background: var(--p-fondo);
   color: var(--p-texto);
-  font-family: system-ui, -apple-system, sans-serif;
+  /* La misma cara que la Mini App: son dos caras de un producto, no dos
+     productos. Cae a la del sistema si el panel se abre fuera del layout que
+     declara la variable. */
+  font-family: var(--fuente), system-ui, -apple-system, sans-serif;
 }
 
 /*
@@ -67,16 +70,17 @@
   color: inherit;
 }
 
+/* Caja baja y peso, como en la Mini App: las versalitas tracadas eran el efecto
+   estarcido que se retiró de todo el producto. */
 .panel .rotulo {
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  font-size: 0.8125rem;
+  letter-spacing: 0.005em;
   font-weight: 600;
   color: var(--p-apoyo);
-  text-transform: uppercase;
 }
 
 .panel .apoyo {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: var(--p-apoyo);
 }
 
@@ -87,11 +91,10 @@
 
 .panel th {
   text-align: left;
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  font-size: 0.8125rem;
+  letter-spacing: 0.005em;
   font-weight: 600;
   color: var(--p-apoyo);
-  text-transform: uppercase;
   padding: 0 0.75rem 0.5rem 0;
   border-bottom: 1px solid var(--p-borde);
   white-space: nowrap;
@@ -101,7 +104,7 @@
   padding: 0.6rem 0.75rem 0.6rem 0;
   border-bottom: 1px solid var(--p-borde);
   vertical-align: baseline;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
 }
 
 /* Las columnas de dinero se alinean a la derecha y en mono: es la única forma
@@ -115,11 +118,14 @@
 }
 
 .panel .boton {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   border: 1px solid var(--p-borde);
-  border-radius: 4px;
-  padding: 0.45rem 0.9rem;
-  font-size: 0.8125rem;
+  border-radius: 12px;
+  padding: 0 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
   background: transparent;
   color: inherit;
@@ -156,11 +162,11 @@
 .panel input,
 .panel select {
   border: 1px solid var(--p-borde);
-  border-radius: 4px;
-  background: var(--p-superficie);
+  border-radius: 12px;
+  background: var(--p-fondo);
   color: inherit;
-  padding: 0.45rem 0.6rem;
-  font-size: 0.875rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9375rem;
   font-family: inherit;
 }
 

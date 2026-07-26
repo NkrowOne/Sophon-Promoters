@@ -110,7 +110,11 @@ function Peldano({
       </div>
       {/* Extremos rectos: una barra de datos con las puntas redondeadas miente
           sobre dónde empieza y acaba la medida, y solo está ahí por blandura. */}
-      <span className="block h-1.5 overflow-hidden bg-superficie-alta">
+      {/* `bg-borde` y no `bg-superficie-alta`: el raíl vivía del mismo color
+          que la banda que lo contiene en inicio —1,000:1—, así que la barra
+          parecía flotar sin escala detrás. Un raíl tiene que verse para que
+          la longitud de lo lleno signifique algo. */}
+      <span className="block h-1.5 overflow-hidden rounded-marca bg-borde">
         <BarraCreciente
           porcentaje={Math.max(proporcion, 1.5)}
           className={destacado ? "bg-tinta" : "bg-t2"}

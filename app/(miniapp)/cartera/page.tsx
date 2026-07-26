@@ -232,7 +232,7 @@ export default function CarteraPagina() {
               donde el amarillo se lee y además es lo que el agente ha venido a
               mirar. */}
           <div>
-            <p className="rotulo text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
+            <p className="text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
             <p className="mt-1.5">
               <Importe texto={viva.importe.texto} className="text-cifra" />
             </p>
@@ -254,7 +254,7 @@ export default function CarteraPagina() {
       ) : (
         <Banda tono={1} etiqueta={t.solicitarRetiro} className="py-6">
           <p className="text-rotulo mb-3 border-b border-junta pb-2 text-texto-apoyo">
-            {t.solicitarRetiro.toUpperCase()}
+            {t.solicitarRetiro}
           </p>
 
           <label htmlFor="importe" className="text-rotulo block text-texto-apoyo">
@@ -267,7 +267,7 @@ export default function CarteraPagina() {
               onChange={(e) => setImporte(e.target.value.replace(/[^\d.,]/g, ""))}
               inputMode="decimal"
               placeholder={paraEscribir(minimoMicros)}
-              className="cifra min-w-0 flex-1 rounded-pieza border border-borde bg-superficie px-3.5 py-3.5 text-cuerpo outline-none focus:border-tinta"
+              className="cifra min-w-0 flex-1 rounded-control border border-borde bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta"
             />
             {/* «Todo» evita el error más común de este formulario: teclear el
                 disponible a mano y equivocarse en un céntimo, que el servidor
@@ -276,7 +276,7 @@ export default function CarteraPagina() {
               type="button"
               onClick={() => setImporte(paraEscribir(disponibleMicros))}
               disabled={disponibleMicros < minimoMicros}
-              className="shrink-0 rounded-pieza border border-borde px-4 text-apoyo font-medium disabled:opacity-40"
+              className="shrink-0 rounded-control border border-borde px-4 text-cuerpo font-medium disabled:opacity-40"
             >
               {t.todo}
             </button>
@@ -319,7 +319,7 @@ export default function CarteraPagina() {
                     es lo que hace que signifique algo cuando aparece.
                   */
                   className={[
-                    "flex min-h-11 items-center justify-center rounded-pieza text-apoyo font-medium",
+                    "flex min-h-12 items-center justify-center rounded-control text-cuerpo font-medium",
                     "transition-transform duration-150 ease-sonda active:scale-[0.98]",
                     red === r.id ? "bg-tinta text-fondo" : "border border-borde",
                   ].join(" ")}
@@ -346,7 +346,7 @@ export default function CarteraPagina() {
               autoCapitalize="none"
               spellCheck={false}
               placeholder={definicionRed.ejemplo}
-              className="cifra mt-2 w-full break-all rounded-pieza border border-borde bg-superficie px-3.5 py-3.5 text-apoyo outline-none focus:border-tinta"
+              className="cifra mt-2 w-full break-all rounded-control border border-borde bg-fondo px-4 py-3.5 text-apoyo outline-none focus:border-tinta"
             />
             <p
               className={`mt-2 text-apoyo ${
