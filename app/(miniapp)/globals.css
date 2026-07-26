@@ -643,3 +643,7 @@ textarea::placeholder {
 .banda:nth-child(2) { animation-delay: 40ms; }
 .banda:nth-child(3) { animation-delay: 80ms; }
 .banda:nth-child(4) { animation-delay: 120ms; }
+/* La quinta la trajo el bono por hitos. El escalonado va por `nth-child`, así
+   que una banda nueva no hereda retardo: se queda a 0 y entra a la vez que la
+   primera, rompiendo la secuencia justo por el final. */
+.banda:nth-child(5) { animation-delay: 160ms; }

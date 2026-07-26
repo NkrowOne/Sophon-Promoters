@@ -9,6 +9,7 @@ import { Aviso, Cargando, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
+import type { Cadenas } from "@/lib/i18n";
 import { formatearMicros } from "@/lib/devengo/dinero";
 
 /**
@@ -33,10 +34,25 @@ interface DiaApi extends Omit<DiaTestigo, "importeMicros"> {
   usuariosPago: number;
 }
 
+interface Escalon {
+  usuarios: number;
+  premio: { micros: string; texto: string };
+  alcanzado: boolean;
+}
+
+interface Hito {
+  registros: number;
+  ganado: { micros: string; texto: string };
+  siguiente: { usuarios: number; faltan: number; premio: { micros: string; texto: string } } | null;
+  escalones: Escalon[];
+}
+
 interface Resumen {
   dias: DiaApi[];
   webmasters: number;
   cartera: Cartera;
+  /** `null` cuando no hay escalera configurada: entonces la banda no se pinta. */
+  hito: Hito | null;
 }
 
 export default function Inicio() {
@@ -163,6 +179,17 @@ export default function Inicio() {
               </section>
             )}
 
+            {/* El bono del mes. Va entre la Cinta y la Escalera porque es la
+                secuencia correcta de preguntas: de dónde viene el volumen →
+                cuánto me falta para el premio → dónde está mi dinero.
+
+                Sin amarillo: el amarillo es la ACCIÓN, y un progreso no se
+                pulsa. Y sin medallas ni rachas: la regla de voz de la casa dice
+                que el agente es un profesional que cobra, no alguien a quien
+                haya que animar. La recompensa es dinero y con enseñarla bien
+                basta. */}
+            {datos?.hito && <BandaHito hito={datos.hito} etiquetas={t} />}
+
             {/* La Escalera: el dinero es un flujo con estados, no cuatro saldos
                 sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
             {cartera && (
@@ -263,5 +290,57 @@ function Fila({
         <Icono nombre="avance" tam={18} className={`text-texto-apoyo ${dato ? "" : "ms-auto"}`} />
       </a>
     </li>
+  );
+}
+
+/**
+ * El progreso hacia el siguiente hito del bono.
+ *
+ * Raíl visible + relleno, que es la forma que ya usa la Escalera
+ * (`components/Escalera.tsx`) y por el motivo que allí está escrito: un raíl que
+ * no se ve deja la barra flotando sin escala detrás, y entonces la longitud de
+ * lo lleno no significa nada.
+ *
+ * Se anima porque MIDE algo, que es la regla que decide qué se mueve en esta
+ * aplicación. Reutiliza `BarraCreciente`.
+ */
+function BandaHito({ hito, etiquetas: t }: { hito: Hito; etiquetas: Cadenas }) {
+  const meta = hito.siguiente?.usuarios ?? hito.escalones[hito.escalones.length - 1]?.usuarios ?? 0;
+  const porcentaje = meta > 0 ? Math.min(100, (hito.registros / meta) * 100) : 0;
+
+  return (
+    <section aria-label={t.bonoDelMes} className="banda banda-0 py-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-rotulo text-texto-apoyo">{t.bonoDelMes}</p>
+        {/* Lo ganado solo aparece cuando hay algo ganado: un «0,00 $» fijo en la
+            cabecera es un recordatorio diario de no haber llegado. */}
+        {hito.ganado.micros !== "0" && (
+          <p className="text-apoyo font-medium tabular-nums">{t.bonoGanado(hito.ganado.texto)}</p>
+        )}
+      </div>
+
+      <p className="mt-1.5 text-cuerpo tabular-nums">{t.registrosEsteMes(hito.registros)}</p>
+
+      {/* El raíl con los escalones marcados. Cada muesca es un hito, así que la
+          barra dice a la vez cuánto llevas y cuántos peldaños hay. */}
+      <div className="relative mt-3 h-1.5 overflow-hidden rounded-marca bg-borde">
+        <BarraCreciente porcentaje={porcentaje} className="bg-t2" />
+        <span className="pointer-events-none absolute inset-0 flex" aria-hidden>
+          {hito.escalones.map((e) => (
+            <span
+              key={e.usuarios}
+              className="border-e border-fondo"
+              style={{ width: `${meta > 0 ? Math.min(100, (e.usuarios / meta) * 100) : 0}%` }}
+            />
+          ))}
+        </span>
+      </div>
+
+      <p className="mt-2.5 text-apoyo text-texto-apoyo tabular-nums">
+        {hito.siguiente
+          ? t.faltanParaElBono(hito.siguiente.faltan, hito.siguiente.premio.texto)
+          : t.bonoMaximoAlcanzado}
+      </p>
+    </section>
   );
 }

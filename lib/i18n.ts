@@ -79,6 +79,13 @@ export const es = {
   repartoPorTier: "Registros por tier",
   acciones: "Acciones",
   estadoDeTuDinero: "Estado del saldo",
+  // ── Bono por hitos ────────────────────────────────────────────────────────
+  bonoDelMes: "Bono del mes",
+  registrosEsteMes: (n: number) => `${n.toLocaleString("es-ES")} registros este mes`,
+  faltanParaElBono: (faltan: number, premio: string) =>
+    `Faltan ${faltan.toLocaleString("es-ES")} registros para ${premio}.`,
+  bonoMaximoAlcanzado: "Alcanzado el hito más alto del mes.",
+  bonoGanado: (importe: string) => `${importe} ganados`,
 
   // ── Activar webmaster ─────────────────────────────────────────────────────
   correoDelWebmaster: "Correo del webmaster",
@@ -316,6 +323,12 @@ const en: Cadenas = {
   repartoPorTier: "Signups by tier",
   acciones: "Actions",
   estadoDeTuDinero: "Where your money is",
+  bonoDelMes: "Monthly bonus",
+  registrosEsteMes: (n: number) => `${n.toLocaleString("en-US")} signups this month`,
+  faltanParaElBono: (faltan: number, premio: string) =>
+    `${faltan.toLocaleString("en-US")} signups to reach ${premio}.`,
+  bonoMaximoAlcanzado: "Top milestone reached for this month.",
+  bonoGanado: (importe: string) => `${importe} earned`,
 
   correoDelWebmaster: "Webmaster's email",
   tieneQueExistirYa: "The email they signed up to Sophon with. It has to exist already.",
@@ -520,6 +533,12 @@ const it: Cadenas = {
   repartoPorTier: "Iscrizioni per tier",
   acciones: "Azioni",
   estadoDeTuDinero: "Dove sono i tuoi soldi",
+  bonoDelMes: "Bonus del mese",
+  registrosEsteMes: (n: number) => `${n.toLocaleString("it-IT")} iscrizioni questo mese`,
+  faltanParaElBono: (faltan: number, premio: string) =>
+    `Mancano ${faltan.toLocaleString("it-IT")} iscrizioni per ${premio}.`,
+  bonoMaximoAlcanzado: "Raggiunta la soglia più alta del mese.",
+  bonoGanado: (importe: string) => `${importe} guadagnati`,
 
   correoDelWebmaster: "Email del webmaster",
   tieneQueExistirYa: "L'email con cui si è registrato su Sophon. Deve esistere già.",
@@ -727,6 +746,12 @@ const pt: Cadenas = {
   repartoPorTier: "Registos por tier",
   acciones: "Ações",
   estadoDeTuDinero: "Onde está o teu dinheiro",
+  bonoDelMes: "Bónus do mês",
+  registrosEsteMes: (n: number) => `${n.toLocaleString("pt-PT")} registos este mês`,
+  faltanParaElBono: (faltan: number, premio: string) =>
+    `Faltam ${faltan.toLocaleString("pt-PT")} registos para ${premio}.`,
+  bonoMaximoAlcanzado: "Atingido o patamar mais alto do mês.",
+  bonoGanado: (importe: string) => `${importe} ganhos`,
 
   correoDelWebmaster: "Email do webmaster",
   tieneQueExistirYa: "O email com que se registou na Sophon. Tem de existir já.",
@@ -938,6 +963,12 @@ const ar: Cadenas = {
   repartoPorTier: "التسجيلات حسب الفئة",
   acciones: "الإجراءات",
   estadoDeTuDinero: "أين أموالك",
+  bonoDelMes: "مكافأة الشهر",
+  registrosEsteMes: (n: number) => `${n.toLocaleString("ar-EG")} تسجيل هذا الشهر`,
+  faltanParaElBono: (faltan: number, premio: string) =>
+    `يتبقّى ${faltan.toLocaleString("ar-EG")} تسجيل للوصول إلى ${premio}.`,
+  bonoMaximoAlcanzado: "تم بلوغ أعلى مستوى لهذا الشهر.",
+  bonoGanado: (importe: string) => `${importe} مُحقّقة`,
 
   correoDelWebmaster: "بريد مشرف الموقع",
   tieneQueExistirYa: "البريد الذي سجّل به في Sophon. يجب أن يكون موجودًا مسبقًا.",

@@ -114,7 +114,34 @@ const resumen = {
     solicitado: { micros: "0", texto: "0,00 $" },
     pagado: { micros: "32240000", texto: "32,24 $" },
   },
+  hito: hitoDe(Number(process.env.CAPTURA_HITO ?? 720)),
 };
+
+/*
+ * El progreso del bono, con los tres estados que hay que mirar.
+ *
+ * `CAPTURA_HITO` fija los registros del mes. El caso de 720 es el IMPORTANTE:
+ * es lo que produce hoy el mayor webmaster real en un mes, o sea la barra que va
+ * a ver todo el mundo mientras los umbrales sigan donde están.
+ */
+function hitoDe(registros) {
+  const escalera = [
+    { usuarios: 10_000, premio: { micros: "50000000", texto: "50,00 $" } },
+    { usuarios: 20_000, premio: { micros: "100000000", texto: "100,00 $" } },
+    { usuarios: 30_000, premio: { micros: "150000000", texto: "150,00 $" } },
+  ];
+  const alcanzados = escalera.filter((e) => registros >= e.usuarios);
+  const siguiente = escalera.find((e) => registros < e.usuarios) ?? null;
+  const ganado = alcanzados.at(-1)?.premio ?? { micros: "0", texto: "0,00 $" };
+  return {
+    registros,
+    ganado,
+    siguiente: siguiente
+      ? { usuarios: siguiente.usuarios, faltan: siguiente.usuarios - registros, premio: siguiente.premio }
+      : null,
+    escalones: escalera.map((e) => ({ ...e, alcanzado: registros >= e.usuarios })),
+  };
+}
 
 const RUTAS = [
   [/\/api\/agente\/webmaster\/[^/]+\/enlaces/, enlaces],

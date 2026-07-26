@@ -10,7 +10,9 @@ import {
   saldos,
 } from "@/lib/api/agente";
 import { estaCerrado } from "@/lib/devengo/motor";
-import { hoyContable } from "@/lib/sync/registros";
+import { escaleraVigente, hoyContable, registrosDelMes } from "@/lib/sync/registros";
+import { escalonAlcanzado, siguienteEscalon } from "@/lib/devengo/bonos";
+import { mesContable } from "@/lib/fechas";
 
 /**
  * Resumen de la pantalla de inicio: la serie diaria del Testigo y los saldos.
@@ -32,7 +34,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   const hoy = hoyContable();
   const desde = new Date(Date.parse(`${hoy}T00:00:00Z`) - (DIAS - 1) * 86_400_000);
 
-  const [asientos, filas, saldo, webmasters, concesiones] = await Promise.all([
+  const [asientos, filas, saldo, webmasters, concesiones, hito] = await Promise.all([
     // Lo que gana el agente, por día.
     db.asientoComision.groupBy({
       by: ["fechaDevengo"],
@@ -50,6 +52,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       where: { agenteId, estado: "CONFIRMADA", creadoEn: { gte: desde } },
       select: { creadoEn: true },
     }),
+    progresoDelHito(agenteId),
   ]);
 
   // Se agrega por fecha en memoria: son 30 filas como mucho.
@@ -106,5 +109,47 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       solicitado: dinero(saldo.solicitadoMicros),
       pagado: dinero(saldo.pagadoMicros),
     },
+    hito,
   });
+}
+
+/**
+ * Dónde va el agente en la escalera del bono este mes.
+ *
+ * Los registros son los del **mes natural**, no los de la ventana móvil de 30
+ * días que usa el resto de esta ruta: el bono se resetea el día 1, así que
+ * mezclar las dos ventanas enseñaría una barra que no cuadra con lo que se cobra.
+ *
+ * Devuelve `null` si no hay escalera configurada, y entonces la portada no pinta
+ * nada: una barra de progreso hacia un objetivo que no existe es peor que el
+ * hueco que deja.
+ */
+async function progresoDelHito(agenteId: string) {
+  const escalones = await escaleraVigente();
+  if (escalones.length === 0) return null;
+
+  const mes = mesContable();
+  const registros = await registrosDelMes(agenteId, mes);
+
+  const alcanzado = escalonAlcanzado(registros, escalones);
+  const siguiente = siguienteEscalon(registros, escalones);
+
+  return {
+    registros,
+    // Lo ya ganado este mes es la recompensa del escalón más alto alcanzado, no
+    // la suma: el bono no es acumulable.
+    ganado: dinero(alcanzado?.recompensaMicros ?? 0n),
+    siguiente: siguiente
+      ? {
+          usuarios: siguiente.usuarios,
+          faltan: siguiente.usuarios - registros,
+          premio: dinero(siguiente.recompensaMicros),
+        }
+      : null,
+    escalones: escalones.map((e) => ({
+      usuarios: e.usuarios,
+      premio: dinero(e.recompensaMicros),
+      alcanzado: registros >= e.usuarios,
+    })),
+  };
 }

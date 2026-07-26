@@ -15,7 +15,7 @@
  */
 
 import { db, CERROJO, conCerrojo } from "../db.ts";
-import { microsDesdeCadena, type Micros } from "../devengo/dinero.ts";
+import { formatearMicros, microsDesdeCadena, type Micros } from "../devengo/dinero.ts";
 import {
   DIAS_VENTANA_REVISION,
   estaCerrado,
@@ -25,8 +25,9 @@ import {
   type FilaDiaria,
   type Tarifa,
 } from "../devengo/motor.ts";
-import { planificarBonos, type Escalon } from "../devengo/bonos.ts";
+import { planificarBonos, siguienteEscalon, type Escalon } from "../devengo/bonos.ts";
 import { inicioDeMes, inicioDelMesSiguiente, mesAnterior, mesDe } from "../fechas.ts";
+import { avisarBonoAlAgente } from "../bot/avisos.ts";
 import { normalizarEmail } from "../cripto.ts";
 import type { ClienteSophon } from "../sophon/cliente.ts";
 import { NivelAfiliado, type FilaRegistro } from "../sophon/tipos.ts";
@@ -540,6 +541,7 @@ async function devengarBonoDelMes(
 
   const a = planificados[0]!;
   const escalon = escalones.find((e) => e.id === a.bonoEscalonId)!;
+  const siguiente = siguienteEscalon(registros, escalones);
 
   try {
     await db.asientoComision.create({
@@ -567,6 +569,31 @@ async function devengarBonoDelMes(
     // es un error: es el sistema funcionando.
     if (esClaveDuplicada(e)) return null;
     throw e;
+  }
+
+  /*
+   * El aviso va DESPUÉS de que el asiento esté guardado y sin `await` sobre su
+   * resultado en el camino crítico —la función se traga sus propios fallos—:
+   * el dinero ya consta, y que Telegram no conteste no puede deshacerlo. Es el
+   * mismo orden que sigue `resolverRetiro` en el panel.
+   */
+  const agente = await db.agente.findUnique({
+    where: { id: agenteId },
+    select: { telegramId: true, idioma: true },
+  });
+  if (agente) {
+    await avisarBonoAlAgente({
+      telegramId: agente.telegramId,
+      idioma: agente.idioma,
+      registros,
+      importe: formatearMicros(escalon.recompensaMicros),
+      siguiente: siguiente
+        ? {
+            faltan: siguiente.usuarios - registros,
+            premio: formatearMicros(siguiente.recompensaMicros),
+          }
+        : null,
+    });
   }
 
   return { agenteId, mes, usuarios: escalon.usuarios, importeMicros: a.importeMicros };

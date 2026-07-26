@@ -189,6 +189,43 @@ export async function avisarRedApagadaAlAgente(datos: {
   await enviarA(String(datos.telegramId), lineas.join("\n"));
 }
 
+/**
+ * Ha alcanzado un hito y ha cobrado el bono.
+ *
+ * Es el momento de la recompensa, y por eso llega por Telegram en vez de esperar
+ * a que el agente abra la aplicación: un premio que hay que ir a buscar no premia
+ * nada.
+ *
+ * Sin felicitaciones ni exclamaciones, igual que el resto de la aplicación: se
+ * dice qué ha alcanzado, cuánto ha cobrado y qué queda por delante. La regla de
+ * voz de `lib/i18n.ts` es explícita sobre esto, y un «¡Enhorabuena!» en una
+ * herramienta de trabajo suena a promoción de casino.
+ */
+export async function avisarBonoAlAgente(datos: {
+  telegramId: bigint | null;
+  idioma: string;
+  registros: number;
+  importe: string;
+  siguiente: { faltan: number; premio: string } | null;
+}): Promise<void> {
+  if (datos.telegramId === null) return;
+  const t = cadenas(idiomaGuardado(datos.idioma));
+
+  await enviarA(
+    String(datos.telegramId),
+    [
+      `<b>${escapar(t.bonoGanado(datos.importe))}</b>`,
+      "",
+      escapar(t.registrosEsteMes(datos.registros)),
+      escapar(
+        datos.siguiente
+          ? t.faltanParaElBono(datos.siguiente.faltan, datos.siguiente.premio)
+          : t.bonoMaximoAlcanzado,
+      ),
+    ].join("\n"),
+  );
+}
+
 /** Aviso de descuadre en la conciliación: no debe pasar desapercibido. */
 export async function avisarDescuadre(datos: {
   concepto: string;
