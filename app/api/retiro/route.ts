@@ -108,8 +108,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (importeMicros < minimo) {
     return NextResponse.json(
       {
-        error: `Pides ${formatearMicros(importeMicros)} y el mínimo son ${formatearMicros(minimo)}.`,
-        apoyo: `Te faltan ${formatearMicros(minimo - importeMicros)}.`,
+        error: `El importe queda por debajo del mínimo de ${formatearMicros(minimo)}.`,
+        apoyo: `Importe solicitado: ${formatearMicros(importeMicros)}.`,
       },
       { status: 400 },
     );
@@ -117,8 +117,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (importeMicros > saldo.disponibleMicros) {
     return NextResponse.json(
       {
-        error: `Pides ${formatearMicros(importeMicros)} y tienes ${formatearMicros(saldo.disponibleMicros)} disponibles.`,
-        apoyo: "Lo devengado de los últimos días aún no es retirable: puede revisarse.",
+        error: `El importe supera el saldo disponible de ${formatearMicros(saldo.disponibleMicros)}.`,
+        apoyo: "El devengo de los últimos días no es retirable hasta su consolidación.",
       },
       { status: 400 },
     );
@@ -180,14 +180,21 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       const importe = formatearMicros(BigInt(motivo.split(":")[1] ?? "0"));
       return NextResponse.json(
         {
-          error: `Ya tienes una solicitud de retiro pendiente de ${importe}.`,
-          apoyo: "Espera a que el superadmin la resuelva o cancélala.",
+          error: `Existe una solicitud de retiro pendiente de ${importe}.`,
+          apoyo:
+            "Solo se admite una solicitud a la vez. Las revisiones son manuales; la solicitud en curso se puede cancelar.",
         },
         { status: 409 },
       );
     }
     console.error("[retiro] solicitud fallida", e);
-    return NextResponse.json({ error: "error: «No se ha podido registrar la solicitud.» · apoyo: «No se ha descontado nada del saldo. Se puede reintentar.»" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "No se ha podido registrar la solicitud.",
+        apoyo: "No se ha descontado nada del saldo. Se puede reintentar.",
+      },
+      { status: 500 },
+    );
   }
 
   await db.auditoria.create({

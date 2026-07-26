@@ -40,7 +40,7 @@ export async function exigirAgente(
   const sesion = await sesionActual();
   if (!sesion) {
     return NextResponse.json(
-      { error: "Tu sesión ha caducado.", apoyo: "Vuelve a entrar con tu correo." },
+      { error: "Sesión caducada.", apoyo: "El acceso se restablece con el correo de la cuenta." },
       { status: 401 },
     );
   }

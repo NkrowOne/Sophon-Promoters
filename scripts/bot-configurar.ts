@@ -24,7 +24,7 @@ const url = (process.env["APP_URL"] ?? "").replace(/\/+$/, "");
 
 function exigir(valor: string | undefined, nombre: string): string {
   if (!valor) {
-    console.error(`Falta ${nombre}. Míralo en .env.example.`);
+    console.error(`Falta ${nombre}. Definido en .env.example.`);
     process.exit(1);
   }
   return valor;

@@ -42,11 +42,11 @@ export async function POST(peticion: Request): Promise<Response> {
   const secreto = process.env["TELEGRAM_WEBHOOK_SECRET"];
   if (!secreto) {
     console.warn("[bot] webhook deshabilitado: falta TELEGRAM_WEBHOOK_SECRET");
-    return NextResponse.json({ error: "webhook no configurado" }, { status: 503 });
+    return NextResponse.json({ error: "Webhook no configurado." }, { status: 503 });
   }
 
   if (peticion.headers.get("x-telegram-bot-api-secret-token") !== secreto) {
-    return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   try {

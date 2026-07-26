@@ -269,8 +269,8 @@ function registrar(b: Bot): void {
       [
         enlace,
         "",
-        `Un solo uso y caduca en ${MINUTOS_CANJE} minutos.`,
-        "Si pides otro, este deja de valer.",
+        `Un solo uso. Caduca en ${MINUTOS_CANJE} minutos.`,
+        "Generar otro invalida este.",
       ].join("\n"),
       // Sin previsualización: Telegram la genera abriendo la URL, y eso
       // gastaría el enlace de un solo uso antes de que nadie lo tocara.
@@ -303,13 +303,12 @@ function registrar(b: Bot): void {
         "",
         "/codigo — genera un código de activación",
         "/codigo correo@ejemplo.com — solo canjeable con ese correo",
-        `/codigo correo@ejemplo.com 30 — y válido 30 días (máx. ${MAX_DIAS_CODIGO})`,
+        `/codigo correo@ejemplo.com 30 — vigencia de 30 días (máx. ${MAX_DIAS_CODIGO})`,
         "/agentes — agentes dados de alta y su devengo",
         "/retiros — solicitudes pendientes y su wallet",
         "/panel — enlace de entrada al panel",
         "",
-        "<i>Aprobar y marcar como pagado se hace en el panel, no aquí: mover",
-        "dinero desde un chat es demasiado fácil de hacer sin querer.</i>",
+        "<i>Aprobar y marcar como pagado solo se hace desde el panel.</i>",
       ].join("\n"),
       { parse_mode: "HTML" },
     );
@@ -358,7 +357,7 @@ function registrar(b: Bot): void {
         `<code>${formatearCodigo(codigo)}</code>`,
         "",
         posibleEmail
-          ? `Solo lo puede canjear ${escapar(posibleEmail)}.`
+          ? `Canjeable solo por ${escapar(posibleEmail)}.`
           : "Canjeable por cualquiera que lo reciba.",
         `Caduca en ${dias} ${dias === 1 ? "día" : "días"}. Un solo uso.`,
       ].join("\n"),
@@ -402,7 +401,7 @@ function registrar(b: Bot): void {
         "",
         ...agentes.map((a) => {
           const marca = a.estado === "ACTIVO" ? "" : ` · ${a.estado.toLowerCase()}`;
-          return `${escapar(a.nombreVisible)}${marca}\n<code>${escapar(a.emailNormalizado)}</code> · ${a._count.webmasters} wm · ${formatearMicros(saldo.get(a.id) ?? 0n)}`;
+          return `${escapar(a.nombreVisible)}${marca}\n<code>${escapar(a.emailNormalizado)}</code> · ${a._count.webmasters} ${a._count.webmasters === 1 ? "webmaster" : "webmasters"} · ${formatearMicros(saldo.get(a.id) ?? 0n)}`;
         }),
       ].join("\n"),
       { parse_mode: "HTML" },
