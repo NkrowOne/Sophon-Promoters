@@ -85,10 +85,18 @@ export default function Red() {
       <Banda tono={0} como="header" className="pb-5">
         {/* Lo primero es lo que exige actuar. Si no hay nada parado, se dice:
             confirmar que está todo bien también es información. */}
+        {/* Al quitar la cápsula, las dos frases se leían de corrido —«1 con
+            incidencia 2 sin actividad…»—. El punto medio las separa, que es el
+            mismo separador que usa el resto de la aplicación, y el recuento de
+            incidencias sí lleva color: es lo único de esta línea sobre lo que
+            hay que hacer algo. */}
         <p className="text-apoyo text-texto-apoyo">
           {conProblema > 0 && (
             <>
-              <Marca>{t.conIncidencia(conProblema)}</Marca>{" "}
+              <Marca icono="aviso" tono="problema">
+                {t.conIncidencia(conProblema)}
+              </Marca>
+              {" · "}
             </>
           )}
           <span className="tabular-nums">

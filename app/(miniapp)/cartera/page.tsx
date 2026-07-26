@@ -319,8 +319,7 @@ export default function CarteraPagina() {
                     es lo que hace que signifique algo cuando aparece.
                   */
                   className={[
-                    "flex min-h-12 items-center justify-center rounded-control text-cuerpo font-medium",
-                    "transition-transform duration-150 ease-sonda active:scale-[0.98]",
+                    "pulsable flex min-h-12 items-center justify-center rounded-control text-cuerpo font-medium",
                     red === r.id ? "bg-tinta text-fondo" : "border border-borde",
                   ].join(" ")}
                 >

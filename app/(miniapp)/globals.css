@@ -422,56 +422,126 @@ textarea::placeholder {
 }
 
 /*
- * LA PÍLDORA: el estado. Nunca se pulsa, y su forma lo dice.
+ * `.pildora` SE HA IDO, y su retirada es una corrección, no un ahorro.
  *
- * Compacta y ceñida a su texto: no puede confundirse con un control de ancho
- * completo. Va de filete y tinta de apoyo, no maciza, porque un estado no compite
- * con la acción de su propia fila.
+ * Existió media hora para separar el estado del botón, y resolvió eso trayendo
+ * otra cosa: una lista de cápsulas perfiladas con su iconito es LA firma del
+ * panel de control genérico. Está en todas las plantillas, así que no dice nada
+ * de este producto —«gritan mucho IA», y es verdad—.
  *
- * `--pildora-tinta` la fija cada sitio de uso: gris de apoyo para lo neutro
- * —«PRO 12 días»— y peligro para lo que va mal —«Bloqueado en Sophon»—. El
- * amarillo NO entra aquí: es de la acción.
+ * El estado es ahora una línea de texto con su icono delante (`Marca` en
+ * `components/Pantalla.tsx`). La fila ya está delimitada por su lista; meterle
+ * una cápsula dentro era envolver dos palabras en una caja para no añadir nada.
  */
-.pildora {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.3125rem 0.75rem 0.3125rem 0.5625rem;
-  border: 1px solid currentColor;
-  border-radius: var(--radio-pildora);
-  font-weight: 600;
-  /* El filete al 45 % de la tinta: a plena opacidad, una cápsula perfilada pesa
-     más que el texto que contiene y la fila se convierte en un cartel. */
-  border-color: color-mix(in oklab, currentColor 45%, transparent);
+
+/* ══════════════════════════════ EL MOVIMIENTO ══════════════════════════════
+ *
+ * Una sola gramática, y formal: **nada rebota, nada gira, nada se escala más de
+ * un 2 %, y ningún color se anima.** Todo usa la misma curva de desaceleración
+ * —entra rápido y frena al llegar, nunca se pasa de largo— y todo dura entre
+ * 140 y 520 ms.
+ *
+ * La regla que decide QUÉ se mueve: se anima lo que MIDE algo. Una barra que
+ * crece explica su escala mientras crece; una cifra que sube dice de dónde
+ * viene; una mecha que se dibuja de izquierda a derecha es literalmente una
+ * lectura tomándose. Lo que no mide nada —el texto, los iconos, los rótulos— no
+ * se mueve, y por eso lo que sí se mueve significa.
+ *
+ * Es lo contrario de decorar: si algo se anima aquí es porque su movimiento es
+ * el dato.
+ */
+:root {
+  /*
+   * DOS curvas, y la diferencia importa.
+   *
+   * `--curva` frena fuerte al llegar: es la de las cosas que APARECEN —una
+   * banda que entra, un botón que se hunde—, donde interesa que llegue rápido y
+   * se pose.
+   *
+   * `--curva-dibujo` es casi recta, y es la de las cosas que MIDEN. Con la curva
+   * de entrada, un barrido de 520 ms ya iba por el 26 % a los 33 ms —medido en el
+   * navegador, no supuesto— así que la medida terminaba antes de que se pudiera
+   * ver tomarse: todo el gesto se perdía en el primer parpadeo. Un instrumento
+   * barre a ritmo constante; esta curva es eso, con un frenazo mínimo al final.
+   */
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --curva-dibujo: cubic-bezier(0.4, 0.05, 0.25, 1);
+  --t-toque: 140ms;
+  --t-entrada: 320ms;
+  --t-dibujo: 520ms;
 }
 
 /*
- * La TINTA no se declara aquí, y es a propósito.
+ * EL BARRIDO: un instrumento tomando una medida.
  *
- * Estuvo un rato como `color: var(--tinta-apoyo)` dentro de `.pildora`, que
- * parece inofensivo y silencia `text-peligro`: las dos reglas tienen la misma
- * especificidad y esta hoja se escribe después de las utilidades de Tailwind,
- * así que ganaba siempre. La píldora de «Bloqueado en Sophon» salía gris en vez
- * de roja, y se vio en captura, no leyendo el código.
+ * Los datos seriados —la Mecha y el Testigo— se descubren de izquierda a derecha
+ * con una máscara, no apareciendo de golpe. Es UN elemento y UNA propiedad
+ * compuesta, así que sesenta muescas cuestan lo mismo que una: la alternativa
+ * —un retardo por marca— habría puesto un estilo en línea en cada una de las
+ * trescientas que puede haber en `/pro`.
  *
- * Ahora el tono lo pone `Marca` con una utilidad —`text-texto-apoyo` o
- * `text-peligro`—, así que solo hay una regla de color en juego y no puede
- * haber empate.
+ * `inset` lógico invertido en árabe: en RTL el tiempo avanza al revés, y una
+ * medida que se dibuja hacia el lado contrario al que se lee no se lee.
  */
-
-@supports not (color: color-mix(in oklab, red, blue)) {
-  .pildora {
-    border-color: var(--borde);
+@keyframes barrer {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
   }
 }
 
+@keyframes barrer-rtl {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.barrido {
+  animation: barrer var(--t-dibujo) var(--curva-dibujo) both;
+}
+
+[dir="rtl"] .barrido {
+  animation-name: barrer-rtl;
+}
+
+/*
+ * El toque. Un hundimiento de 1 % y un velo de superficie: lo justo para que el
+ * dedo tenga acuse de recibo en una pantalla sin puntero.
+ *
+ * `:active` y no `:hover`: aquí no hay ratón, y una interfaz que solo responde
+ * al puntero no responde nunca.
+ */
+.pulsable {
+  transition:
+    transform var(--t-toque) var(--curva),
+    background-color var(--t-toque) var(--curva);
+}
+
+.pulsable:active {
+  transform: scale(0.99);
+  background-color: var(--superficie-alta);
+}
+
+/*
+ * Con movimiento reducido no se apaga la interfaz: se salta el trayecto.
+ *
+ * Las animaciones aterrizan en su fotograma final —`both` en `.barrido` lo
+ * garantiza— así que la mecha sigue dibujada y la barra sigue medida. Lo único
+ * que desaparece es el viaje. Y las transiciones se acortan en vez de anularse:
+ * un cambio instantáneo de estado es más desconcertante que uno de 100 ms.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 120ms !important;
+    transition-duration: 100ms !important;
   }
 }
 
@@ -538,7 +608,7 @@ textarea::placeholder {
 }
 
 .banda {
-  animation: depositar 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: depositar var(--t-entrada) var(--curva) both;
 }
 
 /* Vertical y nunca horizontal: el gesto de retroceso de Telegram es horizontal

@@ -122,7 +122,7 @@ function ActivarPasos() {
           {hecho.pro && !hecho.pro.concedido && (
             <div>
               <p className="text-apoyo">
-                <Marca>{t.proNoConcedido}</Marca>
+                <Marca icono="aviso" tono="problema">{t.proNoConcedido}</Marca>
               </p>
               <p className="mt-1 text-apoyo text-texto-apoyo">{t.proNoConcedidoApoyo}</p>
             </div>

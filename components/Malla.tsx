@@ -87,7 +87,7 @@ export function Malla({
        El hueco horizontal es mayor que el vertical a propósito: en vertical ya
        separa el cambio de nombre, en horizontal no hay nada más que separe.
     */
-    <ul className="grid grid-cols-2 gap-x-6 gap-y-7" role="list">
+    <ul className="-mx-2 grid grid-cols-2 gap-x-4 gap-y-6" role="list">
       {webmasters.map((w) => (
         <Tesela key={w.id} w={w} maximo={maximo} dias={dias} onAbrir={onAbrir} />
       ))}
@@ -138,8 +138,13 @@ function Tesela({
       ? // «PRO caducado» es falso para quien nunca lo tuvo, y ese es justo el
         // caso más frecuente: un alta que se quedó a medias. `diasHastaCaducidad`
         // en null significa que no hay fecha porque no hubo concesión.
+        //
+        // Aquí va el literal CORTO: la tesela mide media pantalla y «Nunca llegó
+        // a tener PRO» se truncaba en «Nunca llegó a tener P…», que ocupa la
+        // línea entera para no decir el dato. La versión larga se queda en /pro,
+        // donde hay ancho de sobra.
         w.diasHastaCaducidad === null
-        ? t.nuncaTuvoPro
+        ? t.sinPro
         : t.proCaducado
       : apagado
         ? w.diasSinActividad === null
@@ -187,7 +192,7 @@ function Tesela({
          * el color del marco, baja al icono de la línea de abajo: se lee a la
          * misma distancia y no necesita dibujar una caja para decirlo.
          */
-        className="w-full rounded-panel py-1 text-start transition-transform duration-150 ease-sonda active:scale-[0.98]"
+        className="pulsable w-full rounded-panel px-2 py-1.5 text-start"
         style={{ minWidth: ANCHO_TESELA }}
       >
         <span className="block truncate text-apoyo font-medium" title={w.email}>
@@ -195,7 +200,7 @@ function Tesela({
         </span>
 
         <span
-          className="mt-2.5 flex items-end gap-[2px]"
+          className="barrido mt-2.5 flex items-end gap-[2px]"
           style={{ height: ALTO_BARRAS }}
           aria-hidden
         >

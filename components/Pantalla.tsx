@@ -200,19 +200,29 @@ export function Vacio({
 }
 
 /**
- * Píldora de estado: lo que la fila ES, nunca lo que se puede hacer con ella.
+ * Estado de una fila: icono y texto, SIN cápsula.
  *
- * Era una chapa amarilla —la misma clase que el botón— y ese fue el defecto que
- * el usuario rodeó con un círculo rojo: «Nunca llegó a tener PRO» pegado encima
- * de «DAR UN AÑO DE PRO», mismo color, mismo ancho, mismo radio. La etiqueta
- * parecía un botón porque tenía forma de botón.
+ * Ha pasado por tres formas y las dos primeras eran defectos.
  *
- * Ahora es una cápsula ceñida a su texto, con filete y tinta de apoyo. La
- * distinción se sostiene aunque alguien no perciba el color: 26 px de alto
- * pegados al texto frente a un bloque de 50 px a sangre.
+ *  1. Chapa amarilla —la misma clase que el botón—, que es lo que el usuario
+ *     rodeó con un círculo rojo: la etiqueta parecía un botón.
+ *  2. Píldora perfilada. Resolvía la confusión con el botón y traía otra: una
+ *     retícula de cápsulas de colores es LA firma del panel de control genérico.
+ *     «Gritan mucho IA», y con razón —el patrón está en cada plantilla de SaaS,
+ *     así que no dice nada del producto—.
  *
- * `tono` elige la tinta. No hay tono amarillo a propósito: el amarillo es de la
- * acción y este componente nunca es una acción.
+ * Ahora no hay contenedor: el estado es una línea de texto con su icono
+ * delante, del mismo tamaño que el resto de la fila. Que un dato secundario se
+ * lea como texto secundario es la opción aburrida, y es la correcta: la fila ya
+ * está delimitada por su propia lista, así que dibujarle una cápsula dentro era
+ * envolver dos palabras en una caja para no añadir información.
+ *
+ * **El color se reserva.** `tono="problema"` es lo ÚNICO que tiñe, y solo lo
+ * usan tres estados en toda la aplicación —bloqueado, se va a borrar,
+ * desaparecido—: los tres son cosas que van mal y que el agente no puede
+ * arreglar desde aquí. Un PRO caducado NO lleva color, porque justo debajo tiene
+ * un botón amarillo que ya dice que hay algo que hacer; teñirlo además sería
+ * gastar dos señales en un mismo mensaje.
  */
 export function Marca({
   children,
@@ -221,13 +231,16 @@ export function Marca({
 }: {
   children: React.ReactNode;
   icono?: NombreIcono;
-  tono?: "neutro" | "peligro";
+  /** `problema`: va mal y no se puede arreglar desde aquí. Es el único con color. */
+  tono?: "neutro" | "problema";
 }) {
   return (
     <span
-      className={`pildora text-rotulo ${tono === "peligro" ? "text-peligro" : "text-texto-apoyo"}`}
+      className={`inline-flex items-center gap-1.5 align-middle ${
+        tono === "problema" ? "text-peligro" : "text-texto-apoyo"
+      }`}
     >
-      {icono && <Icono nombre={icono} tam={15} />}
+      {icono && <Icono nombre={icono} tam={16} />}
       {children}
     </span>
   );

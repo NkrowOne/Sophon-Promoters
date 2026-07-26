@@ -182,7 +182,7 @@ export default function Inicio() {
         <nav aria-label={t.acciones} className="banda banda-0 pb-2 pt-7">
           <a
             href="/activar"
-            className="chapa text-cuerpo transition-transform duration-150 ease-sonda active:scale-[0.99]"
+            className="chapa pulsable text-cuerpo"
           >
             <Icono nombre="activar" />
             {t.activarWebmaster}
@@ -245,7 +245,7 @@ function Fila({
 }) {
   return (
     <li>
-      <a href={href} className="flex min-h-14 items-center gap-3.5 text-cuerpo">
+      <a href={href} className="pulsable -mx-2 flex min-h-14 items-center gap-3.5 rounded-control px-2 text-cuerpo">
         {/* El icono va del T1 —la tinta densa de los datos— y no del texto: así
             la columna de iconos se lee como una sola cosa y no compite con los
             nombres de las secciones. */}

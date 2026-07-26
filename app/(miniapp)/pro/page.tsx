@@ -307,7 +307,7 @@ function Fila({
           type="button"
           onClick={onRenovar}
           disabled={deshabilitado || w.bloqueado}
-          className="chapa mt-4 w-full text-cuerpo transition-transform duration-150 ease-sonda active:scale-[0.99]"
+          className="chapa pulsable mt-4 w-full text-cuerpo"
         >
           {cargando ? (
             "…"
@@ -322,7 +322,7 @@ function Fila({
 
       {w.bloqueado && (
         <p className="mt-2.5">
-          <Marca icono="bloqueado" tono="peligro">
+          <Marca icono="bloqueado" tono="problema">
             {t.bloqueadoEnSophon}
           </Marca>
         </p>

@@ -131,7 +131,12 @@ export function Mecha({
         </span>
       </div>
 
-      <div className="flex h-6 items-stretch" aria-hidden>
+      {/* `barrido`: las muescas se descubren de izquierda a derecha en 520 ms.
+          Es la firma de movimiento de la aplicación y no es decorativa —una
+          mecha que se dibuja ES una medida tomándose—, y cuesta una sola
+          propiedad compuesta sobre un solo elemento en vez de un retardo por
+          cada una de las hasta setenta muescas. */}
+      <div className="barrido flex h-6 items-stretch" aria-hidden>
         {Array.from({ length: marcasGastadas }, (_, i) => (
           // `bg-borde` y no `bg-superficie-alta`: la parte gastada define la
           // longitud total, que es la referencia contra la que se lee lo que
@@ -158,15 +163,13 @@ export function Mecha({
       </div>
 
       {/*
-        Solo el PRO APAGADO lleva chapa, porque es el único que se puede tocar.
-        Un plazo corto se dice y ya: «12 días de PRO.» El amarillo se guarda para
-        la fila que tiene botón.
+        Un PRO apagado se dice con su icono y nada más: sin cápsula y sin color.
+        El acento vive en el botón amarillo que hay justo debajo, y repetirlo aquí
+        sería gastar dos señales para un solo mensaje.
       */}
       <p className="mt-2.5 text-apoyo tabular-nums">
         {caducado ? (
-          <Marca icono="caducado" tono="peligro">
-            {etiquetas.proYaCaducado}
-          </Marca>
+          <Marca icono="caducado">{etiquetas.proYaCaducado}</Marca>
         ) : rotuloEnSemanas ? (
           `${etiquetas.semanasDePro(Math.floor(restan / 7))}.`
         ) : (

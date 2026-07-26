@@ -308,7 +308,7 @@ export function BotonPrincipalAccion({
         type="button"
         onClick={onClick}
         disabled={!activo || cargando}
-        className="chapa min-h-[52px] w-full text-cuerpo font-semibold transition-transform duration-150 ease-sonda active:scale-[0.99]"
+        className="chapa pulsable w-full text-cuerpo"
       >
         {cargando ? "…" : texto}
       </button>

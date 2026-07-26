@@ -170,7 +170,7 @@ function Banda({
 
   return (
     <span className="relative flex min-w-0 flex-1 items-center" style={{ height: alto }}>
-      <span className="flex h-full" style={{ width: `${largo}%` }} aria-hidden>
+      <span className="barrido flex h-full" style={{ width: `${largo}%` }} aria-hidden>
         {tiers === 0 ? (
           <span className="h-full w-full bg-t2" />
         ) : (
@@ -242,7 +242,7 @@ function FilaTocable({
         type="button"
         onClick={onAlternar}
         aria-expanded={abierto}
-        className="flex min-h-11 w-full items-center gap-2.5 py-1.5 text-start"
+        className="pulsable -mx-2 flex min-h-11 w-full items-center gap-2.5 rounded-control px-2 py-1.5 text-start"
       >
         <span className="cifra w-11 shrink-0 text-[11px] text-texto-apoyo">
           {dia.fecha.slice(8)} {meses[Number(dia.fecha.slice(5, 7)) - 1]}
@@ -269,13 +269,10 @@ function FilaTocable({
         <div className="mb-1.5 ms-[54px] border-s-2 border-borde ps-2.5 text-apoyo tabular-nums text-texto-apoyo">
           {etiquetas.desglose(dia.registros, dia.registrosT1, dia.registrosT2, dia.registrosT3)}
           {dia.usuariosPago > 0 && <> · {etiquetas.dePago(dia.usuariosPago)}</>}
-          {dia.provisional && (
-            <span className="mt-1 block">
-              <span className="chapa inline-block px-1.5 py-0.5 font-semibold">
-                {etiquetas.diaAbierto}
-              </span>
-            </span>
-          )}
+          {/* «El día aún se está contando» no es una acción: no lleva chapa
+              amarilla ni cápsula. Es una nota al pie del desglose que ya se ha
+              abierto, así que se dice y ya. */}
+          {dia.provisional && <span className="mt-1 block">{etiquetas.diaAbierto}</span>}
         </div>
       )}
     </>

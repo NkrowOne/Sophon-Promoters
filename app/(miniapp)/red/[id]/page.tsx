@@ -168,7 +168,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           </h1>
           <p className="mt-1.5 text-apoyo text-texto-apoyo">
             {problema ? (
-              <Marca icono="bloqueado" tono="peligro">
+              <Marca icono="bloqueado" tono="problema">
                 {estadoLegible(datos.estado, t)}
               </Marca>
             ) : (
@@ -207,7 +207,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
               type="button"
               onClick={renovar}
               disabled={renovando}
-              className="chapa mt-4 w-full text-cuerpo transition-transform duration-150 ease-sonda active:scale-[0.99]"
+              className="chapa pulsable mt-4 w-full text-cuerpo"
             >
               {renovando ? (
                 "…"
