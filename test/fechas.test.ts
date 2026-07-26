@@ -5,7 +5,9 @@ import {
   diaDelMes,
   diasDelMes,
   diasQueQuedanDelMes,
+  ZONA_POR_DEFECTO,
   inicioDeMes,
+  inicioDelDiaContable,
   inicioDelMesSiguiente,
   mesAnterior,
   mesDe,
@@ -92,4 +94,51 @@ test("la mitad del camino se cruza una vez, no todos los días", () => {
 
   // Y el primer tramo arranca en cero, no en el escalón anterior inexistente.
   assert.equal(mitad(0, 10_000), 5_000);
+});
+
+/**
+ * El día contable es el de Sophon, y por eso es UTC+8.
+ *
+ * Sophon cierra su día a las 00:00 UTC+8 y publica entonces los contadores del
+ * anterior. Cortar el día en otro sitio hacía que «hoy» significara cosas
+ * distintas a cada lado del cable durante ocho horas.
+ */
+test("el día contable por defecto es el de Sophon", () => {
+  assert.equal(ZONA_POR_DEFECTO, "Asia/Shanghai", "es UTC+8, que es donde cierra Sophon");
+});
+
+test("el día contable empieza a las 16:00 UTC del día anterior", () => {
+  // 00:00 en UTC+8 son las 16:00 UTC del día de antes. Es exactamente el
+  // instante del cierre de Sophon, y por eso el barrido se programa a las 16:05.
+  assert.equal(
+    inicioDelDiaContable("2026-07-26").toISOString(),
+    "2026-07-25T16:00:00.000Z",
+  );
+  // Cruzando el año, que es donde fallan las implementaciones a mano.
+  assert.equal(
+    inicioDelDiaContable("2026-01-01").toISOString(),
+    "2025-12-31T16:00:00.000Z",
+  );
+});
+
+/**
+ * El defecto que este cambio agrava, fijado para que no vuelva.
+ *
+ * El cerrojo diario de los avisos comparaba una fecha calculada en la zona
+ * contable contra `` `${fecha}T00:00:00Z` ``, o sea la medianoche UTC: dos
+ * relojes distintos tratados como el mismo. Con Madrid el hueco eran una o dos
+ * horas y ya duplicaba mensajes; con UTC+8 son OCHO, y en ellas la comparación
+ * mira un instante futuro y el cerrojo no cierra nunca.
+ */
+test("la medianoche UTC NO sirve como frontera del día contable", () => {
+  const contable = inicioDelDiaContable("2026-07-26").getTime();
+  const utc = Date.parse("2026-07-26T00:00:00Z");
+
+  assert.notEqual(contable, utc, "confundirlas es el defecto que se arregla");
+  assert.equal((utc - contable) / 3_600_000, 8, "ocho horas de desfase");
+
+  // Y el sentido importa: la medianoche UTC va POR DELANTE, así que a las 02:00
+  // UTC+8 de hoy `iniciadaEn >= medianocheUTC` no encuentra la ejecución que
+  // acaba de terminar. Por eso el cerrojo dejaba pasar mensajes repetidos.
+  assert.ok(utc > contable);
 });

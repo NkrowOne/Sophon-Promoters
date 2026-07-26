@@ -267,18 +267,34 @@ model Webmaster {
   emailOriginal    String
   uidSophon        String? @unique
 
+  /// Nulo = del superadmin. Un agente solo puede tener aquí cuentas que haya
+  /// dado de alta él: la adopción de filas preexistentes está cerrada, porque
+  /// una fila sin agente solo puede haberla creado un barrido, y los barridos
+  /// recorren el árbol del superadmin.
   agenteId    String?
   agente      Agente?          @relation(fields: [agenteId], references: [id], onDelete: SetNull)
   origen      OrigenAtribucion @default(HUERFANO)
   atribuidoEn DateTime?
 
   /// Frontera del devengo prospectivo: no se paga nada anterior a esta fecha.
-  /// Sin esto, asignar un webmaster con historia haría cobrar al agente lo ajeno.
+  /// Se estampa en toda alta aunque una cuenta nueva no tenga historia que
+  /// excluir: es lo que garantiza que el agente no cobre nada anterior a su
+  /// alta sin depender de que Sophon nos haya dicho la verdad sobre la cuenta.
   devengaDesde DateTime?
 
   estadoSophon        EstadoSophon @default(DESCONOCIDO)
   vistoPorUltimaVezEn DateTime?
   desaparecidoEn      DateTime?
+
+  /// Cuándo se comprobó contra Sophon que este webmaster aparece de verdad en
+  /// el programa de socios.
+  ///
+  /// Hace falta porque `bind_sub_aff` devuelve un `void`: la única prueba de que
+  /// vinculó era que no lanzara excepción. Nulo significa **pendiente de
+  /// confirmar**, que no es lo mismo que «comprobado y no está»: Sophon puede
+  /// tardar en propagar la vinculación, así que el alta no falla por eso y el
+  /// barrido siguiente la sella.
+  confirmadoEn DateTime?
 
   /// Materializado desde la respuesta de setmembership: no hay endpoint que lo
   /// consulte. Es la ÚNICA fuente de la caducidad del PRO.

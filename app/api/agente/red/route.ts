@@ -36,6 +36,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       emailNormalizado: true,
       emailOriginal: true,
       estadoSophon: true,
+      confirmadoEn: true,
       desaparecidoEn: true,
       proVigenteHasta: true,
       atribuidoEn: true,
@@ -81,7 +82,14 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     return {
       email: w.emailOriginal,
       id: w.emailNormalizado,
-      estado: w.desaparecidoEn ? "DESAPARECIDO" : w.estadoSophon,
+      // Sin `confirmadoEn` la vinculación se hizo pero Sophon todavía no la ha
+      // publicado en el programa de socios. No es un fallo: es un trámite en
+      // curso, y el barrido siguiente lo resuelve.
+      estado: w.desaparecidoEn
+        ? "DESAPARECIDO"
+        : w.confirmadoEn === null
+          ? "PENDIENTE_CONFIRMACION"
+          : w.estadoSophon,
       activadoEn: w.atribuidoEn ? isoFecha(w.atribuidoEn) : null,
       proVigenteHasta: w.proVigenteHasta ? isoFecha(w.proVigenteHasta) : null,
       // La Mecha: días hasta que caduque el PRO. Es el único dato temporal que

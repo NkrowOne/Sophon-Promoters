@@ -2,10 +2,14 @@
 #
 # Dos servicios y nada más: la aplicación y su Postgres. El bot NO es un
 # servicio aparte —vive dentro de la aplicación, en `/api/bot`, porque funciona
-# por webhook y no por polling—, y el planificador tampoco: las tres tareas de
+# por webhook y no por polling—, y el planificador tampoco: las tareas de
 # sincronización se disparan contra `/api/cron` desde el cron de Skyway, que ya
 # existe. Un contenedor por cosa que no necesita contenedor propio es coste de
 # operación sin nada a cambio.
+#
+# La cadencia está en `.env.example`. La línea que no puede faltar es la de las
+# **16:05 UTC**: Sophon cierra su día a las 00:00 UTC+8 y es entonces cuando hay
+# cifras nuevas que leer.
 #
 # Puesta en marcha:
 #

@@ -12,10 +12,73 @@
  * respuestas a «¿de qué día es este devengo?».
  */
 
-export const ZONA_POR_DEFECTO = "Europe/Madrid";
+/**
+ * El día contable es el de SOPHON, y por eso es UTC+8.
+ *
+ * Sophon cierra su día a las 00:00 UTC+8 y publica entonces los contadores del
+ * día anterior. La etiqueta de fecha de cada fila —`fila.date`, que es el hecho
+ * contable de este sistema— viene de ellos y se guarda tal cual, así que la
+ * única forma de que «hoy» signifique lo mismo a los dos lados del cable es
+ * cortar el día donde lo cortan ellos.
+ *
+ * Estaba en `Europe/Madrid`, y eso metía un desfase de siete u ocho horas: entre
+ * las 16:00 UTC y la medianoche de Madrid, Sophon ya iba por el día siguiente y
+ * la aplicación seguía llamando «hoy» al anterior. Consecuencias medibles: la
+ * ventana de revisión pedía `endAt` de un día que ya no era el último, el mes
+ * del bono se reiniciaba con horas de retraso respecto al contador real, y una
+ * sincronización disparada justo después del cierre de Sophon no llegaba a
+ * leer lo que Sophon acababa de publicar.
+ *
+ * **`Asia/Shanghai` y no un `+08:00` a mano** porque es UTC+8 todo el año, sin
+ * horario de verano: el desdoble estacional que obligaba a advertir sobre las
+ * madrugadas del día 1 en Madrid deja de existir.
+ */
+export const ZONA_POR_DEFECTO = "Asia/Shanghai";
 
 function zona(): string {
   return process.env["ZONA_HORARIA"] ?? ZONA_POR_DEFECTO;
+}
+
+/**
+ * El instante UTC en que empieza un día contable.
+ *
+ * Existe porque comparar una fecha contable contra `` `${fecha}T00:00:00Z` ``
+ * solo es correcto cuando la zona contable ES UTC, y la nuestra no lo es. Con
+ * Madrid ese atajo desplazaba una o dos horas; con UTC+8 desplaza ocho, y ahí
+ * deja de ser un matiz: un cerrojo diario que compare así **no cierra durante
+ * las ocho primeras horas de cada día**.
+ *
+ * Sirve para columnas de INSTANTE (`creadoEn`, `iniciadaEn`). Para las columnas
+ * `@db.Date` —`fecha`, `fechaDevengo`— sigue valiendo `inicioDeMes` y la
+ * medianoche UTC, porque ahí la fecha es una etiqueta, no un momento.
+ */
+export function inicioDelDiaContable(fecha: string): Date {
+  // Se busca el desfase real de la zona ese día concreto: pedirle a `Intl` que
+  // formatee un instante conocido y ver en qué hora local cae. Así funciona
+  // igual con zonas de horario de verano si algún día se cambia.
+  const medianocheUtc = Date.parse(`${fecha}T00:00:00Z`);
+  const enZona = new Intl.DateTimeFormat("en-CA", {
+    timeZone: zona(),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(medianocheUtc));
+
+  const parte = (tipo: string) => Number(enZona.find((p) => p.type === tipo)?.value ?? 0);
+  const comoUtc = Date.UTC(
+    parte("year"),
+    parte("month") - 1,
+    parte("day"),
+    parte("hour") % 24,
+    parte("minute"),
+    parte("second"),
+  );
+
+  return new Date(medianocheUtc - (comoUtc - medianocheUtc));
 }
 
 /**

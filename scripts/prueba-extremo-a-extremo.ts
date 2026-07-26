@@ -455,6 +455,70 @@ async function principal(): Promise<void> {
     );
   }
 
+  // ── 12. Solo cuentas nuevas ───────────────────────────────────────────────
+  //
+  // Un agente cobra por lo que capta él, así que solo puede dar de alta cuentas
+  // que se registren por él. Todo lo que ya estaba en el programa de socios es
+  // del superadmin, y la aplicación lo conoce porque sus barridos recorren el
+  // árbol entero: cualquier fila `Webmaster` sin agente salió de ahí.
+  //
+  // Se comprueba la DECISIÓN, no la llamada: que un correo ya conocido se
+  // rechace antes de tocar Sophon es justo lo que evita que un agente se quede
+  // una cuenta ajena, y es el punto donde vivía la adopción de huérfanos.
+  {
+    const agente = await db.agente.findUnique({ where: { emailNormalizado: EMAIL } });
+    if (agente) {
+      const ajeno = `huerfano-${Date.now()}@prueba.local`;
+      await db.webmaster.create({
+        data: {
+          emailNormalizado: ajeno,
+          emailOriginal: ajeno,
+          origen: "HUERFANO",
+          estadoSophon: "ACTIVO",
+          confirmadoEn: new Date(),
+        },
+      });
+
+      const r = await fetch(`${BASE}/api/webmaster/activar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...cabeceras },
+        body: JSON.stringify({ email: ajeno, idempotencia: `e2e-${Date.now()}` }),
+      });
+      const cuerpo = (await r.json().catch(() => ({}))) as { error?: string };
+      comprobar(
+        "una cuenta que ya estaba en Sophon no se puede dar de alta",
+        r.status === 409,
+        `${r.status} ${cuerpo.error ?? ""}`.trim(),
+      );
+
+      // Y sigue siendo del superadmin: el rechazo no puede dejarla a medias.
+      const despues = await db.webmaster.findUnique({
+        where: { emailNormalizado: ajeno },
+        select: { agenteId: true, origen: true },
+      });
+      comprobar(
+        "y sigue sin agente después del intento",
+        despues?.agenteId === null && despues?.origen === "HUERFANO",
+      );
+    }
+  }
+
+  // ── 13. El día contable es el de Sophon ───────────────────────────────────
+  //
+  // Sophon cierra su día a las 00:00 UTC+8 y publica entonces los contadores
+  // del anterior. Si la aplicación cortara el día en otro sitio, la ventana de
+  // revisión pediría un `endAt` que ya no es el último día y una sincronización
+  // disparada justo tras el cierre no leería lo que acaba de publicarse.
+  {
+    const { ZONA_POR_DEFECTO, inicioDelDiaContable } = await import("../lib/fechas.ts");
+    comprobar("la zona contable es la de Sophon", ZONA_POR_DEFECTO === "Asia/Shanghai");
+    comprobar(
+      "el día contable empieza a las 16:00 UTC del día anterior",
+      inicioDelDiaContable("2026-07-26").toISOString() === "2026-07-25T16:00:00.000Z",
+      "es el instante del cierre, y por eso el barrido va a las 16:05 UTC",
+    );
+  }
+
   console.log(
     `\n${fallos === 0 ? "Todo en verde." : `${fallos === 1 ? "1 comprobación falló" : `${fallos} comprobaciones fallaron`}.`}`,
   );

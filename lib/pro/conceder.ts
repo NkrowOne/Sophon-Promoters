@@ -27,6 +27,7 @@ import { clienteSophon } from "../sophon/instancia.ts";
 import { ErrorSophon } from "../sophon/cliente.ts";
 import { PLAN_UNICO, SEGUNDOS_UN_ANIO, type ResultadoMembresia } from "../sophon/tipos.ts";
 import { proActivo } from "./vigencia.ts";
+import { ZONA_POR_DEFECTO } from "../fechas.ts";
 
 export type MotivoConcesion = "ALTA" | "RENOVACION";
 
@@ -38,9 +39,16 @@ export interface ResultadoConcesion {
    * El PRO ya estaba vigente, así que NO se ha llamado a Sophon.
    *
    * Los dos caminos leen esto al revés y por eso se devuelve en vez de
-   * decidirse aquí: para una renovación es el motivo del rechazo, y para un
-   * alta es éxito —un huérfano adoptado que ya venía con PRO tiene justo lo que
-   * el alta le iba a dar—.
+   * decidirse aquí:
+   *
+   *  - En una **renovación** es el motivo del rechazo, y es el caso normal: la
+   *    regla de la casa es que un PRO vigente no se renueva.
+   *  - En un **alta** es éxito, y hoy es una red de seguridad más que un caso
+   *    de negocio. Lo justificaba adoptar un huérfano que ya venía con PRO, y
+   *    eso ya no puede pasar: un alta solo acepta cuentas nuevas. Si aun así
+   *    Sophon dijera que la membresía está viva, lo correcto sigue siendo no
+   *    tocarla y dar el alta por buena —el webmaster tiene justo lo que el alta
+   *    le iba a dar—.
    */
   yaActivo?: boolean;
   /** Motivo legible cuando no ha salido bien. Nunca un código ni un stack. */
@@ -301,7 +309,7 @@ function fechaDeSophon(v: { seconds?: number } | string | undefined): Date | nul
 
 /** Primer instante del mes en curso, en la zona horaria contable declarada. */
 export function inicioDelMes(): Date {
-  const zona = process.env["ZONA_HORARIA"] ?? "Europe/Madrid";
+  const zona = process.env["ZONA_HORARIA"] ?? ZONA_POR_DEFECTO;
   const mes = new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(new Date()).slice(0, 7);
   return new Date(`${mes}-01T00:00:00Z`);
 }

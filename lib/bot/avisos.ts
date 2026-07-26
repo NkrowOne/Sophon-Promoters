@@ -276,6 +276,46 @@ export async function avisarCaminoDelBonoAlAgente(datos: {
   await enviarA(String(datos.telegramId), lineas.join("\n"));
 }
 
+/**
+ * Sophon ha rechazado un alta con un motivo que no sabemos leer.
+ *
+ * Es el detector de que la clasificación de `lib/sophon/errores.ts` se ha
+ * quedado corta. Sophon distingue sus dos rechazos importantes —«ya es afiliado»
+ * y «no existe»— **solo por el texto del mensaje**: no hay códigos, y nadie nos
+ * ha prometido mantener esas frases. El día que cambie una, todos los rechazos
+ * pasarían a caer en el saco genérico y el agente recibiría «Sophon no
+ * responde» para algo que Sophon ha contestado clarísimo.
+ *
+ * Sin este aviso, la degradación sería invisible: queda constancia en
+ * `IntentoVinculacion` —código, mensaje y `traceId` de cada intento— pero esa
+ * tabla no la mira nadie. Aquí llega el mensaje literal, que es lo que hace
+ * falta para añadirlo a la tabla.
+ *
+ * Se dispara poquísimo por construcción: solo con motivos NUEVOS. Los cinco
+ * reconocidos no pasan por aquí.
+ */
+export async function avisarErrorSinClasificarAlSuperadmin(datos: {
+  email: string;
+  codigo: number | null;
+  mensaje: string;
+  traceId: string | null;
+}): Promise<void> {
+  await enviar(
+    [
+      "<b>Sophon ha rechazado un alta y no sabemos por qué</b>",
+      "",
+      `Correo: ${escapar(datos.email)}`,
+      `Código: <code>${escapar(String(datos.codigo ?? "sin código"))}</code>`,
+      // En bloque de código y sin recortar: es el texto que hay que copiar a la
+      // tabla de `lib/sophon/errores.ts` para que la próxima vez se reconozca.
+      `Mensaje: <code>${escapar(datos.mensaje)}</code>`,
+      ...(datos.traceId ? [`Traza: <code>${escapar(datos.traceId)}</code>`] : []),
+      "",
+      "<i>No se ha activado nada. Si el mensaje se repite, añádelo a la tabla de errores.</i>",
+    ].join("\n"),
+  );
+}
+
 /** Aviso de descuadre en la conciliación: no debe pasar desapercibido. */
 export async function avisarDescuadre(datos: {
   concepto: string;

@@ -484,6 +484,10 @@ function estadoLegible(estado: string, t: Cadenas): string {
       return t.pendienteDeBorrado;
     case "DESAPARECIDO":
       return t.yaNoApareceEnSophon;
+    // Vinculado, pero Sophon todavía no lo ha publicado en el programa de
+    // socios. Se dice como lo que es —un trámite en curso— y no como un fallo.
+    case "PENDIENTE_CONFIRMACION":
+      return t.pendienteDeConfirmar;
     default:
       return t.estadoSinComprobar;
   }

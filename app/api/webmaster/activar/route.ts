@@ -6,8 +6,10 @@ import { claveIdempotencia, normalizarEmail } from "@/lib/cripto";
 import { esRespuesta, exigirAgente } from "@/lib/api/agente";
 import { concederAnio } from "@/lib/pro/conceder";
 import { clienteSophon } from "@/lib/sophon/instancia";
-import { ErrorSophon } from "@/lib/sophon/cliente";
+import { clasificarAlta, hayQueAvisarAlSuperadmin } from "@/lib/sophon/errores";
+import { avisarErrorSinClasificarAlSuperadmin } from "@/lib/bot/avisos";
 import { hoyContable } from "@/lib/sync/registros";
+import { confirmarEnSophon } from "@/lib/sync/webmasters";
 
 /**
  * Activar un webmaster: la acción que crea la atribución **y concede el PRO**.
@@ -22,21 +24,36 @@ import { hoyContable } from "@/lib/sync/registros";
  * resolvería en la base de datos con uno de los agentes ya convencido de que el
  * webmaster es suyo.
  *
- * Tres reglas sobre el fallo, que aquí no es simétrico:
+ * Dos reglas sobre el fallo, que aquí no es simétrico:
  *
  *  - Si Sophon rechaza la **vinculación**, la reserva se deshace: no ha pasado nada.
  *  - Si la vinculación va bien y falla el **PRO**, el alta NO se deshace. Sophon
  *    ya vinculó al webmaster y volver a intentarlo daría «already an affiliate»,
  *    así que revertir dejaría al webmaster vinculado allí y huérfano aquí, que
  *    es peor que el trabajo a medias. Se avisa y se reintenta desde su ficha.
- *  - Solo un webmaster **nuevo** recibe el año automático. Adoptar un huérfano
- *    con historia no es registrar una cuenta nueva; su PRO se concede a mano.
  *
- * No hay tope: el agente puede activar cuantos quiera. Las dos condiciones que
- * existen las impone la realidad y no un contador —el webmaster tiene que estar
- * ya registrado en Sophon, y no puede pertenecer a otro agente— y las dos se
- * comprueban aquí: la segunda con el índice único, la primera con la respuesta
- * de Sophon.
+ * ── SOLO CUENTAS NUEVAS, Y LO DECIDE SOPHON ──
+ *
+ * Un agente cobra por lo que capta él, así que solo puede dar de alta cuentas
+ * que se registren por él. Las que ya estaban en el programa de socios son del
+ * superadmin.
+ *
+ * Y esa frontera no la calcula esta aplicación: **el alta ES el registro en el
+ * programa**, de modo que la autoridad es la respuesta de `bind_sub_aff`. Si
+ * dice que sí, la cuenta entra nueva, recibe su año de PRO y aparece ya en la
+ * lista de ganancias. Si dice que no, el motivo decide qué se le cuenta al
+ * agente, y por eso la clasificación del error vive en su propio módulo
+ * (`lib/sophon/errores.ts`) en vez de en dos expresiones regulares aquí dentro:
+ * distinguir «esa cuenta ya estaba» de «esa cuenta no existe» es la diferencia
+ * entre un rechazo definitivo y un «que se registre y vuelve».
+ *
+ * La comprobación local del paso 1 —si ya conocemos el correo, se rechaza sin
+ * llamar— es un ATAJO, no la regla: cualquier correo que la aplicación conozca
+ * llegó por uno de los dos barridos, que recorren el árbol entero del
+ * superadmin, así que Sophon iba a responder «already an affiliate» igualmente.
+ * Ahorra la llamada y le da al agente una respuesta instantánea.
+ *
+ * No hay tope de altas: el agente puede activar cuantas cuentas nuevas traiga.
  */
 
 export const dynamic = "force-dynamic";
@@ -66,33 +83,37 @@ export async function POST(peticion: Request): Promise<NextResponse> {
 
   // ── Paso 1: reservar en local ──────────────────────────────────────────
   let webmasterId: string;
-  let reservaNueva = false;
   try {
-    const resultado = await db.$transaction(async (tx) => {
+    webmasterId = await db.$transaction(async (tx) => {
       const existente = await tx.webmaster.findUnique({
         where: { emailNormalizado },
         select: { id: true, agenteId: true },
       });
 
-      if (existente?.agenteId && existente.agenteId !== agenteId) {
-        throw new Error("DE_OTRO_AGENTE");
+      if (existente?.agenteId && existente.agenteId === agenteId) {
+        throw new Error("YA_ES_TUYO");
       }
-      if (existente?.agenteId === agenteId) throw new Error("YA_ES_TUYO");
+      if (existente?.agenteId) throw new Error("DE_OTRO_AGENTE");
 
-      if (existente) {
-        // Huérfano que ya tenía historia: la atribución es PROSPECTIVA, o el
-        // agente cobraría el tráfico que ese webmaster trajo antes de llegar.
-        await tx.webmaster.update({
-          where: { id: existente.id },
-          data: {
-            agenteId,
-            origen: "VINCULADO_APP",
-            atribuidoEn: new Date(),
-            devengaDesde: new Date(hoy),
-          },
-        });
-        return { id: existente.id, nueva: false };
-      }
+      /*
+       * Aquí estaba la ADOPCIÓN DE HUÉRFANOS, y era la puerta que había que
+       * cerrar: si la fila existía sin agente, se le ponía el agente encima con
+       * `devengaDesde = hoy` y el webmaster pasaba a ser suyo de ahí en
+       * adelante.
+       *
+       * Una fila sin agente solo puede haber llegado de dos sitios, y los dos
+       * son el árbol del superadmin: `barrerWebmasters` pagina `sub-aff/status`
+       * entero y crea una por cada sub-afiliado que existe en Sophon, y
+       * `barrerRegistros` crea una por cada correo que aparezca produciendo. O
+       * sea que **si la aplicación ya conoce el correo, esa cuenta ya estaba en
+       * el programa de socios**, y no la ha captado este agente.
+       *
+       * El rechazo se da aquí y no en Sophon por rapidez, no por autoridad:
+       * `bind_sub_aff` respondería «already an affiliate» de todas formas.
+       * Ahorrarse la llamada le da al agente una respuesta instantánea en el
+       * caso más frecuente —teclear el correo de alguien que ya está dentro—.
+       */
+      if (existente) throw new Error("YA_EN_SOPHON");
 
       const creado = await tx.webmaster.create({
         data: {
@@ -101,14 +122,15 @@ export async function POST(peticion: Request): Promise<NextResponse> {
           agenteId,
           origen: "VINCULADO_APP",
           atribuidoEn: new Date(),
+          // Se estampa siempre aunque a una cuenta nueva no le haga falta: es la
+          // garantía de que el agente no cobre nada anterior a su alta, y no
+          // depende de que Sophon nos haya dicho la verdad sobre su antigüedad.
           devengaDesde: new Date(hoy),
         },
         select: { id: true },
       });
-      return { id: creado.id, nueva: true };
+      return creado.id;
     });
-    webmasterId = resultado.id;
-    reservaNueva = resultado.nueva;
   } catch (e) {
     const motivo = e instanceof Error ? e.message : "";
     if (motivo === "DE_OTRO_AGENTE") {
@@ -123,6 +145,15 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     if (motivo === "YA_ES_TUYO") {
       return NextResponse.json(
         { error: "Ya tienes a ese webmaster en tu red.", apoyo: "Ábrelo desde «Tu red»." },
+        { status: 409 },
+      );
+    }
+    if (motivo === "YA_EN_SOPHON") {
+      return NextResponse.json(
+        {
+          error: "Esa cuenta ya estaba en Sophon.",
+          apoyo: "Solo puedes dar de alta cuentas nuevas que registres tú. Las que ya existían son del superadmin.",
+        },
         { status: 409 },
       );
     }
@@ -144,94 +175,132 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   try {
     await clienteSophon().vincularSubAfiliado(parseado.data.email);
   } catch (e) {
-    // Deshacer la reserva: si Sophon no lo vinculó, el webmaster no es de nadie.
-    // Los creados aquí se borran; a los preexistentes solo se les quita el agente.
-    if (reservaNueva) {
-      await db.webmaster.delete({ where: { id: webmasterId } }).catch(() => {});
-    } else {
-      await db.webmaster.update({
-        where: { id: webmasterId },
-        data: { agenteId: null, origen: "HUERFANO", atribuidoEn: null, devengaDesde: null },
-      });
-    }
+    // Deshacer la reserva. Ahora siempre es un borrado: la fila la acaba de
+    // crear el paso 1, porque un correo que ya existiera no habría llegado
+    // hasta aquí. Antes había una segunda rama que le quitaba el agente a un
+    // huérfano adoptado, y esa ya no puede darse.
+    await db.webmaster.delete({ where: { id: webmasterId } }).catch(() => {});
 
-    const err = e instanceof ErrorSophon ? e : null;
+    const rechazo = clasificarAlta(e);
     await db.intentoVinculacion.update({
       where: { id: intento.id },
       data: {
         exito: false,
-        codigoRespuesta: err?.codigo ?? null,
-        mensaje: err?.message ?? String(e),
-        traceId: err?.traceId ?? null,
+        codigoRespuesta: rechazo.codigo,
+        mensaje: rechazo.mensaje,
+        traceId: rechazo.traceId,
         resueltoEn: new Date(),
       },
     });
 
-    if (err?.esFaltaWhitelist) {
-      return NextResponse.json(
-        {
-          error: "La cuenta no está autorizada en Sophon.",
-          apoyo: "La autorización se tramita a mano con soporte. No hemos activado nada.",
-        },
-        { status: 503 },
-      );
-    }
-    if (/already an affiliate/i.test(err?.message ?? "")) {
-      return NextResponse.json(
-        {
-          error: "Ese correo ya está vinculado a otro afiliado en Sophon.",
-          apoyo: "Necesitas otro correo. Las reclamaciones se hacen a mano.",
-        },
-        { status: 409 },
-      );
-    }
-    if (/user not found/i.test(err?.message ?? "")) {
-      return NextResponse.json(
-        {
-          error: "Ese correo no existe en Sophon.",
-          apoyo: "Tiene que registrarse en Sophon antes de que puedas activarlo.",
-        },
-        { status: 404 },
-      );
+    /*
+     * Un rechazo que no sabemos leer se cuenta, no se traga.
+     *
+     * Es la única forma de enterarse de que Sophon ha cambiado el texto de un
+     * error: hasta ahora quedaba constancia en `IntentoVinculacion` y nadie
+     * mira esa tabla, así que la clasificación se habría degradado en silencio
+     * y todos los rechazos habrían pasado a leerse como «Sophon no responde».
+     */
+    if (hayQueAvisarAlSuperadmin(rechazo.motivo)) {
+      await avisarErrorSinClasificarAlSuperadmin({
+        email: parseado.data.email,
+        codigo: rechazo.codigo,
+        mensaje: rechazo.mensaje,
+        traceId: rechazo.traceId,
+      });
     }
 
-    return NextResponse.json(
-      {
+    const respuestas: Record<
+      typeof rechazo.motivo,
+      { estado: number; error: string; apoyo: string }
+    > = {
+      SIN_WHITELIST: {
+        estado: 503,
+        error: "La cuenta no está autorizada en Sophon.",
+        apoyo: "La autorización se tramita a mano con soporte. No hemos activado nada.",
+      },
+      // Sophon confirma lo que la comprobación local no siempre puede ver: esa
+      // cuenta ya estaba en el programa de socios, así que es antigua.
+      YA_AFILIADO: {
+        estado: 409,
+        error: "Esa cuenta ya estaba en Sophon.",
+        apoyo: "Solo puedes dar de alta cuentas nuevas que registres tú. Las que ya existían son del superadmin.",
+      },
+      NO_REGISTRADO: {
+        estado: 404,
+        error: "Ese correo no existe en Sophon.",
+        apoyo: "Tiene que registrarse en Sophon antes de que puedas activarlo.",
+      },
+      PETICION_MAL_FORMADA: {
+        estado: 500,
+        error: "No hemos podido registrar la activación.",
+        apoyo: "No hemos activado nada. Ya estamos avisados.",
+      },
+      SIN_RESPUESTA: {
+        estado: 502,
         error: "Sophon no responde.",
         apoyo: "No hemos activado nada. Vuelve a intentarlo en un minuto.",
       },
-      { status: 502 },
-    );
+      // Sophon SÍ ha contestado, y ha dicho que no. Por eso no se invita a
+      // reintentar: repetir contra un rechazo firme no lo convierte en un sí.
+      DESCONOCIDO: {
+        estado: 502,
+        error: "Sophon ha rechazado la activación.",
+        apoyo: "No hemos activado nada. El superadmin ya está avisado.",
+      },
+    };
+
+    const { estado, ...cuerpo } = respuestas[rechazo.motivo];
+    return NextResponse.json(cuerpo, { status: estado });
   }
 
   await db.intentoVinculacion.update({
     where: { id: intento.id },
     data: { exito: true, codigoRespuesta: 0, resueltoEn: new Date() },
   });
+
+  /*
+   * ── Paso 2 bis: preguntarle a Sophon si ya aparece ──
+   *
+   * `bind_sub_aff` devuelve un `void`, así que hasta aquí la única prueba de que
+   * la vinculación prosperó es que no lanzara excepción. Se le pregunta a Sophon
+   * si el correo está de verdad en el programa de socios, y con eso el webmaster
+   * entra en la red del agente con su estado bueno en vez de quedarse en
+   * «desconocido» hasta que pase el barrido.
+   *
+   * **Si no aparece, el alta NO falla.** Sophon puede tardar en propagarlo, y
+   * convertir un retraso en un error mandaría al agente a reintentar contra una
+   * vinculación que ya está hecha —y que respondería «already an affiliate»—.
+   * Queda pendiente de confirmar, se ve así en su ficha, y el barrido la sella.
+   */
+  const estadoConfirmado = await confirmarEnSophon(clienteSophon(), emailNormalizado);
+  if (estadoConfirmado) {
+    await db.webmaster.update({
+      where: { id: webmasterId },
+      data: {
+        estadoSophon: estadoConfirmado,
+        confirmadoEn: new Date(),
+        vistoPorUltimaVezEn: new Date(),
+      },
+    });
+  }
+
   await db.auditoria.create({
     data: {
       actorTipo: "AGENTE",
       actorId: agenteId,
       accion: "webmaster.activado",
       recurso: emailNormalizado,
-      detalle: { nuevo: reservaNueva },
+      detalle: { nuevo: true, confirmado: estadoConfirmado !== null },
     },
   });
 
   // ── Paso 3: el año de PRO ──────────────────────────────────────────────
-  // Solo para cuentas NUEVAS. Un huérfano preexistente no acaba de registrarse:
-  // ya traía historia, y regalarle un año automático por adoptarlo sería pagar
-  // dos veces por el mismo webmaster cada vez que cambia de agente.
-  if (!reservaNueva) {
-    return NextResponse.json({
-      ok: true,
-      email: parseado.data.email,
-      devengaDesde: hoy,
-      nuevo: false,
-      pro: null,
-    });
-  }
-
+  //
+  // Sin excepciones, porque ya no hay ninguna que hacer: toda alta que llega
+  // aquí es una cuenta nueva. Aquí había una salida anticipada para el huérfano
+  // adoptado —que no recibía el año, porque adoptar no es registrar— y con la
+  // adopción cerrada esa rama no tenía forma de ejecutarse.
   const pro = await concederAnio({
     agenteId,
     webmasterId,
@@ -250,11 +319,13 @@ export async function POST(peticion: Request): Promise<NextResponse> {
      * en vez de fingir que todo fue bien o de fallar entera una operación que
      * sí ha prosperado.
      *
-     * `yaActivo` es ÉXITO aquí, y es el caso que distingue este camino del de la
-     * renovación: un webmaster que ya venía con PRO tiene exactamente lo que el
-     * alta le iba a dar. Tratarlo como error le enseñaría al agente un aviso
-     * rojo por una operación que salió perfecta, y encima le empujaría a
-     * reintentar contra una membresía que no hay que tocar.
+     * `yaActivo` se sigue leyendo como ÉXITO, y ahora es una red de seguridad y
+     * no un caso de negocio: una cuenta recién registrada no puede traer PRO, y
+     * si Sophon dijera que sí lo trae, lo que hay que hacer es dejarlo en paz.
+     * Tratarlo como error le enseñaría al agente un aviso rojo por una operación
+     * que salió bien y le empujaría a reintentar contra una membresía que no hay
+     * que tocar. El caso que lo justificaba —adoptar un huérfano que ya venía
+     * con PRO— ha dejado de existir.
      *
      * `renovado: false` lo separa de una concesión real: son dos hechos
      * distintos y la pantalla dice cosas distintas de cada uno.

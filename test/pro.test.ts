@@ -207,9 +207,14 @@ describe("conceder PRO", () => {
 
   it("un ALTA sobre alguien que YA venía con PRO es éxito, no error", async () => {
     /*
-     * El caso legítimo: se adopta a un huérfano que ya traía membresía. No hay
-     * nada que hacer, y decirle al agente que su alta ha fallado le empujaría a
-     * reintentar contra justo lo que no hay que tocar.
+     * Red de seguridad, ya no caso de negocio.
+     *
+     * Lo justificaba adoptar a un huérfano que traía membresía, y eso dejó de
+     * poder ocurrir cuando el alta pasó a aceptar solo cuentas nuevas. Se
+     * conserva porque la postura correcta no cambia: si Sophon dijera que la
+     * membresía está viva, hay que dejarla en paz y dar el alta por buena.
+     * Decirle al agente que ha fallado le empujaría a reintentar contra justo lo
+     * que no hay que tocar.
      */
     const { deps, registro } = montar({ proVigenteHasta: enDias(120) });
     const r = await concederAnio(peticion("ALTA"), deps);

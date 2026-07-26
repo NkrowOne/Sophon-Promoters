@@ -26,7 +26,13 @@ import {
   type Tarifa,
 } from "../devengo/motor.ts";
 import { planificarBonos, siguienteEscalon, type Escalon } from "../devengo/bonos.ts";
-import { inicioDeMes, inicioDelMesSiguiente, mesAnterior, mesDe } from "../fechas.ts";
+import {
+  ZONA_POR_DEFECTO,
+  inicioDeMes,
+  inicioDelMesSiguiente,
+  mesAnterior,
+  mesDe,
+} from "../fechas.ts";
 import { avisarBonoAlAgente } from "../bot/avisos.ts";
 import { normalizarEmail } from "../cripto.ts";
 import type { ClienteSophon } from "../sophon/cliente.ts";
@@ -70,7 +76,7 @@ function clave(email: string, fecha: string): string {
 }
 
 /** Fecha de hoy en la zona horaria contable, en `YYYY-MM-DD`. */
-export function hoyContable(zona = process.env["ZONA_HORARIA"] ?? "Europe/Madrid"): string {
+export function hoyContable(zona = process.env["ZONA_HORARIA"] ?? ZONA_POR_DEFECTO): string {
   // `en-CA` da directamente el formato ISO, que es lo que espera la API.
   return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(new Date());
 }

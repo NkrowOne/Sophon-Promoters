@@ -45,6 +45,7 @@ export async function GET(
       emailOriginal: true,
       emailNormalizado: true,
       estadoSophon: true,
+      confirmadoEn: true,
       desaparecidoEn: true,
       atribuidoEn: true,
       devengaDesde: true,
@@ -145,7 +146,11 @@ export async function GET(
   return NextResponse.json({
     email: webmaster.emailOriginal,
     id: webmaster.emailNormalizado,
-    estado: webmaster.desaparecidoEn ? "DESAPARECIDO" : webmaster.estadoSophon,
+    estado: webmaster.desaparecidoEn
+      ? "DESAPARECIDO"
+      : webmaster.confirmadoEn === null
+        ? "PENDIENTE_CONFIRMACION"
+        : webmaster.estadoSophon,
     origen: webmaster.origen,
     activadoEn: webmaster.atribuidoEn ? isoFecha(webmaster.atribuidoEn) : null,
     // Cuando la atribución fue prospectiva, el agente tiene que saber desde qué

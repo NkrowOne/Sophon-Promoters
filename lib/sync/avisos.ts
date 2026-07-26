@@ -28,7 +28,12 @@ import { avisarCaminoDelBonoAlAgente, avisarRedApagadaAlAgente } from "../bot/av
 import { diasSinActividad, estaApagado } from "../red/inactividad.ts";
 import { escaleraVigente, hoyContable, registrosDelMesPorWebmaster } from "./registros.ts";
 import { siguienteEscalon, type Escalon } from "../devengo/bonos.ts";
-import { diaDelMes, diasQueQuedanDelMes, mesContable } from "../fechas.ts";
+import {
+  diaDelMes,
+  diasQueQuedanDelMes,
+  inicioDelDiaContable,
+  mesContable,
+} from "../fechas.ts";
 import { formatearMicros } from "../devengo/dinero.ts";
 
 /** Ventana de historial que se mira para decidir si alguien está parado. */
@@ -73,11 +78,22 @@ export async function barrerAvisos(): Promise<ResultadoAvisos | null> {
      * fichero de estado.
      */
     const hoy = hoyContable();
+    /*
+     * La frontera del día se calcula EN LA ZONA CONTABLE, no en UTC.
+     *
+     * Aquí ponía `` `${hoy}T00:00:00Z` ``, que es la medianoche UTC de una fecha
+     * calculada en otra zona: dos relojes distintos comparados como si fueran el
+     * mismo. Con Madrid el desfase era de una o dos horas y ya duplicaba mensajes
+     * en ese hueco; con el día contable en UTC+8 pasa a ser de OCHO horas, y en
+     * ellas `iniciadaEn >= medianoche UTC` mira un instante que todavía no ha
+     * llegado, así que nunca encuentra la ejecución de hoy: el cerrojo no cierra
+     * y el agente recibe el mismo aviso cada media hora hasta media tarde.
+     */
     const yaHoy = await db.ejecucionSync.findFirst({
       where: {
         tipo: "AVISOS",
         estado: "COMPLETADA",
-        iniciadaEn: { gte: new Date(`${hoy}T00:00:00Z`) },
+        iniciadaEn: { gte: inicioDelDiaContable(hoy) },
       },
       select: { id: true },
     });

@@ -38,6 +38,58 @@ function traducirEstado(status: string): "ACTIVO" | "BLOQUEADO" | "PENDIENTE_BOR
   }
 }
 
+/**
+ * Páginas de `sub-aff/status` que se recorren buscando UN correo concreto.
+ *
+ * Acotado a propósito: `size` está topado a 20 por la API, así que una lista
+ * grande son muchas llamadas y un alta no puede costar veinte viajes a Sophon
+ * mientras el agente mira una pantalla parada. Si no aparece dentro del tope, el
+ * alta no falla —queda pendiente— y la sella el barrido, que sí recorre todo.
+ */
+const PAGINAS_CONFIRMACION = 5;
+
+/**
+ * ¿Aparece ya este correo en el programa de socios?
+ *
+ * Es la lectura de vuelta que le faltaba al alta. `bind_sub_aff` devuelve un
+ * `void`: la única prueba de que vinculó era que no lanzara excepción, y el
+ * webmaster se quedaba en `DESCONOCIDO` hasta que pasara el barrido. Aquí se le
+ * pregunta a Sophon si el correo está de verdad en la lista, que es lo que
+ * convierte un «no ha fallado» en un «está dentro».
+ *
+ * Devuelve el estado real si aparece y `null` si no —que puede significar tanto
+ * «Sophon todavía no lo ha propagado» como «está más allá del tope de páginas»—.
+ * Las dos se tratan igual: pendiente, no error.
+ *
+ * Se traga sus propios fallos: la vinculación ya está hecha y que la
+ * comprobación no se pueda completar no puede tumbar un alta que sí prosperó.
+ */
+export async function confirmarEnSophon(
+  cliente: ClienteSophon,
+  emailNormalizado: string,
+): Promise<"ACTIVO" | "BLOQUEADO" | "PENDIENTE_BORRADO" | "DESCONOCIDO" | null> {
+  try {
+    for (let pagina = 1; pagina <= PAGINAS_CONFIRMACION; pagina++) {
+      const r = await cliente.estadoSubAfiliados("all", pagina, 20);
+      const items = r.items ?? [];
+      if (items.length === 0) return null;
+
+      for (const it of items) {
+        if (it.email && normalizarEmail(it.email) === emailNormalizado) {
+          return traducirEstado(it.status);
+        }
+      }
+
+      // Última página: no hay más que mirar.
+      if (items.length < 20) return null;
+    }
+    return null;
+  } catch (e) {
+    console.warn("[webmasters] no se pudo confirmar el alta en Sophon:", e);
+    return null;
+  }
+}
+
 export async function barrerWebmasters(
   cliente: ClienteSophon,
 ): Promise<ResultadoWebmasters | null> {
@@ -70,7 +122,7 @@ export async function barrerWebmasters(
         const estadoSophon = traducirEstado(status);
         const existente = await db.webmaster.findUnique({
           where: { emailNormalizado: email },
-          select: { id: true, estadoSophon: true },
+          select: { id: true, estadoSophon: true, confirmadoEn: true },
         });
 
         if (!existente) {
@@ -81,6 +133,9 @@ export async function barrerWebmasters(
               origen: "HUERFANO",
               estadoSophon,
               vistoPorUltimaVezEn: new Date(),
+              // Verlo en `sub-aff/status` ES la confirmación: esta lista son
+              // exactamente los que están en el programa de socios.
+              confirmadoEn: new Date(),
             },
           });
           nuevos++;
@@ -103,7 +158,16 @@ export async function barrerWebmasters(
 
         await db.webmaster.update({
           where: { id: existente.id },
-          data: { estadoSophon, vistoPorUltimaVezEn: new Date(), desaparecidoEn: null },
+          data: {
+            estadoSophon,
+            vistoPorUltimaVezEn: new Date(),
+            desaparecidoEn: null,
+            // Aquí es donde se resuelve un alta que quedó pendiente: la lectura
+            // de vuelta del alta se rinde a las cinco páginas, este barrido las
+            // recorre todas. `??` y no asignación directa para conservar el
+            // instante de la primera confirmación, que es el dato con valor.
+            confirmadoEn: existente.confirmadoEn ?? new Date(),
+          },
         });
       }
 

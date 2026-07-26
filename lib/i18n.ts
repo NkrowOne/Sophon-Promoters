@@ -165,6 +165,10 @@ export const es = {
   pendienteDeBorrado: "Pendiente de borrado",
   yaNoApareceEnSophon: "No consta en Sophon",
   estadoSinComprobar: "Estado sin comprobar",
+  /* Vinculado en Sophon pero todavía sin aparecer en el programa de socios.
+     No es un fallo: Sophon tarda en propagarlo y el barrido lo resuelve. */
+  pendienteDeConfirmar: "Confirmando",
+  pendienteDeConfirmarApoyo: "Sophon todavía no lo ha publicado. Suele resolverse solo.",
 
   // ── Ficha de webmaster ────────────────────────────────────────────────────
   enTuRedDesde: (fecha: string) => `en tu red desde el ${fecha}`,
@@ -432,6 +436,8 @@ const en: Cadenas = {
   pendienteDeBorrado: "Pending deletion",
   yaNoApareceEnSophon: "Not found on Sophon",
   estadoSinComprobar: "Status not checked",
+  pendienteDeConfirmar: "Confirming",
+  pendienteDeConfirmarApoyo: "Sophon has not published it yet. It usually sorts itself out.",
 
   enTuRedDesde: (fecha: string) => `in your network since ${fecha}`,
   teHaDado: "They have brought you",
@@ -661,6 +667,8 @@ const it: Cadenas = {
   pendienteDeBorrado: "In attesa di cancellazione",
   yaNoApareceEnSophon: "Non risulta su Sophon",
   estadoSinComprobar: "Stato non verificato",
+  pendienteDeConfirmar: "In conferma",
+  pendienteDeConfirmarApoyo: "Sophon non lo ha ancora pubblicato. Di solito si risolve da solo.",
 
   enTuRedDesde: (fecha: string) => `nella tua rete dal ${fecha}`,
   teHaDado: "Ti ha portato",
@@ -899,6 +907,8 @@ const pt: Cadenas = {
   pendienteDeBorrado: "A aguardar eliminação",
   yaNoApareceEnSophon: "Não consta na Sophon",
   estadoSinComprobar: "Estado por verificar",
+  pendienteDeConfirmar: "A confirmar",
+  pendienteDeConfirmarApoyo: "A Sophon ainda não o publicou. Costuma resolver-se sozinho.",
 
   enTuRedDesde: (fecha: string) => `na tua rede desde ${fecha}`,
   teHaDado: "Trouxe-te",
@@ -1133,6 +1143,8 @@ const ar: Cadenas = {
   pendienteDeBorrado: "بانتظار الحذف",
   yaNoApareceEnSophon: "غير مُدرج في Sophon",
   estadoSinComprobar: "الحالة غير مُتحقق منها",
+  pendienteDeConfirmar: "قيد التأكيد",
+  pendienteDeConfirmarApoyo: "لم ينشره Sophon بعد. عادةً ما يُحل من تلقاء نفسه.",
 
   enTuRedDesde: (fecha: string) => `في شبكتك منذ ${fecha}`,
   teHaDado: "جلب لك",

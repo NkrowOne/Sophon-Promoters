@@ -3,6 +3,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { formatearMicros } from "@/lib/devengo/dinero";
+import { inicioDelDiaContable } from "@/lib/fechas";
+import { hoyContable } from "@/lib/sync/registros";
 import { Cerrada } from "./_piezas/Cerrada";
 
 /**
@@ -74,12 +76,34 @@ export default async function Panel() {
   for (const s of sincronizaciones) if (!ultimaPorTipo.has(s.tipo)) ultimaPorTipo.set(s.tipo, s);
   const rotas = [...ultimaPorTipo.values()].filter((s) => s.estado === "FALLIDA");
 
+  /*
+   * ¿Se ha leído lo que Sophon publicó en su último cierre?
+   *
+   * Sophon cierra su día a las 00:00 UTC+8 y es entonces cuando cambian las
+   * cifras. Si desde ese instante no ha corrido ningún barrido de registros, lo
+   * que se ve en esta página y en la de cada agente es de ayer, y no hay nada
+   * que lo delate: los barridos anteriores salieron en verde y las cifras
+   * parecen normales, solo que viejas.
+   *
+   * El planificador vive en Skyway y no hay nada en este repositorio que lo
+   * configure, así que la única forma de que una línea de cron mal puesta —o que
+   * nadie llegó a poner— sea visible es comprobarlo aquí. Es la misma disciplina
+   * que la alarma de la tarifa ausente.
+   */
+  const ultimoCierre = inicioDelDiaContable(hoyContable());
+  const ultimosRegistros = ultimaPorTipo.get("REGISTROS");
+  const sinLeerElCierre =
+    !ultimosRegistros || ultimosRegistros.iniciadaEn < ultimoCierre;
+
   return (
     <>
       {/* Las advertencias van ARRIBA. Un margen calculado sobre datos a medio
           sincronizar es un número equivocado, y avisarlo debajo de la cifra
           llega tarde: para entonces ya se ha leído y creído. */}
-      {(rotas.length > 0 || !hayTarifa || (conciliacion && !conciliacion.cuadra)) && (
+      {(rotas.length > 0 ||
+        !hayTarifa ||
+        sinLeerElCierre ||
+        (conciliacion && !conciliacion.cuadra)) && (
         <div className="privado" style={{ marginBottom: "1.75rem" }}>
           <p className="rotulo vivo">Cifras no fiables</p>
           <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
@@ -90,6 +114,17 @@ export default async function Panel() {
                 <strong>No hay tarifa en vigor</strong>: los barridos no devengan y los
                 agentes ven 0,00 $. El margen inferior aparece al 100 % por esa causa.{" "}
                 <Link href="/admin/tarifas">Configurar tarifa</Link>.
+              </li>
+            )}
+            {sinLeerElCierre && (
+              <li>
+                <strong>Sin sincronizar desde el último cierre de Sophon</strong> (
+                {fecha(ultimoCierre)}): las cifras de esta página y las de los agentes son
+                anteriores a ese corte.{" "}
+                {ultimosRegistros
+                  ? `Último barrido de registros: ${fecha(ultimosRegistros.iniciadaEn)}.`
+                  : "No consta ningún barrido de registros."}{" "}
+                Comprueba el planificador de Skyway.
               </li>
             )}
             {rotas.map((s) => (

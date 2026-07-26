@@ -108,7 +108,17 @@ function Tesela({
 }) {
   const t = useCadenas();
   const apagado = w.diasSinActividad === null || w.diasSinActividad >= DIAS_APAGADO;
-  const problema = w.estado !== "ACTIVO";
+  /*
+   * «Confirmando» no es un problema, y por eso sale del bucket de problemas.
+   *
+   * Es un alta recién hecha cuya vinculación Sophon todavía no ha publicado en
+   * el programa de socios. Sin separarlo, caía en `problema` —cualquier estado
+   * distinto de ACTIVO— y la tesela decía «No consta», que es exactamente lo
+   * contrario de lo que pasa. Y gana a «sin actividad», porque un webmaster de
+   * hace diez minutos no está parado: acaba de entrar.
+   */
+  const confirmando = w.estado === "PENDIENTE_CONFIRMACION";
+  const problema = !confirmando && w.estado !== "ACTIVO";
   /*
    * El PRO solo se marca cuando SE PUEDE HACER ALGO con él.
    *
@@ -134,23 +144,26 @@ function Tesela({
       : w.estado === "PENDIENTE_BORRADO"
         ? t.seVaABorrar
         : t.desaparecido
-    : proApagado
-      ? // «PRO caducado» es falso para quien nunca lo tuvo, y ese es justo el
-        // caso más frecuente: un alta que se quedó a medias. `diasHastaCaducidad`
-        // en null significa que no hay fecha porque no hubo concesión.
-        //
-        // Aquí va el literal CORTO: la tesela mide media pantalla y «Nunca llegó
-        // a tener PRO» se truncaba en «Nunca llegó a tener P…», que ocupa la
-        // línea entera para no decir el dato. La versión larga se queda en /pro,
-        // donde hay ancho de sobra.
-        w.diasHastaCaducidad === null
-        ? t.sinPro
-        : t.proCaducado
-      : apagado
-        ? w.diasSinActividad === null
-          ? t.sinActividad
-          : t.diasParado(w.diasSinActividad)
-        : "";
+    : confirmando
+      ? t.pendienteDeConfirmar
+      : proApagado
+        ? // «PRO caducado» es falso para quien nunca lo tuvo, y ese es justo el
+          // caso más frecuente: un alta que se quedó a medias.
+          // `diasHastaCaducidad` en null significa que no hay fecha porque no
+          // hubo concesión.
+          //
+          // Aquí va el literal CORTO: la tesela mide media pantalla y «Nunca
+          // llegó a tener PRO» se truncaba en «Nunca llegó a tener P…», que
+          // ocupa la línea entera para no decir el dato. La versión larga se
+          // queda en /pro, donde hay ancho de sobra.
+          w.diasHastaCaducidad === null
+          ? t.sinPro
+          : t.proCaducado
+        : apagado
+          ? w.diasSinActividad === null
+            ? t.sinActividad
+            : t.diasParado(w.diasSinActividad)
+          : "";
 
   /*
    * El icono va PAREADO con la etiqueta, no elegido aparte.
@@ -165,11 +178,13 @@ function Tesela({
       : w.estado === "PENDIENTE_BORRADO"
         ? "seBorra"
         : "desaparecido"
-    : proApagado
-      ? "caducado"
-      : apagado
-        ? "parado"
-        : null;
+    : confirmando
+      ? "reintentar"
+      : proApagado
+        ? "caducado"
+        : apagado
+          ? "parado"
+          : null;
 
   // La serie llega ordenada de reciente a antigua; se pinta al revés para que
   // el tiempo avance de izquierda a derecha, como se lee.

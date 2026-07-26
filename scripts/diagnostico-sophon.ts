@@ -12,6 +12,7 @@
 import { ClienteSophon, ErrorSophon } from "../lib/sophon/cliente.ts";
 import { formatearMicros, microsDesdeCadena } from "../lib/devengo/dinero.ts";
 import { NivelAfiliado } from "../lib/sophon/tipos.ts";
+import { ZONA_POR_DEFECTO } from "../lib/fechas.ts";
 
 const VERDE = "[32m";
 const ROJO = "[31m";
@@ -106,7 +107,7 @@ async function main(): Promise<void> {
   // ── Forma de las respuestas: detecta cambios de la API antes de que rompan ──
   titulo("Forma de las respuestas");
   const hasta = new Intl.DateTimeFormat("en-CA", {
-    timeZone: process.env["ZONA_HORARIA"] ?? "Europe/Madrid",
+    timeZone: process.env["ZONA_HORARIA"] ?? ZONA_POR_DEFECTO,
   }).format(new Date());
   const desde = new Date(Date.parse(`${hasta}T00:00:00Z`) - 30 * 86_400_000)
     .toISOString()
