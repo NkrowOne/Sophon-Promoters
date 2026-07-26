@@ -10,9 +10,20 @@ import {
   saldos,
 } from "@/lib/api/agente";
 import { estaCerrado } from "@/lib/devengo/motor";
-import { escaleraVigente, hoyContable, registrosDelMes } from "@/lib/sync/registros";
+import {
+  escaleraVigente,
+  hoyContable,
+  registrosDelMes,
+  registrosDelMesPorWebmaster,
+} from "@/lib/sync/registros";
 import { escalonAlcanzado, siguienteEscalon } from "@/lib/devengo/bonos";
-import { mesContable } from "@/lib/fechas";
+import {
+  diaDelMes,
+  diasDelMes,
+  diasQueQuedanDelMes,
+  mesAnterior,
+  mesContable,
+} from "@/lib/fechas";
 
 /**
  * Resumen de la pantalla de inicio: la serie diaria del Testigo y los saldos.
@@ -128,11 +139,53 @@ async function progresoDelHito(agenteId: string) {
   const escalones = await escaleraVigente();
   if (escalones.length === 0) return null;
 
+  const hoy = hoyContable();
   const mes = mesContable();
-  const registros = await registrosDelMes(agenteId, mes);
+  const anterior = mesAnterior(mes);
+
+  const [actual, registrosMesAnterior] = await Promise.all([
+    registrosDelMesPorWebmaster(agenteId, mes),
+    registrosDelMes(agenteId, anterior),
+  ]);
+  const registros = actual.total;
 
   const alcanzado = escalonAlcanzado(registros, escalones);
   const siguiente = siguienteEscalon(registros, escalones);
+
+  /*
+   * El ritmo y la proyección.
+   *
+   * Son la respuesta a «que siempre se vea progreso sin mover las metas». La
+   * barra del hito es honesta y con los umbrales de hoy va a marcar poco, pero
+   * el ritmo se mueve TODOS los días y la proyección con él, así que hay una
+   * cifra que responde al trabajo de esta mañana aunque el objetivo esté lejos.
+   *
+   * Y no se falsea la escala de la barra para conseguirlo: distorsionar un eje
+   * de valor para que un 7 % parezca más es mentir sobre la distancia que
+   * queda. Lo que cambia es qué se mide, no cómo se dibuja.
+   *
+   * El decimal del ritmo depende del tamaño del ritmo, y no es una floritura:
+   * a tres registros al día un entero se queda clavado en «3» durante una
+   * semana y no cuenta nada, mientras que a cuatrocientos el decimal es ruido
+   * —«461,5 registros al día» finge una precisión que la cifra no tiene—. Bajo
+   * diez, un decimal; a partir de ahí, entero.
+   */
+  const transcurridos = diaDelMes(hoy);
+  const delMes = diasDelMes(mes);
+  const restantes = diasQueQuedanDelMes(hoy);
+  const porDia = registros / transcurridos;
+  const ritmo = porDia < 10 ? Math.round(porDia * 10) / 10 : Math.round(porDia);
+  const proyeccion = Math.round(porDia * delMes);
+
+  /*
+   * ¿Llega el hito a este ritmo, y cuándo?
+   *
+   * `null` cuando no llega dentro del mes. Prometer una fecha de febrero para un
+   * hito que se resetea el 31 de enero sería enseñar una meta que no existe.
+   */
+  const faltan = siguiente ? siguiente.usuarios - registros : 0;
+  const diasParaElHito = siguiente && porDia > 0 ? Math.ceil(faltan / porDia) : null;
+  const llegaEsteMes = diasParaElHito !== null && diasParaElHito <= restantes;
 
   return {
     registros,
@@ -142,7 +195,7 @@ async function progresoDelHito(agenteId: string) {
     siguiente: siguiente
       ? {
           usuarios: siguiente.usuarios,
-          faltan: siguiente.usuarios - registros,
+          faltan,
           premio: dinero(siguiente.recompensaMicros),
         }
       : null,
@@ -151,5 +204,27 @@ async function progresoDelHito(agenteId: string) {
       premio: dinero(e.recompensaMicros),
       alcanzado: registros >= e.usuarios,
     })),
+    ritmo,
+    proyeccion,
+    diasRestantes: restantes,
+    /** Día del mes en que se alcanzaría el siguiente escalón, o `null`. */
+    llegaEl: llegaEsteMes ? isoFecha(sumarDias(hoy, diasParaElHito)) : null,
+    /**
+     * Registros del mes cerrado anterior, para comparar.
+     *
+     * `null` el primer mes del agente: sin nada con que comparar, «has bajado
+     * un 100 %» sería falso y desmoralizante a la vez.
+     */
+    mesAnterior: registrosMesAnterior > 0 ? registrosMesAnterior : null,
+    /**
+     * Quién está llevando el hito. Tres como mucho: es una lista de llamadas,
+     * no un informe, y una lista de veinte correos en un móvil no se lee.
+     */
+    porWebmaster: actual.porWebmaster.slice(0, 3),
   };
+}
+
+/** `AAAA-MM-DD` más N días, en el mismo calendario UTC que usa todo el ledger. */
+function sumarDias(fecha: string, dias: number): Date {
+  return new Date(Date.parse(`${fecha}T00:00:00Z`) + dias * 86_400_000);
 }

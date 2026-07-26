@@ -477,16 +477,54 @@ export async function escaleraVigente(): Promise<Escalon[]> {
  * agregado: se piden los webmasters con su frontera y se suma por tramos.
  */
 export async function registrosDelMes(agenteId: string, mes: string): Promise<number> {
+  return (await registrosDelMesPorWebmaster(agenteId, mes)).total;
+}
+
+/** Lo que aporta cada webmaster al hito del mes. */
+export interface AporteAlHito {
+  webmasterId: string;
+  email: string;
+  registros: number;
+}
+
+/**
+ * El mismo recuento, con el desglose de quién lo trae.
+ *
+ * El bucle ya sumaba por webmaster —lo obliga `devengaDesde`, que es por
+ * webmaster y no se puede resolver con un solo agregado— y tiraba el desglose
+ * para devolver un entero. Devolverlo no cuesta ni una consulta más y es lo que
+ * convierte la barra del bono en algo accionable: no «te faltan 9.280», sino
+ * «te faltan 9.280 y estos tres son los que te están acercando».
+ *
+ * Se ordena de más a menos aquí, en el servidor, para que ni la Mini App ni el
+ * bot tengan que ponerse de acuerdo en el criterio.
+ */
+export async function registrosDelMesPorWebmaster(
+  agenteId: string,
+  mes: string,
+  /**
+   * Corte superior EXCLUSIVO, para preguntar «¿cuánto llevaba ayer?».
+   *
+   * Es lo que permite avisar de que se ha cruzado la mitad del camino **una
+   * sola vez**, comparando el recuento de hoy con el de ayer, en vez de repetir
+   * el mismo mensaje cada día mientras se esté entre el 50 % y el 100 %. Sin
+   * este parámetro habría que guardar en algún sitio a quién ya se avisó, o sea
+   * una tabla nueva para lo que aquí es una resta.
+   */
+  hastaExclusivo?: Date,
+): Promise<{ total: number; porWebmaster: AporteAlHito[] }> {
   const desde = inicioDeMes(mes);
-  const hasta = inicioDelMesSiguiente(mes);
+  const finDeMes = inicioDelMesSiguiente(mes);
+  const hasta = hastaExclusivo && hastaExclusivo < finDeMes ? hastaExclusivo : finDeMes;
 
   const webmasters = await db.webmaster.findMany({
     where: { agenteId },
-    select: { id: true, devengaDesde: true },
+    select: { id: true, emailNormalizado: true, devengaDesde: true },
   });
-  if (webmasters.length === 0) return 0;
+  if (webmasters.length === 0) return { total: 0, porWebmaster: [] };
 
   let total = 0;
+  const porWebmaster: AporteAlHito[] = [];
   for (const wm of webmasters) {
     // La frontera de atribución puede caer dentro del mes; entonces solo cuenta
     // lo que hay a partir de ella.
@@ -498,9 +536,15 @@ export async function registrosDelMes(agenteId: string, mes: string): Promise<nu
       where: { webmasterId: wm.id, fecha: { gte: inicio, lt: hasta } },
       _sum: { countRegister: true },
     });
-    total += agregado._sum.countRegister ?? 0;
+    const registros = agregado._sum.countRegister ?? 0;
+    total += registros;
+    if (registros > 0) {
+      porWebmaster.push({ webmasterId: wm.id, email: wm.emailNormalizado, registros });
+    }
   }
-  return total;
+
+  porWebmaster.sort((a, b) => b.registros - a.registros);
+  return { total, porWebmaster };
 }
 
 /** Devenga el bono de un agente para un mes concreto. */

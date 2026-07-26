@@ -226,6 +226,56 @@ export async function avisarBonoAlAgente(datos: {
   );
 }
 
+/**
+ * Va camino del bono: o ha cruzado la mitad, o está en la recta final del mes.
+ *
+ * Es el único aviso que empuja ANTES de cobrar. `avisarBonoAlAgente` llega
+ * cuando el dinero ya está hecho, que es una felicitación cara: no cambia lo
+ * que el agente haga esta semana. Este llega cuando todavía se puede mover algo.
+ *
+ * **Se dispara poquísimo a propósito.** La mitad del camino se cruza una vez por
+ * escalón —se detecta comparando el recuento de hoy con el de ayer, no mirando
+ * si se está por encima del 50 %, que avisaría todos los días hasta fin de mes—
+ * y la recta final solo existe los últimos días del mes y solo si el hito está
+ * de verdad al alcance. Un empujón que llega todas las semanas deja de empujar y
+ * se convierte en el motivo por el que alguien silencia el bot, y silenciarlo se
+ * lleva por delante también el aviso de que le han pagado.
+ *
+ * Sin exclamaciones y sin ánimos: se dan las tres cifras que permiten decidir
+ * —lo que falta, a qué ritmo se va y cuánto queda de mes— y el agente decide.
+ */
+export async function avisarCaminoDelBonoAlAgente(datos: {
+  telegramId: bigint | null;
+  idioma: string;
+  faltan: number;
+  premio: string;
+  ritmo: number;
+  diasRestantes: number;
+  /** Los que más aportan este mes. Se listan como mucho tres. */
+  porWebmaster: readonly { email: string; registros: number }[];
+}): Promise<void> {
+  if (datos.telegramId === null) return;
+  const t = cadenas(idiomaGuardado(datos.idioma));
+
+  const lineas = [
+    `<b>${escapar(t.bonoDelMes)}</b>`,
+    "",
+    escapar(t.faltanParaElBono(datos.faltan, datos.premio)),
+    escapar(t.ritmoYRecta(datos.ritmo, datos.diasRestantes)),
+  ];
+
+  // Con quién se cierra: el aviso deja de ser una cifra y pasa a ser una lista
+  // de llamadas, que es lo único que el agente puede hacer al leerlo.
+  if (datos.porWebmaster.length > 0) {
+    lineas.push("", `<i>${escapar(t.quienTeAcerca)}</i>`);
+    for (const w of datos.porWebmaster.slice(0, 3)) {
+      lineas.push(`· ${escapar(w.email)} — ${escapar(t.registrosCortos(w.registros))}`);
+    }
+  }
+
+  await enviarA(String(datos.telegramId), lineas.join("\n"));
+}
+
 /** Aviso de descuadre en la conciliación: no debe pasar desapercibido. */
 export async function avisarDescuadre(datos: {
   concepto: string;

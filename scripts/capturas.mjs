@@ -133,6 +133,18 @@ function hitoDe(registros) {
   const alcanzados = escalera.filter((e) => registros >= e.usuarios);
   const siguiente = escalera.find((e) => registros < e.usuarios) ?? null;
   const ganado = alcanzados.at(-1)?.premio ?? { micros: "0", texto: "0,00 $" };
+
+  // 26 de julio: 26 días corridos y 6 por delante. Los mismos que devuelve la
+  // ruta, para que la captura enseñe la aritmética real y no una plausible.
+  const transcurridos = 26;
+  // Misma regla que `app/api/agente/resumen`: bajo diez, un decimal; a partir
+  // de ahí, entero. Un «1346,2 al día» finge una precisión que no existe.
+  const porDia = registros / transcurridos;
+  const ritmo = porDia < 10 ? Math.round(porDia * 10) / 10 : Math.round(porDia);
+  const diasParaElHito = siguiente
+    ? Math.ceil((siguiente.usuarios - registros) / porDia)
+    : null;
+
   return {
     registros,
     ganado,
@@ -140,6 +152,16 @@ function hitoDe(registros) {
       ? { usuarios: siguiente.usuarios, faltan: siguiente.usuarios - registros, premio: siguiente.premio }
       : null,
     escalones: escalera.map((e) => ({ ...e, alcanzado: registros >= e.usuarios })),
+    ritmo,
+    proyeccion: Math.round(porDia * 31),
+    diasRestantes: 6,
+    llegaEl: diasParaElHito !== null && diasParaElHito <= 6 ? "2026-07-30" : null,
+    mesAnterior: Math.round(registros * 0.85),
+    porWebmaster: [
+      { webmasterId: "w1", email: "esgabrielcabrera@gmail.com", registros: Math.round(registros * 0.57) },
+      { webmasterId: "w2", email: "negocios20233@gmail.com", registros: Math.round(registros * 0.28) },
+      { webmasterId: "w3", email: "mediapartner.es@gmail.com", registros: Math.round(registros * 0.15) },
+    ],
   };
 }
 

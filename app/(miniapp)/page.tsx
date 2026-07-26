@@ -45,6 +45,16 @@ interface Hito {
   ganado: { micros: string; texto: string };
   siguiente: { usuarios: number; faltan: number; premio: { micros: string; texto: string } } | null;
   escalones: Escalon[];
+  /** Registros al día en el mes en curso, con un decimal. */
+  ritmo: number;
+  /** Registros a los que se cerraría el mes a ese ritmo. */
+  proyeccion: number;
+  diasRestantes: number;
+  /** `AAAA-MM-DD` en que se alcanzaría el siguiente escalón, o `null` si no da tiempo. */
+  llegaEl: string | null;
+  /** Registros del mes cerrado anterior, o `null` si es el primer mes. */
+  mesAnterior: number | null;
+  porWebmaster: { webmasterId: string; email: string; registros: number }[];
 }
 
 interface Resumen {
@@ -307,15 +317,28 @@ function Fila({
 }
 
 /**
- * El progreso hacia el siguiente hito del bono.
+ * El bono del mes: dónde vas, a qué ritmo y quién te está llevando.
  *
- * Raíl visible + relleno, que es la forma que ya usa la Escalera
- * (`components/Escalera.tsx`) y por el motivo que allí está escrito: un raíl que
- * no se ve deja la barra flotando sin escala detrás, y entonces la longitud de
- * lo lleno no significa nada.
+ * ── La decisión que gobierna esta banda ──
  *
- * Se anima porque MIDE algo, que es la regla que decide qué se mueve en esta
- * aplicación. Reutiliza `BarraCreciente`.
+ * Con los umbrales sembrados —10.000 registros para el primer escalón— la barra
+ * del hito va a marcar poco durante mucho tiempo, y eso NO se arregla tocando la
+ * barra. Distorsionar la escala de un eje de valor para que un 7 % parezca más
+ * es mentir sobre la distancia que queda, y a la tercera vez que el agente hace
+ * la división a mano deja de creerse todo lo demás.
+ *
+ * Lo que se hace es añadir medidas cuyo punto de referencia es el propio agente
+ * y no la meta lejana: el ritmo, la proyección de cierre, los días que quedan y
+ * la comparación con el mes pasado. Todas se mueven cada día aunque el objetivo
+ * esté lejos. La barra sigue diciendo la verdad; lo que cambia es que ya no
+ * está sola diciéndola.
+ *
+ * ── Lo que no se hace ──
+ *
+ * Ni medallas, ni insignias, ni confeti, ni rachas como trofeo. La regla de voz
+ * de `lib/i18n.ts` es explícita: el agente es un profesional que cobra, no
+ * alguien a quien haya que animar. Y sin amarillo: el amarillo es la ACCIÓN, y
+ * un progreso no se pulsa.
  */
 function BandaHito({
   hito,
@@ -327,7 +350,20 @@ function BandaHito({
   orden: number;
 }) {
   const meta = hito.siguiente?.usuarios ?? hito.escalones[hito.escalones.length - 1]?.usuarios ?? 0;
+  /*
+   * La escala es el escalón SIGUIENTE, no el más alto de la escalera.
+   *
+   * Contra la escalera entera, 720 de 30.000 es un 2,4 % y la barra no se ve
+   * nunca. Contra el siguiente peldaño es un 7,2 %, que ya es una marca. Y no
+   * engaña, porque el peldaño al que se refiere está escrito debajo con su
+   * premio; lo que la barra mide es exactamente lo que dice medir.
+   */
   const porcentaje = meta > 0 ? Math.min(100, (hito.registros / meta) * 100) : 0;
+
+  const variacion =
+    hito.mesAnterior && hito.mesAnterior > 0
+      ? Math.round(((hito.registros - hito.mesAnterior) / hito.mesAnterior) * 100)
+      : null;
 
   return (
     <Banda tono={0} etiqueta={t.bonoDelMes} orden={orden} className="py-6">
@@ -340,7 +376,21 @@ function BandaHito({
         )}
       </div>
 
-      <p className="mt-1.5 text-cuerpo tabular-nums">{t.registrosEsteMes(hito.registros)}</p>
+      {/* `flex-wrap`: con seis cifras —35.000 registros— las dos columnas se
+          estrangulaban y cada una partía en dos líneas, dejando cuatro renglones
+          para lo que es una frase. Envolviendo, la comparación baja entera. */}
+      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+        <p className="text-cuerpo tabular-nums">{t.registrosEsteMes(hito.registros)}</p>
+        {/* La comparación con el mes cerrado anterior. Es la cifra que se mueve
+            aunque el hito esté lejos, y la única de la banda que puede ser
+            negativa: se dice igual, porque un mes flojo que la aplicación
+            esconde es un mes flojo que el agente descubre al no cobrar. */}
+        {variacion !== null && (
+          <p className="text-apoyo text-texto-apoyo tabular-nums">
+            {t.frenteAlMesPasado(variacion)}
+          </p>
+        )}
+      </div>
 
       {/* El raíl con los escalones ya superados marcados.
 
@@ -354,7 +404,7 @@ function BandaHito({
           La del propio objetivo no se dibuja: el final del raíl ES ese escalón,
           y una muesca ahí queda medio recortada por el `overflow`. */}
       <div className="relative mt-3 h-1.5 overflow-hidden rounded-marca bg-borde">
-        <BarraCreciente porcentaje={porcentaje} className="bg-t2" />
+        <BarraCreciente porcentaje={Math.max(porcentaje, 1.5)} className="bg-t2" />
         {meta > 0 &&
           hito.escalones.map((e) => {
             const posicion = (e.usuarios / meta) * 100;
@@ -375,6 +425,74 @@ function BandaHito({
           ? t.faltanParaElBono(hito.siguiente.faltan, hito.siguiente.premio.texto)
           : t.bonoMaximoAlcanzado}
       </p>
+
+      {/* La escalera entera, con lo que paga cada peldaño.
+
+          El premio y el estado de cada escalón ya viajaban en la respuesta y la
+          pantalla solo leía el umbral: enseñarlos no cuesta ni una consulta. Y
+          cambia la pregunta que contesta la banda —de «cuánto me falta» a «cómo
+          es el juego»—, que es lo que hace que valga la pena perseguirlo. */}
+      <ul
+        aria-label={t.escaleraDelBono}
+        className="mt-4 grid gap-2 text-center"
+        style={{ gridTemplateColumns: `repeat(${hito.escalones.length}, minmax(0, 1fr))` }}
+      >
+        {hito.escalones.map((e) => (
+          <li
+            key={e.usuarios}
+            /* Cumplido en tinta plena, pendiente apagado. El estado NO va solo
+               por color: el cumplido va además en negrita, así que se distingue
+               en escala de grises y con cualquier tema raro del cliente. */
+            className={e.alcanzado ? "text-texto" : "text-texto-apoyo"}
+          >
+            <p className={`text-apoyo tabular-nums ${e.alcanzado ? "font-semibold" : ""}`}>
+              {t.numero(e.usuarios)}
+            </p>
+            <p className="text-apoyo tabular-nums opacity-80">{e.premio.texto}</p>
+          </li>
+        ))}
+      </ul>
+
+      {/* El ritmo y la recta final.
+
+          Va detrás de la escalera y no delante: primero cuál es el juego,
+          después a qué velocidad vas. Al revés se lee como una cifra suelta. */}
+      <p className="mt-4 text-apoyo text-texto-apoyo">
+        {t.ritmoYRecta(hito.ritmo, hito.diasRestantes)}{" "}
+        {hito.siguiente
+          ? hito.llegaEl
+            ? t.loAlcanzarasEl(Number(hito.llegaEl.slice(8, 10)))
+            : t.cerrarasElMesEn(hito.proyeccion)
+          : null}
+      </p>
+
+      {/* Quién te está acercando.
+
+          Es lo que convierte la barra en una lista de llamadas. Un progreso que
+          no dice de dónde viene no se puede empujar: el agente ve que le faltan
+          9.280 y no tiene ni idea de a quién telefonear. Tres como mucho —una
+          lista de veinte correos en un móvil no se lee— y enlazadas a su ficha,
+          que es donde están sus enlaces de captación. */}
+      {hito.porWebmaster.length > 0 && (
+        <div className="mt-4">
+          <p className="text-rotulo text-texto-apoyo">{t.quienTeAcerca}</p>
+          <ul className="mt-1.5 divide-y divide-junta" role="list">
+            {hito.porWebmaster.map((w) => (
+              <li key={w.webmasterId}>
+                <a
+                  href={`/red/${encodeURIComponent(w.email)}`}
+                  className="pulsable -mx-2 flex min-h-11 items-center gap-3 rounded-control px-2"
+                >
+                  <span className="min-w-0 flex-1 truncate text-apoyo">{w.email}</span>
+                  <span className="cifra shrink-0 text-apoyo tabular-nums">
+                    {t.registrosCortos(w.registros)}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Banda>
   );
 }

@@ -24,9 +24,12 @@
  */
 
 import { db, CERROJO, conCerrojo } from "../db.ts";
-import { avisarRedApagadaAlAgente } from "../bot/avisos.ts";
+import { avisarCaminoDelBonoAlAgente, avisarRedApagadaAlAgente } from "../bot/avisos.ts";
 import { diasSinActividad, estaApagado } from "../red/inactividad.ts";
-import { hoyContable } from "./registros.ts";
+import { escaleraVigente, hoyContable, registrosDelMesPorWebmaster } from "./registros.ts";
+import { siguienteEscalon, type Escalon } from "../devengo/bonos.ts";
+import { diaDelMes, diasQueQuedanDelMes, mesContable } from "../fechas.ts";
+import { formatearMicros } from "../devengo/dinero.ts";
 
 /** Ventana de historial que se mira para decidir si alguien está parado. */
 const DIAS_VENTANA = 45;
@@ -36,7 +39,18 @@ export interface ResultadoAvisos {
   agentesAvisados: number;
   webmastersApagados: number;
   webmastersConIncidencia: number;
+  /** Agentes a los que se ha empujado hacia el bono. */
+  agentesEmpujados: number;
 }
+
+/**
+ * Últimos días del mes en los que la recta final se considera recta final.
+ *
+ * Siete, y no treinta: el empujón vale porque es raro. Fuera de esta ventana el
+ * único aviso del bono que se manda es el de cruzar la mitad del camino, que
+ * por construcción ocurre una vez por escalón.
+ */
+const DIAS_RECTA_FINAL = 7;
 
 /**
  * Estados de Sophon que el agente tiene que saber y no puede deducir.
@@ -102,6 +116,11 @@ export async function barrerAvisos(): Promise<ResultadoAvisos | null> {
       let agentesAvisados = 0;
       let webmastersApagados = 0;
       let webmastersConIncidencia = 0;
+      let agentesEmpujados = 0;
+
+      // La escalera se lee UNA vez para todo el barrido: es la misma para todos
+      // los agentes y no cambia a mitad de bucle.
+      const escalones = await escaleraVigente();
 
       for (const agente of agentes) {
         const apagados: { email: string; dias: number }[] = [];
@@ -134,11 +153,22 @@ export async function barrerAvisos(): Promise<ResultadoAvisos | null> {
         webmastersConIncidencia += incidencias.length;
       }
 
+      // El empujón del bono va en su propia pasada y no dentro del bucle de
+      // arriba: aquel sale antes por `continue` cuando no hay nada que decir de
+      // la red, y quien tiene la red impecable es justo quien más cerca puede
+      // estar del hito.
+      if (escalones.length > 0) {
+        for (const agente of agentes) {
+          if (await empujarHaciaElBono(agente, escalones, hoy)) agentesEmpujados++;
+        }
+      }
+
       const resultado: ResultadoAvisos = {
         agentesRevisados: agentes.length,
         agentesAvisados,
         webmastersApagados,
         webmastersConIncidencia,
+        agentesEmpujados,
       };
 
       await db.ejecucionSync.update({
@@ -159,4 +189,67 @@ export async function barrerAvisos(): Promise<ResultadoAvisos | null> {
       throw e;
     }
   });
+}
+
+/**
+ * ¿Hay que empujar a este agente hacia el bono hoy?
+ *
+ * Dos situaciones, y solo dos:
+ *
+ *  1. **Ha cruzado la mitad del camino** hacia el siguiente escalón. Se detecta
+ *     comparando lo que lleva hoy con lo que llevaba ayer, no mirando si está
+ *     por encima del 50 %: lo segundo avisaría todos los días desde que lo cruza
+ *     hasta que lo alcanza. Es una transición, y las transiciones se detectan
+ *     con dos lecturas.
+ *  2. **Está en la recta final del mes** —los últimos siete días— y el hito le
+ *     da tiempo al ritmo que lleva. Si no le da, no se dice nada: recordarle una
+ *     meta que ya no alcanza no es un empujón, es una regañina.
+ *
+ * Como mucho un mensaje, y el barrido entero corre una vez al día.
+ */
+async function empujarHaciaElBono(
+  agente: { id: string; telegramId: bigint | null; idioma: string },
+  escalones: readonly Escalon[],
+  hoy: string,
+): Promise<boolean> {
+  if (agente.telegramId === null) return false;
+
+  const mes = mesContable();
+  const ayer = new Date(Date.parse(`${hoy}T00:00:00Z`));
+
+  const [actual, hastaAyer] = await Promise.all([
+    registrosDelMesPorWebmaster(agente.id, mes),
+    registrosDelMesPorWebmaster(agente.id, mes, ayer),
+  ]);
+
+  const siguiente = siguienteEscalon(actual.total, escalones);
+  // Sin siguiente escalón ya está arriba del todo: ahí no hay nada que empujar,
+  // y `avisarBonoAlAgente` ya se lo dijo cuando cobró.
+  if (!siguiente) return false;
+
+  const anterior = escalones
+    .filter((e) => e.usuarios < siguiente.usuarios)
+    .reduce((alto, e) => Math.max(alto, e.usuarios), 0);
+  const mitad = anterior + (siguiente.usuarios - anterior) / 2;
+  const cruzaLaMitad = hastaAyer.total < mitad && actual.total >= mitad;
+
+  const transcurridos = diaDelMes(hoy);
+  const restantes = diasQueQuedanDelMes(hoy);
+  const porDia = actual.total / transcurridos;
+  const faltan = siguiente.usuarios - actual.total;
+  const llegaATiempo = porDia > 0 && Math.ceil(faltan / porDia) <= restantes;
+  const enLaRectaFinal = restantes <= DIAS_RECTA_FINAL && llegaATiempo;
+
+  if (!cruzaLaMitad && !enLaRectaFinal) return false;
+
+  await avisarCaminoDelBonoAlAgente({
+    telegramId: agente.telegramId,
+    idioma: agente.idioma,
+    faltan,
+    premio: formatearMicros(siguiente.recompensaMicros),
+    ritmo: Math.round(porDia * 10) / 10,
+    diasRestantes: restantes,
+    porWebmaster: actual.porWebmaster,
+  });
+  return true;
 }

@@ -81,11 +81,33 @@ export const es = {
   estadoDeTuDinero: "Estado del saldo",
   // ── Bono por hitos ────────────────────────────────────────────────────────
   bonoDelMes: "Bono del mes",
-  registrosEsteMes: (n: number) => `${n.toLocaleString("es-ES")} registros este mes`,
+  registrosEsteMes: (n: number) =>
+    `${n.toLocaleString("es-ES")} ${n === 1 ? "registro" : "registros"} este mes`,
   faltanParaElBono: (faltan: number, premio: string) =>
-    `Faltan ${faltan.toLocaleString("es-ES")} registros para ${premio}.`,
-  bonoMaximoAlcanzado: "Alcanzado el hito más alto del mes.",
-  bonoGanado: (importe: string) => `${importe} ganados`,
+    `Te ${faltan === 1 ? "falta" : "faltan"} ${faltan.toLocaleString("es-ES")} ${
+      faltan === 1 ? "registro" : "registros"
+    } para ${premio}.`,
+  bonoMaximoAlcanzado: "Has alcanzado el hito más alto del mes.",
+  bonoGanado: (importe: string) => `Has ganado ${importe}`,
+  escaleraDelBono: "Escalones del bono",
+  /*
+   * El ritmo y la recta final: las dos cifras que SÍ se mueven todos los días.
+   *
+   * Con los umbrales de hoy la barra del hito marca poco y va a seguir
+   * marcando poco. Falsear su escala para que parezca más sería mentir sobre
+   * lo que falta, así que lo que se añade es otra medida —la del propio
+   * agente— que responde al trabajo de esta mañana aunque la meta esté lejos.
+   */
+  ritmoYRecta: (ritmo: number, dias: number) =>
+    `Vas a ${ritmo.toLocaleString("es-ES")} ${ritmo === 1 ? "registro" : "registros"} al día y te ${
+      dias === 1 ? "queda" : "quedan"
+    } ${dias} ${dias === 1 ? "día" : "días"} de mes.`,
+  loAlcanzarasEl: (dia: number) => `A este ritmo lo alcanzarás el día ${dia}.`,
+  cerrarasElMesEn: (registros: number) =>
+    `A este ritmo cerrarás el mes en ${registros.toLocaleString("es-ES")}.`,
+  frenteAlMesPasado: (porcentaje: number) =>
+    `${porcentaje >= 0 ? "+" : "−"}${Math.abs(porcentaje)} % sobre el mes pasado`,
+  quienTeAcerca: "Quién te está acercando",
 
   // ── Activar webmaster ─────────────────────────────────────────────────────
   correoDelWebmaster: "Correo del webmaster",
@@ -131,7 +153,9 @@ export const es = {
   sinEnlaces: "Sin enlaces publicados.",
   enlacesNoDisponibles: "Enlaces no disponibles. Se pueden consultar más tarde.",
   enlaceCopiado: "Enlace copiado",
-  registrosCortos: (n: number) => `${n} registros`,
+  numero: (n: number) => n.toLocaleString("es-ES"),
+  registrosCortos: (n: number) =>
+    `${n.toLocaleString("es-ES")} ${n === 1 ? "registro" : "registros"}`,
 
   // ── La Mecha ──────────────────────────────────────────────────────────────
   tiempoRestanteDePro: "Tiempo restante de PRO",
@@ -329,11 +353,25 @@ const en: Cadenas = {
   acciones: "Actions",
   estadoDeTuDinero: "Balance status",
   bonoDelMes: "Monthly bonus",
-  registrosEsteMes: (n: number) => `${n.toLocaleString("en-US")} signups this month`,
+  registrosEsteMes: (n: number) =>
+    `${n.toLocaleString("en-US")} ${n === 1 ? "signup" : "signups"} this month`,
   faltanParaElBono: (faltan: number, premio: string) =>
-    `${faltan.toLocaleString("en-US")} signups to reach ${premio}.`,
-  bonoMaximoAlcanzado: "Top milestone reached for this month.",
-  bonoGanado: (importe: string) => `${importe} earned`,
+    `You need ${faltan.toLocaleString("en-US")} more ${
+      faltan === 1 ? "signup" : "signups"
+    } to reach ${premio}.`,
+  bonoMaximoAlcanzado: "You have reached the top milestone of the month.",
+  bonoGanado: (importe: string) => `You have earned ${importe}`,
+  escaleraDelBono: "Bonus milestones",
+  ritmoYRecta: (ritmo: number, dias: number) =>
+    `You are averaging ${ritmo.toLocaleString("en-US")} ${
+      ritmo === 1 ? "signup" : "signups"
+    } a day, with ${dias} ${dias === 1 ? "day" : "days"} left in the month.`,
+  loAlcanzarasEl: (dia: number) => `At this rate you will reach it on day ${dia}.`,
+  cerrarasElMesEn: (registros: number) =>
+    `At this rate you will close the month at ${registros.toLocaleString("en-US")}.`,
+  frenteAlMesPasado: (porcentaje: number) =>
+    `${porcentaje >= 0 ? "+" : "−"}${Math.abs(porcentaje)} % vs last month`,
+  quienTeAcerca: "Who is getting you there",
 
   correoDelWebmaster: "Webmaster's email",
   tieneQueExistirYa: "Must be an account already registered on Sophon.",
@@ -374,7 +412,9 @@ const en: Cadenas = {
   sinEnlaces: "No links published.",
   enlacesNoDisponibles: "Links unavailable. They can be checked later.",
   enlaceCopiado: "Link copied",
-  registrosCortos: (n: number) => `${n} signups`,
+  numero: (n: number) => n.toLocaleString("en-US"),
+  registrosCortos: (n: number) =>
+    `${n.toLocaleString("en-US")} ${n === 1 ? "signup" : "signups"}`,
 
   tiempoRestanteDePro: "PRO time left",
   venceEl: (fecha: string) => `ends ${fecha}`,
@@ -536,11 +576,27 @@ const it: Cadenas = {
   acciones: "Azioni",
   estadoDeTuDinero: "Stato del saldo",
   bonoDelMes: "Bonus del mese",
-  registrosEsteMes: (n: number) => `${n.toLocaleString("it-IT")} iscrizioni questo mese`,
+  registrosEsteMes: (n: number) =>
+    `${n.toLocaleString("it-IT")} ${n === 1 ? "iscrizione" : "iscrizioni"} questo mese`,
   faltanParaElBono: (faltan: number, premio: string) =>
-    `Mancano ${faltan.toLocaleString("it-IT")} iscrizioni per ${premio}.`,
-  bonoMaximoAlcanzado: "Raggiunta la soglia più alta del mese.",
-  bonoGanado: (importe: string) => `${importe} guadagnati`,
+    `Ti ${faltan === 1 ? "manca" : "mancano"} ${faltan.toLocaleString("it-IT")} ${
+      faltan === 1 ? "iscrizione" : "iscrizioni"
+    } per ${premio}.`,
+  bonoMaximoAlcanzado: "Hai raggiunto la soglia più alta del mese.",
+  bonoGanado: (importe: string) => `Hai guadagnato ${importe}`,
+  escaleraDelBono: "Soglie del bonus",
+  ritmoYRecta: (ritmo: number, dias: number) =>
+    `Vai a ${ritmo.toLocaleString("it-IT")} ${
+      ritmo === 1 ? "iscrizione" : "iscrizioni"
+    } al giorno e ti ${dias === 1 ? "resta" : "restano"} ${dias} ${
+      dias === 1 ? "giorno" : "giorni"
+    } di mese.`,
+  loAlcanzarasEl: (dia: number) => `Di questo passo la raggiungerai il ${dia}.`,
+  cerrarasElMesEn: (registros: number) =>
+    `Di questo passo chiuderai il mese a ${registros.toLocaleString("it-IT")}.`,
+  frenteAlMesPasado: (porcentaje: number) =>
+    `${porcentaje >= 0 ? "+" : "−"}${Math.abs(porcentaje)} % rispetto al mese scorso`,
+  quienTeAcerca: "Chi ti sta avvicinando",
 
   correoDelWebmaster: "Email del webmaster",
   tieneQueExistirYa: "Deve essere un account già registrato su Sophon.",
@@ -582,7 +638,9 @@ const it: Cadenas = {
   sinEnlaces: "Nessun link pubblicato.",
   enlacesNoDisponibles: "Link non disponibili. Si possono consultare più tardi.",
   enlaceCopiado: "Link copiato",
-  registrosCortos: (n: number) => `${n} iscrizioni`,
+  numero: (n: number) => n.toLocaleString("it-IT"),
+  registrosCortos: (n: number) =>
+    `${n.toLocaleString("it-IT")} ${n === 1 ? "iscrizione" : "iscrizioni"}`,
 
   tiempoRestanteDePro: "Tempo di PRO rimasto",
   venceEl: (fecha: string) => `scade il ${fecha}`,
@@ -750,11 +808,27 @@ const pt: Cadenas = {
   acciones: "Ações",
   estadoDeTuDinero: "Estado do saldo",
   bonoDelMes: "Bónus do mês",
-  registrosEsteMes: (n: number) => `${n.toLocaleString("pt-PT")} registos este mês`,
+  registrosEsteMes: (n: number) =>
+    `${n.toLocaleString("pt-PT")} ${n === 1 ? "registo" : "registos"} este mês`,
   faltanParaElBono: (faltan: number, premio: string) =>
-    `Faltam ${faltan.toLocaleString("pt-PT")} registos para ${premio}.`,
-  bonoMaximoAlcanzado: "Atingido o patamar mais alto do mês.",
-  bonoGanado: (importe: string) => `${importe} ganhos`,
+    `${faltan === 1 ? "Falta-te" : "Faltam-te"} ${faltan.toLocaleString("pt-PT")} ${
+      faltan === 1 ? "registo" : "registos"
+    } para ${premio}.`,
+  bonoMaximoAlcanzado: "Atingiste o patamar mais alto do mês.",
+  bonoGanado: (importe: string) => `Ganhaste ${importe}`,
+  escaleraDelBono: "Patamares do bónus",
+  ritmoYRecta: (ritmo: number, dias: number) =>
+    `Vais a ${ritmo.toLocaleString("pt-PT")} ${
+      ritmo === 1 ? "registo" : "registos"
+    } por dia e ${dias === 1 ? "falta-te" : "faltam-te"} ${dias} ${
+      dias === 1 ? "dia" : "dias"
+    } de mês.`,
+  loAlcanzarasEl: (dia: number) => `A este ritmo atinges-lo no dia ${dia}.`,
+  cerrarasElMesEn: (registros: number) =>
+    `A este ritmo fechas o mês em ${registros.toLocaleString("pt-PT")}.`,
+  frenteAlMesPasado: (porcentaje: number) =>
+    `${porcentaje >= 0 ? "+" : "−"}${Math.abs(porcentaje)} % sobre o mês passado`,
+  quienTeAcerca: "Quem te está a aproximar",
 
   correoDelWebmaster: "Email do webmaster",
   tieneQueExistirYa: "Tem de ser uma conta já registada na Sophon.",
@@ -795,7 +869,9 @@ const pt: Cadenas = {
   sinEnlaces: "Sem links publicados.",
   enlacesNoDisponibles: "Links indisponíveis. Podem consultar-se mais tarde.",
   enlaceCopiado: "Link copiado",
-  registrosCortos: (n: number) => `${n} registos`,
+  numero: (n: number) => n.toLocaleString("pt-PT"),
+  registrosCortos: (n: number) =>
+    `${n.toLocaleString("pt-PT")} ${n === 1 ? "registo" : "registos"}`,
 
   tiempoRestanteDePro: "Tempo de PRO que falta",
   venceEl: (fecha: string) => `acaba a ${fecha}`,
@@ -969,9 +1045,20 @@ const ar: Cadenas = {
   bonoDelMes: "مكافأة الشهر",
   registrosEsteMes: (n: number) => `${n.toLocaleString("ar-EG")} تسجيل هذا الشهر`,
   faltanParaElBono: (faltan: number, premio: string) =>
-    `يتبقّى ${faltan.toLocaleString("ar-EG")} تسجيل للوصول إلى ${premio}.`,
-  bonoMaximoAlcanzado: "تم بلوغ أعلى مستوى لهذا الشهر.",
-  bonoGanado: (importe: string) => `${importe} مُحقّقة`,
+    `يتبقّى لك ${faltan.toLocaleString("ar-EG")} تسجيل للوصول إلى ${premio}.`,
+  bonoMaximoAlcanzado: "لقد بلغت أعلى مستوى لهذا الشهر.",
+  bonoGanado: (importe: string) => `لقد ربحت ${importe}`,
+  escaleraDelBono: "مستويات المكافأة",
+  ritmoYRecta: (ritmo: number, dias: number) =>
+    `معدّلك ${ritmo.toLocaleString("ar-EG")} تسجيل يوميًا، ويتبقّى ${dias} ${
+      dias === 1 ? "يوم" : "أيام"
+    } من الشهر.`,
+  loAlcanzarasEl: (dia: number) => `بهذا المعدّل ستبلغه في اليوم ${dia}.`,
+  cerrarasElMesEn: (registros: number) =>
+    `بهذا المعدّل ستنهي الشهر عند ${registros.toLocaleString("ar-EG")}.`,
+  frenteAlMesPasado: (porcentaje: number) =>
+    `${porcentaje >= 0 ? "+" : "−"}${Math.abs(porcentaje)} % عن الشهر الماضي`,
+  quienTeAcerca: "من يقرّبك من الهدف",
 
   correoDelWebmaster: "بريد مشرف الموقع",
   tieneQueExistirYa: "يجب أن يكون الحساب مسجَّلًا في Sophon مسبقًا.",
@@ -1011,7 +1098,8 @@ const ar: Cadenas = {
   sinEnlaces: "لا روابط منشورة.",
   enlacesNoDisponibles: "الروابط غير متاحة. يمكن الاطلاع عليها لاحقًا.",
   enlaceCopiado: "نُسخ الرابط",
-  registrosCortos: (n: number) => `${n} تسجيل`,
+  numero: (n: number) => n.toLocaleString("ar-EG"),
+  registrosCortos: (n: number) => `${n.toLocaleString("ar-EG")} تسجيل`,
 
   tiempoRestanteDePro: "ما تبقّى من PRO",
   venceEl: (fecha: string) => `ينتهي في ${fecha}`,

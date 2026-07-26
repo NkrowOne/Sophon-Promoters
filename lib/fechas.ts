@@ -69,3 +69,33 @@ export function mesAnterior(mes: string): string {
 export function inicioDelMes(): Date {
   return inicioDeMes(mesContable());
 }
+
+/** Cuántos días tiene `mes`. Sale de la resta, así que los bisiestos salen solos. */
+export function diasDelMes(mes: string): number {
+  const desde = inicioDeMes(mes).getTime();
+  const hasta = inicioDelMesSiguiente(mes).getTime();
+  return Math.round((hasta - desde) / 86_400_000);
+}
+
+/**
+ * En qué día del mes va `fecha`, contando desde 1.
+ *
+ * Es el DENOMINADOR del ritmo, y por eso cuenta el día en curso: a media
+ * mañana del día 4 se llevan cuatro días de trabajo, no tres. Dividir entre los
+ * días ya cerrados exageraría el ritmo cada mañana y lo devolvería a su sitio
+ * cada noche, que es la clase de cifra que nadie se cree la segunda vez.
+ */
+export function diaDelMes(fecha: string): number {
+  return Number(fecha.slice(8, 10));
+}
+
+/**
+ * Días que quedan del mes contando hoy, que es como los cuenta cualquiera.
+ *
+ * El último día del mes devuelve 1 —«hoy»— y nunca 0: mientras el mes esté
+ * abierto queda margen, y un contador a cero un día que todavía suma registros
+ * diría lo contrario.
+ */
+export function diasQueQuedanDelMes(fecha: string): number {
+  return diasDelMes(mesDe(fecha)) - diaDelMes(fecha) + 1;
+}
