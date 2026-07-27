@@ -96,7 +96,7 @@ interface Respuesta {
 }
 
 export default function CarteraPagina() {
-  const { haptica } = useTelegram();
+  const { haptica, idioma } = useTelegram();
   const t = useCadenas();
   const [datos, setDatos] = useState<Respuesta | null>(null);
   const [error, setError] = useState<ErrorApi | null>(null);
@@ -287,14 +287,14 @@ export default function CarteraPagina() {
           </p>
           {importeMicros !== null && importeMicros > disponibleMicros && (
             <p className="mt-1 text-apoyo text-peligro">
-              {t.tePasasEn(formatearMicros(importeMicros - disponibleMicros))}
+              {t.tePasasEn(formatearMicros(importeMicros - disponibleMicros, 2, idioma))}
             </p>
           )}
           {importeMicros !== null &&
             importeMicros < minimoMicros &&
             importeMicros > 0n && (
               <p className="mt-1 text-apoyo text-peligro">
-                {t.teFaltanParaElMinimo(formatearMicros(minimoMicros - importeMicros))}
+                {t.teFaltanParaElMinimo(formatearMicros(minimoMicros - importeMicros, 2, idioma))}
               </p>
             )}
 
@@ -366,7 +366,7 @@ export default function CarteraPagina() {
 
           <BotonPrincipalAccion
             texto={
-              importeValido ? t.pedirImporte(formatearMicros(importeMicros!)) : t.solicitarRetiro
+              importeValido ? t.pedirImporte(formatearMicros(importeMicros!, 2, idioma)) : t.solicitarRetiro
             }
             onClick={solicitar}
             activo={importeValido && walletValida}

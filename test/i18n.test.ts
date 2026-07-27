@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { cadenas } from "../lib/i18n.ts";
+import { formatearMicros } from "../lib/devengo/dinero.ts";
 import { IDIOMAS, type Idioma } from "../lib/idiomas.ts";
 
 /**
@@ -164,6 +165,52 @@ test("cada catálogo formatea con su propio locale", () => {
   // formato del navegador al lado de un «50,00 $» con el de la aplicación.
   const porIdioma = IDIOMAS.map((i) => cadenas(i).numero(1234567));
   assert.equal(new Set(porIdioma).size > 1, true, "todos los idiomas formatean igual: alguno no usa su locale");
+});
+
+test("el dinero se formatea en el idioma del agente, y con los separadores del catálogo", () => {
+  /*
+   * Un mismo importe en los cinco idiomas.
+   *
+   * El defecto que esto fija se veía en pantalla: `formatearMicros` metía el
+   * punto de millares y la coma decimal españoles en las cinco lenguas, así que
+   * un angloparlante leía «2.147,39 $» —dos dólares y pico, la cifra del
+   * producto equivocada por un factor de mil— y la portada árabe pintaba los
+   * recuentos «21,840» con el dinero «2.147,39 $» a un centímetro.
+   *
+   * Se compara contra el CATÁLOGO y no contra literales copiados a mano: lo que
+   * importa no es que el inglés use la coma, es que el dinero y los recuentos de
+   * la misma pantalla la usen igual.
+   */
+  const micros = 21_840_390_000n; // 21 840,39 $
+  for (const idioma of IDIOMAS) {
+    const recuento = cadenas(idioma).numero(21840);
+    const importe = formatearMicros(micros, 2, idioma);
+    assert.equal(
+      importe.slice(0, recuento.length),
+      recuento,
+      `en ${idioma} el dinero y el recuento separan distinto los millares`,
+    );
+  }
+
+  // Y no todos coinciden: si coincidieran, el bucle de arriba pasaría con la
+  // convención española metida en los cinco, que es justo el defecto.
+  assert.ok(
+    new Set(IDIOMAS.map((i) => formatearMicros(micros, 2, i))).size > 1,
+    "todos los idiomas formatean el dinero igual: alguno no usa su locale",
+  );
+});
+
+test("la moneda dicha en palabras está traducida: la lee el lector de pantalla", () => {
+  // Estaba escrita a mano en `components/Importe.tsx` y `Animacion.tsx`, así que
+  // un agente inglés oía «… dólares». Se cazó leyendo el `innerText` de la
+  // portada en los cinco idiomas, no leyendo el código.
+  assert.match(cadenas("en").dolares("2,147.39"), /dollars/);
+  assert.match(cadenas("it").dolares("2.147,39"), /dollari/);
+  for (const idioma of ["en", "it", "ar"] as const) {
+    assert.doesNotMatch(cadenas(idioma).dolares("1"), /dólares/);
+  }
+  // El importe entra tal cual: la cadena no vuelve a formatear nada.
+  assert.ok(cadenas("pt").dolares("21 840,39").startsWith("21 840,39"));
 });
 
 /* ── La voz ─────────────────────────────────────────────────────────────── */

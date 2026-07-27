@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Un importe.
  *
@@ -10,8 +12,14 @@
  * Aquí el número va en la cara mono (las columnas de una lista tienen que
  * alinearse) y el `$` va pegado, más pequeño y apagado: es una unidad, no un
  * dato. La cadena accesible conserva el importe completo.
+ *
+ * Cuando el importe llega en `micros` se formatea aquí, y entonces hace falta el
+ * idioma: sin él, un agente inglés leía «2.147,39 $» —dos dólares y pico— junto
+ * a recuentos que el catálogo ya escribía «21,840». Sale del contexto de
+ * Telegram, que es de donde salen las cadenas de la pantalla.
  */
 
+import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { formatearMicros, type Micros } from "@/lib/devengo/dinero";
 
 export function Importe({
@@ -27,7 +35,9 @@ export function Importe({
   /** El importe se dibuja en tinta de apoyo: se usa para los ceros. */
   apagado?: boolean;
 }) {
-  const completo = texto ?? formatearMicros(micros ?? 0n);
+  const { idioma } = useTelegram();
+  const t = useCadenas();
+  const completo = texto ?? formatearMicros(micros ?? 0n, 2, idioma);
   const numero = completo.replace(/\s*\$$/, "");
 
   return (
@@ -36,7 +46,7 @@ export function Importe({
       <span aria-hidden className="ms-[0.22em] text-[0.85em] opacity-60">
         $
       </span>
-      <span className="sr-only">{numero} dólares</span>
+      <span className="sr-only">{t.dolares(numero)}</span>
     </span>
   );
 }
@@ -46,6 +56,7 @@ export function Importe({
  * columna. Repetir `$` en cada fila de una tabla es ruido, no precisión.
  */
 export function ImporteDesnudo({ micros, texto }: { micros?: Micros; texto?: string }) {
-  const completo = texto ?? formatearMicros(micros ?? 0n);
+  const { idioma } = useTelegram();
+  const completo = texto ?? formatearMicros(micros ?? 0n, 2, idioma);
   return <>{completo.replace(/\s*\$$/, "")}</>;
 }

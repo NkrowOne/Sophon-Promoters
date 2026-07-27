@@ -219,6 +219,17 @@ export const es = {
   sinEnlaces: "Todavía no ha publicado ningún enlace.",
   enlacesNoDisponibles: "Ahora no podemos consultar sus enlaces. Inténtalo más tarde.",
   enlaceCopiado: "Enlace copiado",
+  /**
+   * La moneda dicha con todas sus letras, solo para el lector de pantalla.
+   *
+   * En pantalla el `$` va aparte —más pequeño y apagado, porque es una unidad y
+   * no un dato—, y un lector de pantalla que se encuentra «2.147,39 $» a veces
+   * lo deletrea y a veces se lo salta. La cadena accesible dice la moneda
+   * entera, y por eso tiene que estar traducida: estaba escrita a mano en
+   * `components/Importe.tsx` y `components/Animacion.tsx`, así que un agente
+   * inglés oía «two thousand one hundred forty-seven point three nine dólares».
+   */
+  dolares: (importe: string) => `${importe} dólares`,
   numero: (n: number) => n.toLocaleString("es-ES"),
   registrosCortos: (n: number) =>
     `${n.toLocaleString("es-ES")} ${n === 1 ? "registro" : "registros"}`,
@@ -599,6 +610,7 @@ const en: Cadenas = {
   sinEnlaces: "They have not published any link yet.",
   enlacesNoDisponibles: "We cannot reach their links right now. Try again later.",
   enlaceCopiado: "Link copied",
+  dolares: (importe: string) => `${importe} dollars`,
   numero: (n: number) => n.toLocaleString("en-US"),
   registrosCortos: (n: number) =>
     `${n.toLocaleString("en-US")} ${n === 1 ? "signup" : "signups"}`,
@@ -933,6 +945,7 @@ const it: Cadenas = {
   sinEnlaces: "Non ha ancora pubblicato nessun link.",
   enlacesNoDisponibles: "Ora non riusciamo a leggere i suoi link. Riprova più tardi.",
   enlaceCopiado: "Link copiato",
+  dolares: (importe: string) => `${importe} dollari`,
   numero: (n: number) => n.toLocaleString("it-IT"),
   registrosCortos: (n: number) =>
     `${n.toLocaleString("it-IT")} ${n === 1 ? "iscrizione" : "iscrizioni"}`,
@@ -1273,6 +1286,7 @@ const pt: Cadenas = {
   sinEnlaces: "Ainda não publicou nenhum link.",
   enlacesNoDisponibles: "Agora não conseguimos ler os links dele. Tenta mais tarde.",
   enlaceCopiado: "Link copiado",
+  dolares: (importe: string) => `${importe} dólares`,
   numero: (n: number) => n.toLocaleString("pt-PT"),
   registrosCortos: (n: number) =>
     `${n.toLocaleString("pt-PT")} ${n === 1 ? "registo" : "registos"}`,
@@ -1623,6 +1637,7 @@ const ar: Cadenas = {
   sinEnlaces: "لم ينشر أي رابط بعد.",
   enlacesNoDisponibles: "لا نستطيع قراءة روابطه الآن. حاول لاحقًا.",
   enlaceCopiado: "نُسخ الرابط",
+  dolares: (importe: string) => `${importe} دولار`,
   numero: (n: number) => n.toLocaleString("ar"),
   registrosCortos: (n: number) => `${n.toLocaleString("ar")} تسجيل`,
 

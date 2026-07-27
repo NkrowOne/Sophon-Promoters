@@ -10,6 +10,7 @@ import {
   saldos,
 } from "@/lib/api/agente";
 import { estaCerrado } from "@/lib/devengo/motor";
+import type { Idioma } from "@/lib/idiomas";
 import {
   escaleraVigente,
   hoyContable,
@@ -40,7 +41,7 @@ const DIAS = 30;
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, idioma } = ctx.sesion;
 
   const hoy = hoyContable();
   const desde = new Date(Date.parse(`${hoy}T00:00:00Z`) - (DIAS - 1) * 86_400_000);
@@ -63,7 +64,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       where: { agenteId, estado: "CONFIRMADA", creadoEn: { gte: desde } },
       select: { creadoEn: true },
     }),
-    progresoDelHito(agenteId),
+    progresoDelHito(agenteId, idioma),
   ]);
 
   // Se agrega por fecha en memoria: son 30 filas como mucho.
@@ -99,7 +100,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     .map(([fecha, v]) => ({
       fecha,
       importeMicros: v.importeMicros.toString(),
-      importe: dinero(v.importeMicros).texto,
+      importe: dinero(v.importeMicros, idioma).texto,
       registros: v.registros,
       registrosT1: v.t1,
       registrosT2: v.t2,
@@ -115,10 +116,10 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     dias,
     webmasters,
     cartera: {
-      devengado: dinero(saldo.devengadoMicros),
-      disponible: dinero(saldo.disponibleMicros),
-      solicitado: dinero(saldo.solicitadoMicros),
-      pagado: dinero(saldo.pagadoMicros),
+      devengado: dinero(saldo.devengadoMicros, idioma),
+      disponible: dinero(saldo.disponibleMicros, idioma),
+      solicitado: dinero(saldo.solicitadoMicros, idioma),
+      pagado: dinero(saldo.pagadoMicros, idioma),
     },
     hito,
   });
@@ -135,7 +136,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
  * nada: una barra de progreso hacia un objetivo que no existe es peor que el
  * hueco que deja.
  */
-async function progresoDelHito(agenteId: string) {
+async function progresoDelHito(agenteId: string, idioma: Idioma) {
   const escalones = await escaleraVigente();
   if (escalones.length === 0) return null;
 
@@ -191,12 +192,12 @@ async function progresoDelHito(agenteId: string) {
     registros,
     // Lo ya ganado este mes es la recompensa del escalón más alto alcanzado, no
     // la suma: el bono no es acumulable.
-    ganado: dinero(alcanzado?.recompensaMicros ?? 0n),
+    ganado: dinero(alcanzado?.recompensaMicros ?? 0n, idioma),
     siguiente: siguiente
       ? {
           usuarios: siguiente.usuarios,
           faltan,
-          premio: dinero(siguiente.recompensaMicros),
+          premio: dinero(siguiente.recompensaMicros, idioma),
           /*
            * Lo que se gana DE MÁS, que no es lo que paga el escalón siguiente.
            *
@@ -205,12 +206,12 @@ async function progresoDelHito(agenteId: string) {
            * los 50 de diferencia. La banda enseñaba el premio entero junto a lo
            * ya ganado, así que el agente sumaba dos veces el mismo dinero.
            */
-          incremento: dinero(siguiente.recompensaMicros - (alcanzado?.recompensaMicros ?? 0n)),
+          incremento: dinero(siguiente.recompensaMicros - (alcanzado?.recompensaMicros ?? 0n), idioma),
         }
       : null,
     escalones: escalones.map((e) => ({
       usuarios: e.usuarios,
-      premio: dinero(e.recompensaMicros),
+      premio: dinero(e.recompensaMicros, idioma),
       alcanzado: registros >= e.usuarios,
     })),
     ritmo,

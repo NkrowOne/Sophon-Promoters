@@ -35,6 +35,7 @@ import {
   mesContable,
 } from "../fechas.ts";
 import { formatearMicros } from "../devengo/dinero.ts";
+import { idiomaGuardado } from "../idiomas.ts";
 
 /** Ventana de historial que se mira para decidir si alguien está parado. */
 const DIAS_VENTANA = 45;
@@ -268,9 +269,13 @@ async function empujarHaciaElBono(
      * 50 más. Anunciar el total es prometer el triple de lo que hay, y encima
      * hace la meta más lejana de lo que es.
      */
+    // En el idioma del agente, igual que las cadenas: el mensaje se monta aquí
+    // porque `avisarCaminoDelBonoAlAgente` recibe el importe ya formateado.
     premio: formatearMicros(
       siguiente.recompensaMicros -
         (escalonAlcanzado(actual.total, escalones)?.recompensaMicros ?? 0n),
+      2,
+      idiomaGuardado(agente.idioma),
     ),
     ritmo: Math.round(porDia * 10) / 10,
     diasRestantes: restantes,

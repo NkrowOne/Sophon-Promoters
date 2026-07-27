@@ -11,6 +11,8 @@
  * el redondeo se comería la señal antes de poder repartirla.
  */
 
+import { IDIOMA_POR_DEFECTO, LOCALES, type Idioma } from "../idiomas.ts";
+
 /** Micros de dólar que forman una unidad. */
 export const MICROS_POR_DOLAR = 1_000_000n;
 
@@ -80,10 +82,53 @@ export function microsACadena(micros: Micros): string {
 }
 
 /**
- * Formatea para mostrar al usuario: coma decimal, separador de millares y `$`
- * pospuesto, que es la convención española que sigue toda la interfaz.
+ * Separadores de millares y de decimales de cada idioma, calculados una vez.
+ *
+ * Se piden a `Intl` y no se escriben a mano porque escribirlos a mano fue el
+ * defecto: los cinco idiomas recibían el punto de millares y la coma decimal
+ * españoles, así que un angloparlante leía «2.147,39 $» como dos dólares y pico
+ * —la cifra del producto equivocada por un factor de mil— y en la portada árabe
+ * los recuentos salían «21,840» y el dinero «2.147,39 $» a un centímetro.
+ *
+ * Se extraen solo los SEPARADORES, no el número formateado: el importe se sigue
+ * componiendo en `bigint`, y además la agrupación de `Intl` no es la que quiere
+ * el producto (en `es-ES` «1000» va sin punto y aquí todos los millares se
+ * marcan). El memo importa porque la cifra animada llama a esto por fotograma y
+ * construir un `Intl.NumberFormat` no es gratis.
  */
-export function formatearMicros(micros: Micros, decimales: 2 | 4 = 2): string {
+const separadoresMemo = new Map<Idioma, { grupo: string; decimal: string }>();
+
+function separadoresDe(idioma: Idioma): { grupo: string; decimal: string } {
+  const memo = separadoresMemo.get(idioma);
+  if (memo) return memo;
+
+  // Cinco dígitos y un decimal: con menos, los locales que solo agrupan a partir
+  // del quinto —`es-ES`, `it-IT`— no emitirían ninguna parte `group`.
+  const partes = new Intl.NumberFormat(LOCALES[idioma]).formatToParts(11111.1);
+  const separadores = {
+    grupo: partes.find((p) => p.type === "group")?.value ?? ".",
+    decimal: partes.find((p) => p.type === "decimal")?.value ?? ",",
+  };
+  separadoresMemo.set(idioma, separadores);
+  return separadores;
+}
+
+/**
+ * Formatea para mostrar al usuario, en su idioma.
+ *
+ * El `$` va pospuesto y separado en las cinco lenguas: es la convención que ya
+ * tiene el producto y cambiarla movería la cifra de sitio en media interfaz.
+ *
+ * El idioma va TERCERO y con valor por defecto porque el panel de superadmin y
+ * el cron —unos treinta y cinco sitios de llamada— no se traducen: es la
+ * decisión escrita en `lib/i18n.ts`, y ahí el español es la respuesta correcta,
+ * no una omisión.
+ */
+export function formatearMicros(
+  micros: Micros,
+  decimales: 2 | 4 = 2,
+  idioma: Idioma = IDIOMA_POR_DEFECTO,
+): string {
   const negativo = micros < 0n;
   const magnitud = negativo ? -micros : micros;
   const factor = 10n ** BigInt(6 - decimales);
@@ -93,11 +138,12 @@ export function formatearMicros(micros: Micros, decimales: 2 | 4 = 2): string {
   const entera = escalado / divisor;
   const resto = (escalado % divisor).toString().padStart(decimales, "0");
 
-  const enteraConMillares = entera
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const { grupo, decimal } = separadoresDe(idioma);
+  // El separador se inserta con una función y no como cadena de reemplazo: en
+  // `replace`, un `$` dentro del reemplazo sería una referencia al grupo.
+  const enteraConMillares = entera.toString().replace(/\B(?=(\d{3})+(?!\d))/g, () => grupo);
 
-  return `${negativo ? "−" : ""}${enteraConMillares},${resto} $`;
+  return `${negativo ? "−" : ""}${enteraConMillares}${decimal}${resto} $`;
 }
 
 /**

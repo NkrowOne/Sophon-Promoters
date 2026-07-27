@@ -13,6 +13,7 @@ import {
   repartir,
   sumar,
 } from "../lib/devengo/dinero.ts";
+import { LOCALES, type Idioma } from "../lib/idiomas.ts";
 
 test("parsea los importes reales que devuelve Sophon", () => {
   assert.equal(microsDesdeCadena("55842.05"), 55_842_050_000n);
@@ -59,6 +60,78 @@ test("formatea con la convención española", () => {
   assert.equal(formatearMicros(0n), "0,00 $");
   assert.equal(formatearMicros(-9_990_000n), "−9,99 $");
   assert.equal(formatearMicros(225_000n, 4), "0,2250 $");
+});
+
+/*
+ * El formato por idioma.
+ *
+ * El defecto que fijan estas pruebas se veía en pantalla: la portada árabe
+ * pintaba los RECUENTOS con `toLocaleString` —«21,840»— y justo debajo el DINERO
+ * con la convención española —«2.147,39 $»—, dos sistemas numéricos a un
+ * centímetro. En inglés era peor que feo: «2.147,39 $» son dos dólares y pico.
+ *
+ * Los separadores tienen que ser los MISMOS que usa el catálogo de `lib/i18n.ts`
+ * para los recuentos, así que se comprueban contra `toLocaleString` con el
+ * mismo locale y no contra literales copiados a mano.
+ */
+test("cada idioma usa sus separadores, y son los del catálogo", () => {
+  // 2.147,39 $ en español; el mismo importe, no el mismo texto.
+  const importe = 2_147_390_000n;
+
+  assert.equal(formatearMicros(importe, 2, "es"), "2.147,39 $");
+  assert.equal(formatearMicros(importe, 2, "it"), "2.147,39 $");
+  // Millares con coma y decimal con punto: es la corrección que motiva todo esto.
+  assert.equal(formatearMicros(importe, 2, "en"), "2,147.39 $");
+  /*
+   * El árabe escribe el dinero en cifras occidentales —es lo que el agente ve en
+   * su cartera de criptomonedas—, y con `ar` a secas agrupa como el inglés. Por
+   * eso el catálogo usa `ar` y no `ar-EG`, que numeraría «٢٬١٤٧».
+   */
+  assert.equal(formatearMicros(importe, 2, "ar"), "2,147.39 $");
+  assert.match(formatearMicros(importe, 2, "ar"), /^[\d.,]+ \$$/);
+  /*
+   * El portugués europeo NO agrupa con punto: separa los millares con espacio
+   * duro. Aquí es donde se ve que copiar la convención española «coincidía por
+   * casualidad» solo en italiano.
+   */
+  assert.equal(formatearMicros(importe, 2, "pt"), "2 147,39 $");
+
+  /*
+   * La comprobación que importa: en la MISMA pantalla, el dinero y el recuento
+   * separan igual. Se usa 21.840 porque es la cifra de la captura árabe donde se
+   * vieron las dos convenciones juntas, y porque `es-ES` e `it-IT` no agrupan
+   * los números de cuatro dígitos: con 2.147 el recuento diría «2147» y aquí no
+   * se estaría comparando nada.
+   */
+  const grande = 21_840_000_000n;
+  for (const [idioma, locale] of Object.entries(LOCALES)) {
+    const recuento = (21840).toLocaleString(locale);
+    const dinero = formatearMicros(grande, 2, idioma as Idioma);
+    assert.equal(dinero.slice(0, recuento.length), recuento, `millares en ${idioma}`);
+    assert.equal(
+      dinero.slice(recuento.length, recuento.length + 1),
+      (0.5).toLocaleString(locale).slice(1, 2),
+      `decimal en ${idioma}`,
+    );
+  }
+});
+
+test("sin idioma se formatea en español: el panel del superadmin no se traduce", () => {
+  assert.equal(formatearMicros(55_842_050_000n), formatearMicros(55_842_050_000n, 2, "es"));
+  assert.equal(formatearMicros(225_000n, 4), formatearMicros(225_000n, 4, "es"));
+});
+
+test("el idioma no toca la aritmética: mismos dígitos en los cinco", () => {
+  // Lo que cambia es el separador, no la cifra. Si algún idioma pasara por
+  // coma flotante, este importe —trece dígitos significativos— lo delataría.
+  const importe = microsDesdeCadena("1234567890.123456");
+  const soloDigitos = (s: string) => s.replace(/\D/g, "");
+  for (const idioma of ["es", "en", "it", "pt", "ar"] as const) {
+    assert.equal(soloDigitos(formatearMicros(importe, 2, idioma)), "123456789012");
+    assert.equal(soloDigitos(formatearMicros(importe, 4, idioma)), "12345678901235");
+    assert.equal(soloDigitos(formatearMicros(-importe, 2, idioma)), "123456789012");
+    assert.ok(formatearMicros(-importe, 2, idioma).startsWith("−"));
+  }
 });
 
 test("aplicar un porcentaje arrastra el residuo y no pierde micros", () => {

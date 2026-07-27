@@ -32,7 +32,7 @@ import { formatearMicros, type Micros } from "../devengo/dinero.ts";
 export { saldos, type Saldos } from "../devengo/saldos.ts";
 import { sesionActual, telegramDeLaPeticion, type AgenteSesion } from "../auth/sesion.ts";
 import { cadenas } from "../i18n.ts";
-import { idiomaDesdeTelegram } from "../idiomas.ts";
+import { idiomaDesdeTelegram, type Idioma } from "../idiomas.ts";
 
 export interface Contexto {
   sesion: AgenteSesion;
@@ -121,9 +121,17 @@ export interface DiaPublico {
   provisional: boolean;
 }
 
-/** Convierte micros a algo serializable: JSON no admite BigInt. */
-export function dinero(micros: Micros): { micros: string; texto: string } {
-  return { micros: micros.toString(), texto: formatearMicros(micros) };
+/**
+ * Convierte micros a algo serializable: JSON no admite BigInt.
+ *
+ * El idioma es OBLIGATORIO y sale siempre de `ctx.sesion.idioma`. Por aquí pasa
+ * el `texto` de casi todo el dinero que ve el agente, así que un valor por
+ * defecto convertiría cualquier olvido en una pantalla que dice «2.147,39 $» a
+ * un angloparlante —dos dólares y pico— sin que nada avise. Exigiéndolo, el
+ * olvido es un error de compilación.
+ */
+export function dinero(micros: Micros, idioma: Idioma): { micros: string; texto: string } {
+  return { micros: micros.toString(), texto: formatearMicros(micros, 2, idioma) };
 }
 
 

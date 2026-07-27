@@ -27,6 +27,28 @@ export function esRtl(idioma: Idioma): boolean {
 }
 
 /**
+ * Locale BCP-47 de cada idioma, para todo lo que numere.
+ *
+ * Los catálogos de `lib/i18n.ts` ya llamaban a `toLocaleString` con estas mismas
+ * cinco cadenas escritas a mano en cada `registrosYWebmasters`, `numero`,
+ * `desglose`… La tabla vive aquí porque el dinero (`lib/devengo/dinero.ts`)
+ * necesita el mismo criterio y no puede importar los catálogos: se veía en la
+ * portada árabe que los RECUENTOS salían «21,840» y el DINERO justo debajo
+ * «2.147,39 $», dos convenciones numéricas en la misma pantalla.
+ *
+ * `ar` va a secas, sin país, por lo mismo que explica el catálogo árabe: `ar-EG`
+ * numeraría con cifras índigo-arábigas y los importes tienen que leerse igual
+ * que en la cartera de criptomonedas que el agente mira al lado.
+ */
+export const LOCALES: Record<Idioma, string> = {
+  es: "es-ES",
+  en: "en-US",
+  it: "it-IT",
+  pt: "pt-PT",
+  ar: "ar",
+};
+
+/**
  * Convierte lo que hay guardado en `Agente.idioma` en un idioma de verdad.
  *
  * La columna es `TEXT`, así que puede traer cualquier cosa: una fila anterior a

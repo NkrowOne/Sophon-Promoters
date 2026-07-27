@@ -100,7 +100,9 @@ export async function avisarRetiroAlSuperadmin(datos: {
  * canal que ese agente no tiene.
  *
  * El importe llega ya formateado por quien llama. Formatearlo aquí obligaría a
- * este módulo a saber de micros, y este módulo solo sabe de mensajes.
+ * este módulo a saber de micros, y este módulo solo sabe de mensajes. Quien lo
+ * formatea tiene que hacerlo con este mismo `idioma`: si no, el mensaje sale
+ * traducido y la cifra con la convención española dentro.
  */
 export async function avisarRetiroResueltoAlAgente(datos: {
   telegramId: bigint | null;

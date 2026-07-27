@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useTelegram } from "@/components/TelegramProvider";
 import { formatearMicros } from "@/lib/devengo/dinero";
 
 /**
@@ -23,6 +24,10 @@ function prefiereQuietud(): boolean {
  *
  * Se anima el ENTERO en micros y se formatea en cada fotograma, en vez de
  * interpolar el texto: así los decimales no bailan y la cifra aterriza exacta.
+ *
+ * El idioma sale del contexto de Telegram y no de una prop porque no hay ciclo:
+ * `TelegramProvider` no importa nada de `components/`. Se formatea por
+ * fotograma, y por eso `formatearMicros` memoiza los separadores del locale.
  */
 export function CifraAnimada({
   micros,
@@ -33,6 +38,7 @@ export function CifraAnimada({
   duracionMs?: number;
   className?: string;
 }) {
+  const { idioma } = useTelegram();
   const [valor, setValor] = useState<bigint>(() => (prefiereQuietud() ? micros : 0n));
   const anterior = useRef<bigint>(micros);
 
@@ -63,8 +69,8 @@ export function CifraAnimada({
   }, [micros, duracionMs]);
 
   return (
-    <span className={className} aria-label={formatearMicros(micros)}>
-      {formatearMicros(valor)}
+    <span className={className} aria-label={formatearMicros(micros, 2, idioma)}>
+      {formatearMicros(valor, 2, idioma)}
     </span>
   );
 }
@@ -79,24 +85,34 @@ export function CifraAnimada({
  * apagado: es una unidad, no un dato.
  */
 export function CifraProtagonista({ micros }: { micros: bigint }) {
-  const texto = formatearMicros(micros);
-  const importe = texto.replace(/\s*\$$/, "");
+  const { idioma, t } = useTelegram();
+  const importe = formatearMicros(micros, 2, idioma).replace(/\s*\$$/, "");
 
+  /*
+   * UNA sola cadena accesible, y traducida.
+   *
+   * Había dos —un `aria-label` con «2.147,39 $» y un `sr-only` que decía la
+   * moneda en palabras— y la de dentro no llegaba a oírse nunca: un `aria-label`
+   * sustituye al subárbol entero para la tecnología de apoyo. O sea que el
+   * lector leía el `$` a su manera y el texto pensado para él era código muerto.
+   * Muerto pero visible en `innerText`, que es donde se cazó: decía «dólares» en
+   * los cinco idiomas.
+   */
   return (
     <span
       className="flex items-baseline gap-1.5 text-cifra-mayor tabular-nums"
-      aria-label={texto}
+      aria-label={t.dolares(importe)}
     >
       <CifraAnimadaSinMoneda micros={micros} />
       <span aria-hidden className="text-[0.6em] font-medium opacity-60">
         $
       </span>
-      <span className="sr-only">{importe} dólares</span>
     </span>
   );
 }
 
 function CifraAnimadaSinMoneda({ micros }: { micros: bigint }) {
+  const { idioma } = useTelegram();
   const [valor, setValor] = useState<bigint>(() => (prefiereQuietud() ? micros : 0n));
 
   useEffect(() => {
@@ -117,7 +133,7 @@ function CifraAnimadaSinMoneda({ micros }: { micros: bigint }) {
     return () => cancelAnimationFrame(frame);
   }, [micros]);
 
-  return <span aria-hidden>{formatearMicros(valor).replace(/\s*\$$/, "")}</span>;
+  return <span aria-hidden>{formatearMicros(valor, 2, idioma).replace(/\s*\$$/, "")}</span>;
 }
 
 /*

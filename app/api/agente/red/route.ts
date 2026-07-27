@@ -25,7 +25,7 @@ const DIAS_MALLA = 14;
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, idioma } = ctx.sesion;
 
   const hoy = hoyContable();
   const desde = new Date(Date.parse(`${hoy}T00:00:00Z`) - (DIAS_MALLA - 1) * 86_400_000);
@@ -106,7 +106,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
        * misma historia.
        */
       proRenovable: renovablePro(w.proVigenteHasta),
-      ganadoTotal: dinero(ganado),
+      ganadoTotal: dinero(ganado, idioma),
       registrosVentana,
       diasSinActividad: parado,
       serie,

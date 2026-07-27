@@ -77,7 +77,7 @@ export async function GET(
         // `float` (§2.5): a micros con `microsDesdeCadena` y de ahí al mismo
         // `dinero()` que usan las demás rutas, para que un importe se vea igual
         // en toda la aplicación.
-        pagado: dinero(microsSeguros(f.paymentAmount)),
+        pagado: dinero(microsSeguros(f.paymentAmount), ctx.sesion.idioma),
       }))
       // Los que traen gente arriba: la pregunta es «cuál le funciona».
       .sort((a, b) => b.registros - a.registros)

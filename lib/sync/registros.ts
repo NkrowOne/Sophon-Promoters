@@ -34,6 +34,7 @@ import {
   mesDe,
 } from "../fechas.ts";
 import { avisarBonoAlAgente } from "../bot/avisos.ts";
+import { idiomaGuardado } from "../idiomas.ts";
 import { normalizarEmail } from "../cripto.ts";
 import type { ClienteSophon } from "../sophon/cliente.ts";
 import { NivelAfiliado, type FilaRegistro } from "../sophon/tipos.ts";
@@ -632,11 +633,14 @@ async function devengarBonoDelMes(
     select: { telegramId: true, idioma: true },
   });
   if (agente) {
+    // El importe se formatea con el idioma del agente, no con el del servidor:
+    // el aviso llega ya montado a `avisarBonoAlAgente`, que solo sabe de mensajes.
+    const idioma = idiomaGuardado(agente.idioma);
     await avisarBonoAlAgente({
       telegramId: agente.telegramId,
       idioma: agente.idioma,
       registros,
-      importe: formatearMicros(escalon.recompensaMicros),
+      importe: formatearMicros(escalon.recompensaMicros, 2, idioma),
       /*
        * El premio del siguiente escalón va como INCREMENTO, no como total.
        *
@@ -651,6 +655,8 @@ async function devengarBonoDelMes(
             faltan: siguiente.usuarios - registros,
             premio: formatearMicros(
               siguiente.recompensaMicros - escalon.recompensaMicros,
+              2,
+              idioma,
             ),
           }
         : null,

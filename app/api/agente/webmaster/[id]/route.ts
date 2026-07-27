@@ -31,7 +31,7 @@ export async function GET(
 ): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, idioma } = ctx.sesion;
 
   const { id } = await params;
   const emailNormalizado = decodeURIComponent(id).trim().toLowerCase();
@@ -110,7 +110,7 @@ export async function GET(
     return {
       fecha,
       importeMicros: importeMicros.toString(),
-      importe: dinero(importeMicros).texto,
+      importe: dinero(importeMicros, idioma).texto,
       registros: f.countRegister,
       registrosT1: f.countT1Register,
       registrosT2: f.countT2Register,
@@ -170,7 +170,7 @@ export async function GET(
     dias: DIAS_FICHA,
     serie,
     totales: {
-      ganado: dinero(totalAsientos._sum.importeMicros ?? 0n),
+      ganado: dinero(totalAsientos._sum.importeMicros ?? 0n, idioma),
       registros: suma("registros"),
       registrosT1: suma("registrosT1"),
       registrosT2: suma("registrosT2"),

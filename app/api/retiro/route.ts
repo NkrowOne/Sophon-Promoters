@@ -43,7 +43,7 @@ async function minimoMicros(): Promise<bigint> {
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, idioma } = ctx.sesion;
 
   const [saldo, historial, minimo] = await Promise.all([
     saldos(agenteId),
@@ -68,17 +68,17 @@ export async function GET(peticion: Request): Promise<NextResponse> {
 
   return NextResponse.json({
     cartera: {
-      devengado: dinero(saldo.devengadoMicros),
-      disponible: dinero(saldo.disponibleMicros),
-      solicitado: dinero(saldo.solicitadoMicros),
-      pagado: dinero(saldo.pagadoMicros),
+      devengado: dinero(saldo.devengadoMicros, idioma),
+      disponible: dinero(saldo.disponibleMicros, idioma),
+      solicitado: dinero(saldo.solicitadoMicros, idioma),
+      pagado: dinero(saldo.pagadoMicros, idioma),
     },
-    minimo: dinero(minimo),
+    minimo: dinero(minimo, idioma),
     // La wallet se muestra recortada: el agente la reconoce sin exponerla entera
     // en una captura de pantalla que pueda compartir.
     historial: historial.map((h) => ({
       id: h.id,
-      importe: dinero(h.importeMicros),
+      importe: dinero(h.importeMicros, idioma),
       red: h.red,
       wallet: `${h.wallet.slice(0, 6)}…${h.wallet.slice(-4)}`,
       estado: h.estado,
@@ -110,8 +110,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (importeMicros < minimo) {
     return NextResponse.json(
       {
-        error: t.errRetiroMinimo(formatearMicros(minimo)),
-        apoyo: t.errRetiroMinimoApoyo(formatearMicros(importeMicros)),
+        error: t.errRetiroMinimo(formatearMicros(minimo, 2, idioma)),
+        apoyo: t.errRetiroMinimoApoyo(formatearMicros(importeMicros, 2, idioma)),
       },
       { status: 400 },
     );
@@ -119,7 +119,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (importeMicros > saldo.disponibleMicros) {
     return NextResponse.json(
       {
-        error: t.errRetiroSaldo(formatearMicros(saldo.disponibleMicros)),
+        error: t.errRetiroSaldo(formatearMicros(saldo.disponibleMicros, 2, idioma)),
         apoyo: t.errRetiroSaldoApoyo,
       },
       { status: 400 },
@@ -179,7 +179,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       return NextResponse.json({ ok: true, repetida: true, id: motivo.split(":")[1] });
     }
     if (motivo.startsWith("PENDIENTE:")) {
-      const importe = formatearMicros(BigInt(motivo.split(":")[1] ?? "0"));
+      const importe = formatearMicros(BigInt(motivo.split(":")[1] ?? "0"), 2, idioma);
       return NextResponse.json(
         { error: t.errRetiroYaHayUna(importe), apoyo: t.errRetiroYaHayUnaApoyo },
         { status: 409 },
@@ -220,6 +220,6 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   return NextResponse.json({
     ok: true,
     id: solicitudId,
-    importe: dinero(importeMicros),
+    importe: dinero(importeMicros, idioma),
   });
 }

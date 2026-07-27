@@ -10,7 +10,6 @@ import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
-import { formatearMicros } from "@/lib/devengo/dinero";
 
 /**
  * Inicio del agente.

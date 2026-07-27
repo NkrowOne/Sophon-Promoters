@@ -24,7 +24,7 @@ const DIAS_POR_PAGINA = 60;
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, idioma } = ctx.sesion;
 
   const url = new URL(peticion.url);
   const antesDe = url.searchParams.get("antesDe");
@@ -93,7 +93,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     return {
       fecha,
       importeMicros: v.importeMicros.toString(),
-      importe: dinero(v.importeMicros).texto,
+      importe: dinero(v.importeMicros, idioma).texto,
       registros: v.registros,
       registrosT1: v.t1,
       registrosT2: v.t2,
@@ -115,7 +115,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
 
   return NextResponse.json({
     dias,
-    meses: [...meses.entries()].map(([mes, micros]) => ({ mes, total: dinero(micros) })),
+    meses: [...meses.entries()].map(([mes, micros]) => ({ mes, total: dinero(micros, idioma) })),
     // Cursor para la siguiente página: el día más antiguo de esta.
     siguienteCursor: dias.length === DIAS_POR_PAGINA ? dias[dias.length - 1]?.fecha : null,
   });

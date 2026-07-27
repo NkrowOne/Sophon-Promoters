@@ -9,6 +9,7 @@ import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
 import { CPA_MAXIMO_MICROS, CPS_MAXIMO_BPS } from "@/lib/devengo/motor";
 import { motivoEscaleraInvalida } from "@/lib/devengo/bonos";
 import { revocarSesiones } from "@/lib/auth/sesion";
+import { idiomaGuardado } from "@/lib/idiomas";
 
 /**
  * Acciones del panel.
@@ -349,7 +350,17 @@ export async function resolverRetiro(
     telegramId: solicitud.agente.telegramId,
     idioma: solicitud.agente.idioma,
     estado: accion === "pagar" ? "PAGADO" : accion === "aprobar" ? "APROBADO" : "RECHAZADO",
-    importe: formatearMicros(solicitud.importeMicros),
+    /*
+     * El importe, en el idioma del AGENTE y no en el del panel.
+     *
+     * Es el único sitio donde el que dispara el aviso y el que lo lee hablan
+     * idiomas distintos: aquí manda el superadmin desde un panel que está en
+     * español y el mensaje sale hacia el agente. La llamada ya pasaba
+     * `idioma` para las cadenas y formateaba la cifra sin él, así que un agente
+     * inglés recibía el texto traducido con «2.147,39 $» dentro: la cifra por
+     * la que ha entrado a mirar, con la convención equivocada.
+     */
+    importe: formatearMicros(solicitud.importeMicros, 2, idiomaGuardado(solicitud.agente.idioma)),
     red: solicitud.red,
     wallet: solicitud.wallet,
     referencia: referencia || null,
