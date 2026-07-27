@@ -140,6 +140,23 @@ export default function Inicio() {
   const visibles = [totalTiers > 0, Boolean(datos?.hito), Boolean(cartera)];
   const orden = (i: number) => visibles.slice(0, i).filter(Boolean).length;
 
+  /*
+   * ¿Está el estado vacío ofreciendo YA esta misma acción?
+   *
+   * Con la red a cero, `Vacio` pinta su propia chapa «Activar webmaster» hacia
+   * `/activar`, y el menú de abajo pintaba otra idéntica: mismo texto, mismo
+   * icono, mismo destino, dos bloques amarillos de 50 px separados por una
+   * junta. La primera pantalla que ve un agente nuevo ofrecía la misma cosa dos
+   * veces.
+   *
+   * Gana la del vacío, que es la que está pegada al texto que la motiva. Y esto
+   * NO reabre el callejón que sacó el menú del ternario: sus tres filas siguen
+   * ahí, y en las ramas de error y de carga —que no pintan `Vacio`— la chapa se
+   * sigue pintando, que es donde de verdad hacía falta.
+   */
+  const vacioYaOfreceActivar =
+    !error && Boolean(datos) && dias.length === 0 && datos?.webmasters === 0;
+
   return (
     <main className="relative min-h-dvh">
       {/* La Placa: lo devengado del mes sobre campo amarillo. Es la identidad y
@@ -230,13 +247,18 @@ export default function Inicio() {
             pantalla con enlaces a todo lo demás— sin una sola salida. El agente
             se quedaba encerrado en un aviso con un botón de reintentar. */}
         <Banda como="nav" tono={0} etiqueta={t.acciones} orden={orden(3)} className="pb-2 pt-7">
-          <a
-            href="/activar"
-            className="chapa pulsable text-cuerpo"
-          >
-            <Icono nombre="activar" />
-            {t.activarWebmaster}
-          </a>
+          {/* La chapa, salvo cuando el estado vacío ya la está ofreciendo: con la
+              red a cero eran dos bloques amarillos idénticos, uno debajo del
+              otro. Ver `vacioYaOfreceActivar` arriba. */}
+          {!vacioYaOfreceActivar && (
+            <a
+              href="/activar"
+              className="chapa pulsable text-cuerpo"
+            >
+              <Icono nombre="activar" />
+              {t.activarWebmaster}
+            </a>
+          )}
 
           {/* Tres filas en el orden de la jornada, cada una con su dato. Antes
               era una retícula de 2×2 con cuatro cajas idénticas y vacías: el
