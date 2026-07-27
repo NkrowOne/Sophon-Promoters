@@ -17,6 +17,11 @@
  * 5. **Los errores dicen qué ha pasado, por qué y qué hacer ahora.** Los tres,
  *    y en ese orden.
  *
+ * De `revisionManual`, la cadena que cita la regla 2, se conserva «las
+ * revisiones son manuales» —sigue siendo un estado del sistema y la pasiva
+ * refleja le vale— y cae «Plazo de resolución», que era jerga de tramitación.
+ * El plazo se dice ahora en llano: «Tardamos de 1 a 3 días».
+ *
  * Están escritas porque su ausencia salió cara. Este fichero decía «tuteo,
  * verbo delante» mientras noventa de sus cadenas hacían lo contrario: una pasada
  * de «registro profesional» confundió profesional con impersonal y convirtió
@@ -50,11 +55,13 @@ import { IDIOMA_POR_DEFECTO, type Idioma } from "./idiomas.ts";
 export const es = {
   // ── Navegación y rótulos ──────────────────────────────────────────────────
   inicio: "Inicio",
-  red: "Red",
-  historico: "Histórico",
-  cartera: "Cartera",
+  // «Red» se reserva para la cadena de blockchain (`enQueRed`, `usdtEn`): ahí
+  // equivocarse cuesta el pago. Los webmasters del agente pasan a ser «equipo».
+  red: "Mi equipo",
+  historico: "Historial",
+  cartera: "Saldo",
   webmaster: "Webmaster",
-  devengado: "Devengado",
+  devengado: "Ganado",
   disponible: "Disponible",
   solicitado: "Solicitado",
   pagado: "Pagado",
@@ -64,21 +71,21 @@ export const es = {
 
   // ── Acciones ──────────────────────────────────────────────────────────────
   activarWebmaster: "Activar webmaster",
-  solicitarRetiro: "Solicitar retiro",
+  solicitarRetiro: "Retirar",
   vincularCuenta: "Vincular mi cuenta",
   reintentar: "Reintentar",
   activar: "Activar",
   entrar: "Entrar",
   activarOtro: "Activar otro",
-  verMiRed: "Ver mi red",
-  verSuFicha: "Ver su ficha",
+  verMiRed: "Ver mi equipo",
+  verSuFicha: "Ver su perfil",
   volverAlInicio: "Volver al inicio",
   activarElPrimero: "Activar el primero",
 
   // ── Estados vacíos: invitan a actuar, no se disculpan ──────────────────────
   sinWebmasters: "Todavía no has activado ningún webmaster.",
   sinWebmastersApoyo: "Actívalo con su correo de Sophon.",
-  sinIngresos: "Tu red aún no ha traído registros.",
+  sinIngresos: "Tu equipo aún no ha traído registros.",
   sinIngresosApoyo: "Aparecerán aquí en cuanto alguien se registre desde sus enlaces.",
   sinMovimientos: "Todavía no has solicitado ningún retiro.",
   sinVinculo: "Todavía no has vinculado tu cuenta.",
@@ -101,29 +108,51 @@ export const es = {
   reenviarElCodigo: "Reenviar código",
 
   // ── Inicio ────────────────────────────────────────────────────────────────
-  devengadoTreintaDias: "Devengado · 30 días",
+  devengadoTreintaDias: "Ganado · 30 días",
   registrosYWebmasters: (registros: number, webmasters: number) =>
     `${registros.toLocaleString("es-ES")} ${registros === 1 ? "registro" : "registros"} · ${webmasters} ${
       webmasters === 1 ? "webmaster" : "webmasters"
     }`,
   repartoPorTier: "Registros por nivel",
   acciones: "Acciones",
-  estadoDeTuDinero: "Estado de tu dinero",
-  // ── Bono por hitos ────────────────────────────────────────────────────────
+  estadoDeTuDinero: "Dónde está tu dinero",
+  // ── Bono por niveles ──────────────────────────────────────────────────────
   bonoDelMes: "Bono del mes",
   registrosEsteMes: (n: number) =>
     `${n.toLocaleString("es-ES")} ${n === 1 ? "registro" : "registros"} este mes`,
+  // Pendiente de retirar: la sustituyen `bonoMasSiLlegas` y `bonoEsteMesLlevas`.
+  // Sigue aquí porque `page.tsx` y `lib/bot/avisos.ts` todavía la llaman y el
+  // catálogo no tiene respaldo en ejecución: borrarla antes rompe el build.
   faltanParaElBono: (faltan: number, premio: string) =>
     `Te ${faltan === 1 ? "falta" : "faltan"} ${faltan.toLocaleString("es-ES")} ${
       faltan === 1 ? "registro" : "registros"
     } para ${premio}.`,
-  bonoMaximoAlcanzado: "Has alcanzado el hito más alto del mes.",
+  bonoMaximoAlcanzado: "Has llegado al nivel más alto del mes.",
   bonoGanado: (importe: string) => `Has ganado ${importe}`,
-  escaleraDelBono: "Escalones del bono",
+  escaleraDelBono: "Niveles del bono",
+  /*
+   * El bono no es acumulable: pasar de 20.000 a 30.000 no paga los 150 $ del
+   * escalón alto, paga los 50 de diferencia. Enseñar el total hacía que el
+   * agente contara dos veces el mismo dinero, así que lo que preside la banda
+   * es el premio y lo que se anuncia arriba es lo que se gana DE MÁS.
+   */
+  bonoExtraSi: (umbral: number) =>
+    `extra si llegas a ${umbral.toLocaleString("es-ES")} ${
+      umbral === 1 ? "registro" : "registros"
+    } este mes`,
+  bonoMasSiLlegas: (importe: string, umbral: number) =>
+    `${importe} más si llegas a ${umbral.toLocaleString("es-ES")} ${
+      umbral === 1 ? "registro" : "registros"
+    }`,
+  bonoYaEsTuyo: "ya es tuyo",
+  bonoEsteMesLlevas: (registros: number, faltan: number) =>
+    `${registros.toLocaleString("es-ES")} este mes · te ${
+      faltan === 1 ? "falta" : "faltan"
+    } ${faltan.toLocaleString("es-ES")}`,
   /*
    * El ritmo y la recta final: las dos cifras que SÍ se mueven todos los días.
    *
-   * Con los umbrales de hoy la barra del hito marca poco y va a seguir
+   * Con los umbrales de hoy la barra del nivel marca poco y va a seguir
    * marcando poco. Falsear su escala para que parezca más sería mentir sobre
    * lo que falta, así que lo que se añade es otra medida —la del propio
    * agente— que responde al trabajo de esta mañana aunque la meta esté lejos.
@@ -142,28 +171,28 @@ export const es = {
   // ── Activar webmaster ─────────────────────────────────────────────────────
   correoDelWebmaster: "Correo del webmaster",
   tieneQueExistirYa: "Debe ser una cuenta ya registrada en Sophon.",
-  yaEstaEnTuRed: (email: string) => `${email} ya está en tu red.`,
+  yaEstaEnTuRed: (email: string) => `${email} ya está en tu equipo.`,
   cobrarasDesdeHoy: "Cobrarás por los registros posteriores a la activación. Los anteriores no cuentan.",
 
-  // ── Tu red ────────────────────────────────────────────────────────────────
-  conIncidencia: (n: number) => `${n} con incidencia`,
+  // ── Mi equipo ─────────────────────────────────────────────────────────────
+  conIncidencia: (n: number) => `${n} con ${n === 1 ? "problema" : "problemas"}`,
   sinActividadDe: (parados: number, dias: number, total: number) =>
     `${parados} sin actividad en los últimos ${dias} ${dias === 1 ? "día" : "días"}, de ${total}`,
-  todosProduciendo: (n: number) => `Los ${n} están produciendo`,
+  todosProduciendo: (n: number) => `Los ${n} están activos`,
   escalaComun: (dias: number) =>
-    `Cada columna, ${dias} ${dias === 1 ? "día" : "días"}. La altura indica el volumen de registros; la escala es común, así que puedes compararlos entre sí.`,
+    `Cada columna, ${dias} ${dias === 1 ? "día" : "días"}. Todas las barras están a la misma escala, así que puedes compararlas.`,
 
   // ── Estado de un webmaster ────────────────────────────────────────────────
   bloqueado: "Bloqueado",
   seVaABorrar: "Se va a borrar",
-  desaparecido: "No consta",
+  desaparecido: "Ya no está",
   proCaducado: "Se le ha caducado el PRO",
   sinActividad: "Sin actividad",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "día" : "días"} sin actividad`,
   activoEnSophon: "Activo en Sophon",
   bloqueadoEnSophon: "Bloqueado en Sophon",
-  pendienteDeBorrado: "Pendiente de borrado",
-  yaNoApareceEnSophon: "No consta en Sophon",
+  pendienteDeBorrado: "Se va a borrar",
+  yaNoApareceEnSophon: "Ya no está en Sophon",
   estadoSinComprobar: "Estado sin comprobar",
   /* Vinculado en Sophon pero todavía sin aparecer en el programa de socios.
      No es un fallo: Sophon tarda en propagarlo y el barrido lo resuelve. */
@@ -171,8 +200,8 @@ export const es = {
   pendienteDeConfirmarApoyo: "Sophon todavía no lo ha publicado. Suele resolverse solo.",
 
   // ── Ficha de webmaster ────────────────────────────────────────────────────
-  enTuRedDesde: (fecha: string) => `en tu red desde el ${fecha}`,
-  teHaDado: "Te ha aportado",
+  enTuRedDesde: (fecha: string) => `en tu equipo desde el ${fecha}`,
+  teHaDado: "Te ha traído",
   registrosEnDias: (registros: number, dias: number) =>
     `${registros.toLocaleString("es-ES")} ${registros === 1 ? "registro" : "registros"} en ${dias} ${
       dias === 1 ? "día" : "días"
@@ -186,7 +215,7 @@ export const es = {
 
   // ── Enlaces de reparto ────────────────────────────────────────────────────
   susEnlaces: "Sus enlaces",
-  conQueCapta: "Con estos enlaces capta. Datos en directo de Sophon.",
+  conQueCapta: "Con estos enlaces consigue registros. Datos en directo de Sophon.",
   sinEnlaces: "Todavía no ha publicado ningún enlace.",
   enlacesNoDisponibles: "Ahora no podemos consultar sus enlaces. Inténtalo más tarde.",
   enlaceCopiado: "Enlace copiado",
@@ -211,7 +240,7 @@ export const es = {
   corregirElCorreo: "Corregir correo",
   altaNoSeDeshace: "No podrás deshacer la activación: el webmaster queda vinculado a ti en Sophon.",
   proConcedido: (fecha: string) => `Le has dado PRO hasta el ${fecha}.`,
-  proNoConcedido: "Ya tienes al webmaster en tu red, pero no hemos podido darle el PRO.",
+  proNoConcedido: "Ya tienes al webmaster en tu equipo, pero no hemos podido darle el PRO.",
   proNoConcedidoApoyo: "Reinténtalo desde su ficha. No tienes que repetir el alta.",
   renovarUnAnio: "Renovar un año",
   darUnAnio: "Darle un año de PRO",
@@ -224,7 +253,7 @@ export const es = {
   proActivo: "PRO activo",
   podrasRenovarloCuandoSeApague: "Podrás renovarlo cuando le caduque el PRO.",
 
-  // ── Histórico ─────────────────────────────────────────────────────────────
+  // ── Historial ─────────────────────────────────────────────────────────────
   enDias: (dias: number) => `en ${dias} ${dias === 1 ? "día" : "días"}`,
   tocaUnDia: "Toca un día para ver el desglose.",
   columnaDia: "Día",
@@ -235,12 +264,13 @@ export const es = {
     `${registros.toLocaleString("es-ES")} ${
       registros === 1 ? "registro" : "registros"
     } · T1 ${t1} · T2 ${t2} · T3 ${t3}`,
-  dePago: (n: number) => `${n} de pago`,
+  dePago: (n: number) => `${n} ${n === 1 ? "ha pagado" : "han pagado"}`,
   diaAbierto: "Día en curso: los datos pueden variar.",
 
-  // ── Cartera ───────────────────────────────────────────────────────────────
-  soloConsolidado: "Solo puedes solicitar el saldo consolidado: los últimos días siguen sujetos a revisión.",
-  revisionManual: "Las revisiones son manuales. Plazo de resolución: de 1 a 3 días.",
+  // ── Saldo ─────────────────────────────────────────────────────────────────
+  soloConsolidado:
+    "Solo puedes retirar lo que ya está confirmado. Los últimos días todavía los estamos revisando.",
+  revisionManual: "Las revisiones son manuales. Tardamos de 1 a 3 días.",
   solicitudEnCurso: "Solicitud en curso",
   pendienteDeRevision: "Pendiente de revisión",
   aprobadoPendientePago: "Aprobado: te pagamos en breve",
@@ -264,15 +294,117 @@ export const es = {
   pistaTrc20: "Empieza por T y tiene 34 caracteres.",
   pistaBsc: "Empieza por 0x y tiene 42 caracteres.",
   pistaTon: "Empieza por EQ o UQ y tiene 48 caracteres.",
-  pedirImporte: (importe: string) => `Solicitar ${importe}`,
-  pedirRetiro: "Solicitar retiro",
-  solicitudesAnteriores: "Anteriores",
+  pedirImporte: (importe: string) => `Retirar ${importe}`,
+  /*
+   * Fusionada con `solicitarRetiro`: eran la misma cadena en español y solo
+   * divergían en inglés, con lo que dos botones del mismo flujo se llamaban
+   * distinto según el idioma. Se retira en cuanto `cartera/page.tsx:369` pase
+   * a `solicitarRetiro`; mientras tanto se queda con el literal fusionado para
+   * que ningún idioma enseñe las dos redacciones a la vez.
+   */
+  solicitudesAnteriores: "Cobros anteriores",
 
   // ── Errores: qué pasó · por qué · qué hago ahora ──────────────────────────
   sesionCaducada: "Se te ha caducado la sesión.",
   sesionCaducadaApoyo: "Vuelve a entrar con tu correo. No pierdes nada de lo tuyo.",
-  algoHaFallado: "No hemos podido completar la operación.",
+  algoHaFallado: "No hemos podido completar la acción.",
+  algoHaFalladoApoyo: "No hemos cambiado nada. Vuelve a intentarlo.",
   comoCobras: "Cobras 0,03 $ por cada usuario que registre, sea cual sea su país.",
+
+  /*
+   * Errores de la API, uno por caso.
+   *
+   * Antes las rutas devolvían un puñado de mensajes genéricos y el agente se
+   * quedaba sin saber si le habíamos cobrado, activado o no hecho nada. Cada
+   * clave lleva su `Apoyo`, y el apoyo dice siempre qué ha quedado tocado:
+   * «No hemos activado nada», «No te hemos descontado nada». Es la regla 5.
+   */
+  errSinTelegram: "Telegram no ha verificado tu acceso.",
+  errSinTelegramApoyo: "Abre la aplicación desde el bot.",
+  errSuspendido: "Tienes la cuenta suspendida.",
+  errSuspendidoApoyo: "Escribe al superadmin para recuperar el acceso.",
+
+  errFormatoCodigoCorreo: "El código o el correo no tienen el formato correcto.",
+  errFormatoCodigoCorreoApoyo: "Revísalos y vuelve a intentarlo.",
+  errCodigoNoVale: "Ese código de activación no vale o ha caducado.",
+  errCodigoUsado: "Ese código de activación ya se ha usado.",
+  errCodigoUsadoApoyo: "Pídele otro al superadmin.",
+  errCodigoOtroCorreo: "Ese código se emitió para otro correo.",
+  errCodigoOtroCorreoApoyo: "Solo vale con el correo para el que se ha emitido.",
+  errTelegramYaVinculado: (correo: string) =>
+    `Esta cuenta de Telegram ya está vinculada a ${correo}.`,
+  errTelegramYaVinculadoApoyo: "Escribe al superadmin si necesitas cambiarla.",
+  errEsperaParaOtroCodigo: (segundos: number) =>
+    `Podrás pedir otro código en ${segundos} segundos.`,
+  errCorreoNoEnviado: "No hemos podido enviarte el correo.",
+  errCorreoNoEnviadoApoyo: "Comprueba la dirección y vuelve a intentarlo en un minuto.",
+  errDatosNoValidos: "Los datos no son válidos.",
+  errDatosNoValidosApoyo: "El código de verificación tiene 6 dígitos.",
+  errOtpCaducado: "Se te ha caducado el código de verificación.",
+  errOtpCaducadoApoyo: "Los códigos caducan a los 10 minutos. Pide otro.",
+  errOtpSinIntentos: "Has agotado los intentos.",
+  errOtpSinIntentosApoyo: "Ese código queda anulado. Pide otro.",
+  errOtpIncorrecto: (restantes: number) =>
+    `El código de verificación no es correcto. Te ${
+      restantes === 1 ? "queda" : "quedan"
+    } ${restantes} ${restantes === 1 ? "intento" : "intentos"}.`,
+  errOtpOtraCuenta: "Ese código se ha pedido desde otra cuenta de Telegram.",
+  errOtpOtraCuentaApoyo: "Solo vale en la cuenta que lo pidió.",
+  errCorreoYaVinculado: "Ese correo ya está vinculado a otra cuenta de Telegram.",
+  errCorreoYaVinculadoApoyo: "Escribe al superadmin si necesitas cambiarla.",
+  errNoVinculado: "No hemos podido vincular tu cuenta.",
+  errNoVinculadoApoyo: "Tu código de activación sigue sin usar. Vuelve a intentarlo.",
+  errFormatoCorreo: "Ese correo no tiene el formato correcto.",
+  errFormatoCorreoApoyo: "Escribe el correo con el que se registró en Sophon.",
+
+  errYaEnTuEquipo: "Ya tienes a ese webmaster en tu equipo.",
+  errYaEnTuEquipoApoyo: "Ábrelo desde «Mi equipo».",
+  errDeOtroAgente: "Ese webmaster ya es de otro agente.",
+  errDeOtroAgenteApoyo:
+    "Cada webmaster tiene un solo agente. Si crees que es un error, escribe al superadmin.",
+  errYaEnSophon: "Esa cuenta ya estaba en Sophon.",
+  errYaEnSophonApoyo:
+    "Solo puedes dar de alta cuentas nuevas que registres tú. Las que ya existían son del superadmin.",
+  errNoExisteEnSophon: "Ese correo no existe en Sophon.",
+  errNoExisteEnSophonApoyo: "Tiene que registrarse en Sophon antes de que puedas activarlo.",
+  errSinWhitelist: "La cuenta no está autorizada en Sophon.",
+  errSinWhitelistApoyo: "La autorización se tramita a mano con soporte. No hemos activado nada.",
+  errSophonNoResponde: "Sophon no responde.",
+  errSophonNoRespondeApoyo: "No hemos activado nada. Vuelve a intentarlo en un minuto.",
+  errSophonRechaza: "Sophon ha rechazado la activación.",
+  errSophonRechazaApoyo: "No hemos activado nada. El superadmin ya está avisado.",
+  errAltaNoRegistrada: "No hemos podido registrar el alta.",
+  errAltaNoRegistradaApoyo: "No hemos cambiado nada. Vuelve a intentarlo.",
+  errSinClasificar: "No hemos podido completar el alta.",
+  errSinClasificarApoyo: "No hemos activado nada. Ya estamos avisados.",
+
+  errNoEsTuyo: "Ese webmaster no está en tu equipo.",
+  errNoEsTuyoApoyo: "Solo puedes renovar el PRO de los que has activado tú.",
+  /** El 404 de abrir una ficha ajena: ahí el agente no ha pedido renovar nada. */
+  errNoEsTuyoAbrirApoyo:
+    "Comprueba el correo. Si todavía no lo has dado de alta, hazlo desde «Activar webmaster».",
+  errProSigueActivo: "Todavía le queda PRO.",
+  errProSigueActivoApoyo: "Podrás renovarlo cuando le caduque.",
+  errProNoRegistrado: "No hemos podido registrar el PRO.",
+  errProNoRegistradoApoyo: "No hemos cambiado nada. Vuelve a intentarlo desde su ficha.",
+  errProSinWhitelist: "La cuenta no está autorizada en Sophon.",
+  errProSinWhitelistApoyo: "La autorización se tramita a mano con soporte.",
+  errProRechazado: "Sophon no le ha dado el PRO.",
+  errProRechazadoApoyo: "Vuelve a intentarlo desde su ficha en un minuto.",
+
+  errRetiroFormato: "El importe o el monedero no tienen el formato correcto.",
+  errRetiroFormatoApoyo: "Revísalos y vuelve a intentarlo.",
+  errRetiroMinimo: (minimo: string) => `El importe queda por debajo del mínimo de ${minimo}.`,
+  errRetiroMinimoApoyo: (importe: string) => `Has pedido ${importe}.`,
+  errRetiroSaldo: (disponible: string) =>
+    `El importe supera tu saldo disponible de ${disponible}.`,
+  errRetiroSaldoApoyo:
+    "Lo ganado en los últimos días no lo puedes retirar hasta que se confirme.",
+  errRetiroYaHayUna: (importe: string) => `Ya tienes una solicitud pendiente de ${importe}.`,
+  errRetiroYaHayUnaApoyo:
+    "Solo puedes tener una a la vez. Las revisiones son manuales; puedes cancelar la que tienes.",
+  errRetiroNoRegistrado: "No hemos podido registrar tu solicitud.",
+  errRetiroNoRegistradoApoyo: "No te hemos descontado nada. Vuelve a intentarlo.",
 
   // ── El bot ────────────────────────────────────────────────────────────────
   //
@@ -296,20 +428,20 @@ export const es = {
 
   // Avisos que salen del panel hacia el agente.
   botRetiroPagado: (importe: string) => `Has cobrado ${importe}.`,
-  // ── Aviso diario: la red se está apagando ─────────────────────────────────
-  botRedTitulo: "Tu red necesita una llamada",
+  // ── Aviso diario: el equipo se está apagando ──────────────────────────────
+  botRedTitulo: "Tu equipo necesita una llamada",
   botRedParados: (n: number, total: number) =>
     `${n} de tus ${total} webmasters llevan tiempo sin traer un registro:`,
   botRedDiasParado: (dias: number) => `${dias} ${dias === 1 ? "día" : "días"} sin actividad`,
   // La consecuencia va en la cadena, no en la cabeza de quien lea. «Con
-  // incidencia» a secas se puede leer como una molestia menor; lo que hace que
+  // problemas» a secas se puede leer como una molestia menor; lo que hace que
   // el agente coja el teléfono es saber que ese webmaster no produce.
   botRedIncidencias: (n: number) =>
-    `${n} ${n === 1 ? "webmaster" : "webmasters"} con incidencia en Sophon; no ${
+    `${n} ${n === 1 ? "webmaster" : "webmasters"} con problemas en Sophon; no ${
       n === 1 ? "puede" : "pueden"
     } generar registros:`,
   botRedYOtros: (n: number) => `…y ${n} más.`,
-  botRedComoVerlo: "Ábrelos en «Tu red» para ver con qué enlaces captan.",
+  botRedComoVerlo: "Ábrelos desde «Mi equipo» para ver con qué enlaces consiguen registros.",
 
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Referencia: ${referencia}`,
@@ -337,9 +469,9 @@ export type Cadenas = Ensanchar<typeof es>;
 
 const en: Cadenas = {
   inicio: "Home",
-  red: "Network",
+  red: "My team",
   historico: "History",
-  cartera: "Wallet",
+  cartera: "Balance",
   webmaster: "Webmaster",
   devengado: "Earned",
   disponible: "Available",
@@ -350,20 +482,20 @@ const en: Cadenas = {
   sondeando: "Loading data",
 
   activarWebmaster: "Activate webmaster",
-  solicitarRetiro: "Request payout",
+  solicitarRetiro: "Withdraw",
   vincularCuenta: "Link my account",
   reintentar: "Try again",
   activar: "Activate",
   entrar: "Sign in",
   activarOtro: "Activate another",
-  verMiRed: "View my network",
+  verMiRed: "View my team",
   verSuFicha: "View their details",
   volverAlInicio: "Back to home",
   activarElPrimero: "Activate your first one",
 
   sinWebmasters: "You have not activated any webmaster yet.",
   sinWebmastersApoyo: "Activate them with their Sophon email.",
-  sinIngresos: "Your network has not brought any signups yet.",
+  sinIngresos: "Your team has not brought any signups yet.",
   sinIngresosApoyo: "They will show up here as soon as someone signs up through their links.",
   sinMovimientos: "You have not requested any payout yet.",
   sinVinculo: "You have not linked your account yet.",
@@ -399,9 +531,20 @@ const en: Cadenas = {
     `You need ${faltan.toLocaleString("en-US")} more ${
       faltan === 1 ? "signup" : "signups"
     } to reach ${premio}.`,
-  bonoMaximoAlcanzado: "You have reached the top milestone of the month.",
+  bonoMaximoAlcanzado: "You have reached the highest level of the month.",
   bonoGanado: (importe: string) => `You have earned ${importe}`,
-  escaleraDelBono: "Bonus milestones",
+  escaleraDelBono: "Bonus levels",
+  bonoExtraSi: (umbral: number) =>
+    `extra if you reach ${umbral.toLocaleString("en-US")} ${
+      umbral === 1 ? "signup" : "signups"
+    } this month`,
+  bonoMasSiLlegas: (importe: string, umbral: number) =>
+    `${importe} more if you reach ${umbral.toLocaleString("en-US")} ${
+      umbral === 1 ? "signup" : "signups"
+    }`,
+  bonoYaEsTuyo: "already yours",
+  bonoEsteMesLlevas: (registros: number, faltan: number) =>
+    `${registros.toLocaleString("en-US")} this month · ${faltan.toLocaleString("en-US")} to go`,
   ritmoYRecta: (ritmo: number, dias: number) =>
     `You are averaging ${ritmo.toLocaleString("en-US")} ${
       ritmo === 1 ? "signup" : "signups"
@@ -415,31 +558,31 @@ const en: Cadenas = {
 
   correoDelWebmaster: "Webmaster's email",
   tieneQueExistirYa: "Must be an account already registered on Sophon.",
-  yaEstaEnTuRed: (email: string) => `${email} is already in your network.`,
+  yaEstaEnTuRed: (email: string) => `${email} is already on your team.`,
   cobrarasDesdeHoy: "You will earn on signups after activation. Earlier ones do not count.",
 
-  conIncidencia: (n: number) => `${n} with an issue`,
+  conIncidencia: (n: number) => `${n} with ${n === 1 ? "a problem" : "problems"}`,
   sinActividadDe: (parados: number, dias: number, total: number) =>
     `${parados} with no activity in the last ${dias} ${dias === 1 ? "day" : "days"}, out of ${total}`,
-  todosProduciendo: (n: number) => `All ${n} are producing`,
+  todosProduciendo: (n: number) => `All ${n} are active`,
   escalaComun: (dias: number) =>
-    `Each column is ${dias} days. Height shows signup volume; the scale is shared, so you can compare webmasters directly.`,
+    `Each column is ${dias} ${dias === 1 ? "day" : "days"}. All the bars use the same scale, so you can compare them.`,
 
   bloqueado: "Blocked",
   seVaABorrar: "About to be deleted",
-  desaparecido: "Not found",
+  desaparecido: "No longer there",
   proCaducado: "Their PRO has expired",
   sinActividad: "No activity",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "day" : "days"} inactive`,
   activoEnSophon: "Active on Sophon",
   bloqueadoEnSophon: "Blocked on Sophon",
-  pendienteDeBorrado: "Pending deletion",
-  yaNoApareceEnSophon: "Not found on Sophon",
+  pendienteDeBorrado: "About to be deleted",
+  yaNoApareceEnSophon: "No longer on Sophon",
   estadoSinComprobar: "Status not checked",
   pendienteDeConfirmar: "Confirming",
   pendienteDeConfirmarApoyo: "Sophon has not published it yet. It usually sorts itself out.",
 
-  enTuRedDesde: (fecha: string) => `in your network since ${fecha}`,
+  enTuRedDesde: (fecha: string) => `on your team since ${fecha}`,
   teHaDado: "They have brought you",
   registrosEnDias: (registros: number, dias: number) => `${registros.toLocaleString("en-US")} ${registros === 1 ? "signup" : "signups"} in ${dias} ${
       dias === 1 ? "day" : "days"
@@ -452,7 +595,7 @@ const en: Cadenas = {
   registroDeSondeo: "Activity",
 
   susEnlaces: "Their links",
-  conQueCapta: "These are the links they sign people up with. Live data from Sophon.",
+  conQueCapta: "These are the links they get signups with. Live data from Sophon.",
   sinEnlaces: "They have not published any link yet.",
   enlacesNoDisponibles: "We cannot reach their links right now. Try again later.",
   enlaceCopiado: "Link copied",
@@ -475,7 +618,7 @@ const en: Cadenas = {
   corregirElCorreo: "Edit email",
   altaNoSeDeshace: "You will not be able to undo this: the webmaster stays linked to you on Sophon.",
   proConcedido: (fecha: string) => `You gave them PRO until ${fecha}.`,
-  proNoConcedido: "You have the webmaster in your network, but we could not give them PRO.",
+  proNoConcedido: "You have the webmaster on your team, but we could not give them PRO.",
   proNoConcedidoApoyo: "Try again from their details. You do not have to activate them again.",
   renovarUnAnio: "Renew for a year",
   darUnAnio: "Give them a year of PRO",
@@ -498,11 +641,12 @@ const en: Cadenas = {
     `${registros.toLocaleString("en-US")} ${
       registros === 1 ? "signup" : "signups"
     } · T1 ${t1} · T2 ${t2} · T3 ${t3}`,
-  dePago: (n: number) => `${n} paying`,
+  dePago: (n: number) => `${n} ${n === 1 ? "has paid" : "have paid"}`,
   diaAbierto: "Day in progress: data may change.",
 
-  soloConsolidado: "You can only request the consolidated balance: recent days are still under review.",
-  revisionManual: "Reviews are manual. Resolution time: 1 to 3 days.",
+  soloConsolidado:
+    "You can only withdraw what is already confirmed. We are still reviewing the last few days.",
+  revisionManual: "Reviews are manual. We take 1 to 3 days.",
   solicitudEnCurso: "Request in progress",
   pendienteDeRevision: "Awaiting review",
   aprobadoPendientePago: "Approved: we pay you shortly",
@@ -526,14 +670,102 @@ const en: Cadenas = {
   pistaTrc20: "Starts with T and is 34 characters long.",
   pistaBsc: "Starts with 0x and is 42 characters long.",
   pistaTon: "Starts with EQ or UQ and is 48 characters long.",
-  pedirImporte: (importe: string) => `Request ${importe}`,
-  pedirRetiro: "Request payout",
-  solicitudesAnteriores: "Earlier",
+  pedirImporte: (importe: string) => `Withdraw ${importe}`,
+  solicitudesAnteriores: "Earlier payouts",
 
   sesionCaducada: "Your session has expired.",
   sesionCaducadaApoyo: "Sign in again with your email. You lose nothing of yours.",
-  algoHaFallado: "We could not complete the operation.",
+  algoHaFallado: "We could not complete the action.",
+  algoHaFalladoApoyo: "We have not changed anything. Try again.",
   comoCobras: "You earn $0.03 for every user they sign up, whatever their country.",
+
+  errSinTelegram: "Telegram has not verified your access.",
+  errSinTelegramApoyo: "Open the app from the bot.",
+  errSuspendido: "Your account is suspended.",
+  errSuspendidoApoyo: "Write to the superadmin to get your access back.",
+
+  errFormatoCodigoCorreo: "The code or the email is not in the right format.",
+  errFormatoCodigoCorreoApoyo: "Check them and try again.",
+  errCodigoNoVale: "That activation code is not valid or has expired.",
+  errCodigoUsado: "That activation code has already been used.",
+  errCodigoUsadoApoyo: "Ask the superadmin for another one.",
+  errCodigoOtroCorreo: "That code was issued for a different email.",
+  errCodigoOtroCorreoApoyo: "It only works with the email it was issued for.",
+  errTelegramYaVinculado: (correo: string) =>
+    `This Telegram account is already linked to ${correo}.`,
+  errTelegramYaVinculadoApoyo: "Write to the superadmin if you need to change it.",
+  errEsperaParaOtroCodigo: (segundos: number) =>
+    `You can ask for another code in ${segundos} seconds.`,
+  errCorreoNoEnviado: "We could not send you the email.",
+  errCorreoNoEnviadoApoyo: "Check the address and try again in a minute.",
+  errDatosNoValidos: "The details are not valid.",
+  errDatosNoValidosApoyo: "The verification code is 6 digits long.",
+  errOtpCaducado: "Your verification code has expired.",
+  errOtpCaducadoApoyo: "Codes expire after 10 minutes. Ask for another one.",
+  errOtpSinIntentos: "You have run out of attempts.",
+  errOtpSinIntentosApoyo: "That code is now void. Ask for another one.",
+  errOtpIncorrecto: (restantes: number) =>
+    `The verification code is not correct. You have ${restantes} ${
+      restantes === 1 ? "attempt" : "attempts"
+    } left.`,
+  errOtpOtraCuenta: "That code was requested from a different Telegram account.",
+  errOtpOtraCuentaApoyo: "It only works on the account that requested it.",
+  errCorreoYaVinculado: "That email is already linked to a different Telegram account.",
+  errCorreoYaVinculadoApoyo: "Write to the superadmin if you need to change it.",
+  errNoVinculado: "We could not link your account.",
+  errNoVinculadoApoyo: "Your activation code is still unused. Try again.",
+  errFormatoCorreo: "That email is not in the right format.",
+  errFormatoCorreoApoyo: "Type the email it was registered with on Sophon.",
+
+  errYaEnTuEquipo: "You already have that webmaster on your team.",
+  errYaEnTuEquipoApoyo: "Open them from “My team”.",
+  errDeOtroAgente: "That webmaster already belongs to another agent.",
+  errDeOtroAgenteApoyo:
+    "Each webmaster has a single agent. If you think this is a mistake, write to the superadmin.",
+  errYaEnSophon: "That account was already on Sophon.",
+  errYaEnSophonApoyo:
+    "You can only sign up new accounts that you register yourself. The ones that already existed are the superadmin's.",
+  errNoExisteEnSophon: "That email does not exist on Sophon.",
+  errNoExisteEnSophonApoyo: "They have to register on Sophon before you can activate them.",
+  errSinWhitelist: "The account is not authorized on Sophon.",
+  errSinWhitelistApoyo:
+    "Authorization is handled by hand with support. We have not activated anything.",
+  errSophonNoResponde: "Sophon is not responding.",
+  errSophonNoRespondeApoyo: "We have not activated anything. Try again in a minute.",
+  errSophonRechaza: "Sophon has rejected the activation.",
+  errSophonRechazaApoyo:
+    "We have not activated anything. The superadmin has already been notified.",
+  errAltaNoRegistrada: "We could not register the activation.",
+  errAltaNoRegistradaApoyo: "We have not changed anything. Try again.",
+  errSinClasificar: "We could not complete the activation.",
+  errSinClasificarApoyo: "We have not activated anything. We have already been notified.",
+
+  errNoEsTuyo: "That webmaster is not on your team.",
+  errNoEsTuyoApoyo: "You can only renew PRO for the ones you activated yourself.",
+  errNoEsTuyoAbrirApoyo:
+    "Check the email. If you have not activated them yet, do it from «Activate webmaster».",
+  errProSigueActivo: "They still have PRO left.",
+  errProSigueActivoApoyo: "You will be able to renew it when it expires.",
+  errProNoRegistrado: "We could not register the PRO.",
+  errProNoRegistradoApoyo: "We have not changed anything. Try again from their details.",
+  errProSinWhitelist: "The account is not authorized on Sophon.",
+  errProSinWhitelistApoyo: "Authorization is handled by hand with support.",
+  errProRechazado: "Sophon has not given them PRO.",
+  errProRechazadoApoyo: "Try again from their details in a minute.",
+
+  errRetiroFormato: "The amount or the wallet is not in the right format.",
+  errRetiroFormatoApoyo: "Check them and try again.",
+  errRetiroMinimo: (minimo: string) => `The amount is below the ${minimo} minimum.`,
+  errRetiroMinimoApoyo: (importe: string) => `You asked for ${importe}.`,
+  errRetiroSaldo: (disponible: string) =>
+    `The amount is over your available balance of ${disponible}.`,
+  errRetiroSaldoApoyo:
+    "What you earned in the last few days cannot be withdrawn until it is confirmed.",
+  errRetiroYaHayUna: (importe: string) => `You already have a pending request for ${importe}.`,
+  errRetiroYaHayUnaApoyo:
+    "You can only have one at a time. Reviews are manual; you can cancel the one you have.",
+  errRetiroNoRegistrado: "We could not register your request.",
+  errRetiroNoRegistradoApoyo: "We have not deducted anything. Try again.",
 
   botTitulo: "Sophon Promoters",
   botNecesitasCodigo: "You need an activation code to come in. The superadmin gives it to you.",
@@ -548,14 +780,14 @@ const en: Cadenas = {
   botUsaStart: "Use /start to open the app.",
 
   botRetiroPagado: (importe: string) => `You have been paid ${importe}.`,
-  botRedTitulo: "Your network needs a call",
+  botRedTitulo: "Your team needs a call",
   botRedParados: (n: number, total: number) =>
     `${n} of your ${total} webmasters have gone a while without a signup:`,
   botRedDiasParado: (dias: number) => `${dias} ${dias === 1 ? "day" : "days"} inactive`,
   botRedIncidencias: (n: number) =>
-    `${n} ${n === 1 ? "webmaster" : "webmasters"} with an issue on Sophon; cannot generate signups:`,
+    `${n} ${n === 1 ? "webmaster" : "webmasters"} with problems on Sophon; cannot generate signups:`,
   botRedYOtros: (n: number) => `…and ${n} more.`,
-  botRedComoVerlo: "Open them under “Your network” to see which links they use.",
+  botRedComoVerlo: "Open them from “My team” to see which links they get signups with.",
 
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Reference: ${referencia}`,
@@ -568,11 +800,11 @@ const en: Cadenas = {
 
 const it: Cadenas = {
   inicio: "Inizio",
-  red: "Rete",
-  historico: "Storico",
-  cartera: "Portafoglio",
+  red: "Il mio team",
+  historico: "Cronologia",
+  cartera: "Saldo",
   webmaster: "Webmaster",
-  devengado: "Maturato",
+  devengado: "Guadagnato",
   disponible: "Disponibile",
   solicitado: "Richiesto",
   pagado: "Pagato",
@@ -581,20 +813,20 @@ const it: Cadenas = {
   sondeando: "Caricamento dati",
 
   activarWebmaster: "Attiva webmaster",
-  solicitarRetiro: "Richiedi prelievo",
+  solicitarRetiro: "Preleva",
   vincularCuenta: "Collega il mio account",
   reintentar: "Riprova",
   activar: "Attiva",
   entrar: "Entra",
   activarOtro: "Attivane un altro",
-  verMiRed: "Vedi la mia rete",
-  verSuFicha: "Vedi la sua scheda",
+  verMiRed: "Vedi il mio team",
+  verSuFicha: "Vedi il suo profilo",
   volverAlInicio: "Torna all'inizio",
   activarElPrimero: "Attiva il primo",
 
   sinWebmasters: "Non hai ancora attivato nessun webmaster.",
   sinWebmastersApoyo: "Attivalo con la sua email di Sophon.",
-  sinIngresos: "La tua rete non ha ancora portato iscrizioni.",
+  sinIngresos: "Il tuo team non ha ancora portato iscrizioni.",
   sinIngresosApoyo: "Compariranno qui appena qualcuno si iscrive dai suoi link.",
   sinMovimientos: "Non hai ancora richiesto nessun prelievo.",
   sinVinculo: "Non hai ancora collegato il tuo account.",
@@ -615,7 +847,7 @@ const it: Cadenas = {
   reenviarEn: (segundos: number) => `Rinvia tra ${segundos} s`,
   reenviarElCodigo: "Rinvia codice",
 
-  devengadoTreintaDias: "Maturato · 30 giorni",
+  devengadoTreintaDias: "Guadagnato · 30 giorni",
   registrosYWebmasters: (registros: number, webmasters: number) =>
     `${registros.toLocaleString("it-IT")} ${registros === 1 ? "iscrizione" : "iscrizioni"} · ${webmasters} webmaster`,
   repartoPorTier: "Iscrizioni per livello",
@@ -628,9 +860,22 @@ const it: Cadenas = {
     `Ti ${faltan === 1 ? "manca" : "mancano"} ${faltan.toLocaleString("it-IT")} ${
       faltan === 1 ? "iscrizione" : "iscrizioni"
     } per ${premio}.`,
-  bonoMaximoAlcanzado: "Hai raggiunto la soglia più alta del mese.",
+  bonoMaximoAlcanzado: "Hai raggiunto il livello più alto del mese.",
   bonoGanado: (importe: string) => `Hai guadagnato ${importe}`,
-  escaleraDelBono: "Soglie del bonus",
+  escaleraDelBono: "Livelli del bonus",
+  bonoExtraSi: (umbral: number) =>
+    `in più se arrivi a ${umbral.toLocaleString("it-IT")} ${
+      umbral === 1 ? "iscrizione" : "iscrizioni"
+    } questo mese`,
+  bonoMasSiLlegas: (importe: string, umbral: number) =>
+    `${importe} in più se arrivi a ${umbral.toLocaleString("it-IT")} ${
+      umbral === 1 ? "iscrizione" : "iscrizioni"
+    }`,
+  bonoYaEsTuyo: "è già tuo",
+  bonoEsteMesLlevas: (registros: number, faltan: number) =>
+    `${registros.toLocaleString("it-IT")} questo mese · ti ${
+      faltan === 1 ? "manca" : "mancano"
+    } ${faltan.toLocaleString("it-IT")}`,
   ritmoYRecta: (ritmo: number, dias: number) =>
     `Vai a ${ritmo.toLocaleString("it-IT")} ${
       ritmo === 1 ? "iscrizione" : "iscrizioni"
@@ -646,31 +891,31 @@ const it: Cadenas = {
 
   correoDelWebmaster: "Email del webmaster",
   tieneQueExistirYa: "Deve essere un account già registrato su Sophon.",
-  yaEstaEnTuRed: (email: string) => `${email} è già nella tua rete.`,
+  yaEstaEnTuRed: (email: string) => `${email} è già nel tuo team.`,
   cobrarasDesdeHoy: "Guadagnerai sulle iscrizioni successive all'attivazione. Le precedenti non contano.",
 
-  conIncidencia: (n: number) => `${n} con un problema`,
+  conIncidencia: (n: number) => `${n} con ${n === 1 ? "un problema" : "problemi"}`,
   sinActividadDe: (parados: number, dias: number, total: number) =>
     `${parados} senza attività negli ultimi ${dias} ${dias === 1 ? "giorno" : "giorni"}, su ${total}`,
-  todosProduciendo: (n: number) => `Tutti e ${n} stanno producendo`,
+  todosProduciendo: (n: number) => `Tutti e ${n} sono attivi`,
   escalaComun: (dias: number) =>
-    `Ogni colonna, ${dias} giorni. L'altezza indica il volume di iscrizioni; la scala è comune, quindi puoi confrontarli tra loro.`,
+    `Ogni colonna, ${dias} ${dias === 1 ? "giorno" : "giorni"}. Tutte le barre sono sulla stessa scala, così puoi confrontarle.`,
 
   bloqueado: "Bloccato",
   seVaABorrar: "Sta per essere cancellato",
-  desaparecido: "Non risulta",
+  desaparecido: "Non c'è più",
   proCaducado: "Gli è scaduto il PRO",
   sinActividad: "Nessuna attività",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "giorno" : "giorni"} senza attività`,
   activoEnSophon: "Attivo su Sophon",
   bloqueadoEnSophon: "Bloccato su Sophon",
-  pendienteDeBorrado: "In attesa di cancellazione",
-  yaNoApareceEnSophon: "Non risulta su Sophon",
+  pendienteDeBorrado: "Sta per essere cancellato",
+  yaNoApareceEnSophon: "Non c'è più su Sophon",
   estadoSinComprobar: "Stato non verificato",
   pendienteDeConfirmar: "In conferma",
   pendienteDeConfirmarApoyo: "Sophon non lo ha ancora pubblicato. Di solito si risolve da solo.",
 
-  enTuRedDesde: (fecha: string) => `nella tua rete dal ${fecha}`,
+  enTuRedDesde: (fecha: string) => `nel tuo team dal ${fecha}`,
   teHaDado: "Ti ha portato",
   registrosEnDias: (registros: number, dias: number) =>
     `${registros.toLocaleString("it-IT")} ${registros === 1 ? "iscrizione" : "iscrizioni"} in ${dias} ${
@@ -684,7 +929,7 @@ const it: Cadenas = {
   registroDeSondeo: "Attività",
 
   susEnlaces: "I suoi link",
-  conQueCapta: "Con questi link acquisisce. Dati in tempo reale da Sophon.",
+  conQueCapta: "Con questi link ottiene iscrizioni. Dati in tempo reale da Sophon.",
   sinEnlaces: "Non ha ancora pubblicato nessun link.",
   enlacesNoDisponibles: "Ora non riusciamo a leggere i suoi link. Riprova più tardi.",
   enlaceCopiado: "Link copiato",
@@ -708,7 +953,7 @@ const it: Cadenas = {
   corregirElCorreo: "Correggi email",
   altaNoSeDeshace: "Non potrai annullare l'attivazione: il webmaster resta collegato a te su Sophon.",
   proConcedido: (fecha: string) => `Gli hai dato PRO fino al ${fecha}.`,
-  proNoConcedido: "Hai già il webmaster nella tua rete, ma non siamo riusciti a dargli il PRO.",
+  proNoConcedido: "Hai già il webmaster nel tuo team, ma non siamo riusciti a dargli il PRO.",
   proNoConcedidoApoyo: "Riprova dalla sua scheda. Non devi ripetere l'attivazione.",
   renovarUnAnio: "Rinnova un anno",
   darUnAnio: "Dagli un anno di PRO",
@@ -731,11 +976,12 @@ const it: Cadenas = {
     `${registros.toLocaleString("it-IT")} ${
       registros === 1 ? "iscrizione" : "iscrizioni"
     } · T1 ${t1} · T2 ${t2} · T3 ${t3}`,
-  dePago: (n: number) => `${n} paganti`,
+  dePago: (n: number) => `${n} ${n === 1 ? "ha pagato" : "hanno pagato"}`,
   diaAbierto: "Giorno in corso: i dati possono variare.",
 
-  soloConsolidado: "Puoi richiedere solo il saldo consolidato: gli ultimi giorni sono ancora soggetti a revisione.",
-  revisionManual: "Le revisioni sono manuali. Tempo di risoluzione: da 1 a 3 giorni.",
+  soloConsolidado:
+    "Puoi prelevare solo quello che è già confermato. Gli ultimi giorni li stiamo ancora controllando.",
+  revisionManual: "Le revisioni sono manuali. Ci mettiamo da 1 a 3 giorni.",
   solicitudEnCurso: "Richiesta in corso",
   pendienteDeRevision: "In attesa di revisione",
   aprobadoPendientePago: "Approvata: ti paghiamo a breve",
@@ -759,14 +1005,101 @@ const it: Cadenas = {
   pistaTrc20: "Inizia con T ed è lungo 34 caratteri.",
   pistaBsc: "Inizia con 0x ed è lungo 42 caratteri.",
   pistaTon: "Inizia con EQ o UQ ed è lungo 48 caratteri.",
-  pedirImporte: (importe: string) => `Richiedi ${importe}`,
-  pedirRetiro: "Richiedi prelievo",
-  solicitudesAnteriores: "Precedenti",
+  pedirImporte: (importe: string) => `Preleva ${importe}`,
+  solicitudesAnteriores: "Prelievi precedenti",
 
   sesionCaducada: "La tua sessione è scaduta.",
   sesionCaducadaApoyo: "Rientra con la tua email. Non perdi nulla di tuo.",
-  algoHaFallado: "Non siamo riusciti a completare l'operazione.",
+  algoHaFallado: "Non siamo riusciti a completare l'azione.",
+  algoHaFalladoApoyo: "Non abbiamo cambiato nulla. Riprova.",
   comoCobras: "Guadagni 0,03 $ per ogni utente che registra, qualunque sia il suo paese.",
+
+  errSinTelegram: "Telegram non ha verificato il tuo accesso.",
+  errSinTelegramApoyo: "Apri l'applicazione dal bot.",
+  errSuspendido: "Hai l'account sospeso.",
+  errSuspendidoApoyo: "Scrivi al superadmin per recuperare l'accesso.",
+
+  errFormatoCodigoCorreo: "Il codice o l'email non hanno il formato corretto.",
+  errFormatoCodigoCorreoApoyo: "Controllali e riprova.",
+  errCodigoNoVale: "Quel codice di attivazione non è valido o è scaduto.",
+  errCodigoUsado: "Quel codice di attivazione è già stato usato.",
+  errCodigoUsadoApoyo: "Chiedine un altro al superadmin.",
+  errCodigoOtroCorreo: "Quel codice è stato emesso per un'altra email.",
+  errCodigoOtroCorreoApoyo: "Vale solo con l'email per cui è stato emesso.",
+  errTelegramYaVinculado: (correo: string) =>
+    `Questo account Telegram è già collegato a ${correo}.`,
+  errTelegramYaVinculadoApoyo: "Scrivi al superadmin se devi cambiarlo.",
+  errEsperaParaOtroCodigo: (segundos: number) =>
+    `Potrai chiedere un altro codice tra ${segundos} secondi.`,
+  errCorreoNoEnviado: "Non siamo riusciti a inviarti l'email.",
+  errCorreoNoEnviadoApoyo: "Controlla l'indirizzo e riprova tra un minuto.",
+  errDatosNoValidos: "I dati non sono validi.",
+  errDatosNoValidosApoyo: "Il codice di verifica ha 6 cifre.",
+  errOtpCaducado: "Ti è scaduto il codice di verifica.",
+  errOtpCaducadoApoyo: "I codici scadono dopo 10 minuti. Chiedine un altro.",
+  errOtpSinIntentos: "Hai esaurito i tentativi.",
+  errOtpSinIntentosApoyo: "Quel codice è annullato. Chiedine un altro.",
+  errOtpIncorrecto: (restantes: number) =>
+    `Il codice di verifica non è corretto. Ti ${
+      restantes === 1 ? "resta" : "restano"
+    } ${restantes} ${restantes === 1 ? "tentativo" : "tentativi"}.`,
+  errOtpOtraCuenta: "Quel codice è stato richiesto da un altro account Telegram.",
+  errOtpOtraCuentaApoyo: "Vale solo sull'account che l'ha richiesto.",
+  errCorreoYaVinculado: "Quell'email è già collegata a un altro account Telegram.",
+  errCorreoYaVinculadoApoyo: "Scrivi al superadmin se devi cambiarla.",
+  errNoVinculado: "Non siamo riusciti a collegare il tuo account.",
+  errNoVinculadoApoyo: "Il tuo codice di attivazione resta non usato. Riprova.",
+  errFormatoCorreo: "Quell'email non ha il formato corretto.",
+  errFormatoCorreoApoyo: "Scrivi l'email con cui si è registrato su Sophon.",
+
+  errYaEnTuEquipo: "Hai già quel webmaster nel tuo team.",
+  errYaEnTuEquipoApoyo: "Aprilo da «Il mio team».",
+  errDeOtroAgente: "Quel webmaster è già di un altro agente.",
+  errDeOtroAgenteApoyo:
+    "Ogni webmaster ha un solo agente. Se pensi che sia un errore, scrivi al superadmin.",
+  errYaEnSophon: "Quell'account era già su Sophon.",
+  errYaEnSophonApoyo:
+    "Puoi registrare solo account nuovi che registri tu. Quelli che esistevano già sono del superadmin.",
+  errNoExisteEnSophon: "Quell'email non esiste su Sophon.",
+  errNoExisteEnSophonApoyo: "Deve registrarsi su Sophon prima che tu possa attivarlo.",
+  errSinWhitelist: "L'account non è autorizzato su Sophon.",
+  errSinWhitelistApoyo:
+    "L'autorizzazione si richiede a mano all'assistenza. Non abbiamo attivato nulla.",
+  errSophonNoResponde: "Sophon non risponde.",
+  errSophonNoRespondeApoyo: "Non abbiamo attivato nulla. Riprova tra un minuto.",
+  errSophonRechaza: "Sophon ha rifiutato l'attivazione.",
+  errSophonRechazaApoyo: "Non abbiamo attivato nulla. Il superadmin è già avvisato.",
+  errAltaNoRegistrada: "Non siamo riusciti a registrare l'attivazione.",
+  errAltaNoRegistradaApoyo: "Non abbiamo cambiato nulla. Riprova.",
+  errSinClasificar: "Non siamo riusciti a completare l'attivazione.",
+  errSinClasificarApoyo: "Non abbiamo attivato nulla. Siamo già avvisati.",
+
+  errNoEsTuyo: "Quel webmaster non è nel tuo team.",
+  errNoEsTuyoApoyo: "Puoi rinnovare il PRO solo di quelli che hai attivato tu.",
+  errNoEsTuyoAbrirApoyo:
+    "Controlla l'email. Se non l'hai ancora attivato, fallo da «Attiva webmaster».",
+  errProSigueActivo: "Gli resta ancora PRO.",
+  errProSigueActivoApoyo: "Potrai rinnovarlo quando gli scadrà.",
+  errProNoRegistrado: "Non siamo riusciti a registrare il PRO.",
+  errProNoRegistradoApoyo: "Non abbiamo cambiato nulla. Riprova dalla sua scheda.",
+  errProSinWhitelist: "L'account non è autorizzato su Sophon.",
+  errProSinWhitelistApoyo: "L'autorizzazione si richiede a mano all'assistenza.",
+  errProRechazado: "Sophon non gli ha dato il PRO.",
+  errProRechazadoApoyo: "Riprova dalla sua scheda tra un minuto.",
+
+  errRetiroFormato: "L'importo o il portafoglio non hanno il formato corretto.",
+  errRetiroFormatoApoyo: "Controllali e riprova.",
+  errRetiroMinimo: (minimo: string) => `L'importo è sotto il minimo di ${minimo}.`,
+  errRetiroMinimoApoyo: (importe: string) => `Hai chiesto ${importe}.`,
+  errRetiroSaldo: (disponible: string) =>
+    `L'importo supera il tuo saldo disponibile di ${disponible}.`,
+  errRetiroSaldoApoyo:
+    "Quello che hai guadagnato negli ultimi giorni non lo puoi prelevare finché non viene confermato.",
+  errRetiroYaHayUna: (importe: string) => `Hai già una richiesta in sospeso di ${importe}.`,
+  errRetiroYaHayUnaApoyo:
+    "Puoi averne una sola alla volta. Le revisioni sono manuali; puoi annullare quella che hai.",
+  errRetiroNoRegistrado: "Non siamo riusciti a registrare la tua richiesta.",
+  errRetiroNoRegistradoApoyo: "Non ti abbiamo scalato nulla. Riprova.",
 
   botTitulo: "Sophon Promoters",
   botNecesitasCodigo: "Per entrare ti serve un codice di attivazione. Te lo dà il superadmin.",
@@ -782,18 +1115,18 @@ const it: Cadenas = {
   botUsaStart: "Usa /start per aprire l'applicazione.",
 
   botRetiroPagado: (importe: string) => `Hai incassato ${importe}.`,
-  botRedTitulo: "La tua rete ha bisogno di una chiamata",
+  botRedTitulo: "Il tuo team ha bisogno di una chiamata",
   botRedParados: (n: number, total: number) =>
     `${n} dei tuoi ${total} webmaster non portano un'iscrizione da tempo:`,
   botRedDiasParado: (dias: number) => `${dias} ${dias === 1 ? "giorno" : "giorni"} senza attività`,
   // «webmaster» es invariable en italiano —como «computer» o «manager»—, igual
   // que en `botRedParados` dos líneas más arriba. El plural va en el verbo.
   botRedIncidencias: (n: number) =>
-    `${n} webmaster con un problema su Sophon; non ${
+    `${n} webmaster con problemi su Sophon; non ${
       n === 1 ? "può" : "possono"
     } generare iscrizioni:`,
   botRedYOtros: (n: number) => `…e altri ${n}.`,
-  botRedComoVerlo: "Aprili in «La tua rete» per vedere con quali link acquisiscono.",
+  botRedComoVerlo: "Aprili da «Il mio team» per vedere con quali link ottengono iscrizioni.",
 
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Riferimento: ${referencia}`,
@@ -806,11 +1139,11 @@ const it: Cadenas = {
 
 const pt: Cadenas = {
   inicio: "Início",
-  red: "Rede",
+  red: "A minha equipa",
   historico: "Histórico",
-  cartera: "Carteira",
+  cartera: "Saldo",
   webmaster: "Webmaster",
-  devengado: "Acumulado",
+  devengado: "Ganho",
   disponible: "Disponível",
   solicitado: "Solicitado",
   pagado: "Pago",
@@ -819,20 +1152,20 @@ const pt: Cadenas = {
   sondeando: "A carregar dados",
 
   activarWebmaster: "Ativar webmaster",
-  solicitarRetiro: "Pedir levantamento",
+  solicitarRetiro: "Levantar",
   vincularCuenta: "Associar a minha conta",
   reintentar: "Tentar de novo",
   activar: "Ativar",
   entrar: "Entrar",
   activarOtro: "Ativar outro",
-  verMiRed: "Ver a minha rede",
-  verSuFicha: "Ver a ficha dele",
+  verMiRed: "Ver a minha equipa",
+  verSuFicha: "Ver o perfil dele",
   volverAlInicio: "Voltar ao início",
   activarElPrimero: "Ativar o primeiro",
 
   sinWebmasters: "Ainda não ativaste nenhum webmaster.",
   sinWebmastersApoyo: "Ativa-o com o email dele na Sophon.",
-  sinIngresos: "A tua rede ainda não trouxe registos.",
+  sinIngresos: "A tua equipa ainda não trouxe registos.",
   sinIngresosApoyo: "Vão aparecer aqui assim que alguém se registar pelos links dele.",
   sinMovimientos: "Ainda não pediste nenhum levantamento.",
   sinVinculo: "Ainda não associaste a tua conta.",
@@ -853,7 +1186,7 @@ const pt: Cadenas = {
   reenviarEn: (segundos: number) => `Reenviar em ${segundos} s`,
   reenviarElCodigo: "Reenviar código",
 
-  devengadoTreintaDias: "Acumulado · 30 dias",
+  devengadoTreintaDias: "Ganho · 30 dias",
   registrosYWebmasters: (registros: number, webmasters: number) =>
     `${registros.toLocaleString("pt-PT")} ${registros === 1 ? "registo" : "registos"} · ${webmasters} ${
       webmasters === 1 ? "webmaster" : "webmasters"
@@ -868,9 +1201,22 @@ const pt: Cadenas = {
     `${faltan === 1 ? "Falta-te" : "Faltam-te"} ${faltan.toLocaleString("pt-PT")} ${
       faltan === 1 ? "registo" : "registos"
     } para ${premio}.`,
-  bonoMaximoAlcanzado: "Atingiste o patamar mais alto do mês.",
+  bonoMaximoAlcanzado: "Chegaste ao nível mais alto do mês.",
   bonoGanado: (importe: string) => `Ganhaste ${importe}`,
-  escaleraDelBono: "Patamares do bónus",
+  escaleraDelBono: "Níveis do bónus",
+  bonoExtraSi: (umbral: number) =>
+    `extra se chegares a ${umbral.toLocaleString("pt-PT")} ${
+      umbral === 1 ? "registo" : "registos"
+    } este mês`,
+  bonoMasSiLlegas: (importe: string, umbral: number) =>
+    `${importe} mais se chegares a ${umbral.toLocaleString("pt-PT")} ${
+      umbral === 1 ? "registo" : "registos"
+    }`,
+  bonoYaEsTuyo: "já é teu",
+  bonoEsteMesLlevas: (registros: number, faltan: number) =>
+    `${registros.toLocaleString("pt-PT")} este mês · ${
+      faltan === 1 ? "falta-te" : "faltam-te"
+    } ${faltan.toLocaleString("pt-PT")}`,
   ritmoYRecta: (ritmo: number, dias: number) =>
     `Vais a ${ritmo.toLocaleString("pt-PT")} ${
       ritmo === 1 ? "registo" : "registos"
@@ -886,31 +1232,31 @@ const pt: Cadenas = {
 
   correoDelWebmaster: "Email do webmaster",
   tieneQueExistirYa: "Tem de ser uma conta já registada na Sophon.",
-  yaEstaEnTuRed: (email: string) => `${email} já está na tua rede.`,
+  yaEstaEnTuRed: (email: string) => `${email} já está na tua equipa.`,
   cobrarasDesdeHoy: "Vais ganhar pelos registos posteriores à ativação. Os anteriores não contam.",
 
-  conIncidencia: (n: number) => `${n} com problema`,
+  conIncidencia: (n: number) => `${n} com ${n === 1 ? "problema" : "problemas"}`,
   sinActividadDe: (parados: number, dias: number, total: number) =>
     `${parados} sem atividade nos últimos ${dias} ${dias === 1 ? "dia" : "dias"}, de ${total}`,
-  todosProduciendo: (n: number) => `Os ${n} estão a produzir`,
+  todosProduciendo: (n: number) => `Os ${n} estão ativos`,
   escalaComun: (dias: number) =>
-    `Cada coluna, ${dias} dias. A altura indica o volume de registos; a escala é comum, por isso podes compará-los entre si.`,
+    `Cada coluna, ${dias} ${dias === 1 ? "dia" : "dias"}. Todas as barras estão à mesma escala, por isso podes compará-las.`,
 
   bloqueado: "Bloqueado",
   seVaABorrar: "Vai ser eliminado",
-  desaparecido: "Não consta",
+  desaparecido: "Já não está",
   proCaducado: "Expirou-lhe o PRO",
   sinActividad: "Sem atividade",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "dia" : "dias"} sem atividade`,
   activoEnSophon: "Ativo na Sophon",
   bloqueadoEnSophon: "Bloqueado na Sophon",
-  pendienteDeBorrado: "A aguardar eliminação",
-  yaNoApareceEnSophon: "Não consta na Sophon",
+  pendienteDeBorrado: "Vai ser eliminado",
+  yaNoApareceEnSophon: "Já não está na Sophon",
   estadoSinComprobar: "Estado por verificar",
   pendienteDeConfirmar: "A confirmar",
   pendienteDeConfirmarApoyo: "A Sophon ainda não o publicou. Costuma resolver-se sozinho.",
 
-  enTuRedDesde: (fecha: string) => `na tua rede desde ${fecha}`,
+  enTuRedDesde: (fecha: string) => `na tua equipa desde ${fecha}`,
   teHaDado: "Trouxe-te",
   registrosEnDias: (registros: number, dias: number) => `${registros.toLocaleString("pt-PT")} ${registros === 1 ? "registo" : "registos"} em ${dias} ${
       dias === 1 ? "dia" : "dias"
@@ -923,7 +1269,7 @@ const pt: Cadenas = {
   registroDeSondeo: "Atividade",
 
   susEnlaces: "Os links dele",
-  conQueCapta: "É com estes links que capta. Dados em direto da Sophon.",
+  conQueCapta: "É com estes links que consegue registos. Dados em direto da Sophon.",
   sinEnlaces: "Ainda não publicou nenhum link.",
   enlacesNoDisponibles: "Agora não conseguimos ler os links dele. Tenta mais tarde.",
   enlaceCopiado: "Link copiado",
@@ -946,7 +1292,7 @@ const pt: Cadenas = {
   corregirElCorreo: "Corrigir email",
   altaNoSeDeshace: "Não vais poder desfazer a ativação: o webmaster fica associado a ti na Sophon.",
   proConcedido: (fecha: string) => `Deste-lhe PRO até ${fecha}.`,
-  proNoConcedido: "Já tens o webmaster na tua rede, mas não conseguimos dar-lhe o PRO.",
+  proNoConcedido: "Já tens o webmaster na tua equipa, mas não conseguimos dar-lhe o PRO.",
   proNoConcedidoApoyo: "Tenta outra vez a partir da ficha dele. Não tens de repetir a ativação.",
   renovarUnAnio: "Renovar um ano",
   darUnAnio: "Dar-lhe um ano de PRO",
@@ -969,11 +1315,12 @@ const pt: Cadenas = {
     `${registros.toLocaleString("pt-PT")} ${
       registros === 1 ? "registo" : "registos"
     } · T1 ${t1} · T2 ${t2} · T3 ${t3}`,
-  dePago: (n: number) => `${n} pagantes`,
+  dePago: (n: number) => `${n} ${n === 1 ? "pagou" : "pagaram"}`,
   diaAbierto: "Dia em curso: os dados podem variar.",
 
-  soloConsolidado: "Só podes pedir o saldo consolidado: os últimos dias ainda estão sujeitos a revisão.",
-  revisionManual: "As revisões são manuais. Prazo de resolução: 1 a 3 dias.",
+  soloConsolidado:
+    "Só podes levantar o que já está confirmado. Os últimos dias ainda os estamos a rever.",
+  revisionManual: "As revisões são manuais. Demoramos 1 a 3 dias.",
   solicitudEnCurso: "Pedido em curso",
   pendienteDeRevision: "A aguardar revisão",
   aprobadoPendientePago: "Aprovado: pagamos-te em breve",
@@ -997,14 +1344,100 @@ const pt: Cadenas = {
   pistaTrc20: "Começa por T e tem 34 caracteres.",
   pistaBsc: "Começa por 0x e tem 42 caracteres.",
   pistaTon: "Começa por EQ ou UQ e tem 48 caracteres.",
-  pedirImporte: (importe: string) => `Solicitar ${importe}`,
-  pedirRetiro: "Solicitar levantamento",
-  solicitudesAnteriores: "Anteriores",
+  pedirImporte: (importe: string) => `Levantar ${importe}`,
+  solicitudesAnteriores: "Levantamentos anteriores",
 
   sesionCaducada: "A tua sessão expirou.",
   sesionCaducadaApoyo: "Volta a entrar com o teu email. Não perdes nada do que é teu.",
-  algoHaFallado: "Não conseguimos concluir a operação.",
+  algoHaFallado: "Não conseguimos concluir a ação.",
+  algoHaFalladoApoyo: "Não alterámos nada. Tenta outra vez.",
   comoCobras: "Ganhas 0,03 $ por cada utilizador que registe, seja qual for o país.",
+
+  errSinTelegram: "O Telegram não verificou o teu acesso.",
+  errSinTelegramApoyo: "Abre a aplicação a partir do bot.",
+  errSuspendido: "Tens a conta suspensa.",
+  errSuspendidoApoyo: "Escreve ao superadmin para recuperares o acesso.",
+
+  errFormatoCodigoCorreo: "O código ou o email não têm o formato correto.",
+  errFormatoCodigoCorreoApoyo: "Revê-os e tenta outra vez.",
+  errCodigoNoVale: "Esse código de ativação não é válido ou expirou.",
+  errCodigoUsado: "Esse código de ativação já foi usado.",
+  errCodigoUsadoApoyo: "Pede outro ao superadmin.",
+  errCodigoOtroCorreo: "Esse código foi emitido para outro email.",
+  errCodigoOtroCorreoApoyo: "Só é válido com o email para o qual foi emitido.",
+  errTelegramYaVinculado: (correo: string) =>
+    `Esta conta de Telegram já está associada a ${correo}.`,
+  errTelegramYaVinculadoApoyo: "Escreve ao superadmin se precisares de a mudar.",
+  errEsperaParaOtroCodigo: (segundos: number) =>
+    `Vais poder pedir outro código dentro de ${segundos} segundos.`,
+  errCorreoNoEnviado: "Não conseguimos enviar-te o email.",
+  errCorreoNoEnviadoApoyo: "Verifica o endereço e tenta outra vez dentro de um minuto.",
+  errDatosNoValidos: "Os dados não são válidos.",
+  errDatosNoValidosApoyo: "O código de verificação tem 6 dígitos.",
+  errOtpCaducado: "Expirou-te o código de verificação.",
+  errOtpCaducadoApoyo: "Os códigos expiram ao fim de 10 minutos. Pede outro.",
+  errOtpSinIntentos: "Esgotaste as tentativas.",
+  errOtpSinIntentosApoyo: "Esse código fica anulado. Pede outro.",
+  errOtpIncorrecto: (restantes: number) =>
+    `O código de verificação não está correto. ${
+      restantes === 1 ? "Resta-te" : "Restam-te"
+    } ${restantes} ${restantes === 1 ? "tentativa" : "tentativas"}.`,
+  errOtpOtraCuenta: "Esse código foi pedido a partir de outra conta de Telegram.",
+  errOtpOtraCuentaApoyo: "Só é válido na conta que o pediu.",
+  errCorreoYaVinculado: "Esse email já está associado a outra conta de Telegram.",
+  errCorreoYaVinculadoApoyo: "Escreve ao superadmin se precisares de a mudar.",
+  errNoVinculado: "Não conseguimos associar a tua conta.",
+  errNoVinculadoApoyo: "O teu código de ativação continua por usar. Tenta outra vez.",
+  errFormatoCorreo: "Esse email não tem o formato correto.",
+  errFormatoCorreoApoyo: "Escreve o email com que se registou na Sophon.",
+
+  errYaEnTuEquipo: "Já tens esse webmaster na tua equipa.",
+  errYaEnTuEquipoApoyo: "Abre-o em «A minha equipa».",
+  errDeOtroAgente: "Esse webmaster já é de outro agente.",
+  errDeOtroAgenteApoyo:
+    "Cada webmaster tem um só agente. Se achas que é um erro, escreve ao superadmin.",
+  errYaEnSophon: "Essa conta já estava na Sophon.",
+  errYaEnSophonApoyo:
+    "Só podes dar de alta contas novas que registes tu. As que já existiam são do superadmin.",
+  errNoExisteEnSophon: "Esse email não existe na Sophon.",
+  errNoExisteEnSophonApoyo: "Tem de se registar na Sophon antes de o poderes ativar.",
+  errSinWhitelist: "A conta não está autorizada na Sophon.",
+  errSinWhitelistApoyo: "A autorização trata-se à mão com o suporte. Não ativámos nada.",
+  errSophonNoResponde: "A Sophon não responde.",
+  errSophonNoRespondeApoyo: "Não ativámos nada. Tenta outra vez dentro de um minuto.",
+  errSophonRechaza: "A Sophon recusou a ativação.",
+  errSophonRechazaApoyo: "Não ativámos nada. O superadmin já foi avisado.",
+  errAltaNoRegistrada: "Não conseguimos registar a ativação.",
+  errAltaNoRegistradaApoyo: "Não alterámos nada. Tenta outra vez.",
+  errSinClasificar: "Não conseguimos concluir a ativação.",
+  errSinClasificarApoyo: "Não ativámos nada. Já estamos avisados.",
+
+  errNoEsTuyo: "Esse webmaster não está na tua equipa.",
+  errNoEsTuyoApoyo: "Só podes renovar o PRO dos que ativaste tu.",
+  errNoEsTuyoAbrirApoyo:
+    "Verifica o email. Se ainda não o ativaste, fá-lo em «Ativar webmaster».",
+  errProSigueActivo: "Ainda lhe resta PRO.",
+  errProSigueActivoApoyo: "Vais poder renová-lo quando lhe expirar.",
+  errProNoRegistrado: "Não conseguimos registar o PRO.",
+  errProNoRegistradoApoyo: "Não alterámos nada. Tenta outra vez a partir da ficha dele.",
+  errProSinWhitelist: "A conta não está autorizada na Sophon.",
+  errProSinWhitelistApoyo: "A autorização trata-se à mão com o suporte.",
+  errProRechazado: "A Sophon não lhe deu o PRO.",
+  errProRechazadoApoyo: "Tenta outra vez a partir da ficha dele dentro de um minuto.",
+
+  errRetiroFormato: "O montante ou a carteira não têm o formato correto.",
+  errRetiroFormatoApoyo: "Revê-os e tenta outra vez.",
+  errRetiroMinimo: (minimo: string) => `O montante fica abaixo do mínimo de ${minimo}.`,
+  errRetiroMinimoApoyo: (importe: string) => `Pediste ${importe}.`,
+  errRetiroSaldo: (disponible: string) =>
+    `O montante ultrapassa o teu saldo disponível de ${disponible}.`,
+  errRetiroSaldoApoyo:
+    "O que ganhaste nos últimos dias não o podes levantar até ser confirmado.",
+  errRetiroYaHayUna: (importe: string) => `Já tens um pedido pendente de ${importe}.`,
+  errRetiroYaHayUnaApoyo:
+    "Só podes ter um de cada vez. As revisões são manuais; podes cancelar o que tens.",
+  errRetiroNoRegistrado: "Não conseguimos registar o teu pedido.",
+  errRetiroNoRegistradoApoyo: "Não te descontámos nada. Tenta outra vez.",
 
   botTitulo: "Sophon Promoters",
   botNecesitasCodigo: "Para entrares precisas de um código de ativação. É o superadmin que to dá.",
@@ -1020,16 +1453,16 @@ const pt: Cadenas = {
   botUsaStart: "Usa /start para abrir a aplicação.",
 
   botRetiroPagado: (importe: string) => `Recebeste ${importe}.`,
-  botRedTitulo: "A tua rede precisa de uma chamada",
+  botRedTitulo: "A tua equipa precisa de uma chamada",
   botRedParados: (n: number, total: number) =>
     `${n} dos teus ${total} webmasters já não trazem um registo há algum tempo:`,
   botRedDiasParado: (dias: number) => `${dias} ${dias === 1 ? "dia" : "dias"} sem atividade`,
   botRedIncidencias: (n: number) =>
-    `${n} ${n === 1 ? "webmaster" : "webmasters"} com problema na Sophon; não ${
+    `${n} ${n === 1 ? "webmaster" : "webmasters"} com problemas na Sophon; não ${
       n === 1 ? "pode" : "podem"
     } gerar registos:`,
   botRedYOtros: (n: number) => `…e mais ${n}.`,
-  botRedComoVerlo: "Abre-os em «A tua rede» para veres com que links captam.",
+  botRedComoVerlo: "Abre-os em «A minha equipa» para veres com que links conseguem registos.",
 
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `Referência: ${referencia}`,
@@ -1047,14 +1480,21 @@ const pt: Cadenas = {
  * siguen escribiéndose con cifras occidentales: es lo que usan las carteras de
  * criptomonedas y los exploradores de bloques que el agente va a mirar al lado,
  * y mezclar dos juegos de dígitos en una pantalla de dinero invita a error.
+ *
+ * Por eso el locale de este catálogo es `ar` a secas y no `ar-EG`: `ar-EG`
+ * numera con cifras índigo-arábigas (٢٠٬٠٠٠) y estaba contradiciendo el párrafo
+ * de arriba en las mismas cadenas de dinero que decía proteger.
+ *
+ * El árabe no tiene caja —no hay versalitas ni mayúsculas que jugar— y sí tiene
+ * DUAL: donde un recuento cambia de forma, hay tres ramas (1, 2, resto).
  */
 const ar: Cadenas = {
   inicio: "الرئيسية",
-  red: "الشبكة",
+  red: "فريقي",
   historico: "السجل",
-  cartera: "المحفظة",
+  cartera: "الرصيد",
   webmaster: "مشرف الموقع",
-  devengado: "المستحق",
+  devengado: "المكتسب",
   disponible: "المتاح",
   solicitado: "المطلوب",
   pagado: "المدفوع",
@@ -1063,20 +1503,20 @@ const ar: Cadenas = {
   sondeando: "جارٍ تحميل البيانات",
 
   activarWebmaster: "تفعيل مشرف موقع",
-  solicitarRetiro: "طلب سحب",
+  solicitarRetiro: "سحب",
   vincularCuenta: "اربط حسابي",
   reintentar: "أعد المحاولة",
   activar: "تفعيل",
   entrar: "دخول",
   activarOtro: "تفعيل آخر",
-  verMiRed: "شبكتي",
-  verSuFicha: "بطاقته",
+  verMiRed: "عرض فريقي",
+  verSuFicha: "عرض ملفه",
   volverAlInicio: "العودة إلى الرئيسية",
   activarElPrimero: "فعّل أول واحد",
 
   sinWebmasters: "لم تفعّل أي webmaster بعد.",
   sinWebmastersApoyo: "فعّله ببريده في Sophon.",
-  sinIngresos: "شبكتك لم تجلب تسجيلات بعد.",
+  sinIngresos: "فريقك لم يجلب تسجيلات بعد.",
   sinIngresosApoyo: "ستظهر هنا فور أن يسجّل أحدهم عبر روابطه.",
   sinMovimientos: "لم تطلب أي سحب بعد.",
   sinVinculo: "لم تربط حسابك بعد.",
@@ -1096,57 +1536,80 @@ const ar: Cadenas = {
   reenviarEn: (segundos: number) => `إعادة الإرسال بعد ${segundos} ث`,
   reenviarElCodigo: "إعادة إرسال الرمز",
 
-  devengadoTreintaDias: "المستحق · 30 يومًا",
+  devengadoTreintaDias: "المكتسب · 30 يومًا",
   registrosYWebmasters: (registros: number, webmasters: number) =>
-    `${registros.toLocaleString("ar-EG")} تسجيل · ${webmasters} webmaster`,
+    `${registros.toLocaleString("ar")} تسجيل · ${webmasters} webmaster`,
   repartoPorTier: "التسجيلات حسب المستوى",
   acciones: "الإجراءات",
   estadoDeTuDinero: "أين أموالك",
   bonoDelMes: "مكافأة الشهر",
-  registrosEsteMes: (n: number) => `${n.toLocaleString("ar-EG")} تسجيل هذا الشهر`,
+  registrosEsteMes: (n: number) => `${n.toLocaleString("ar")} تسجيل هذا الشهر`,
   faltanParaElBono: (faltan: number, premio: string) =>
-    `يتبقّى لك ${faltan.toLocaleString("ar-EG")} تسجيل للوصول إلى ${premio}.`,
+    `يتبقّى لك ${faltan.toLocaleString("ar")} تسجيل للوصول إلى ${premio}.`,
   bonoMaximoAlcanzado: "لقد بلغت أعلى مستوى لهذا الشهر.",
   bonoGanado: (importe: string) => `لقد ربحت ${importe}`,
   escaleraDelBono: "مستويات المكافأة",
+  // Dual: تسجيل واحد / تسجيلان / تسجيلات. Es la misma concordancia triple que
+  // `botRedIncidencias` hace con el verbo, aplicada aquí al sustantivo contado.
+  bonoExtraSi: (umbral: number) =>
+    `إضافية إذا بلغت ${
+      umbral === 1
+        ? "تسجيلًا واحدًا"
+        : umbral === 2
+          ? "تسجيلين"
+          : `${umbral.toLocaleString("ar")} تسجيل`
+    } هذا الشهر`,
+  bonoMasSiLlegas: (importe: string, umbral: number) =>
+    `${importe} أكثر إذا بلغت ${
+      umbral === 1
+        ? "تسجيلًا واحدًا"
+        : umbral === 2
+          ? "تسجيلين"
+          : `${umbral.toLocaleString("ar")} تسجيل`
+    }`,
+  bonoYaEsTuyo: "صار لك",
+  bonoEsteMesLlevas: (registros: number, faltan: number) =>
+    `${registros.toLocaleString("ar")} هذا الشهر · يتبقّى لك ${faltan.toLocaleString("ar")}`,
   ritmoYRecta: (ritmo: number, dias: number) =>
-    `معدّلك ${ritmo.toLocaleString("ar-EG")} تسجيل يوميًا، ويتبقّى ${dias} ${
+    `معدّلك ${ritmo.toLocaleString("ar")} تسجيل يوميًا، ويتبقّى ${dias} ${
       dias === 1 ? "يوم" : "أيام"
     } من الشهر.`,
   loAlcanzarasEl: (dia: number) => `بهذا المعدّل ستبلغه في اليوم ${dia}.`,
   cerrarasElMesEn: (registros: number) =>
-    `بهذا المعدّل ستنهي الشهر عند ${registros.toLocaleString("ar-EG")}.`,
+    `بهذا المعدّل ستنهي الشهر عند ${registros.toLocaleString("ar")}.`,
   frenteAlMesPasado: (porcentaje: number) =>
     `${porcentaje >= 0 ? "+" : "−"}${Math.abs(porcentaje)} % عن الشهر الماضي`,
   quienTeAcerca: "من يقرّبك من الهدف",
 
   correoDelWebmaster: "بريد مشرف الموقع",
   tieneQueExistirYa: "يجب أن يكون الحساب مسجَّلًا في Sophon مسبقًا.",
-  yaEstaEnTuRed: (email: string) => `${email} موجود في شبكتك بالفعل.`,
+  yaEstaEnTuRed: (email: string) => `${email} موجود في فريقك بالفعل.`,
   cobrarasDesdeHoy: "ستربح من التسجيلات اللاحقة للتفعيل. السابقة لا تُحتسب.",
 
-  conIncidencia: (n: number) => `${n} بها مشكلة`,
+  // Dual otra vez: el pronombre cambia con 1, con 2 y con el resto.
+  conIncidencia: (n: number) =>
+    `${n} ${n === 1 ? "به مشكلة" : n === 2 ? "بهما مشكلات" : "بها مشكلات"}`,
   sinActividadDe: (parados: number, dias: number, total: number) =>
     `${parados} بلا نشاط خلال آخر ${dias} يومًا، من أصل ${total}`,
-  todosProduciendo: (n: number) => `الـ ${n} جميعهم ينتجون`,
+  todosProduciendo: (n: number) => `الـ ${n} جميعهم نشطون`,
   escalaComun: (dias: number) =>
-    `كل عمود ${dias} أيام. يشير الارتفاع إلى حجم التسجيلات، والمقياس موحَّد بما يتيح لك المقارنة بينهم.`,
+    `كل عمود ${dias} أيام. كل الأعمدة على المقياس نفسه، فيمكنك المقارنة بينها.`,
 
   bloqueado: "محظور",
   seVaABorrar: "على وشك الحذف",
-  desaparecido: "غير مُدرج",
+  desaparecido: "لم يعد موجودًا",
   proCaducado: "انتهت صلاحية PRO الخاص به",
   sinActividad: "بلا نشاط",
   diasParado: (dias: number) => `${dias} أيام بلا نشاط`,
   activoEnSophon: "نشط في Sophon",
   bloqueadoEnSophon: "محظور في Sophon",
-  pendienteDeBorrado: "بانتظار الحذف",
-  yaNoApareceEnSophon: "غير مُدرج في Sophon",
+  pendienteDeBorrado: "على وشك الحذف",
+  yaNoApareceEnSophon: "لم يعد موجودًا في Sophon",
   estadoSinComprobar: "الحالة غير مُتحقق منها",
   pendienteDeConfirmar: "قيد التأكيد",
   pendienteDeConfirmarApoyo: "لم ينشره Sophon بعد. عادةً ما يُحل من تلقاء نفسه.",
 
-  enTuRedDesde: (fecha: string) => `في شبكتك منذ ${fecha}`,
+  enTuRedDesde: (fecha: string) => `في فريقك منذ ${fecha}`,
   teHaDado: "جلب لك",
   registrosEnDias: (registros: number, dias: number) => `${registros} تسجيل خلال ${dias} يومًا`,
   compraronPro: (n: number) => `${n} اشترى PRO`,
@@ -1156,12 +1619,12 @@ const ar: Cadenas = {
   registroDeSondeo: "النشاط",
 
   susEnlaces: "روابطه",
-  conQueCapta: "بهذه الروابط يستقطب. بيانات مباشرة من Sophon.",
+  conQueCapta: "بهذه الروابط يحصل على تسجيلات. بيانات مباشرة من Sophon.",
   sinEnlaces: "لم ينشر أي رابط بعد.",
   enlacesNoDisponibles: "لا نستطيع قراءة روابطه الآن. حاول لاحقًا.",
   enlaceCopiado: "نُسخ الرابط",
-  numero: (n: number) => n.toLocaleString("ar-EG"),
-  registrosCortos: (n: number) => `${n.toLocaleString("ar-EG")} تسجيل`,
+  numero: (n: number) => n.toLocaleString("ar"),
+  registrosCortos: (n: number) => `${n.toLocaleString("ar")} تسجيل`,
 
   tiempoRestanteDePro: "ما تبقّى من PRO",
   venceEl: (fecha: string) => `ينتهي في ${fecha}`,
@@ -1178,7 +1641,7 @@ const ar: Cadenas = {
   corregirElCorreo: "تصحيح البريد",
   altaNoSeDeshace: "لن تستطيع التراجع عن التفعيل: يبقى webmaster مرتبطًا بك في Sophon.",
   proConcedido: (fecha: string) => `منحته PRO حتى ${fecha}.`,
-  proNoConcedido: "أصبح webmaster في شبكتك، لكننا لم نتمكن من منحه PRO.",
+  proNoConcedido: "أصبح webmaster في فريقك، لكننا لم نتمكن من منحه PRO.",
   proNoConcedidoApoyo: "أعد المحاولة من بطاقته. لا حاجة لتكرار التفعيل.",
   renovarUnAnio: "تجديد · سنة",
   darUnAnio: "امنحه سنة من PRO",
@@ -1199,11 +1662,12 @@ const ar: Cadenas = {
   aquiEmpieza: "هنا يبدأ سجلك. لا يوجد شيء قبل ذلك.",
   desglose: (registros: number, t1: number, t2: number, t3: number) =>
     `${registros} تسجيل · T1 ${t1} · T2 ${t2} · T3 ${t3}`,
-  dePago: (n: number) => `${n} مدفوع`,
+  // Dual: 1 دفع · 2 دفعا · 3+ دفعوا.
+  dePago: (n: number) => `${n} ${n === 1 ? "دفع" : n === 2 ? "دفعا" : "دفعوا"}`,
   diaAbierto: "اليوم الجاري: البيانات قابلة للتغيّر.",
 
-  soloConsolidado: "لا يمكنك طلب سوى الرصيد المُثبَّت: الأيام الأخيرة ما زالت خاضعة للمراجعة.",
-  revisionManual: "المراجعات يدوية. مدة البتّ: من 1 إلى 3 أيام.",
+  soloConsolidado: "لا يمكنك سحب سوى ما تم تأكيده. الأيام الأخيرة ما زلنا نراجعها.",
+  revisionManual: "المراجعات يدوية. نستغرق من 1 إلى 3 أيام.",
   solicitudEnCurso: "طلب قيد المعالجة",
   pendienteDeRevision: "بانتظار المراجعة",
   aprobadoPendientePago: "تمت الموافقة: سندفع لك قريبًا",
@@ -1227,14 +1691,101 @@ const ar: Cadenas = {
   pistaTrc20: "يبدأ بحرف T وطوله 34 خانة.",
   pistaBsc: "يبدأ بـ 0x وطوله 42 خانة.",
   pistaTon: "يبدأ بـ EQ أو UQ وطوله 48 خانة.",
-  pedirImporte: (importe: string) => `طلب ${importe}`,
-  pedirRetiro: "طلب سحب",
-  solicitudesAnteriores: "السابقة",
+  pedirImporte: (importe: string) => `سحب ${importe}`,
+  solicitudesAnteriores: "السحوبات السابقة",
 
   sesionCaducada: "انتهت صلاحية جلستك.",
   sesionCaducadaApoyo: "ادخل من جديد ببريدك. لن تفقد شيئًا مما لك.",
-  algoHaFallado: "لم نتمكن من إتمام العملية.",
+  algoHaFallado: "لم نتمكن من إتمام الإجراء.",
+  algoHaFalladoApoyo: "لم نغيّر شيئًا. أعد المحاولة.",
   comoCobras: "تربح 0,03 $ عن كل مستخدم يسجّله، أيًا كان بلده.",
+
+  errSinTelegram: "لم يتحقق Telegram من دخولك.",
+  errSinTelegramApoyo: "افتح التطبيق من البوت.",
+  errSuspendido: "حسابك موقوف.",
+  errSuspendidoApoyo: "راسل superadmin لاستعادة الدخول.",
+
+  errFormatoCodigoCorreo: "الرمز أو البريد ليس بالصيغة الصحيحة.",
+  errFormatoCodigoCorreoApoyo: "راجعهما وأعد المحاولة.",
+  errCodigoNoVale: "رمز التفعيل هذا غير صالح أو انتهت صلاحيته.",
+  errCodigoUsado: "رمز التفعيل هذا استُخدم من قبل.",
+  errCodigoUsadoApoyo: "اطلب رمزًا آخر من superadmin.",
+  errCodigoOtroCorreo: "هذا الرمز صدر لبريد آخر.",
+  errCodigoOtroCorreoApoyo: "لا يصلح إلا مع البريد الذي صدر له.",
+  errTelegramYaVinculado: (correo: string) => `حساب Telegram هذا مرتبط بالفعل بـ ${correo}.`,
+  errTelegramYaVinculadoApoyo: "راسل superadmin إن احتجت إلى تغييره.",
+  errEsperaParaOtroCodigo: (segundos: number) =>
+    `ستتمكن من طلب رمز آخر بعد ${segundos} ثانية.`,
+  errCorreoNoEnviado: "لم نتمكن من إرسال البريد إليك.",
+  errCorreoNoEnviadoApoyo: "تحقق من العنوان وأعد المحاولة بعد دقيقة.",
+  errDatosNoValidos: "البيانات غير صالحة.",
+  errDatosNoValidosApoyo: "رمز التحقق مكوَّن من 6 أرقام.",
+  errOtpCaducado: "انتهت صلاحية رمز التحقق.",
+  errOtpCaducadoApoyo: "تنتهي صلاحية الرموز بعد 10 دقائق. اطلب رمزًا آخر.",
+  errOtpSinIntentos: "استنفدت المحاولات.",
+  errOtpSinIntentosApoyo: "هذا الرمز أصبح ملغى. اطلب رمزًا آخر.",
+  // Dual: محاولة واحدة / محاولتان / محاولات.
+  errOtpIncorrecto: (restantes: number) =>
+    `رمز التحقق غير صحيح. ${
+      restantes === 1
+        ? "تبقّت لك محاولة واحدة"
+        : restantes === 2
+          ? "تبقّت لك محاولتان"
+          : `تبقّت لك ${restantes} محاولات`
+    }.`,
+  errOtpOtraCuenta: "طُلب هذا الرمز من حساب Telegram آخر.",
+  errOtpOtraCuentaApoyo: "لا يصلح إلا في الحساب الذي طلبه.",
+  errCorreoYaVinculado: "هذا البريد مرتبط بالفعل بحساب Telegram آخر.",
+  errCorreoYaVinculadoApoyo: "راسل superadmin إن احتجت إلى تغييره.",
+  errNoVinculado: "لم نتمكن من ربط حسابك.",
+  errNoVinculadoApoyo: "رمز التفعيل الخاص بك ما زال غير مستخدَم. أعد المحاولة.",
+  errFormatoCorreo: "هذا البريد ليس بالصيغة الصحيحة.",
+  errFormatoCorreoApoyo: "اكتب البريد الذي سُجّل به في Sophon.",
+
+  errYaEnTuEquipo: "هذا webmaster في فريقك بالفعل.",
+  errYaEnTuEquipoApoyo: "افتحه من «فريقي».",
+  errDeOtroAgente: "هذا webmaster تابع لوكيل آخر بالفعل.",
+  errDeOtroAgenteApoyo: "لكل webmaster وكيل واحد فقط. إن كنت ترى أن هذا خطأ، راسل superadmin.",
+  errYaEnSophon: "هذا الحساب كان موجودًا في Sophon من قبل.",
+  errYaEnSophonApoyo:
+    "لا يمكنك تسجيل سوى الحسابات الجديدة التي تسجّلها أنت. أما التي كانت موجودة فهي لـ superadmin.",
+  errNoExisteEnSophon: "هذا البريد غير موجود في Sophon.",
+  errNoExisteEnSophonApoyo: "عليه التسجيل في Sophon قبل أن تتمكن من تفعيله.",
+  errSinWhitelist: "الحساب غير مصرَّح له في Sophon.",
+  errSinWhitelistApoyo: "التصريح يُعالَج يدويًا مع الدعم. لم نفعّل شيئًا.",
+  errSophonNoResponde: "Sophon لا يستجيب.",
+  errSophonNoRespondeApoyo: "لم نفعّل شيئًا. أعد المحاولة بعد دقيقة.",
+  errSophonRechaza: "رفض Sophon التفعيل.",
+  errSophonRechazaApoyo: "لم نفعّل شيئًا. تم إبلاغ superadmin.",
+  errAltaNoRegistrada: "لم نتمكن من تسجيل التفعيل.",
+  errAltaNoRegistradaApoyo: "لم نغيّر شيئًا. أعد المحاولة.",
+  errSinClasificar: "لم نتمكن من إتمام التفعيل.",
+  errSinClasificarApoyo: "لم نفعّل شيئًا. نحن على علم بالأمر.",
+
+  errNoEsTuyo: "هذا webmaster ليس في فريقك.",
+  errNoEsTuyoApoyo: "لا يمكنك تجديد PRO إلا لمن فعّلتهم أنت.",
+  errNoEsTuyoAbrirApoyo:
+    "تحقّق من البريد. إن لم تكن قد فعّلته بعد، فافعل ذلك من «تفعيل مشرف موقع».",
+  errProSigueActivo: "ما زال لديه PRO.",
+  errProSigueActivoApoyo: "ستتمكن من تجديده عند انتهاء صلاحيته.",
+  errProNoRegistrado: "لم نتمكن من تسجيل PRO.",
+  errProNoRegistradoApoyo: "لم نغيّر شيئًا. أعد المحاولة من ملفه.",
+  errProSinWhitelist: "الحساب غير مصرَّح له في Sophon.",
+  errProSinWhitelistApoyo: "التصريح يُعالَج يدويًا مع الدعم.",
+  errProRechazado: "لم يمنحه Sophon اشتراك PRO.",
+  errProRechazadoApoyo: "أعد المحاولة من ملفه بعد دقيقة.",
+
+  errRetiroFormato: "المبلغ أو المحفظة ليسا بالصيغة الصحيحة.",
+  errRetiroFormatoApoyo: "راجعهما وأعد المحاولة.",
+  errRetiroMinimo: (minimo: string) => `المبلغ أقل من الحد الأدنى البالغ ${minimo}.`,
+  errRetiroMinimoApoyo: (importe: string) => `طلبت ${importe}.`,
+  errRetiroSaldo: (disponible: string) => `المبلغ يتجاوز رصيدك المتاح البالغ ${disponible}.`,
+  errRetiroSaldoApoyo: "ما ربحته في الأيام الأخيرة لا يمكنك سحبه حتى يتم تأكيده.",
+  errRetiroYaHayUna: (importe: string) => `لديك بالفعل طلب معلّق بمبلغ ${importe}.`,
+  errRetiroYaHayUnaApoyo:
+    "لا يمكنك أن يكون لديك سوى طلب واحد في كل مرة. المراجعات يدوية؛ يمكنك إلغاء الطلب الحالي.",
+  errRetiroNoRegistrado: "لم نتمكن من تسجيل طلبك.",
+  errRetiroNoRegistradoApoyo: "لم نخصم منك شيئًا. أعد المحاولة.",
 
   botTitulo: "Sophon Promoters",
   botNecesitasCodigo: "تحتاج رمز تفعيل للدخول. يعطيك إياه superadmin.",
@@ -1249,16 +1800,16 @@ const ar: Cadenas = {
   botUsaStart: "استخدم /start لفتح التطبيق.",
 
   botRetiroPagado: (importe: string) => `لقد استلمت ${importe}.`,
-  botRedTitulo: "شبكتك تحتاج مكالمة",
+  botRedTitulo: "فريقك يحتاج مكالمة",
   botRedParados: (n: number, total: number) =>
     `${n} من webmasters الـ ${total} لديك لم يجلبوا تسجيلًا منذ فترة:`,
   botRedDiasParado: (dias: number) => `${dias} أيام بلا نشاط`,
   botRedIncidencias: (n: number) =>
-    `${n} ${n === 1 ? "webmaster" : "webmasters"} بمشكلة في Sophon؛ لا ${
+    `${n} ${n === 1 ? "webmaster" : "webmasters"} بمشكلات في Sophon؛ لا ${
       n === 1 ? "يستطيع" : "يستطيعون"
     } توليد تسجيلات:`,
   botRedYOtros: (n: number) => `…و${n} آخرون.`,
-  botRedComoVerlo: "افتحهم في «شبكتك» لترى بأي روابط يستقطبون.",
+  botRedComoVerlo: "افتحهم من «فريقي» لترى بأي روابط يحصلون على تسجيلات.",
 
   botRetiroPagadoRed: (red: string, wallet: string) => `${red} · USDT · ${wallet}`,
   botRetiroReferencia: (referencia: string) => `المرجع: ${referencia}`,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { cadenas } from "@/lib/i18n";
 import { CAMPOS_FILA_VISIBLES, dinero, esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
 import { estaCerrado } from "@/lib/devengo/motor";
 import { hoyContable } from "@/lib/sync/registros";
@@ -60,11 +61,18 @@ export async function GET(
   });
 
   if (!webmaster) {
+    /*
+     * Sin `apoyo`, y a sabiendas.
+     *
+     * El apoyo tiene clave PROPIA y no reutiliza `errNoEsTuyoApoyo`, que habla
+     * de renovar el PRO: aquí el agente solo ha abierto una ficha, así que esa
+     * respuesta contestaría a una pregunta que no ha hecho. La regla de la casa
+     * es que un error diga qué ha pasado, por qué y qué hacer ahora, y lo que
+     * se puede hacer aquí es comprobar el correo o darlo de alta.
+     */
+    const t = cadenas(ctx.sesion.idioma);
     return NextResponse.json(
-      {
-        error: "Ese webmaster no está en tu red.",
-        apoyo: "Comprueba el correo. Si todavía no lo has dado de alta, hazlo desde «Activar webmaster».",
-      },
+      { error: t.errNoEsTuyo, apoyo: t.errNoEsTuyoAbrirApoyo },
       { status: 404 },
     );
   }

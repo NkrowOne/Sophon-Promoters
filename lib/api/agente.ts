@@ -31,6 +31,8 @@ import { formatearMicros, type Micros } from "../devengo/dinero.ts";
  */
 export { saldos, type Saldos } from "../devengo/saldos.ts";
 import { sesionActual, telegramDeLaPeticion, type AgenteSesion } from "../auth/sesion.ts";
+import { cadenas } from "../i18n.ts";
+import { idiomaDesdeTelegram } from "../idiomas.ts";
 
 export interface Contexto {
   sesion: AgenteSesion;
@@ -46,16 +48,40 @@ export interface Contexto {
 export async function exigirAgente(
   peticion: Request,
 ): Promise<Contexto | NextResponse> {
-  if (!telegramDeLaPeticion(peticion)) {
+  const usuario = telegramDeLaPeticion(peticion);
+  /*
+   * Estos dos 401 son los únicos errores de la API que se emiten SIN sesión, y
+   * por eso el idioma no puede salir de `sesion.idioma` como en el resto: aún
+   * no hay sesión de la que sacarlo. Sale del `language_code` del `initData`,
+   * que Telegram firma junto al usuario, así que es tan de fiar como el `id`.
+   * Sin initData válido no queda ni eso y `idiomaDesdeTelegram` cae al idioma
+   * por defecto: es preferible a que un agente que acaba de perder la sesión
+   * lea en español por qué la ha perdido.
+   */
+  const t = cadenas(idiomaDesdeTelegram(usuario?.language_code));
+  if (!usuario) {
     return NextResponse.json(
-      { error: "Telegram no ha verificado tu acceso. Abre la aplicación desde el bot." },
+      { error: t.errSinTelegram, apoyo: t.errSinTelegramApoyo },
       { status: 401 },
     );
   }
   const sesion = await sesionActual();
+  /*
+   * Suspendido NO es lo mismo que sin sesión, y decírselo importa: un 401 con
+   * «vuelve a entrar con tu correo» mandaba al agente a repetir el alta para
+   * recibir exactamente el mismo mensaje, sin enterarse nunca de que su cuenta
+   * está parada. Va con 403 —autenticado pero no autorizado— y el apoyo dice lo
+   * único que puede hacer, que es escribir al superadmin.
+   */
+  if (sesion === "SUSPENDIDO") {
+    return NextResponse.json(
+      { error: t.errSuspendido, apoyo: t.errSuspendidoApoyo },
+      { status: 403 },
+    );
+  }
   if (!sesion) {
     return NextResponse.json(
-      { error: "Se te ha caducado la sesión.", apoyo: "Vuelve a entrar con tu correo. No pierdes nada de lo tuyo." },
+      { error: t.sesionCaducada, apoyo: t.sesionCaducadaApoyo },
       { status: 401 },
     );
   }

@@ -23,6 +23,8 @@
  */
 
 import { db } from "../db.ts";
+import { cadenas } from "../i18n.ts";
+import { type Idioma } from "../idiomas.ts";
 import { clienteSophon } from "../sophon/instancia.ts";
 import { ErrorSophon } from "../sophon/cliente.ts";
 import { PLAN_UNICO, SEGUNDOS_UN_ANIO, type ResultadoMembresia } from "../sophon/tipos.ts";
@@ -51,7 +53,14 @@ export interface ResultadoConcesion {
    *    le iba a dar—.
    */
   yaActivo?: boolean;
-  /** Motivo legible cuando no ha salido bien. Nunca un código ni un stack. */
+  /**
+   * Motivo legible cuando no ha salido bien. Nunca un código ni un stack.
+   *
+   * Sale ya traducido al idioma que se pasa en `params.idioma`: los dos
+   * llamantes lo meten tal cual en la respuesta HTTP, así que si se devolviera
+   * una clave habría que resolverla en dos sitios y uno de los dos acabaría
+   * enseñando el nombre de la clave.
+   */
   error?: string;
   apoyo?: string;
   /** Distingue «Sophon aún no nos autoriza» de «Sophon no responde». */
@@ -129,11 +138,18 @@ export async function concederAnio(
     emailWebmaster: string;
     motivo: MotivoConcesion;
     claveIdempotencia: string;
+    /**
+     * El idioma del AGENTE que concede, no el del webmaster: los mensajes de
+     * este módulo se los lee él. Viene de `sesion.idioma` en los dos llamantes
+     * porque aquí no hay petición de la que deducirlo.
+     */
+    idioma: Idioma;
   },
   deps: DependenciasConcesion = REALES,
 ): Promise<ResultadoConcesion> {
   const { agenteId, webmasterId, emailWebmaster, motivo, claveIdempotencia } = params;
   const { db, sophon } = deps;
+  const t = cadenas(params.idioma);
 
   // ── Reserva ────────────────────────────────────────────────────────────
   let concesionId: string;
@@ -219,8 +235,8 @@ export async function concederAnio(
     return {
       ok: false,
       vigenteHasta: null,
-      error: "No hemos podido registrar el PRO.",
-      apoyo: "No hemos cambiado nada. Vuelve a intentarlo desde su ficha.",
+      error: t.errProNoRegistrado,
+      apoyo: t.errProNoRegistradoApoyo,
       estado: 500,
     };
   }
@@ -280,16 +296,16 @@ export async function concederAnio(
       return {
         ok: false,
         vigenteHasta: null,
-        error: "La cuenta no está autorizada en Sophon.",
-        apoyo: "La autorización se tramita a mano con soporte.",
+        error: t.errProSinWhitelist,
+        apoyo: t.errProSinWhitelistApoyo,
         estado: 503,
       };
     }
     return {
       ok: false,
       vigenteHasta: null,
-      error: "Sophon no le ha dado el PRO.",
-      apoyo: "Vuelve a intentarlo desde su ficha en un minuto.",
+      error: t.errProRechazado,
+      apoyo: t.errProRechazadoApoyo,
       estado: 502,
     };
   }

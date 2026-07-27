@@ -27,7 +27,7 @@ import { db, CERROJO, conCerrojo } from "../db.ts";
 import { avisarCaminoDelBonoAlAgente, avisarRedApagadaAlAgente } from "../bot/avisos.ts";
 import { diasSinActividad, estaApagado } from "../red/inactividad.ts";
 import { escaleraVigente, hoyContable, registrosDelMesPorWebmaster } from "./registros.ts";
-import { siguienteEscalon, type Escalon } from "../devengo/bonos.ts";
+import { escalonAlcanzado, siguienteEscalon, type Escalon } from "../devengo/bonos.ts";
 import {
   diaDelMes,
   diasQueQuedanDelMes,
@@ -262,7 +262,16 @@ async function empujarHaciaElBono(
     telegramId: agente.telegramId,
     idioma: agente.idioma,
     faltan,
-    premio: formatearMicros(siguiente.recompensaMicros),
+    /*
+     * El INCREMENTO, no el total del escalón: el bono no es acumulable, así que
+     * quien ya tiene 100 $ ganados este mes no se lleva 150 al subir, se lleva
+     * 50 más. Anunciar el total es prometer el triple de lo que hay, y encima
+     * hace la meta más lejana de lo que es.
+     */
+    premio: formatearMicros(
+      siguiente.recompensaMicros -
+        (escalonAlcanzado(actual.total, escalones)?.recompensaMicros ?? 0n),
+    ),
     ritmo: Math.round(porDia * 10) / 10,
     diasRestantes: restantes,
     porWebmaster: actual.porWebmaster,

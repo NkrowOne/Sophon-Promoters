@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { claveIdempotencia, normalizarEmail } from "@/lib/cripto";
+import { cadenas } from "@/lib/i18n";
 import { esRespuesta, exigirAgente, webmasterDelAgente } from "@/lib/api/agente";
 import { concederAnio } from "@/lib/pro/conceder";
 
@@ -44,21 +45,22 @@ const Cuerpo = z.object({
 export async function POST(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, idioma } = ctx.sesion;
+  const t = cadenas(idioma);
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
-    return NextResponse.json({ error: "Formato de correo no válido." }, { status: 400 });
+    return NextResponse.json(
+      { error: t.errFormatoCorreo, apoyo: t.errFormatoCorreoApoyo },
+      { status: 400 },
+    );
   }
 
   const emailNormalizado = normalizarEmail(parseado.data.email);
   const webmaster = await webmasterDelAgente(agenteId, emailNormalizado);
   if (!webmaster) {
     return NextResponse.json(
-      {
-        error: "Ese webmaster no está en tu red.",
-        apoyo: "Solo puedes renovar el PRO de los webmasters que has activado tú.",
-      },
+      { error: t.errNoEsTuyo, apoyo: t.errNoEsTuyoApoyo },
       { status: 403 },
     );
   }
@@ -71,6 +73,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     // caso lo que se está haciendo es completar un alta que se quedó a medias,
     // y llamarlo renovación falsearía la contabilidad de concesiones.
     motivo: webmaster.proVigenteHasta ? "RENOVACION" : "ALTA",
+    idioma,
     claveIdempotencia: claveIdempotencia(
       agenteId,
       emailNormalizado,
@@ -100,8 +103,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (resultado.yaActivo) {
     return NextResponse.json(
       {
-        error: "Todavía le queda PRO.",
-        apoyo: "Podrás renovarlo cuando le caduque.",
+        error: t.errProSigueActivo,
+        apoyo: t.errProSigueActivoApoyo,
         yaActivo: true,
         renovableEl: resultado.vigenteHasta,
       },

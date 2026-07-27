@@ -149,6 +149,9 @@ const peticion = (motivo: MotivoConcesion, clave = "clave-1") => ({
   emailWebmaster: "webmaster@example.com",
   motivo,
   claveIdempotencia: clave,
+  // `concederAnio` traduce sus rechazos, así que necesita el idioma del agente.
+  // Las pruebas no miran el texto: solo a quién se llama y qué se escribe.
+  idioma: "es" as const,
 });
 
 describe("conceder PRO", () => {

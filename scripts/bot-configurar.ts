@@ -14,7 +14,8 @@
  * respuesta.
  */
 
-export {};
+import { cadenas, type Cadenas } from "../lib/i18n.ts";
+import { IDIOMAS } from "../lib/idiomas.ts";
 
 const API = "https://api.telegram.org";
 
@@ -80,17 +81,39 @@ async function principal(): Promise<void> {
   // el tercero, por delante de `red`, y ahí decía que renovar es más habitual
   // que mirar la red. Baja al final —sigue registrado, sigue funcionando— y el
   // orden pasa a ser el de la jornada: captar, la red, el dinero, el histórico.
-  const DESCRIPCIONES = {
-    es: ["Menú", "Activar un webmaster", "Red", "Cartera y retiros", "Histórico", "Renovaciones de PRO", "Comandos disponibles"],
-    en: ["Menu", "Activate a webmaster", "Network", "Wallet and payouts", "History", "PRO renewals", "Available commands"],
-    it: ["Menu", "Attiva un webmaster", "Rete", "Portafoglio e prelievi", "Storico", "Rinnovi del PRO", "Comandi disponibili"],
-    pt: ["Menu", "Ativar um webmaster", "Rede", "Carteira e levantamentos", "Histórico", "Renovações de PRO", "Comandos disponíveis"],
-    ar: ["القائمة", "تفعيل مشرف", "الشبكة", "المحفظة والسحوبات", "السجل", "تجديدات PRO", "الأوامر المتاحة"],
-  } as const;
-  const NOMBRES = ["start", "activar", "red", "cartera", "historico", "pro", "ayuda"] as const;
+  //
+  // Las descripciones salen del CATÁLOGO, no de una tabla escrita aquí. Había
+  // una constante con siete comandos por cinco idiomas a mano, fuera de todo
+  // control de tipos, y ya se había desincronizado de la aplicación: decía
+  // «Cartera y retiros» donde la pantalla dice «Saldo» y «Red» donde ahora dice
+  // «Mi equipo» —«red» se reserva para la cadena de blockchain—. Un menú que
+  // nombra las secciones de otra manera que las propias secciones obliga al
+  // agente a traducir dos vocabularios.
+  //
+  // Leyéndolo de `cadenas()`, añadir un idioma o cambiar un rótulo es un sitio
+  // en vez de dos, y el compilador exige que la clave exista en los cinco.
+  const COMANDOS = [
+    // `/start` abre el menú entero, que es la portada: el catálogo no tiene una
+    // cadena «Menú» y `inicio` es la que nombra ese destino en la aplicación.
+    { command: "start", descripcion: (t: Cadenas) => t.inicio },
+    { command: "activar", descripcion: (t: Cadenas) => t.activarWebmaster },
+    { command: "red", descripcion: (t: Cadenas) => t.red },
+    { command: "cartera", descripcion: (t: Cadenas) => t.cartera },
+    { command: "historico", descripcion: (t: Cadenas) => t.historico },
+    { command: "pro", descripcion: (t: Cadenas) => t.colaRenovaciones },
+    // Tampoco hay una cadena «Comandos disponibles». `botCadaComando` es la
+    // frase con la que el propio `/ayuda` se presenta —«Cada comando abre una
+    // pantalla:»— y se le quita el dos puntos, que ahí encabeza una lista y en
+    // un menú de Telegram quedaría colgando.
+    { command: "ayuda", descripcion: (t: Cadenas) => t.botCadaComando.replace(/:$/, "") },
+  ] as const;
 
-  for (const [idioma, textos] of Object.entries(DESCRIPCIONES)) {
-    const commands = NOMBRES.map((command, i) => ({ command, description: textos[i]! }));
+  for (const idioma of IDIOMAS) {
+    const t = cadenas(idioma);
+    const commands = COMANDOS.map((c) => ({
+      command: c.command,
+      description: c.descripcion(t),
+    }));
     if (idioma === "es") {
       await llamar("setMyCommands", { commands, scope: { type: "all_private_chats" } });
     }

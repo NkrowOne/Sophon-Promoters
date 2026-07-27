@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { claveIdempotencia } from "@/lib/cripto";
+import { cadenas } from "@/lib/i18n";
 import { dinero, esRespuesta, exigirAgente, saldos } from "@/lib/api/agente";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
 import { avisarRetiroAlSuperadmin } from "@/lib/bot/avisos";
@@ -92,12 +93,13 @@ export async function GET(peticion: Request): Promise<NextResponse> {
 export async function POST(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId, emailNormalizado, nombreVisible } = ctx.sesion;
+  const { agenteId, emailNormalizado, nombreVisible, idioma } = ctx.sesion;
+  const t = cadenas(idioma);
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
     return NextResponse.json(
-      { error: "El importe o el monedero no tienen un formato válido." },
+      { error: t.errRetiroFormato, apoyo: t.errRetiroFormatoApoyo },
       { status: 400 },
     );
   }
@@ -108,8 +110,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (importeMicros < minimo) {
     return NextResponse.json(
       {
-        error: `El importe queda por debajo del mínimo de ${formatearMicros(minimo)}.`,
-        apoyo: `Importe solicitado: ${formatearMicros(importeMicros)}.`,
+        error: t.errRetiroMinimo(formatearMicros(minimo)),
+        apoyo: t.errRetiroMinimoApoyo(formatearMicros(importeMicros)),
       },
       { status: 400 },
     );
@@ -117,8 +119,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (importeMicros > saldo.disponibleMicros) {
     return NextResponse.json(
       {
-        error: `El importe supera el saldo disponible de ${formatearMicros(saldo.disponibleMicros)}.`,
-        apoyo: "Lo devengado en los últimos días no lo puedes retirar hasta que se consolide.",
+        error: t.errRetiroSaldo(formatearMicros(saldo.disponibleMicros)),
+        apoyo: t.errRetiroSaldoApoyo,
       },
       { status: 400 },
     );
@@ -179,20 +181,13 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     if (motivo.startsWith("PENDIENTE:")) {
       const importe = formatearMicros(BigInt(motivo.split(":")[1] ?? "0"));
       return NextResponse.json(
-        {
-          error: `Existe una solicitud de retiro pendiente de ${importe}.`,
-          apoyo:
-            "Solo puedes tener una solicitud a la vez. Las revisiones son manuales; puedes cancelar la que tienes en curso.",
-        },
+        { error: t.errRetiroYaHayUna(importe), apoyo: t.errRetiroYaHayUnaApoyo },
         { status: 409 },
       );
     }
     console.error("[retiro] solicitud fallida", e);
     return NextResponse.json(
-      {
-        error: "No hemos podido registrar tu solicitud.",
-        apoyo: "No te hemos descontado nada. Vuelve a intentarlo.",
-      },
+      { error: t.errRetiroNoRegistrado, apoyo: t.errRetiroNoRegistradoApoyo },
       { status: 500 },
     );
   }

@@ -17,7 +17,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<NextResponse> {
   const sesion = await sesionActual();
-  if (!sesion) return NextResponse.json({ autenticado: false });
+  // Una cuenta suspendida no está autenticada a efectos de esta pantalla: la
+  // Mini App manda al alta igual. El motivo se lo dice el bot, y las rutas con
+  // datos responden 403 con la explicación.
+  if (!sesion || sesion === "SUSPENDIDO") return NextResponse.json({ autenticado: false });
 
   return NextResponse.json({
     autenticado: true,

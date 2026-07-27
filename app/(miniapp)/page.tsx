@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Icono, type NombreIcono } from "@/components/Icono";
-import { Aviso, Banda, Cargando, Placa, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, Marca, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { api, ErrorApi } from "@/lib/api/cliente";
@@ -43,7 +43,19 @@ interface Escalon {
 interface Hito {
   registros: number;
   ganado: { micros: string; texto: string };
-  siguiente: { usuarios: number; faltan: number; premio: { micros: string; texto: string } } | null;
+  siguiente: {
+    usuarios: number;
+    faltan: number;
+    premio: { micros: string; texto: string };
+    /**
+     * Lo que se gana DE MÁS al llegar al siguiente escalón.
+     *
+     * No es lo mismo que `premio`: el bono no es acumulable, así que quien ya
+     * ha alcanzado un escalón solo cobra la diferencia. Es la cifra que se
+     * anuncia cuando hay algo ganado, para que no se cuente dos veces.
+     */
+    incremento: { micros: string; texto: string };
+  } | null;
   escalones: Escalon[];
   /** Registros al día en el mes en curso, con un decimal. */
   ritmo: number;
@@ -221,7 +233,7 @@ export default function Inicio() {
 
             {/* El bono del mes. Va entre la Cinta y la Escalera porque es la
                 secuencia correcta de preguntas: de dónde viene el volumen →
-                cuánto me falta para el premio → dónde está mi dinero.
+                cuánto vale el premio y a cuánto estoy → dónde está mi dinero.
 
                 Sin amarillo: el amarillo es la ACCIÓN, y un progreso no se
                 pulsa. Y sin medallas ni rachas: la regla de voz de la casa dice
@@ -339,6 +351,22 @@ function Fila({
 }
 
 /**
+ * ¿Ha pedido el sistema menos movimiento?
+ *
+ * Se consulta desde JavaScript en vez de dejárselo al CSS porque la regla de
+ * `prefers-reduced-motion` de `globals.css` conserva a propósito las
+ * transiciones de opacidad —lo que molesta a quien activa la preferencia es que
+ * las cosas se desplacen, no que algo se atenúe—, y el encendido de los
+ * escalones es opacidad CON RETARDO: hasta 580 ms mirando media escalera
+ * apagada. Con la preferencia puesta se pinta encendida desde el primer
+ * fotograma.
+ */
+function prefiereQuietud(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/**
  * El bono del mes: dónde vas, a qué ritmo y quién te está llevando.
  *
  * ── La decisión que gobierna esta banda ──
@@ -354,6 +382,16 @@ function Fila({
  * la comparación con el mes pasado. Todas se mueven cada día aunque el objetivo
  * esté lejos. La barra sigue diciendo la verdad; lo que cambia es que ya no
  * está sola diciéndola.
+ *
+ * ── Quién preside la banda ──
+ *
+ * El dinero, y antes no era así. Nada de la banda pasaba de 16 px: lo más
+ * grande era el recuento de registros —«21.840 este mes»— y el importe del
+ * premio aparecía tres veces, las tres a 14 px y una de ellas al 80 % de
+ * opacidad. Un agente que ya había ganado 100 $ se enteraba por una línea de
+ * apoyo en una esquina. Ahora la cifra que manda es la del premio, con la misma
+ * `CifraProtagonista` que la Placa y la ficha del webmaster, y el recuento baja
+ * a la línea de métricas, que es su sitio: es la medida, no la respuesta.
  *
  * ── Lo que no se hace ──
  *
@@ -387,32 +425,56 @@ function BandaHito({
       ? Math.round(((hito.registros - hito.mesAnterior) / hito.mesAnterior) * 100)
       : null;
 
+  /*
+   * Qué cifra preside y qué dice la línea de debajo.
+   *
+   * Tres estados, y en los tres el protagonista es dinero:
+   *
+   *  · sin ningún escalón alcanzado → preside lo que se llevaría, y la línea de
+   *    apoyo dice a cuántos registros está.
+   *  · con escalón alcanzado y otro por delante → preside lo ya ganado, con la
+   *    marca de que es suyo, y el apoyo dice lo que se gana DE MÁS. No el premio
+   *    entero del escalón siguiente: como el bono no es acumulable, enseñarlo
+   *    hacía que el agente sumara dos veces el dinero que ya tiene.
+   *  · sin escalón siguiente → preside lo ganado y el apoyo dice que no hay más
+   *    nivel este mes.
+   */
+  const yaHaGanado = hito.ganado.micros !== "0";
+  const preside = yaHaGanado || !hito.siguiente ? hito.ganado : hito.siguiente.premio;
+  const apoyo = !hito.siguiente
+    ? t.bonoMaximoAlcanzado
+    : yaHaGanado
+      ? t.bonoMasSiLlegas(hito.siguiente.incremento.texto, hito.siguiente.usuarios)
+      : t.bonoExtraSi(hito.siguiente.usuarios);
+
+  /*
+   * El encendido de los escalones ya alcanzados.
+   *
+   * Arranca apagado y se enciende en el primer fotograma útil; el CUÁNDO de
+   * cada uno va en su propio `transitionDelay`, más abajo. Con la preferencia
+   * de movimiento reducido nace ya encendido, así que la transición no llega a
+   * dispararse nunca.
+   */
+  const [encendido, setEncendido] = useState(prefiereQuietud);
+
+  useEffect(() => {
+    if (prefiereQuietud()) return;
+    const id = requestAnimationFrame(() => setEncendido(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   return (
     <Banda tono={0} etiqueta={t.bonoDelMes} orden={orden} className="py-6">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-rotulo text-texto-apoyo">{t.bonoDelMes}</p>
-        {/* Lo ganado solo aparece cuando hay algo ganado: un «0,00 $» fijo en la
-            cabecera es un recordatorio diario de no haber llegado. */}
-        {hito.ganado.micros !== "0" && (
-          <p className="text-apoyo font-medium tabular-nums">{t.bonoGanado(hito.ganado.texto)}</p>
-        )}
+      <p className="text-rotulo text-texto-apoyo">{t.bonoDelMes}</p>
+
+      {/* El premio, del tamaño que le corresponde. La marca va al lado y no
+          debajo: «ya es tuyo» es un predicado de esa cifra, no otro dato. */}
+      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-apoyo">
+        <CifraProtagonista micros={BigInt(preside.micros)} />
+        {yaHaGanado && <Marca icono="activo">{t.bonoYaEsTuyo}</Marca>}
       </div>
 
-      {/* `flex-wrap`: con seis cifras —35.000 registros— las dos columnas se
-          estrangulaban y cada una partía en dos líneas, dejando cuatro renglones
-          para lo que es una frase. Envolviendo, la comparación baja entera. */}
-      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-        <p className="text-cuerpo tabular-nums">{t.registrosEsteMes(hito.registros)}</p>
-        {/* La comparación con el mes cerrado anterior. Es la cifra que se mueve
-            aunque el hito esté lejos, y la única de la banda que puede ser
-            negativa: se dice igual, porque un mes flojo que la aplicación
-            esconde es un mes flojo que el agente descubre al no cobrar. */}
-        {variacion !== null && (
-          <p className="text-apoyo text-texto-apoyo tabular-nums">
-            {t.frenteAlMesPasado(variacion)}
-          </p>
-        )}
-      </div>
+      <p className="mt-2 text-apoyo text-texto-apoyo tabular-nums">{apoyo}</p>
 
       {/* El raíl con los escalones ya superados marcados.
 
@@ -442,11 +504,24 @@ function BandaHito({
           })}
       </div>
 
-      <p className="mt-2.5 text-apoyo text-texto-apoyo tabular-nums">
-        {hito.siguiente
-          ? t.faltanParaElBono(hito.siguiente.faltan, hito.siguiente.premio.texto)
-          : t.bonoMaximoAlcanzado}
-      </p>
+      {/* La línea de métricas: lo que mide la barra que tiene encima.
+
+          `flex-wrap`: con seis cifras —35.000 registros— las dos columnas se
+          estrangulaban y cada una partía en dos líneas, dejando cuatro
+          renglones para lo que es una frase. Envolviendo, la comparación baja
+          entera. */}
+      <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-apoyo text-texto-apoyo tabular-nums">
+        <p>
+          {hito.siguiente
+            ? t.bonoEsteMesLlevas(hito.registros, hito.siguiente.faltan)
+            : t.registrosEsteMes(hito.registros)}
+        </p>
+        {/* La comparación con el mes cerrado anterior. Es la cifra que se mueve
+            aunque el nivel esté lejos, y la única de la banda que puede ser
+            negativa: se dice igual, porque un mes flojo que la aplicación
+            esconde es un mes flojo que el agente descubre al no cobrar. */}
+        {variacion !== null && <p>{t.frenteAlMesPasado(variacion)}</p>}
+      </div>
 
       {/* La escalera entera, con lo que paga cada peldaño.
 
@@ -459,20 +534,47 @@ function BandaHito({
         className="mt-4 grid gap-2 text-center"
         style={{ gridTemplateColumns: `repeat(${hito.escalones.length}, minmax(0, 1fr))` }}
       >
-        {hito.escalones.map((e) => (
-          <li
-            key={e.usuarios}
-            /* Cumplido en tinta plena, pendiente apagado. El estado NO va solo
-               por color: el cumplido va además en negrita, así que se distingue
-               en escala de grises y con cualquier tema raro del cliente. */
-            className={e.alcanzado ? "text-texto" : "text-texto-apoyo"}
-          >
-            <p className={`text-apoyo tabular-nums ${e.alcanzado ? "font-semibold" : ""}`}>
-              {t.numero(e.usuarios)}
-            </p>
-            <p className="text-apoyo tabular-nums opacity-80">{e.premio.texto}</p>
-          </li>
-        ))}
+        {hito.escalones.map((e) => {
+          /*
+           * Cada escalón alcanzado se enciende cuando la barra pasa por él.
+           *
+           * El retardo no es un número elegido a ojo ni un escalonado por orden
+           * de lista: es DÓNDE CAE SU MUESCA —la misma `posicion` con la que se
+           * dibuja arriba— sobre los 520 ms que tarda `BarraCreciente` en
+           * recorrer el raíl, más los 60 ms que espera antes de arrancar. Así
+           * el instante lo decide el umbral, y ver encenderse el escalón dice
+           * cuánto de la barra le corresponde.
+           *
+           * Se recorta al 100 % porque la escalera enseña todos los escalones y
+           * la barra solo llega hasta la meta: los que quedan por encima no
+           * están alcanzados, pero si alguna vez lo estuvieran no tendría
+           * sentido esperarles un retardo mayor que la propia barra.
+           */
+          const posicion = meta > 0 ? Math.min((e.usuarios / meta) * 100, 100) : 0;
+          return (
+            <li
+              key={e.usuarios}
+              /* Cumplido en tinta plena, pendiente apagado. El estado NO va solo
+                 por color: el cumplido va además en negrita, así que se distingue
+                 en escala de grises y con cualquier tema raro del cliente. */
+              className={e.alcanzado ? "text-texto" : "text-texto-apoyo"}
+              style={
+                e.alcanzado
+                  ? {
+                      opacity: encendido ? 1 : 0,
+                      transition: "opacity var(--t-entrada) var(--curva)",
+                      transitionDelay: `${Math.round(60 + (posicion / 100) * 520)}ms`,
+                    }
+                  : undefined
+              }
+            >
+              <p className={`text-apoyo tabular-nums ${e.alcanzado ? "font-semibold" : ""}`}>
+                {t.numero(e.usuarios)}
+              </p>
+              <p className="text-apoyo tabular-nums opacity-80">{e.premio.texto}</p>
+            </li>
+          );
+        })}
       </ul>
 
       {/* El ritmo y la recta final.

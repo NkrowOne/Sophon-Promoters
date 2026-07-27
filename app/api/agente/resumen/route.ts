@@ -197,6 +197,15 @@ async function progresoDelHito(agenteId: string) {
           usuarios: siguiente.usuarios,
           faltan,
           premio: dinero(siguiente.recompensaMicros),
+          /*
+           * Lo que se gana DE MÁS, que no es lo que paga el escalón siguiente.
+           *
+           * Como el mes paga la recompensa del escalón más alto y no la suma,
+           * subir de 20.000 a 30.000 no aporta los 150 del escalón alto: aporta
+           * los 50 de diferencia. La banda enseñaba el premio entero junto a lo
+           * ya ganado, así que el agente sumaba dos veces el mismo dinero.
+           */
+          incremento: dinero(siguiente.recompensaMicros - (alcanzado?.recompensaMicros ?? 0n)),
         }
       : null,
     escalones: escalones.map((e) => ({

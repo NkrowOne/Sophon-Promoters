@@ -4,6 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { generarOtp, hashOtp, normalizarCodigo, normalizarEmail } from "@/lib/cripto";
 import { enviarOtp } from "@/lib/correo";
+import { cadenas } from "@/lib/i18n";
+import { idiomaDesdeTelegram } from "@/lib/idiomas";
 import { telegramDeLaPeticion } from "@/lib/auth/sesion";
 
 /**
@@ -30,16 +32,23 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   // El initData prueba que la petición sale de Telegram de verdad. Sin él,
   // cualquiera podría quemar códigos de activación desde fuera.
   const usuario = telegramDeLaPeticion(peticion);
+  // El agente todavía no existe, así que no hay `Agente.idioma` que leer: el
+  // idioma sale del `language_code` que Telegram firma en el initData, el mismo
+  // que se persistirá al crear la cuenta en el paso 2.
+  const t = cadenas(idiomaDesdeTelegram(usuario?.language_code));
   if (!usuario) {
     return NextResponse.json(
-      { error: "Telegram no ha verificado tu acceso. Vincula tu cuenta desde el bot." },
+      { error: t.errSinTelegram, apoyo: t.errSinTelegramApoyo },
       { status: 401 },
     );
   }
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
-    return NextResponse.json({ error: "Código o correo con formato no válido." }, { status: 400 });
+    return NextResponse.json(
+      { error: t.errFormatoCodigoCorreo, apoyo: t.errFormatoCodigoCorreoApoyo },
+      { status: 400 },
+    );
   }
 
   const codigo = normalizarCodigo(parseado.data.codigo);
@@ -48,26 +57,20 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const invitacion = await db.codigoActivacion.findUnique({ where: { codigo } });
   if (!invitacion || invitacion.anuladoEn || invitacion.expiraEn < new Date()) {
     return NextResponse.json(
-      {
-        error: "Ese código de activación no vale o ha caducado.",
-        apoyo: "Te lo da el superadmin.",
-      },
+      { error: t.errCodigoNoVale, apoyo: t.teLoDaElSuperadmin },
       { status: 400 },
     );
   }
   if (invitacion.usosActuales >= invitacion.usosMaximos) {
     return NextResponse.json(
-      { error: "Ese código de activación ya se ha usado.", apoyo: "Pídele otro al superadmin." },
+      { error: t.errCodigoUsado, apoyo: t.errCodigoUsadoApoyo },
       { status: 400 },
     );
   }
   // Un código puede emitirse para un correo concreto; entonces solo vale para él.
   if (invitacion.emailDestino && normalizarEmail(invitacion.emailDestino) !== emailNormalizado) {
     return NextResponse.json(
-      {
-        error: "Ese código se emitió para otro correo.",
-        apoyo: "Solo vale con el correo para el que se ha emitido.",
-      },
+      { error: t.errCodigoOtroCorreo, apoyo: t.errCodigoOtroCorreoApoyo },
       { status: 400 },
     );
   }
@@ -81,8 +84,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   if (yaVinculado) {
     return NextResponse.json(
       {
-        error: `Esta cuenta de Telegram ya está vinculada a ${yaVinculado.emailNormalizado}.`,
-        apoyo: "Escribe al superadmin para recuperar el acceso.",
+        error: t.errTelegramYaVinculado(yaVinculado.emailNormalizado),
+        apoyo: t.errTelegramYaVinculadoApoyo,
       },
       { status: 409 },
     );
@@ -96,10 +99,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     const faltan = Math.ceil(
       (SEGUNDOS_REENVIO * 1000 - (Date.now() - ultimo.creadoEn.getTime())) / 1000,
     );
-    return NextResponse.json(
-      { error: `Podrás pedir otro código en ${faltan} segundos.` },
-      { status: 429 },
-    );
+    return NextResponse.json({ error: t.errEsperaParaOtroCodigo(faltan) }, { status: 429 });
   }
 
   const otp = generarOtp();
@@ -120,10 +120,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   } catch (e) {
     console.error("[auth] fallo al enviar el OTP", e);
     return NextResponse.json(
-      {
-        error: "No hemos podido enviarte el correo.",
-        apoyo: "Comprueba la dirección y vuelve a intentarlo en un minuto.",
-      },
+      { error: t.errCorreoNoEnviado, apoyo: t.errCorreoNoEnviadoApoyo },
       { status: 502 },
     );
   }

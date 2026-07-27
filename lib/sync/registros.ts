@@ -637,10 +637,21 @@ async function devengarBonoDelMes(
       idioma: agente.idioma,
       registros,
       importe: formatearMicros(escalon.recompensaMicros),
+      /*
+       * El premio del siguiente escalón va como INCREMENTO, no como total.
+       *
+       * El bono no es acumulable: el mes paga la recompensa del escalón más
+       * alto alcanzado, así que quien acaba de cobrar 100 $ no gana 150 al
+       * subir, gana 50 más. El mensaje decía «te faltan N para 150,00 $»
+       * justo debajo de «has ganado 100,00 $», que es contar el dinero dos
+       * veces y prometer el triple de lo que hay.
+       */
       siguiente: siguiente
         ? {
             faltan: siguiente.usuarios - registros,
-            premio: formatearMicros(siguiente.recompensaMicros),
+            premio: formatearMicros(
+              siguiente.recompensaMicros - escalon.recompensaMicros,
+            ),
           }
         : null,
     });

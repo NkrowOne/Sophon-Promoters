@@ -366,7 +366,7 @@ export default function CarteraPagina() {
 
           <BotonPrincipalAccion
             texto={
-              importeValido ? t.pedirImporte(formatearMicros(importeMicros!)) : t.pedirRetiro
+              importeValido ? t.pedirImporte(formatearMicros(importeMicros!)) : t.solicitarRetiro
             }
             onClick={solicitar}
             activo={importeValido && walletValida}

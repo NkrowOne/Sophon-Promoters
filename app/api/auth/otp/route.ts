@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { normalizarCodigo, normalizarEmail, verificarOtp } from "@/lib/cripto";
+import { cadenas } from "@/lib/i18n";
 import { idiomaDesdeTelegram } from "@/lib/idiomas";
 import { emitirSesion, opcionesCookie, NOMBRE_COOKIE, telegramDeLaPeticion } from "@/lib/auth/sesion";
 
@@ -25,9 +26,24 @@ const Cuerpo = z.object({
 
 export async function POST(peticion: Request): Promise<NextResponse> {
   const usuario = telegramDeLaPeticion(peticion);
+
+  /*
+   * El idioma sale del `language_code` FIRMADO, no del `initDataUnsafe` que usa
+   * la interfaz. Se persiste en el agente, así que tiene que venir de datos
+   * verificados: es lo que decidirá en qué idioma se le avisa de que se le ha
+   * pagado.
+   *
+   * Se resuelve aquí arriba, antes que nada, porque los errores de esta ruta
+   * también lo necesitan y en este punto todavía no hay agente ni sesión de la
+   * que sacarlo. Sin initData válido no hay ni `language_code` y se cae al
+   * idioma por defecto.
+   */
+  const idioma = idiomaDesdeTelegram(usuario?.language_code);
+  const t = cadenas(idioma);
+
   if (!usuario) {
     return NextResponse.json(
-      { error: "Telegram no ha verificado tu acceso. Vincula tu cuenta desde el bot." },
+      { error: t.errSinTelegram, apoyo: t.errSinTelegramApoyo },
       { status: 401 },
     );
   }
@@ -35,7 +51,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
     return NextResponse.json(
-      { error: "Datos no válidos.", apoyo: "El código de verificación tiene 6 dígitos." },
+      { error: t.errDatosNoValidos, apoyo: t.errDatosNoValidosApoyo },
       { status: 400 },
     );
   }
@@ -50,20 +66,14 @@ export async function POST(peticion: Request): Promise<NextResponse> {
 
   if (!registro || registro.expiraEn < new Date()) {
     return NextResponse.json(
-      {
-        error: "Código de verificación caducado.",
-        apoyo: "Los códigos caducan a los 10 minutos. Pide otro.",
-      },
+      { error: t.errOtpCaducado, apoyo: t.errOtpCaducadoApoyo },
       { status: 400 },
     );
   }
 
   if (registro.intentos >= registro.maxIntentos) {
     return NextResponse.json(
-      {
-        error: "Has agotado los intentos.",
-        apoyo: "Ese código queda anulado. Pide otro.",
-      },
+      { error: t.errOtpSinIntentos, apoyo: t.errOtpSinIntentosApoyo },
       { status: 429 },
     );
   }
@@ -75,15 +85,21 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       select: { intentos: true, maxIntentos: true },
     });
     const restantes = actualizado.maxIntentos - actualizado.intentos;
+    /*
+     * Dos mensajes, no uno con el número pegado detrás. `errOtpIncorrecto` ya
+     * lleva la cuenta dentro y concuerda el plural, pero con cero intentos
+     * diría «te quedan 0 intentos», que es la forma más fría de decir que el
+     * código está muerto. Ese caso lo cuenta `errOtpSinIntentos`, que además
+     * dice qué hacer: pedir otro.
+     */
     return NextResponse.json(
-      {
-        error: "Código de verificación incorrecto.",
-        apoyo:
-          restantes > 0
-            ? `Intentos restantes: ${restantes}.`
-            : "El código queda anulado. Se puede solicitar otro.",
-        intentosRestantes: Math.max(restantes, 0),
-      },
+      restantes > 0
+        ? { error: t.errOtpIncorrecto(restantes), intentosRestantes: restantes }
+        : {
+            error: t.errOtpSinIntentos,
+            apoyo: t.errOtpSinIntentosApoyo,
+            intentosRestantes: 0,
+          },
       { status: 400 },
     );
   }
@@ -92,10 +108,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   // código que no le llegó a él.
   if (registro.telegramId !== null && registro.telegramId !== BigInt(usuario.id)) {
     return NextResponse.json(
-      {
-        error: "Ese código se ha pedido desde otra cuenta de Telegram.",
-        apoyo: "Solo vale en la cuenta que lo pidió.",
-      },
+      { error: t.errOtpOtraCuenta, apoyo: t.errOtpOtraCuentaApoyo },
       { status: 403 },
     );
   }
@@ -105,11 +118,6 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     [usuario.first_name, usuario.last_name].filter(Boolean).join(" ").trim() ||
     parseado.data.email.split("@")[0] ||
     "Agente";
-
-  // El idioma sale del `language_code` FIRMADO, no del `initDataUnsafe` que usa
-  // la interfaz. Aquí se persiste, así que tiene que venir de datos verificados:
-  // es lo que decidirá en qué idioma se le avisa de que se le ha pagado.
-  const idioma = idiomaDesdeTelegram(usuario.language_code);
 
   let agenteId: string;
   try {
@@ -168,25 +176,19 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     const motivo = e instanceof Error ? e.message : "";
     if (motivo === "CODIGO_INVALIDO") {
       return NextResponse.json(
-        { error: "Ese código de activación no vale.", apoyo: "Te lo da el superadmin." },
+        { error: t.errCodigoNoVale, apoyo: t.teLoDaElSuperadmin },
         { status: 400 },
       );
     }
     if (motivo === "EMAIL_EN_USO") {
       return NextResponse.json(
-        {
-          error: "El correo ya está vinculado a otra cuenta de Telegram.",
-          apoyo: "Escribe al superadmin para recuperar el acceso.",
-        },
+        { error: t.errCorreoYaVinculado, apoyo: t.errCorreoYaVinculadoApoyo },
         { status: 409 },
       );
     }
     console.error("[auth] alta fallida", e);
     return NextResponse.json(
-      {
-        error: "No hemos podido vincular tu cuenta.",
-        apoyo: "Tu código de activación sigue sin usar. Vuelve a intentarlo.",
-      },
+      { error: t.errNoVinculado, apoyo: t.errNoVinculadoApoyo },
       { status: 500 },
     );
   }

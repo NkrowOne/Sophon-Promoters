@@ -12,6 +12,7 @@ import { cookies } from "next/headers";
 
 import { db } from "../db.ts";
 import { generarTokenSesion, hashToken } from "../cripto.ts";
+import { idiomaGuardado, type Idioma } from "../idiomas.ts";
 import { validarInitData, type UsuarioTelegram } from "./telegram.ts";
 
 export const NOMBRE_COOKIE = "sp_sesion";
@@ -24,6 +25,20 @@ export interface AgenteSesion {
   emailNormalizado: string;
   nombreVisible: string;
   telegramId: bigint | null;
+  /**
+   * El idioma viaja EN LA SESIÓN porque si no, no llega a ninguna parte.
+   *
+   * Los errores de la API se construían en el servidor con literales en
+   * español, así que un agente italiano recibía la pantalla traducida y encima
+   * un mensaje de error en español. Las rutas no tenían de dónde sacar el
+   * idioma sin una consulta más, y por eso nadie lo intentó.
+   *
+   * No cuesta ninguna consulta: `sesionActual` ya lee la fila del agente para
+   * comprobar la época y el estado, y esto es una columna más de ese `select`.
+   * El bot la refresca en cada `/start`, así que está tan fresca como el
+   * `language_code` de Telegram.
+   */
+  idioma: Idioma;
 }
 
 /**
@@ -64,8 +79,15 @@ export async function emitirSesion(params: {
  *
  * Devuelve `null` en vez de lanzar: quien llama decide si eso es un 401 o una
  * redirección al alta.
+ *
+ * Y devuelve **`"SUSPENDIDO"`**, que no es lo mismo que `null`, porque no lo era
+ * para el agente y la API se lo estaba ocultando: con la cuenta parada, el token
+ * es válido y la sesión no ha caducado, pero esta función las metía en el mismo
+ * saco. El agente leía «se te ha caducado la sesión», volvía a entrar con su
+ * correo, recibía otra vez lo mismo, y nunca se enteraba de por qué. Es un
+ * bucle sin salida construido con un mensaje correcto para el caso equivocado.
  */
-export async function sesionActual(): Promise<AgenteSesion | null> {
+export async function sesionActual(): Promise<AgenteSesion | "SUSPENDIDO" | null> {
   const almacen = await cookies();
   const token = almacen.get(NOMBRE_COOKIE)?.value;
   if (!token) return null;
@@ -81,6 +103,7 @@ export async function sesionActual(): Promise<AgenteSesion | null> {
           telegramId: true,
           estado: true,
           epocaSesion: true,
+          idioma: true,
         },
       },
     },
@@ -89,7 +112,7 @@ export async function sesionActual(): Promise<AgenteSesion | null> {
   if (!sesion || sesion.revocadaEn || sesion.expiraEn < new Date()) return null;
   // La época corta todas las sesiones del agente de una vez.
   if (sesion.epocaSesion !== sesion.agente.epocaSesion) return null;
-  if (sesion.agente.estado !== "ACTIVO") return null;
+  if (sesion.agente.estado !== "ACTIVO") return "SUSPENDIDO";
 
   // Renovación deslizante: se toca la fila solo cuando queda poco, para no
   // escribir en base de datos en cada petición.
@@ -110,6 +133,9 @@ export async function sesionActual(): Promise<AgenteSesion | null> {
     emailNormalizado: sesion.agente.emailNormalizado,
     nombreVisible: sesion.agente.nombreVisible,
     telegramId: sesion.agente.telegramId,
+    // La columna es TEXT y admite cualquier cosa; `idiomaGuardado` es el mismo
+    // filtro que ya usa el bot para leerla.
+    idioma: idiomaGuardado(sesion.agente.idioma),
   };
 }
 

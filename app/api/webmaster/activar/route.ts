@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { claveIdempotencia, normalizarEmail } from "@/lib/cripto";
+import { cadenas, type Cadenas } from "@/lib/i18n";
 import { esRespuesta, exigirAgente } from "@/lib/api/agente";
 import { concederAnio } from "@/lib/pro/conceder";
 import { clienteSophon } from "@/lib/sophon/instancia";
@@ -58,6 +59,17 @@ import { confirmarEnSophon } from "@/lib/sync/webmasters";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Claves del catálogo cuyo valor es texto plano.
+ *
+ * Las tablas de errores nombran claves y no textos, y el compilador tiene que
+ * rechazar tanto una clave que no existe como una que es función: interpolar
+ * una función en la respuesta le enseñaría al agente un `[object Function]`.
+ */
+type ClaveTexto = {
+  [K in keyof Cadenas]: Cadenas[K] extends string ? K : never;
+}[keyof Cadenas];
+
 const Cuerpo = z.object({
   email: z.string().email().max(254),
   /** La genera el cliente y hace seguro reintentar sin conceder dos años. */
@@ -67,12 +79,13 @@ const Cuerpo = z.object({
 export async function POST(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
-  const { agenteId } = ctx.sesion;
+  const { agenteId, idioma } = ctx.sesion;
+  const t = cadenas(idioma);
 
   const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
   if (!parseado.success) {
     return NextResponse.json(
-      { error: "Ese correo no tiene un formato válido.", apoyo: "Escribe el correo con el que se registró en Sophon." },
+      { error: t.errFormatoCorreo, apoyo: t.errFormatoCorreoApoyo },
       { status: 400 },
     );
   }
@@ -135,34 +148,25 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     const motivo = e instanceof Error ? e.message : "";
     if (motivo === "DE_OTRO_AGENTE") {
       return NextResponse.json(
-        {
-          error: "Ese webmaster ya es de otro agente.",
-          apoyo: "Cada webmaster tiene un solo agente. Si crees que es un error, escribe al superadmin.",
-        },
+        { error: t.errDeOtroAgente, apoyo: t.errDeOtroAgenteApoyo },
         { status: 409 },
       );
     }
     if (motivo === "YA_ES_TUYO") {
       return NextResponse.json(
-        { error: "Ya tienes a ese webmaster en tu red.", apoyo: "Ábrelo desde «Tu red»." },
+        { error: t.errYaEnTuEquipo, apoyo: t.errYaEnTuEquipoApoyo },
         { status: 409 },
       );
     }
     if (motivo === "YA_EN_SOPHON") {
       return NextResponse.json(
-        {
-          error: "Esa cuenta ya estaba en Sophon.",
-          apoyo: "Solo puedes dar de alta cuentas nuevas que registres tú. Las que ya existían son del superadmin.",
-        },
+        { error: t.errYaEnSophon, apoyo: t.errYaEnSophonApoyo },
         { status: 409 },
       );
     }
     console.error("[activar] reserva fallida", e);
     return NextResponse.json(
-      {
-        error: "No hemos podido registrar la activación.",
-        apoyo: "No hemos cambiado nada. Vuelve a intentarlo.",
-      },
+      { error: t.errAltaNoRegistrada, apoyo: t.errAltaNoRegistradaApoyo },
       { status: 500 },
     );
   }
@@ -210,48 +214,59 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       });
     }
 
+    /*
+     * La tabla nombra CLAVES, no textos, y el idioma se resuelve al final.
+     *
+     * Escrita con literales, los seis rechazos de Sophon salían siempre en
+     * español aunque el agente tuviera la aplicación en otro idioma. Con las
+     * claves, el mapa sigue leyéndose de un vistazo —qué motivo da qué código y
+     * qué mensaje— y el texto lo pone `cadenas(idioma)` en la última línea.
+     */
     const respuestas: Record<
       typeof rechazo.motivo,
-      { estado: number; error: string; apoyo: string }
+      { estado: number; claveError: ClaveTexto; claveApoyo: ClaveTexto }
     > = {
       SIN_WHITELIST: {
         estado: 503,
-        error: "La cuenta no está autorizada en Sophon.",
-        apoyo: "La autorización se tramita a mano con soporte. No hemos activado nada.",
+        claveError: "errSinWhitelist",
+        claveApoyo: "errSinWhitelistApoyo",
       },
       // Sophon confirma lo que la comprobación local no siempre puede ver: esa
       // cuenta ya estaba en el programa de socios, así que es antigua.
       YA_AFILIADO: {
         estado: 409,
-        error: "Esa cuenta ya estaba en Sophon.",
-        apoyo: "Solo puedes dar de alta cuentas nuevas que registres tú. Las que ya existían son del superadmin.",
+        claveError: "errYaEnSophon",
+        claveApoyo: "errYaEnSophonApoyo",
       },
       NO_REGISTRADO: {
         estado: 404,
-        error: "Ese correo no existe en Sophon.",
-        apoyo: "Tiene que registrarse en Sophon antes de que puedas activarlo.",
+        claveError: "errNoExisteEnSophon",
+        claveApoyo: "errNoExisteEnSophonApoyo",
       },
       PETICION_MAL_FORMADA: {
         estado: 500,
-        error: "No hemos podido registrar la activación.",
-        apoyo: "No hemos activado nada. Ya estamos avisados.",
+        claveError: "errSinClasificar",
+        claveApoyo: "errSinClasificarApoyo",
       },
       SIN_RESPUESTA: {
         estado: 502,
-        error: "Sophon no responde.",
-        apoyo: "No hemos activado nada. Vuelve a intentarlo en un minuto.",
+        claveError: "errSophonNoResponde",
+        claveApoyo: "errSophonNoRespondeApoyo",
       },
       // Sophon SÍ ha contestado, y ha dicho que no. Por eso no se invita a
       // reintentar: repetir contra un rechazo firme no lo convierte en un sí.
       DESCONOCIDO: {
         estado: 502,
-        error: "Sophon ha rechazado la activación.",
-        apoyo: "No hemos activado nada. El superadmin ya está avisado.",
+        claveError: "errSophonRechaza",
+        claveApoyo: "errSophonRechazaApoyo",
       },
     };
 
-    const { estado, ...cuerpo } = respuestas[rechazo.motivo];
-    return NextResponse.json(cuerpo, { status: estado });
+    const { estado, claveError, claveApoyo } = respuestas[rechazo.motivo];
+    return NextResponse.json(
+      { error: t[claveError], apoyo: t[claveApoyo] },
+      { status: estado },
+    );
   }
 
   await db.intentoVinculacion.update({
@@ -306,6 +321,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     webmasterId,
     emailWebmaster: parseado.data.email,
     motivo: "ALTA",
+    idioma,
     claveIdempotencia: claveIdempotencia(agenteId, emailNormalizado, parseado.data.idempotencia),
   });
 

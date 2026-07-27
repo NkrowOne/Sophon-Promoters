@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { cadenas } from "@/lib/i18n";
 import { dinero, esRespuesta, exigirAgente, webmasterDelAgente } from "@/lib/api/agente";
 import { clienteSophon } from "@/lib/sophon/instancia";
 import { hoyContable } from "@/lib/sync/registros";
@@ -49,7 +50,7 @@ export async function GET(
   // que exista.
   const webmaster = await webmasterDelAgente(ctx.sesion.agenteId, emailNormalizado);
   if (!webmaster) {
-    return NextResponse.json({ error: "Ese webmaster no está en tu red." }, { status: 404 });
+    return NextResponse.json({ error: cadenas(ctx.sesion.idioma).errNoEsTuyo }, { status: 404 });
   }
 
   const hasta = hoyContable();
