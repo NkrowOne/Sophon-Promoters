@@ -138,6 +138,17 @@ function montar(estado: {
         };
       },
     }),
+    /*
+     * El reloj se INYECTA, y esa es la corrección que trajo esta pasada.
+     *
+     * Antes no se pasaba: el doble construía las vigencias relativas a `AHORA`
+     * —una fecha fija— y `concederAnio` las comparaba contra el reloj real. La
+     * prueba de «un solo día por delante» pasó mientras esa fecha estuvo en el
+     * futuro y empezó a fallar sola al quedarse atrás, porque el PRO de un día
+     * había caducado de verdad. Es decir: la única prueba que protege al
+     * webmaster de que le borren meses de suscripción tenía fecha de caducidad.
+     */
+    ahora: () => AHORA,
   };
 
   return { deps, registro };
