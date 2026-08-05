@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { claveIdempotencia } from "@/lib/cripto";
+import { claveIdempotencia, guardarWallet, leerWallet, mascaraWallet } from "@/lib/cripto";
 import { cadenas } from "@/lib/i18n";
 import { dinero, esRespuesta, exigirAgente, saldos } from "@/lib/api/agente";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
@@ -75,12 +75,13 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     },
     minimo: dinero(minimo, idioma),
     // La wallet se muestra recortada: el agente la reconoce sin exponerla entera
-    // en una captura de pantalla que pueda compartir.
+    // en una captura de pantalla que pueda compartir. Se descifra para
+    // recortarla —en la base está cifrada— y el texto en claro no sale de aquí.
     historial: historial.map((h) => ({
       id: h.id,
       importe: dinero(h.importeMicros, idioma),
       red: h.red,
-      wallet: `${h.wallet.slice(0, 6)}…${h.wallet.slice(-4)}`,
+      wallet: mascaraWallet(leerWallet(h.wallet)),
       estado: h.estado,
       solicitadoEn: h.solicitadoEn.toISOString(),
       resueltoEn: h.resueltoEn?.toISOString() ?? null,
@@ -150,7 +151,9 @@ export async function POST(peticion: Request): Promise<NextResponse> {
           agenteId,
           importeMicros,
           red: parseado.data.red,
-          wallet: parseado.data.wallet,
+          // Cifrada. La valida el `Cuerpo` de arriba en claro —la forma de la
+          // dirección hay que poder comprobarla— y se guarda ya ilegible.
+          wallet: guardarWallet(parseado.data.wallet),
           claveIdempotencia: clave,
         },
         select: { id: true },

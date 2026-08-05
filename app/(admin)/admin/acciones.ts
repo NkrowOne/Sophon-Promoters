@@ -9,6 +9,7 @@ import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
 import { CPA_MAXIMO_MICROS, CPS_MAXIMO_BPS } from "@/lib/devengo/motor";
 import { motivoEscaleraInvalida } from "@/lib/devengo/bonos";
 import { revocarSesiones } from "@/lib/auth/sesion";
+import { leerWallet } from "@/lib/cripto";
 import { idiomaGuardado } from "@/lib/idiomas";
 
 /**
@@ -362,7 +363,7 @@ export async function resolverRetiro(
      */
     importe: formatearMicros(solicitud.importeMicros, 2, idiomaGuardado(solicitud.agente.idioma)),
     red: solicitud.red,
-    wallet: solicitud.wallet,
+    wallet: leerWallet(solicitud.wallet),
     referencia: referencia || null,
     motivo: nota || null,
   });

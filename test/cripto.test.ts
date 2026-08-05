@@ -6,7 +6,10 @@ import {
   formatearCodigo,
   generarCodigoActivacion,
   generarOtp,
+  guardarWallet,
   hashOtp,
+  leerWallet,
+  mascaraWallet,
   normalizarCodigo,
   normalizarEmail,
   verificarOtp,
@@ -119,6 +122,23 @@ describe("claves de idempotencia", () => {
     // segunda se descartaría como repetida y el agente perdería una concesión.
     assert.notEqual(claveIdempotencia("ab", "c"), claveIdempotencia("a", "bc"));
   });
+
+  it("REGRESIÓN: la clave no cambia al reescribir el separador", () => {
+    /*
+     * El separador es un NUL, y estaba en el fuente como **byte crudo**: git
+     * clasificaba `lib/cripto.ts` como binario y cualquier herramienta que
+     * normalizara el fichero se lo habría llevado por delante en silencio. Al
+     * reescribirlo como secuencia de escape hay que poder demostrar que el
+     * valor NO se mueve, y eso no lo dice ninguna comprobación relativa: hace
+     * falta clavar el valor exacto.
+     *
+     * Si esta cifra cambia alguna vez, TODAS las claves ya emitidas dejan de
+     * corresponderse con las nuevas, y lo que eso significa es que un retiro o
+     * una concesión de PRO reintentados dejarían de reconocerse como el mismo
+     * intento. No es un detalle de formato: es dinero contado dos veces.
+     */
+    assert.equal(claveIdempotencia("agente-1", "abc", 7), "af0888cdd5bae3ba73a0efcba16ed7fd");
+  });
 });
 
 describe("duración del PRO", () => {
@@ -146,5 +166,64 @@ describe("duración del PRO", () => {
       (CODIGOS_MEMBRESIA as readonly string[]).includes(PLAN_UNICO),
       "el plan tiene que seguir siendo un código válido de la API",
     );
+  });
+});
+
+/**
+ * Las wallets, cifradas en reposo.
+ *
+ * `CLAVE_CIFRADO` era una variable obligatoria que **no protegía nada**: las
+ * primitivas estaban escritas y probadas, y ninguna se llamaba. El token de
+ * Sophon nunca se persiste —vive en la caché del cliente HTTP—, así que lo
+ * único que quedaba por cifrar era la dirección a la que se le paga a cada
+ * agente, y estaba en claro en `SolicitudRetiro.wallet`.
+ *
+ * Lo que estas pruebas fijan no es que AES funcione —eso lo garantiza Node—
+ * sino las dos decisiones del envoltorio: que lo guardado no se parezca al
+ * original, y que **las filas anteriores al cambio se sigan leyendo**. Sin lo
+ * segundo, estrenar el cifrado habría dejado ilegible el historial de pagos
+ * que ya existía, y eso es cambiar un riesgo por una avería.
+ */
+describe("wallets cifradas", () => {
+  // Clave de juguete, solo para esta prueba: 32 bytes en base64.
+  process.env["CLAVE_CIFRADO"] = Buffer.alloc(32, 7).toString("base64");
+
+  const TRC20 = "TJRabPrwbZy45sbavfcjinPJC18kjpRTv8";
+
+  it("lo que se guarda no contiene la dirección", () => {
+    const guardado = guardarWallet(TRC20);
+    assert.ok(!guardado.includes(TRC20), "la dirección no puede aparecer en claro");
+    assert.equal(leerWallet(guardado), TRC20);
+  });
+
+  it("dos cifrados de la misma wallet son distintos", () => {
+    // IV aleatorio por cifrado: si no, dos agentes que cobran en la misma
+    // dirección se delatarían por tener la columna idéntica.
+    assert.notEqual(guardarWallet(TRC20), guardarWallet(TRC20));
+  });
+
+  it("una fila anterior al cifrado se lee tal cual", () => {
+    // Sin esto, el historial de retiros escrito antes del cambio se quedaría
+    // ilegible: no hay migración SQL capaz de cifrarlo.
+    assert.equal(leerWallet(TRC20), TRC20);
+    // Y una dirección TON, que es base64 y podría confundirse con un paquete
+    // cifrado, tampoco se toca: lo decide la marca, no un intento de descifrar.
+    const ton = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N";
+    assert.equal(leerWallet(ton), ton);
+  });
+
+  it("la máscara reconoce sin exponer", () => {
+    assert.equal(mascaraWallet(TRC20), "TJRabP…RTv8");
+    // Una cadena corta no se recorta: recortarla no ocultaría nada y dejaría
+    // un texto que no se puede reconocer.
+    assert.equal(mascaraWallet("0x1234"), "0x1234");
+  });
+
+  it("un paquete manipulado no se descifra en silencio", () => {
+    // GCM autentica: sin esto, cambiar un byte devolvería basura y se pagaría
+    // a una dirección inventada.
+    const guardado = guardarWallet(TRC20);
+    const roto = guardado.slice(0, -6) + (guardado.endsWith("A") ? "B" : "A") + "AAAAA";
+    assert.throws(() => leerWallet(roto));
   });
 });

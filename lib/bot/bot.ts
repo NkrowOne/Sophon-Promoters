@@ -2,7 +2,7 @@ import { Bot, InlineKeyboard, type Context } from "grammy";
 
 import { db } from "../db.ts";
 import { crearEnlaceDeEntrada, MINUTOS_CANJE } from "../auth/admin.ts";
-import { formatearCodigo, generarCodigoActivacion, normalizarEmail } from "../cripto.ts";
+import { formatearCodigo, generarCodigoActivacion, leerWallet, normalizarEmail } from "../cripto.ts";
 import { formatearMicros } from "../devengo/dinero.ts";
 import { cadenas, type Cadenas } from "../i18n.ts";
 import { idiomaDesdeTelegram } from "../idiomas.ts";
@@ -440,7 +440,9 @@ function registrar(b: Bot): void {
         ...pendientes.map((r) =>
           [
             `${escapar(r.agente.nombreVisible)} — <b>${formatearMicros(r.importeMicros)}</b>`,
-            `${r.red} · <code>${escapar(r.wallet)}</code>`,
+            // Descifrada: en la base está cifrada y aquí se manda entera, que
+            // es como el superadmin la copia para pagar desde el móvil.
+            `${r.red} · <code>${escapar(leerWallet(r.wallet))}</code>`,
             `<i>${r.estado.toLowerCase()} desde el ${r.solicitadoEn.toISOString().slice(0, 10)}</i>`,
           ].join("\n"),
         ),
