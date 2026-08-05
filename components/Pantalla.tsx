@@ -413,15 +413,41 @@ function BotonReintentar({ onReintentar }: { onReintentar: () => void }) {
   );
 }
 
-/** Carga: una sola línea, sin esqueletos que fingen contenido que no existe. */
+/**
+ * Carga: una línea y un medidor. Sin esqueletos que fingen contenido inexistente.
+ *
+ * El texto solo no bastaba. Esto se usa de pie en la calle con la red de un
+ * móvil, y una pantalla donde pone «Cargando datos» y no se mueve nada durante
+ * seis segundos es indistinguible de una colgada: lo que hace entonces el
+ * agente es cerrar la Mini App y volver a abrirla, que es la peor respuesta
+ * posible a una petición que iba a llegar.
+ *
+ * El medidor es la ÚNICA animación de la aplicación que no mide un dato, y no
+ * es una excepción a la regla sino su otro lado: mide que el proceso sigue
+ * vivo, que es exactamente la pregunta de quien espera. Un esqueleto habría
+ * hecho lo contrario —dibujar la forma de unos datos que todavía no se sabe si
+ * van a llegar—.
+ *
+ * `aria-hidden` en la barra: el `aria-live` del texto ya anuncia la espera, y un
+ * lector de pantalla no tiene nada que hacer con un rectángulo que se desplaza.
+ */
 export function Cargando({ que }: { que?: string }) {
   const { cargando } = useCadenas();
   const texto = que ?? cargando;
   return (
-    // Sin `toUpperCase`. Las versalitas eran parte del «efecto estarcido»: un
-    // «CARGANDO…» a 11 px tracado grita para decir que espere.
-    <p className="py-10 text-cuerpo text-texto-apoyo" aria-live="polite">
-      {texto}…
-    </p>
+    <div className="py-10">
+      {/* Sin `toUpperCase`. Las versalitas eran parte del «efecto estarcido»: un
+          «CARGANDO…» a 11 px tracado grita para decir que espere. */}
+      <p className="text-cuerpo text-texto-apoyo" aria-live="polite">
+        {texto}…
+      </p>
+      {/* Corto y no a todo el ancho: una barra de borde a borde se lee como
+          progreso de la PÁGINA —«va por la mitad»— y esto no sabe cuánto falta.
+          Del ancho de una palabra, debajo del texto, es una señal de actividad y
+          no una promesa de plazo. */}
+      <span className="medidor mt-3 block h-1 w-24" aria-hidden>
+        <span />
+      </span>
+    </div>
   );
 }

@@ -836,3 +836,89 @@ textarea::placeholder {
 .banda {
   animation: depositar var(--t-entrada) var(--curva) both;
 }
+
+/*
+ * EL MEDIDOR: la espera, dicha con movimiento.
+ *
+ * `Cargando` era una línea de texto y nada más. Con la red de un móvil en la
+ * calle —que es donde se usa esto— una pantalla en la que pone «Cargando datos»
+ * y no se mueve nada durante seis segundos es indistinguible de una pantalla
+ * colgada, y lo que hace el agente entonces es cerrar y volver a abrir.
+ *
+ * Es la única animación de la aplicación que **no mide un dato**, y entra por
+ * la puerta de al lado: mide que el proceso sigue vivo, que es justamente la
+ * pregunta que se hace quien está esperando. No finge contenido —eso sería un
+ * esqueleto, y la regla de la casa los rechaza porque prometen una forma que
+ * luego no llega—: es un instrumento barriendo, el mismo gesto que el `barrido`
+ * de la Mecha y el Testigo.
+ *
+ * Barre en 1,4 s y no en los 520 ms del dibujo: a esa velocidad, repetida en
+ * bucle, parpadea. Y con `--curva-mover` —acelera y frena— en vez de lineal,
+ * porque aquí el recorrido no es una medida a ritmo constante sino un ir y
+ * venir.
+ */
+@keyframes medir {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
+.medidor {
+  overflow: hidden;
+  border-radius: var(--radio-marca);
+  background: var(--borde);
+}
+
+.medidor > span {
+  display: block;
+  width: 25%;
+  height: 100%;
+  background: var(--tinta-t2);
+  animation: medir 1400ms var(--curva-mover) infinite;
+}
+
+[dir="rtl"] .medidor > span {
+  animation-name: medir-rtl;
+}
+
+@keyframes medir-rtl {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-400%);
+  }
+}
+
+/*
+ * Con movimiento reducido, el medidor no se apaga: cambia de canal.
+ *
+ * Apagarlo devolvería exactamente el problema que vino a resolver —una pantalla
+ * quieta que no se distingue de una colgada— y encima solo para quien ya tiene
+ * motivos para necesitar más señales, no menos. Se queda el segmento quieto y
+ * lo que late es la opacidad, que es lo que esta hoja conserva en todas partes
+ * bajo esta preferencia: lo que molesta es el desplazamiento, no el color.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .medidor > span {
+    width: 100%;
+    animation: latir 1600ms ease-in-out infinite;
+  }
+
+  [dir="rtl"] .medidor > span {
+    animation-name: latir;
+  }
+}
+
+@keyframes latir {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
