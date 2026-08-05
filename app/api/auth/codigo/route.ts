@@ -35,7 +35,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   // El agente todavía no existe, así que no hay `Agente.idioma` que leer: el
   // idioma sale del `language_code` que Telegram firma en el initData, el mismo
   // que se persistirá al crear la cuenta en el paso 2.
-  const t = cadenas(idiomaDesdeTelegram(usuario?.language_code));
+  const idioma = idiomaDesdeTelegram(usuario?.language_code);
+  const t = cadenas(idioma);
   if (!usuario) {
     return NextResponse.json(
       { error: t.errSinTelegram, apoyo: t.errSinTelegramApoyo },
@@ -116,7 +117,14 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   });
 
   try {
-    await enviarOtp({ email: parseado.data.email, codigo: otp, minutosValidez: MINUTOS_OTP });
+    // El idioma viaja al correo: es el único mensaje de todo el alta que sale
+    // fuera de la aplicación, y era el único que no estaba traducido.
+    await enviarOtp({
+      email: parseado.data.email,
+      codigo: otp,
+      minutosValidez: MINUTOS_OTP,
+      idioma,
+    });
   } catch (e) {
     console.error("[auth] fallo al enviar el OTP", e);
     return NextResponse.json(

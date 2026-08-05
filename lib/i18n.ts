@@ -461,6 +461,20 @@ export const es = {
   botRetiroRechazado: (importe: string) =>
     `Hemos rechazado tu retiro de ${importe}. Vuelves a tener el saldo disponible.`,
   botMotivo: (motivo: string) => `Motivo: ${motivo}`,
+
+  // ── El correo del código de acceso ────────────────────────────────────────
+  //
+  // Estaba escrito a mano en `lib/correo.ts`, en español y solo en español, así
+  // que un agente italiano recibía la aplicación traducida y, en el ÚNICO punto
+  // del que depende poder entrar, un correo que no lee. El idioma se sabía: sale
+  // del `language_code` que Telegram firma y la ruta ya lo resolvía para sus
+  // propios errores.
+  correoOtpAsunto: (codigo: string) => `${codigo} es tu código de acceso`,
+  correoOtpTuCodigo: "Tu código de verificación:",
+  correoOtpCaduca: (minutos: number) =>
+    `Caduca en ${minutos} minutos y solo sirve una vez.`,
+  correoOtpNoPedido:
+    "Si no has pedido entrar en Sophon Promoters, ignora este correo: sin el código nadie puede acceder a tu cuenta.",
 } as const;
 
 /**
@@ -808,6 +822,14 @@ const en: Cadenas = {
   botRetiroRechazado: (importe: string) =>
     `We have rejected your ${importe} payout. You have the balance available again.`,
   botMotivo: (motivo: string) => `Reason: ${motivo}`,
+
+  // ── El correo del código de acceso ────────────────────────────────────────
+  correoOtpAsunto: (codigo: string) => `${codigo} is your access code`,
+  correoOtpTuCodigo: "Your verification code:",
+  correoOtpCaduca: (minutos: number) =>
+    `It expires in ${minutos} minutes and works only once.`,
+  correoOtpNoPedido:
+    "If you did not ask to sign in to Sophon Promoters, ignore this email: without the code nobody can get into your account.",
 };
 
 const it: Cadenas = {
@@ -1148,6 +1170,14 @@ const it: Cadenas = {
   botRetiroRechazado: (importe: string) =>
     `Abbiamo rifiutato il tuo prelievo di ${importe}. Hai di nuovo il saldo disponibile.`,
   botMotivo: (motivo: string) => `Motivo: ${motivo}`,
+
+  // ── Il messaggio con il codice di accesso ─────────────────────────────────
+  correoOtpAsunto: (codigo: string) => `${codigo} è il tuo codice di accesso`,
+  correoOtpTuCodigo: "Il tuo codice di verifica:",
+  correoOtpCaduca: (minutos: number) =>
+    `Scade tra ${minutos} minuti e vale una sola volta.`,
+  correoOtpNoPedido:
+    "Se non hai chiesto tu di entrare in Sophon Promoters, ignora questa email: senza il codice nessuno può entrare nel tuo account.",
 };
 
 const pt: Cadenas = {
@@ -1485,6 +1515,14 @@ const pt: Cadenas = {
   botRetiroRechazado: (importe: string) =>
     `Recusámos o teu levantamento de ${importe}. Voltas a ter o saldo disponível.`,
   botMotivo: (motivo: string) => `Motivo: ${motivo}`,
+
+  // ── O email com o código de acesso ────────────────────────────────────────
+  correoOtpAsunto: (codigo: string) => `${codigo} é o teu código de acesso`,
+  correoOtpTuCodigo: "O teu código de verificação:",
+  correoOtpCaduca: (minutos: number) =>
+    `Expira dentro de ${minutos} minutos e só serve uma vez.`,
+  correoOtpNoPedido:
+    "Se não pediste para entrar no Sophon Promoters, ignora este email: sem o código ninguém consegue aceder à tua conta.",
 };
 
 /**
@@ -1833,6 +1871,23 @@ const ar: Cadenas = {
   botRetiroRechazado: (importe: string) =>
     `رفضنا سحبك بمبلغ ${importe}. عاد الرصيد متاحًا لك.`,
   botMotivo: (motivo: string) => `السبب: ${motivo}`,
+
+  // ── رسالة رمز الدخول ──────────────────────────────────────────────────────
+  correoOtpAsunto: (codigo: string) => `${codigo} هو رمز دخولك`,
+  correoOtpTuCodigo: "رمز التحقق الخاص بك:",
+  // Dual y plural: دقيقة واحدة / دقيقتان / دقائق.
+  correoOtpCaduca: (minutos: number) =>
+    `تنتهي صلاحيته بعد ${
+      minutos === 1
+        ? "دقيقة واحدة"
+        : minutos === 2
+          ? "دقيقتين"
+          : minutos <= 10
+            ? `${minutos} دقائق`
+            : `${minutos} دقيقة`
+    }، ويصلح مرة واحدة فقط.`,
+  correoOtpNoPedido:
+    "إذا لم تطلب الدخول إلى Sophon Promoters فتجاهل هذه الرسالة: من دون الرمز لا يمكن لأحد الدخول إلى حسابك.",
 };
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };
