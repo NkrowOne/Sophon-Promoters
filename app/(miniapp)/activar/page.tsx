@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Aviso, Banda, Marca, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
 
 /**
  * Activar webmaster.
@@ -98,7 +98,7 @@ function ActivarPasos() {
       router.replace("/activar?paso=hecho");
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setError(aErrorApi(e));
     } finally {
       setEnviando(false);
     }
@@ -196,7 +196,7 @@ function ActivarPasos() {
 
         {error && (
           <Banda orden={2} tono={0} className="pt-5">
-            <Aviso error={error.message} apoyo={error.apoyo} onReintentar={activar} />
+            <Aviso error={error} onReintentar={activar} />
           </Banda>
         )}
 

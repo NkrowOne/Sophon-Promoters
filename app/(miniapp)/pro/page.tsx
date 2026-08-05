@@ -6,7 +6,7 @@ import { Icono } from "@/components/Icono";
 import { Mecha, unidadComun } from "@/components/Mecha";
 import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
 
 /**
@@ -79,7 +79,7 @@ export default function Renovaciones() {
     api
       .get<EstadoPro>("/api/pro")
       .then(setDatos)
-      .catch((e) => setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)));
+      .catch((e) => setError(aErrorApi(e)));
   }, [t]);
 
   useEffect(cargar, [cargar]);
@@ -108,7 +108,7 @@ export default function Renovaciones() {
         cargar();
       } catch (e) {
         haptica("error");
-        setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+        setError(aErrorApi(e));
       } finally {
         setEnCurso(null);
       }
@@ -195,8 +195,7 @@ export default function Renovaciones() {
         {error && (
           <div className="mt-4">
             <Aviso
-              error={error.message}
-              apoyo={error.apoyo}
+              error={error}
               onReintentar={ultimo && error.estado !== 409 ? () => renovar(ultimo) : undefined}
             />
           </div>

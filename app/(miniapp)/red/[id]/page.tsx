@@ -10,7 +10,7 @@ import { Mecha, MechaApagada } from "@/components/Mecha";
 import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
 
 /**
@@ -125,7 +125,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
       .get<Ficha>(`/api/agente/webmaster/${encodeURIComponent(id)}`)
       .then(setDatos)
       .catch((e) =>
-        setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)),
+        setError(aErrorApi(e)),
       );
   }, [id]);
 
@@ -170,7 +170,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
       cargar();
     } catch (e) {
       haptica("error");
-      setErrorRenovar(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setErrorRenovar(aErrorApi(e));
     } finally {
       setRenovando(false);
     }
@@ -193,6 +193,10 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
             reintentar dará 404 otra vez. La salida es volver a la red, que es
             además desde donde se llega aquí. */}
         {error.estado === 404 ? (
+          /* Un 404 SIEMPRE trae texto del servidor —ya traducido al idioma de
+             la sesión—, así que aquí no hay respaldo genérico que resolver y el
+             `message` se pinta tal cual. Es la única rama de error de toda la
+             aplicación con texto garantizado. */
           <Vacio
             titulo={error.message}
             apoyo={error.apoyo ?? undefined}
@@ -345,11 +349,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
               y queda claro qué acción falló. */}
           {errorRenovar && (
             <div className="mt-3">
-              <Aviso
-                error={errorRenovar.message}
-                apoyo={errorRenovar.apoyo}
-                onReintentar={renovar}
-              />
+              <Aviso error={errorRenovar} onReintentar={renovar} />
             </div>
           )}
         </Banda>

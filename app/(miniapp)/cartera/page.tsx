@@ -6,7 +6,7 @@ import { Escalera, type Cartera } from "@/components/Escalera";
 import { Importe } from "@/components/Importe";
 import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi, nuevaIdempotencia } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
 import { formatearMicros, microsACadena } from "@/lib/devengo/dinero";
 import type { Cadenas } from "@/lib/i18n";
 
@@ -114,7 +114,7 @@ export default function CarteraPagina() {
       .get<Respuesta>("/api/retiro")
       .then(setDatos)
       .catch((e) =>
-        setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)),
+        setError(aErrorApi(e)),
       );
   }, []);
 
@@ -171,7 +171,7 @@ export default function CarteraPagina() {
       setWallet("");
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setError(aErrorApi(e));
     } finally {
       setEnviando(false);
     }
@@ -220,7 +220,7 @@ export default function CarteraPagina() {
             parte. */}
         {error && (
           <div className="mt-5">
-            <Aviso error={error.message} apoyo={error.apoyo} onReintentar={() => void cargar()} />
+            <Aviso error={error} onReintentar={() => void cargar()} />
           </div>
         )}
       </Banda>

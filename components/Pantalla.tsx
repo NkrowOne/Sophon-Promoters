@@ -345,18 +345,39 @@ export function Aviso({
   apoyo,
   onReintentar,
 }: {
-  error: string;
+  /**
+   * El error, o su texto ya resuelto.
+   *
+   * Admite el OBJETO además de la cadena, y esa es la corrección: pasándole
+   * `error.message` desde la pantalla, el texto quedaba fijado en el momento en
+   * que se construyó el error, y el respaldo genérico se construía dentro de un
+   * `useCallback` que había capturado el catálogo del primer render —siempre el
+   * español, porque el idioma se resuelve en un efecto posterior—. Un agente
+   * inglés sin cobertura leía el aviso en español.
+   *
+   * Con el objeto, la traducción ocurre AQUÍ, al pintar, donde el catálogo está
+   * fresco por construcción.
+   */
+  error: string | ErrorApi;
   apoyo?: string | null;
   onReintentar?: () => void;
 }) {
+  const t = useCadenas();
+  const esObjeto = typeof error !== "string";
+  // Genérico = el texto lo pusimos nosotros de relleno. Lo que viene del
+  // servidor ya llega traducido al idioma de la sesión y se respeta tal cual.
+  const generico = esObjeto && error.generico;
+  const texto = generico ? t.algoHaFallado : esObjeto ? error.message : error;
+  const textoApoyo = apoyo ?? (generico ? t.algoHaFalladoApoyo : esObjeto ? error.apoyo : null);
+
   return (
     // El icono sustituye al filete de 2 px: dice «esto va mal» antes de leer, y
     // libera la sangría que el filete se llevaba. Una caja menos.
     <div role="alert" className="flex gap-3 py-2">
       <Icono nombre="aviso" tam={20} className="mt-0.5 text-peligro" />
       <div className="min-w-0">
-        <p className="text-cuerpo">{error}</p>
-        {apoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{apoyo}</p>}
+        <p className="text-cuerpo">{texto}</p>
+        {textoApoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{textoApoyo}</p>}
         {onReintentar && <BotonReintentar onReintentar={onReintentar} />}
       </div>
     </div>
@@ -394,7 +415,9 @@ export function FalloDeCarga({
     );
   }
 
-  return <Aviso error={error.message} apoyo={error.apoyo} onReintentar={onReintentar} />;
+  // El OBJETO, no `error.message`: es `Aviso` quien traduce el respaldo
+  // genérico, y solo él tiene el catálogo fresco al pintar.
+  return <Aviso error={error} onReintentar={onReintentar} />;
 }
 
 function BotonReintentar({ onReintentar }: { onReintentar: () => void }) {

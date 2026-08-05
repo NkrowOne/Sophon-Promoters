@@ -8,7 +8,7 @@ import { Icono, type NombreIcono } from "@/components/Icono";
 import { Aviso, Banda, Cargando, Marca, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
 
 /**
@@ -92,7 +92,7 @@ export default function Inicio() {
       .get<Resumen>("/api/agente/resumen")
       .then(setDatos)
       .catch((e) =>
-        setError(e instanceof ErrorApi ? e : new ErrorApi("Algo ha fallado.", 0, null)),
+        setError(aErrorApi(e)),
       );
   }, []);
 
@@ -194,7 +194,7 @@ export default function Inicio() {
         style={{ paddingInline: "var(--margen-pantalla)" }}
       >
         {error ? (
-          <Aviso error={error.message} apoyo={error.apoyo} onReintentar={cargar} />
+          <Aviso error={error} onReintentar={cargar} />
         ) : !datos ? (
           <Cargando que={t.sondeando} />
         ) : dias.length === 0 ? (

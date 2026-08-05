@@ -6,7 +6,7 @@ import { Importe } from "@/components/Importe";
 import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { TestigoAncho, type DiaAncho } from "@/components/testigo/TestigoAncho";
 import { useCadenas } from "@/components/TelegramProvider";
-import { api, ErrorApi } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
 
 /**
  * Histórico.
@@ -73,7 +73,7 @@ export default function Historico() {
       setCursor(p.siguienteCursor);
       if (!p.siguienteCursor) setAgotado(true);
     } catch (e) {
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setError(aErrorApi(e));
     } finally {
       setCargando(false);
       enVuelo.current = false;
@@ -176,8 +176,7 @@ export default function Historico() {
             </div>
           ) : error ? (
             <Aviso
-              error={error.message}
-              apoyo={error.apoyo}
+              error={error}
               onReintentar={() => void cargar(cursor)}
             />
           ) : (

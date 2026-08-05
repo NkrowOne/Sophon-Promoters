@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Aviso, Banda, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
 
 /**
  * Alta del agente: código → correo → OTP.
@@ -93,7 +93,7 @@ function AltaPasos() {
       if (paso !== "otp") router.push("/alta?paso=otp");
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setError(aErrorApi(e));
     } finally {
       setEnviando(false);
     }
@@ -111,7 +111,7 @@ function AltaPasos() {
       router.replace("/");
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setError(aErrorApi(e));
       setOtp("");
     } finally {
       setEnviando(false);
@@ -159,7 +159,7 @@ function AltaPasos() {
 
           {error && (
             <div className="mt-5">
-              <Aviso error={error.message} apoyo={error.apoyo} />
+              <Aviso error={error} />
             </div>
           )}
         </Banda>
@@ -246,7 +246,7 @@ function AltaPasos() {
 
           {error && (
             <div className="mt-6">
-              <Aviso error={error.message} apoyo={error.apoyo} onReintentar={pedirOtp} />
+              <Aviso error={error} onReintentar={pedirOtp} />
             </div>
           )}
         </Banda>
