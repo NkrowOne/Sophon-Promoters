@@ -2,7 +2,7 @@
 --
 -- Un agente cobra por lo que capta él, así que solo puede dar de alta cuentas
 -- que se registren por él. Todo lo que ya estaba en el programa de socios es del
--- superadmin, y hasta ahora un agente podía quedárselo sin más que teclear su
+-- Operador, y hasta ahora un agente podía quedárselo sin más que teclear su
 -- correo en «Activar webmaster»: la ruta de alta adoptaba cualquier fila sin
 -- agente y le ponía la atribución encima.
 --
@@ -25,7 +25,7 @@ WHERE "estadoSophon" <> 'DESCONOCIDO';
 
 -- ── 2. Empezar de cero ──
 --
--- Toda atribución vuelve al superadmin. A partir de aquí cada agente reconstruye
+-- Toda atribución vuelve al Operador. A partir de aquí cada agente reconstruye
 -- su red solo con altas nuevas, y como esos correos pasan a ser conocidos por la
 -- aplicación, ninguno se puede reclamar: el alta los rechaza antes de llamar a
 -- Sophon, y Sophon respondería «already an affiliate» de todos modos.
