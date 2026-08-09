@@ -260,11 +260,24 @@ tarifa, configurar la escalera de bonos y suspender agentes.
 ## Lo que hay que saber antes de dar por buena la producción
 
 **La whitelist del Tool API.** La cuenta maestra de afiliado tiene que estar
-autorizada por soporte de Sophon; mientras no lo esté, `sub-aff/status` responde
+autorizada por soporte de Sophon. Sin autorizar, `sub-aff/status` responde
 `caller not in allowed list` y **activar webmasters falla**, y con ello el año de
-PRO que va incluido en cada alta. El resto de la aplicación —lectura de
-registros, ingresos y tesorería— opera con normalidad. `npm run
-sophon:diagnostico` dice en qué estado está la cuenta ahora mismo.
+PRO que va incluido en cada alta; el resto —registros, ingresos y tesorería—
+opera con normalidad.
+
+Fue el bloqueo conocido durante todo el desarrollo. El titular confirma que
+`Nkrowone+2@gmail.com` **ya está en la whitelist**, pero eso no se ha podido
+comprobar contra la API desde aquí: hace falta `SOPHON_PASSWORD`, que no vive en
+el repositorio. **Compruébalo antes del primer despliegue**, porque es la
+diferencia entre un alta que funciona y un alta que se queda a medias:
+
+```bash
+SOPHON_EMAIL=... SOPHON_PASSWORD=... npm run sophon:diagnostico
+```
+
+Solo lee, no escribe nada, y dice en qué estado está la cuenta ahora mismo: si
+la whitelist responde, en qué `partnerLevel` está y si los endpoints devuelven la
+forma que el cliente espera.
 
 **El PRO no se renueva mientras esté vigente.** No es una preferencia: la API de
 Sophon no documenta si al fijar la membresía sobre una suscripción viva el plazo
