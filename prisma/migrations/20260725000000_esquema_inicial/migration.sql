@@ -35,7 +35,7 @@ CREATE TYPE "TipoSync" AS ENUM ('REGISTROS', 'WEBMASTERS', 'TESORERIA', 'CADUCID
 CREATE TYPE "EstadoSync" AS ENUM ('EN_CURSO', 'COMPLETADA', 'PARCIAL', 'FALLIDA');
 
 -- CreateEnum
-CREATE TYPE "ActorTipo" AS ENUM ('AGENTE', 'SUPERADMIN', 'SISTEMA');
+CREATE TYPE "ActorTipo" AS ENUM ('AGENTE', 'OPERADOR', 'SISTEMA');
 
 -- CreateTable
 CREATE TABLE "Agente" (
@@ -157,7 +157,7 @@ CREATE TABLE "FilaDiariaSophon" (
     "paymentAmountMicros" BIGINT NOT NULL,
     "gananciaTotalMicros" BIGINT NOT NULL,
     "gananciaWebmasterMicros" BIGINT NOT NULL,
-    "gananciaSuperadminMicros" BIGINT NOT NULL,
+    "gananciaOperadorMicros" BIGINT NOT NULL,
     "cerrado" BOOLEAN NOT NULL DEFAULT false,
     "primeraVezEn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "ultimaVezEn" TIMESTAMP(3) NOT NULL,

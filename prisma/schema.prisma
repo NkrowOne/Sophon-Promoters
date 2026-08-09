@@ -105,9 +105,9 @@ enum EstadoSync {
 enum ActorTipo {
   AGENTE
   /// Quien administra: reparte códigos, fija tarifas y paga los retiros.
-  /// Se llamaba SUPERADMIN; la migración `20260806000000_operador` renombra el
-  /// valor del enum en sitio, así que los asientos de auditoría ya escritos
-  /// siguen apuntando al mismo actor.
+  /// Se llamaba SUPERADMIN mientras el proyecto estuvo sin desplegar; el esquema
+  /// inicial ya lo crea con este nombre, así que no hay ninguna migración de
+  /// renombrado que aplicar.
   OPERADOR
   SISTEMA
 }
