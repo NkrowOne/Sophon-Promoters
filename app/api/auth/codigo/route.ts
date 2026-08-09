@@ -11,7 +11,7 @@ import { telegramDeLaPeticion } from "@/lib/auth/sesion";
 /**
  * Paso 1 del alta: canjear el código de activación y pedir el OTP.
  *
- * El código lo genera el superadmin desde el bot y se lo pasa al agente. Aquí se
+ * El código lo genera el Operador desde el bot y se lo pasa al agente. Aquí se
  * valida, se reserva y se manda el código de un solo uso al correo que el agente
  * declara, que será su identificador a partir de entonces.
  */
@@ -58,7 +58,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const invitacion = await db.codigoActivacion.findUnique({ where: { codigo } });
   if (!invitacion || invitacion.anuladoEn || invitacion.expiraEn < new Date()) {
     return NextResponse.json(
-      { error: t.errCodigoNoVale, apoyo: t.teLoDaElSuperadmin },
+      { error: t.errCodigoNoVale, apoyo: t.teLoDaElOperador },
       { status: 400 },
     );
   }

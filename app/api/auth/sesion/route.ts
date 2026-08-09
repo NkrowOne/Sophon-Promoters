@@ -9,7 +9,7 @@ import { NOMBRE_COOKIE, sesionActual } from "@/lib/auth/sesion";
  * alta. Devuelve 200 con `autenticado: false` en vez de 401: no es un error que
  * alguien aún no tenga cuenta, y un 401 haría ruido en cualquier monitorización.
  *
- * Nunca devuelve nada del margen del superadmin ni de otros agentes: solo lo
+ * Nunca devuelve nada del margen del Operador ni de otros agentes: solo lo
  * imprescindible para pintar la cabecera y decidir qué acciones habilitar.
  */
 

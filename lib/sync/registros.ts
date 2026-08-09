@@ -4,7 +4,7 @@
  * Sophon no publica eventos, publica **contadores acumulados por (webmaster, día)**
  * que además puede revisar más tarde. Y publica dos cifras distintas para la
  * misma fila según el `affiliateLevel`: con `1` la ganancia TOTAL y con `2` la
- * del webmaster. La diferencia es lo que entra al superadmin.
+ * del webmaster. La diferencia es lo que entra al Operador.
  *
  * Por eso el barrido lee **las dos versiones de cada fila** y las cruza por
  * `(email, fecha)`. Leer solo una dejaría el margen sin calcular.
@@ -274,7 +274,7 @@ async function procesarFila(params: {
       paymentAmountMicros: microsDesdeCadena(filaTotal.paymentAmount),
       gananciaTotalMicros,
       gananciaWebmasterMicros,
-      gananciaSuperadminMicros: gananciaTotalMicros - gananciaWebmasterMicros,
+      gananciaOperadorMicros: gananciaTotalMicros - gananciaWebmasterMicros,
       cerrado,
     };
 

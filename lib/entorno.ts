@@ -3,7 +3,7 @@
  *
  * Hasta ahora cada variable se leía donde hacía falta y su ausencia aparecía en
  * el peor momento posible: `PIMIENTA_OTP` en mitad de un alta, `CLAVE_CIFRADO`
- * al pulsar «solicitar retiro», `TELEGRAM_SUPERADMIN_ID` cuando el superadmin
+ * al pulsar «solicitar retiro», `TELEGRAM_OPERADOR_ID` cuando el Operador
  * intentaba entrar al panel. Un despliegue al que le falta una variable
  * arrancaba verde y fallaba días después, sobre un usuario real.
  *
@@ -23,12 +23,16 @@
  * pasa cualquier `if (!clave)` y revienta en el primer cifrado.
  */
 
+import { usaNombreAntiguo } from "./operador.ts";
+
 interface Requisito {
   nombre: string;
   /** Qué deja de funcionar sin ella. Es lo que se lee en el log, no el nombre. */
   para: string;
   /** Comprobación adicional de formato; devuelve el motivo del rechazo. */
   formato?: (valor: string) => string | null;
+  /** Nombre antiguo que sigue valiendo. Con cualquiera de los dos basta. */
+  alternativa?: string;
 }
 
 /** 32 bytes en base64, que es lo que exige AES-256. */
@@ -56,7 +60,13 @@ const ESENCIALES: readonly Requisito[] = [
 const DE_FUNCION: readonly Requisito[] = [
   { nombre: "APP_URL", para: "los enlaces que manda el bot (entrada al panel, alta de agentes)" },
   { nombre: "TELEGRAM_WEBHOOK_SECRET", para: "el bot: /api/bot responde 503 sin esto" },
-  { nombre: "TELEGRAM_SUPERADMIN_ID", para: "el panel de superadmin y los avisos de retiro" },
+  {
+    nombre: "TELEGRAM_OPERADOR_ID",
+    para: "el panel del Operador, sus comandos del bot y los avisos de retiro",
+    // Vale también el nombre antiguo mientras dure la transición: el valor está
+    // en el panel de despliegue, no aquí. Ver `lib/operador.ts`.
+    alternativa: "TELEGRAM_SUPERADMIN_ID",
+  },
   { nombre: "CRON_SECRET", para: "los barridos: /api/cron responde 503 sin esto" },
   { nombre: "SMTP_HOST", para: "el envío de los códigos de acceso; sin él nadie puede darse de alta" },
   { nombre: "SOPHON_EMAIL", para: "leer registros e ingresos de Sophon" },
@@ -71,7 +81,9 @@ export interface RevisionEntorno {
 function revisar(lista: readonly Requisito[]): string[] {
   const fallos: string[] = [];
   for (const r of lista) {
-    const valor = process.env[r.nombre]?.trim();
+    const valor =
+      process.env[r.nombre]?.trim() ||
+      (r.alternativa ? process.env[r.alternativa]?.trim() : undefined);
     if (!valor) {
       fallos.push(`${r.nombre} — sin ella no funciona: ${r.para}`);
       continue;
@@ -106,6 +118,14 @@ export function revisarEntorno(): RevisionEntorno {
  */
 export function exigirEntorno(): void {
   const { faltanEsenciales, faltanDeFuncion } = revisarEntorno();
+
+  // El respaldo funciona, pero callarlo lo convertiría en permanente.
+  if (usaNombreAntiguo()) {
+    console.warn(
+      "[entorno] TELEGRAM_SUPERADMIN_ID sigue en uso. Funciona, pero renómbrala a " +
+        "TELEGRAM_OPERADOR_ID en el panel de despliegue: el respaldo es de transición.",
+    );
+  }
 
   for (const f of faltanDeFuncion) {
     console.warn(`[entorno] queda apagado: ${f}`);

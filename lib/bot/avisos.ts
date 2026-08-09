@@ -3,13 +3,13 @@
  *
  * Van en las dos direcciones, y esa simetría es el punto:
  *
- *  - **Hacia arriba**: el superadmin se entera de que hay algo que pagar. El
+ *  - **Hacia arriba**: el Operador se entera de que hay algo que pagar. El
  *    aviso lleva todo lo necesario para hacer la transferencia sin abrir el
  *    panel —importe, red y wallet completa—.
  *  - **Hacia abajo**: el agente se entera de que le han pagado. Antes no había
  *    nada: el agente pedía su dinero y la única forma de saber si había salido
  *    era abrir la cartera y mirar. Un cobro que solo se descubre mirando es un
- *    cobro que se pregunta por privado, y eso lo acaba pagando el superadmin en
+ *    cobro que se pregunta por privado, y eso lo acaba pagando el Operador en
  *    tiempo.
  *
  * Ninguna de estas funciones puede tumbar la operación que las provoca. Si
@@ -19,6 +19,7 @@
 
 import { cadenas } from "../i18n.ts";
 import { idiomaGuardado } from "../idiomas.ts";
+import { idOperador } from "../operador.ts";
 
 /**
  * Dónde vive la Bot API.
@@ -61,14 +62,14 @@ async function enviarA(destino: string | null, texto: string): Promise<void> {
 }
 
 async function enviar(texto: string): Promise<void> {
-  await enviarA(process.env["TELEGRAM_SUPERADMIN_ID"] ?? null, texto);
+  await enviarA(idOperador(), texto);
 }
 
 function escapar(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export async function avisarRetiroAlSuperadmin(datos: {
+export async function avisarRetiroAlOperador(datos: {
   agente: string;
   email: string;
   importe: string;
@@ -296,7 +297,7 @@ export async function avisarCaminoDelBonoAlAgente(datos: {
  * Se dispara poquísimo por construcción: solo con motivos NUEVOS. Los cinco
  * reconocidos no pasan por aquí.
  */
-export async function avisarErrorSinClasificarAlSuperadmin(datos: {
+export async function avisarErrorSinClasificarAlOperador(datos: {
   email: string;
   codigo: number | null;
   mensaje: string;

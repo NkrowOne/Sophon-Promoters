@@ -241,7 +241,7 @@ function AltaPasos() {
                 línea que dice «escribe el código de activación» ocupa sitio para
                 no añadir nada. Solo se dice lo que el rótulo no puede: de dónde
                 sale. */}
-            <p className="mt-2 text-apoyo text-texto-apoyo">{t.teLoDaElSuperadmin}</p>
+            <p className="mt-2 text-apoyo text-texto-apoyo">{t.teLoDaElOperador}</p>
           </div>
 
           <div className="mt-6">

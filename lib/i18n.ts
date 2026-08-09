@@ -7,7 +7,7 @@
  *    hito». Un participio suelto dirigido al agente es telegrama, no español.
  * 2. **El agente es el sujeto de lo que hace él.** La pasiva refleja vale para
  *    estados del sistema —«las revisiones son manuales»— y no para algo que
- *    tiene que hacer alguien: «la reactivación se solicita al superadmin» no
+ *    tiene que hacer alguien: «la reactivación se solicita al Operador» no
  *    dice quién la solicita, y quien la solicita es él.
  * 3. **Pretérito perfecto compuesto**, que es el uso peninsular para lo
  *    reciente: «has alcanzado», no «alcanzaste».
@@ -34,7 +34,7 @@
  * `você`— porque un mismo producto no puede tutear en español y tratar de usted
  * en italiano.
  *
- * REGLA DURA: ninguna cadena puede revelar el reparto del superadmin ni el
+ * REGLA DURA: ninguna cadena puede revelar el reparto del Operador ni el
  * importe que cobra el webmaster. El agente solo ve lo suyo.
  *
  * **Los catálogos son completos, no parciales.** Con `Partial` una clave sin
@@ -42,7 +42,7 @@
  * pantalla en un idioma que no lee mientras el build pasa en verde. Al exigir
  * el catálogo entero, olvidarse de una cadena es un error de compilación.
  *
- * El panel de superadmin NO se traduce: lo usa una sola persona, y mantener
+ * El panel de Operador NO se traduce: lo usa una sola persona, y mantener
  * cinco versiones de una pantalla que solo ella abre sería trabajo sin destino.
  */
 
@@ -94,12 +94,12 @@ export const es = {
   vinculaTuCuenta: "Vincula tu cuenta",
   soloSeHaceUnaVez: "Solo lo haces una vez. Después entras siempre desde Telegram.",
   codigoDeActivacion: "Código de activación",
-  teLoDaElSuperadmin: "Te lo da el superadmin.",
+  teLoDaElOperador: "Te lo da el Operador.",
   tuCorreo: "Tu correo",
   seraTuIdentificador: "Será tu identificador. Te enviamos ahí un código de 6 dígitos.",
   enviarmeElCodigo: "Enviarme el código",
   confirmaQueEresTu: "Confirma que eres tú",
-  pideCodigo: "Escribe el código que te ha dado el superadmin.",
+  pideCodigo: "Escribe el código que te ha dado el Operador.",
   otpEnviado: (email: string) =>
     `Te hemos enviado un código de 6 dígitos a ${email}. Caduca en 10 minutos.`,
   codigoDeSeisDigitos: "Código de 6 dígitos",
@@ -333,18 +333,18 @@ export const es = {
   errSinTelegram: "Telegram no ha verificado tu acceso.",
   errSinTelegramApoyo: "Abre la aplicación desde el bot.",
   errSuspendido: "Tienes la cuenta suspendida.",
-  errSuspendidoApoyo: "Escribe al superadmin para recuperar el acceso.",
+  errSuspendidoApoyo: "Escribe al Operador para recuperar el acceso.",
 
   errFormatoCodigoCorreo: "El código o el correo no tienen el formato correcto.",
   errFormatoCodigoCorreoApoyo: "Revísalos y vuelve a intentarlo.",
   errCodigoNoVale: "Ese código de activación no vale o ha caducado.",
   errCodigoUsado: "Ese código de activación ya se ha usado.",
-  errCodigoUsadoApoyo: "Pídele otro al superadmin.",
+  errCodigoUsadoApoyo: "Pídele otro al Operador.",
   errCodigoOtroCorreo: "Ese código se emitió para otro correo.",
   errCodigoOtroCorreoApoyo: "Solo vale con el correo para el que se ha emitido.",
   errTelegramYaVinculado: (correo: string) =>
     `Esta cuenta de Telegram ya está vinculada a ${correo}.`,
-  errTelegramYaVinculadoApoyo: "Escribe al superadmin si necesitas cambiarla.",
+  errTelegramYaVinculadoApoyo: "Escribe al Operador si necesitas cambiarla.",
   errEsperaParaOtroCodigo: (segundos: number) =>
     `Podrás pedir otro código en ${segundos} segundos.`,
   errCorreoNoEnviado: "No hemos podido enviarte el correo.",
@@ -362,7 +362,7 @@ export const es = {
   errOtpOtraCuenta: "Ese código se ha pedido desde otra cuenta de Telegram.",
   errOtpOtraCuentaApoyo: "Solo vale en la cuenta que lo pidió.",
   errCorreoYaVinculado: "Ese correo ya está vinculado a otra cuenta de Telegram.",
-  errCorreoYaVinculadoApoyo: "Escribe al superadmin si necesitas cambiarla.",
+  errCorreoYaVinculadoApoyo: "Escribe al Operador si necesitas cambiarla.",
   errNoVinculado: "No hemos podido vincular tu cuenta.",
   errNoVinculadoApoyo: "Tu código de activación sigue sin usar. Vuelve a intentarlo.",
   errFormatoCorreo: "Ese correo no tiene el formato correcto.",
@@ -372,10 +372,10 @@ export const es = {
   errYaEnTuEquipoApoyo: "Ábrelo desde «Mi equipo».",
   errDeOtroAgente: "Ese webmaster ya es de otro agente.",
   errDeOtroAgenteApoyo:
-    "Cada webmaster tiene un solo agente. Si crees que es un error, escribe al superadmin.",
+    "Cada webmaster tiene un solo agente. Si crees que es un error, escribe al Operador.",
   errYaEnSophon: "Esa cuenta ya estaba en Sophon.",
   errYaEnSophonApoyo:
-    "Solo puedes dar de alta cuentas nuevas que registres tú. Las que ya existían son del superadmin.",
+    "Solo puedes dar de alta cuentas nuevas que registres tú. Las que ya existían son del Operador.",
   errNoExisteEnSophon: "Ese correo no existe en Sophon.",
   errNoExisteEnSophonApoyo: "Tiene que registrarse en Sophon antes de que puedas activarlo.",
   errSinWhitelist: "La cuenta no está autorizada en Sophon.",
@@ -383,7 +383,7 @@ export const es = {
   errSophonNoResponde: "Sophon no responde.",
   errSophonNoRespondeApoyo: "No hemos activado nada. Vuelve a intentarlo en un minuto.",
   errSophonRechaza: "Sophon ha rechazado la activación.",
-  errSophonRechazaApoyo: "No hemos activado nada. El superadmin ya está avisado.",
+  errSophonRechazaApoyo: "No hemos activado nada. El Operador ya está avisado.",
   errAltaNoRegistrada: "No hemos podido registrar el alta.",
   errAltaNoRegistradaApoyo: "No hemos cambiado nada. Vuelve a intentarlo.",
   errSinClasificar: "No hemos podido completar el alta.",
@@ -426,12 +426,12 @@ export const es = {
   // Los comandos de gestión —/codigo, /agentes, /retiros, /panel— NO están
   // aquí: los usa una sola persona y traducirlos sería trabajo sin destino.
   botTitulo: "Sophon Promoters",
-  botNecesitasCodigo: "Para entrar necesitas un código de activación. Te lo da el superadmin.",
+  botNecesitasCodigo: "Para entrar necesitas un código de activación. Te lo da el Operador.",
   botCuandoLoTengas: "Cuando lo tengas, vincula tu cuenta aquí.",
   botHola: (nombre: string) => `Hola, ${nombre}. Elige por dónde empiezas.`,
   botVincularCuenta: "Vincular mi cuenta",
-  botSuspendido: "Tienes la cuenta suspendida. Escribe al superadmin para reactivarla.",
-  botSinPublicar: "La aplicación no está publicada todavía. Avisa al superadmin.",
+  botSuspendido: "Tienes la cuenta suspendida. Escribe al Operador para reactivarla.",
+  botSinPublicar: "La aplicación no está publicada todavía. Avisa al Operador.",
   botCadaComando: "Cada comando abre una pantalla:",
   botOStart: "O /start para el menú completo.",
   botComandoDesconocido: "No conozco ese comando. Prueba /ayuda.",
@@ -528,12 +528,12 @@ const en: Cadenas = {
   vinculaTuCuenta: "Link your account",
   soloSeHaceUnaVez: "You only do this once. After that you always come in from Telegram.",
   codigoDeActivacion: "Activation code",
-  teLoDaElSuperadmin: "The superadmin gives it to you.",
+  teLoDaElOperador: "The Operator gives it to you.",
   tuCorreo: "Your email",
   seraTuIdentificador: "It will be your sign-in. We send a 6-digit code to that address.",
   enviarmeElCodigo: "Send me the code",
   confirmaQueEresTu: "Confirm it is you",
-  pideCodigo: "Type the code the superadmin gave you.",
+  pideCodigo: "Type the code the Operator gave you.",
   otpEnviado: (email: string) =>
     `We have sent a 6-digit code to ${email}. It expires in 10 minutes.`,
   codigoDeSeisDigitos: "6-digit code",
@@ -708,18 +708,18 @@ const en: Cadenas = {
   errSinTelegram: "Telegram has not verified your access.",
   errSinTelegramApoyo: "Open the app from the bot.",
   errSuspendido: "Your account is suspended.",
-  errSuspendidoApoyo: "Write to the superadmin to get your access back.",
+  errSuspendidoApoyo: "Write to the Operator to get your access back.",
 
   errFormatoCodigoCorreo: "The code or the email is not in the right format.",
   errFormatoCodigoCorreoApoyo: "Check them and try again.",
   errCodigoNoVale: "That activation code is not valid or has expired.",
   errCodigoUsado: "That activation code has already been used.",
-  errCodigoUsadoApoyo: "Ask the superadmin for another one.",
+  errCodigoUsadoApoyo: "Ask the Operator for another one.",
   errCodigoOtroCorreo: "That code was issued for a different email.",
   errCodigoOtroCorreoApoyo: "It only works with the email it was issued for.",
   errTelegramYaVinculado: (correo: string) =>
     `This Telegram account is already linked to ${correo}.`,
-  errTelegramYaVinculadoApoyo: "Write to the superadmin if you need to change it.",
+  errTelegramYaVinculadoApoyo: "Write to the Operator if you need to change it.",
   errEsperaParaOtroCodigo: (segundos: number) =>
     `You can ask for another code in ${segundos} seconds.`,
   errCorreoNoEnviado: "We could not send you the email.",
@@ -737,7 +737,7 @@ const en: Cadenas = {
   errOtpOtraCuenta: "That code was requested from a different Telegram account.",
   errOtpOtraCuentaApoyo: "It only works on the account that requested it.",
   errCorreoYaVinculado: "That email is already linked to a different Telegram account.",
-  errCorreoYaVinculadoApoyo: "Write to the superadmin if you need to change it.",
+  errCorreoYaVinculadoApoyo: "Write to the Operator if you need to change it.",
   errNoVinculado: "We could not link your account.",
   errNoVinculadoApoyo: "Your activation code is still unused. Try again.",
   errFormatoCorreo: "That email is not in the right format.",
@@ -747,10 +747,10 @@ const en: Cadenas = {
   errYaEnTuEquipoApoyo: "Open them from “My team”.",
   errDeOtroAgente: "That webmaster already belongs to another agent.",
   errDeOtroAgenteApoyo:
-    "Each webmaster has a single agent. If you think this is a mistake, write to the superadmin.",
+    "Each webmaster has a single agent. If you think this is a mistake, write to the Operator.",
   errYaEnSophon: "That account was already on Sophon.",
   errYaEnSophonApoyo:
-    "You can only sign up new accounts that you register yourself. The ones that already existed are the superadmin's.",
+    "You can only sign up new accounts that you register yourself. The ones that already existed are the Operator's.",
   errNoExisteEnSophon: "That email does not exist on Sophon.",
   errNoExisteEnSophonApoyo: "They have to register on Sophon before you can activate them.",
   errSinWhitelist: "The account is not authorized on Sophon.",
@@ -760,7 +760,7 @@ const en: Cadenas = {
   errSophonNoRespondeApoyo: "We have not activated anything. Try again in a minute.",
   errSophonRechaza: "Sophon has rejected the activation.",
   errSophonRechazaApoyo:
-    "We have not activated anything. The superadmin has already been notified.",
+    "We have not activated anything. The Operator has already been notified.",
   errAltaNoRegistrada: "We could not register the activation.",
   errAltaNoRegistradaApoyo: "We have not changed anything. Try again.",
   errSinClasificar: "We could not complete the activation.",
@@ -794,12 +794,12 @@ const en: Cadenas = {
   errRetiroNoRegistradoApoyo: "We have not deducted anything. Try again.",
 
   botTitulo: "Sophon Promoters",
-  botNecesitasCodigo: "You need an activation code to come in. The superadmin gives it to you.",
+  botNecesitasCodigo: "You need an activation code to come in. The Operator gives it to you.",
   botCuandoLoTengas: "Once you have it, link your account here.",
   botHola: (nombre: string) => `Hello, ${nombre}. Pick where you start.`,
   botVincularCuenta: "Link my account",
-  botSuspendido: "Your account is suspended. Write to the superadmin to reactivate it.",
-  botSinPublicar: "The app is not published yet. Let the superadmin know.",
+  botSuspendido: "Your account is suspended. Write to the Operator to reactivate it.",
+  botSinPublicar: "The app is not published yet. Let the Operator know.",
   botCadaComando: "Each command opens a screen:",
   botOStart: "Or /start for the full menu.",
   botComandoDesconocido: "I do not know that command. Try /ayuda.",
@@ -868,12 +868,12 @@ const it: Cadenas = {
   vinculaTuCuenta: "Collega il tuo account",
   soloSeHaceUnaVez: "Lo fai una sola volta. Dopo entri sempre da Telegram.",
   codigoDeActivacion: "Codice di attivazione",
-  teLoDaElSuperadmin: "Te lo dà il superadmin.",
+  teLoDaElOperador: "Te lo dà l'Operatore.",
   tuCorreo: "La tua email",
   seraTuIdentificador: "Sarà il tuo identificativo. Ti inviamo lì un codice di 6 cifre.",
   enviarmeElCodigo: "Inviami il codice",
   confirmaQueEresTu: "Conferma che sei tu",
-  pideCodigo: "Scrivi il codice che ti ha dato il superadmin.",
+  pideCodigo: "Scrivi il codice che ti ha dato l'Operatore.",
   otpEnviado: (email: string) =>
     `Ti abbiamo inviato un codice di 6 cifre a ${email}. Scade tra 10 minuti.`,
   codigoDeSeisDigitos: "Codice di 6 cifre",
@@ -1052,18 +1052,18 @@ const it: Cadenas = {
   errSinTelegram: "Telegram non ha verificato il tuo accesso.",
   errSinTelegramApoyo: "Apri l'applicazione dal bot.",
   errSuspendido: "Hai l'account sospeso.",
-  errSuspendidoApoyo: "Scrivi al superadmin per recuperare l'accesso.",
+  errSuspendidoApoyo: "Scrivi all'Operatore per recuperare l'accesso.",
 
   errFormatoCodigoCorreo: "Il codice o l'email non hanno il formato corretto.",
   errFormatoCodigoCorreoApoyo: "Controllali e riprova.",
   errCodigoNoVale: "Quel codice di attivazione non è valido o è scaduto.",
   errCodigoUsado: "Quel codice di attivazione è già stato usato.",
-  errCodigoUsadoApoyo: "Chiedine un altro al superadmin.",
+  errCodigoUsadoApoyo: "Chiedine un altro all'Operatore.",
   errCodigoOtroCorreo: "Quel codice è stato emesso per un'altra email.",
   errCodigoOtroCorreoApoyo: "Vale solo con l'email per cui è stato emesso.",
   errTelegramYaVinculado: (correo: string) =>
     `Questo account Telegram è già collegato a ${correo}.`,
-  errTelegramYaVinculadoApoyo: "Scrivi al superadmin se devi cambiarlo.",
+  errTelegramYaVinculadoApoyo: "Scrivi all'Operatore se devi cambiarlo.",
   errEsperaParaOtroCodigo: (segundos: number) =>
     `Potrai chiedere un altro codice tra ${segundos} secondi.`,
   errCorreoNoEnviado: "Non siamo riusciti a inviarti l'email.",
@@ -1081,7 +1081,7 @@ const it: Cadenas = {
   errOtpOtraCuenta: "Quel codice è stato richiesto da un altro account Telegram.",
   errOtpOtraCuentaApoyo: "Vale solo sull'account che l'ha richiesto.",
   errCorreoYaVinculado: "Quell'email è già collegata a un altro account Telegram.",
-  errCorreoYaVinculadoApoyo: "Scrivi al superadmin se devi cambiarla.",
+  errCorreoYaVinculadoApoyo: "Scrivi all'Operatore se devi cambiarla.",
   errNoVinculado: "Non siamo riusciti a collegare il tuo account.",
   errNoVinculadoApoyo: "Il tuo codice di attivazione resta non usato. Riprova.",
   errFormatoCorreo: "Quell'email non ha il formato corretto.",
@@ -1091,10 +1091,10 @@ const it: Cadenas = {
   errYaEnTuEquipoApoyo: "Aprilo da «Il mio team».",
   errDeOtroAgente: "Quel webmaster è già di un altro agente.",
   errDeOtroAgenteApoyo:
-    "Ogni webmaster ha un solo agente. Se pensi che sia un errore, scrivi al superadmin.",
+    "Ogni webmaster ha un solo agente. Se pensi che sia un errore, scrivi all'Operatore.",
   errYaEnSophon: "Quell'account era già su Sophon.",
   errYaEnSophonApoyo:
-    "Puoi registrare solo account nuovi che registri tu. Quelli che esistevano già sono del superadmin.",
+    "Puoi registrare solo account nuovi che registri tu. Quelli che esistevano già sono dell'Operatore.",
   errNoExisteEnSophon: "Quell'email non esiste su Sophon.",
   errNoExisteEnSophonApoyo: "Deve registrarsi su Sophon prima che tu possa attivarlo.",
   errSinWhitelist: "L'account non è autorizzato su Sophon.",
@@ -1103,7 +1103,7 @@ const it: Cadenas = {
   errSophonNoResponde: "Sophon non risponde.",
   errSophonNoRespondeApoyo: "Non abbiamo attivato nulla. Riprova tra un minuto.",
   errSophonRechaza: "Sophon ha rifiutato l'attivazione.",
-  errSophonRechazaApoyo: "Non abbiamo attivato nulla. Il superadmin è già avvisato.",
+  errSophonRechazaApoyo: "Non abbiamo attivato nulla. L'Operatore è già avvisato.",
   errAltaNoRegistrada: "Non siamo riusciti a registrare l'attivazione.",
   errAltaNoRegistradaApoyo: "Non abbiamo cambiato nulla. Riprova.",
   errSinClasificar: "Non siamo riusciti a completare l'attivazione.",
@@ -1137,13 +1137,13 @@ const it: Cadenas = {
   errRetiroNoRegistradoApoyo: "Non ti abbiamo scalato nulla. Riprova.",
 
   botTitulo: "Sophon Promoters",
-  botNecesitasCodigo: "Per entrare ti serve un codice di attivazione. Te lo dà il superadmin.",
+  botNecesitasCodigo: "Per entrare ti serve un codice di attivazione. Te lo dà l'Operatore.",
   botCuandoLoTengas: "Quando ce l'hai, collega il tuo account qui.",
   botHola: (nombre: string) => `Ciao, ${nombre}. Scegli da dove inizi.`,
   botVincularCuenta: "Collega il mio account",
-  botSuspendido: "Hai l'account sospeso. Scrivi al superadmin per riattivarlo.",
+  botSuspendido: "Hai l'account sospeso. Scrivi all'Operatore per riattivarlo.",
   botSinPublicar:
-    "L'applicazione non è ancora pubblicata. Il problema si segnala al superadmin.",
+    "L'applicazione non è ancora pubblicata. Il problema si segnala all'Operatore.",
   botCadaComando: "Ogni comando apre una schermata:",
   botOStart: "Oppure /start per il menu completo.",
   botComandoDesconocido: "Non conosco questo comando. Prova /ayuda.",
@@ -1216,12 +1216,12 @@ const pt: Cadenas = {
   vinculaTuCuenta: "Associa a tua conta",
   soloSeHaceUnaVez: "Só o fazes uma vez. Depois entras sempre pelo Telegram.",
   codigoDeActivacion: "Código de ativação",
-  teLoDaElSuperadmin: "É o superadmin que to dá.",
+  teLoDaElOperador: "É o Operador que to dá.",
   tuCorreo: "O teu email",
   seraTuIdentificador: "Vai ser o teu identificador. Enviamos-te aí um código de 6 dígitos.",
   enviarmeElCodigo: "Enviar-me o código",
   confirmaQueEresTu: "Confirma que és tu",
-  pideCodigo: "Escreve o código que o superadmin te deu.",
+  pideCodigo: "Escreve o código que o Operador te deu.",
   otpEnviado: (email: string) =>
     `Enviámos-te um código de 6 dígitos para ${email}. Expira em 10 minutos.`,
   codigoDeSeisDigitos: "Código de 6 dígitos",
@@ -1400,18 +1400,18 @@ const pt: Cadenas = {
   errSinTelegram: "O Telegram não verificou o teu acesso.",
   errSinTelegramApoyo: "Abre a aplicação a partir do bot.",
   errSuspendido: "Tens a conta suspensa.",
-  errSuspendidoApoyo: "Escreve ao superadmin para recuperares o acesso.",
+  errSuspendidoApoyo: "Escreve ao Operador para recuperares o acesso.",
 
   errFormatoCodigoCorreo: "O código ou o email não têm o formato correto.",
   errFormatoCodigoCorreoApoyo: "Revê-os e tenta outra vez.",
   errCodigoNoVale: "Esse código de ativação não é válido ou expirou.",
   errCodigoUsado: "Esse código de ativação já foi usado.",
-  errCodigoUsadoApoyo: "Pede outro ao superadmin.",
+  errCodigoUsadoApoyo: "Pede outro ao Operador.",
   errCodigoOtroCorreo: "Esse código foi emitido para outro email.",
   errCodigoOtroCorreoApoyo: "Só é válido com o email para o qual foi emitido.",
   errTelegramYaVinculado: (correo: string) =>
     `Esta conta de Telegram já está associada a ${correo}.`,
-  errTelegramYaVinculadoApoyo: "Escreve ao superadmin se precisares de a mudar.",
+  errTelegramYaVinculadoApoyo: "Escreve ao Operador se precisares de a mudar.",
   errEsperaParaOtroCodigo: (segundos: number) =>
     `Vais poder pedir outro código dentro de ${segundos} segundos.`,
   errCorreoNoEnviado: "Não conseguimos enviar-te o email.",
@@ -1429,7 +1429,7 @@ const pt: Cadenas = {
   errOtpOtraCuenta: "Esse código foi pedido a partir de outra conta de Telegram.",
   errOtpOtraCuentaApoyo: "Só é válido na conta que o pediu.",
   errCorreoYaVinculado: "Esse email já está associado a outra conta de Telegram.",
-  errCorreoYaVinculadoApoyo: "Escreve ao superadmin se precisares de a mudar.",
+  errCorreoYaVinculadoApoyo: "Escreve ao Operador se precisares de a mudar.",
   errNoVinculado: "Não conseguimos associar a tua conta.",
   errNoVinculadoApoyo: "O teu código de ativação continua por usar. Tenta outra vez.",
   errFormatoCorreo: "Esse email não tem o formato correto.",
@@ -1439,10 +1439,10 @@ const pt: Cadenas = {
   errYaEnTuEquipoApoyo: "Abre-o em «A minha equipa».",
   errDeOtroAgente: "Esse webmaster já é de outro agente.",
   errDeOtroAgenteApoyo:
-    "Cada webmaster tem um só agente. Se achas que é um erro, escreve ao superadmin.",
+    "Cada webmaster tem um só agente. Se achas que é um erro, escreve ao Operador.",
   errYaEnSophon: "Essa conta já estava na Sophon.",
   errYaEnSophonApoyo:
-    "Só podes dar de alta contas novas que registes tu. As que já existiam são do superadmin.",
+    "Só podes dar de alta contas novas que registes tu. As que já existiam são do Operador.",
   errNoExisteEnSophon: "Esse email não existe na Sophon.",
   errNoExisteEnSophonApoyo: "Tem de se registar na Sophon antes de o poderes ativar.",
   errSinWhitelist: "A conta não está autorizada na Sophon.",
@@ -1450,7 +1450,7 @@ const pt: Cadenas = {
   errSophonNoResponde: "A Sophon não responde.",
   errSophonNoRespondeApoyo: "Não ativámos nada. Tenta outra vez dentro de um minuto.",
   errSophonRechaza: "A Sophon recusou a ativação.",
-  errSophonRechazaApoyo: "Não ativámos nada. O superadmin já foi avisado.",
+  errSophonRechazaApoyo: "Não ativámos nada. O Operador já foi avisado.",
   errAltaNoRegistrada: "Não conseguimos registar a ativação.",
   errAltaNoRegistradaApoyo: "Não alterámos nada. Tenta outra vez.",
   errSinClasificar: "Não conseguimos concluir a ativação.",
@@ -1484,13 +1484,13 @@ const pt: Cadenas = {
   errRetiroNoRegistradoApoyo: "Não te descontámos nada. Tenta outra vez.",
 
   botTitulo: "Sophon Promoters",
-  botNecesitasCodigo: "Para entrares precisas de um código de ativação. É o superadmin que to dá.",
+  botNecesitasCodigo: "Para entrares precisas de um código de ativação. É o Operador que to dá.",
   botCuandoLoTengas: "Quando o tiveres, associa aqui a tua conta.",
   botHola: (nombre: string) => `Olá, ${nombre}. Escolhe por onde começas.`,
   botVincularCuenta: "Associar a minha conta",
-  botSuspendido: "Tens a conta suspensa. Escreve ao superadmin para a reativar.",
+  botSuspendido: "Tens a conta suspensa. Escreve ao Operador para a reativar.",
   botSinPublicar:
-    "A aplicação ainda não está publicada. A incidência é comunicada ao superadmin.",
+    "A aplicação ainda não está publicada. A incidência é comunicada ao Operador.",
   botCadaComando: "Cada comando abre um ecrã:",
   botOStart: "Ou /start para o menu completo.",
   botComandoDesconocido: "Não conheço esse comando. Experimenta /ayuda.",
@@ -1576,12 +1576,12 @@ const ar: Cadenas = {
   vinculaTuCuenta: "اربط حسابك",
   soloSeHaceUnaVez: "تفعل ذلك مرة واحدة فقط. بعدها تدخل دائمًا من Telegram.",
   codigoDeActivacion: "رمز التفعيل",
-  teLoDaElSuperadmin: "يعطيك إياه superadmin.",
+  teLoDaElOperador: "يعطيك إياه المشغّل.",
   tuCorreo: "بريدك الإلكتروني",
   seraTuIdentificador: "سيكون معرّفك. نرسل إليه رمزًا من 6 أرقام.",
   enviarmeElCodigo: "أرسل لي الرمز",
   confirmaQueEresTu: "أكّد أنك أنت",
-  pideCodigo: "اكتب الرمز الذي أعطاك إياه superadmin.",
+  pideCodigo: "اكتب الرمز الذي أعطاك إياه المشغّل.",
   otpEnviado: (email: string) => `أرسلنا إليك رمزًا من 6 أرقام إلى ${email}. تنتهي صلاحيته خلال 10 دقائق.`,
   codigoDeSeisDigitos: "رمز من 6 أرقام",
   cambiarElCorreo: "تغيير البريد",
@@ -1756,17 +1756,17 @@ const ar: Cadenas = {
   errSinTelegram: "لم يتحقق Telegram من دخولك.",
   errSinTelegramApoyo: "افتح التطبيق من البوت.",
   errSuspendido: "حسابك موقوف.",
-  errSuspendidoApoyo: "راسل superadmin لاستعادة الدخول.",
+  errSuspendidoApoyo: "راسل المشغّل لاستعادة الدخول.",
 
   errFormatoCodigoCorreo: "الرمز أو البريد ليس بالصيغة الصحيحة.",
   errFormatoCodigoCorreoApoyo: "راجعهما وأعد المحاولة.",
   errCodigoNoVale: "رمز التفعيل هذا غير صالح أو انتهت صلاحيته.",
   errCodigoUsado: "رمز التفعيل هذا استُخدم من قبل.",
-  errCodigoUsadoApoyo: "اطلب رمزًا آخر من superadmin.",
+  errCodigoUsadoApoyo: "اطلب رمزًا آخر من المشغّل.",
   errCodigoOtroCorreo: "هذا الرمز صدر لبريد آخر.",
   errCodigoOtroCorreoApoyo: "لا يصلح إلا مع البريد الذي صدر له.",
   errTelegramYaVinculado: (correo: string) => `حساب Telegram هذا مرتبط بالفعل بـ ${correo}.`,
-  errTelegramYaVinculadoApoyo: "راسل superadmin إن احتجت إلى تغييره.",
+  errTelegramYaVinculadoApoyo: "راسل المشغّل إن احتجت إلى تغييره.",
   errEsperaParaOtroCodigo: (segundos: number) =>
     `ستتمكن من طلب رمز آخر بعد ${segundos} ثانية.`,
   errCorreoNoEnviado: "لم نتمكن من إرسال البريد إليك.",
@@ -1789,7 +1789,7 @@ const ar: Cadenas = {
   errOtpOtraCuenta: "طُلب هذا الرمز من حساب Telegram آخر.",
   errOtpOtraCuentaApoyo: "لا يصلح إلا في الحساب الذي طلبه.",
   errCorreoYaVinculado: "هذا البريد مرتبط بالفعل بحساب Telegram آخر.",
-  errCorreoYaVinculadoApoyo: "راسل superadmin إن احتجت إلى تغييره.",
+  errCorreoYaVinculadoApoyo: "راسل المشغّل إن احتجت إلى تغييره.",
   errNoVinculado: "لم نتمكن من ربط حسابك.",
   errNoVinculadoApoyo: "رمز التفعيل الخاص بك ما زال غير مستخدَم. أعد المحاولة.",
   errFormatoCorreo: "هذا البريد ليس بالصيغة الصحيحة.",
@@ -1798,10 +1798,10 @@ const ar: Cadenas = {
   errYaEnTuEquipo: "هذا webmaster في فريقك بالفعل.",
   errYaEnTuEquipoApoyo: "افتحه من «فريقي».",
   errDeOtroAgente: "هذا webmaster تابع لوكيل آخر بالفعل.",
-  errDeOtroAgenteApoyo: "لكل webmaster وكيل واحد فقط. إن كنت ترى أن هذا خطأ، راسل superadmin.",
+  errDeOtroAgenteApoyo: "لكل webmaster وكيل واحد فقط. إن كنت ترى أن هذا خطأ، راسل المشغّل.",
   errYaEnSophon: "هذا الحساب كان موجودًا في Sophon من قبل.",
   errYaEnSophonApoyo:
-    "لا يمكنك تسجيل سوى الحسابات الجديدة التي تسجّلها أنت. أما التي كانت موجودة فهي لـ superadmin.",
+    "لا يمكنك تسجيل سوى الحسابات الجديدة التي تسجّلها أنت. أما التي كانت موجودة فهي للمشغّل.",
   errNoExisteEnSophon: "هذا البريد غير موجود في Sophon.",
   errNoExisteEnSophonApoyo: "عليه التسجيل في Sophon قبل أن تتمكن من تفعيله.",
   errSinWhitelist: "الحساب غير مصرَّح له في Sophon.",
@@ -1809,7 +1809,7 @@ const ar: Cadenas = {
   errSophonNoResponde: "Sophon لا يستجيب.",
   errSophonNoRespondeApoyo: "لم نفعّل شيئًا. أعد المحاولة بعد دقيقة.",
   errSophonRechaza: "رفض Sophon التفعيل.",
-  errSophonRechazaApoyo: "لم نفعّل شيئًا. تم إبلاغ superadmin.",
+  errSophonRechazaApoyo: "لم نفعّل شيئًا. تم إبلاغ المشغّل.",
   errAltaNoRegistrada: "لم نتمكن من تسجيل التفعيل.",
   errAltaNoRegistradaApoyo: "لم نغيّر شيئًا. أعد المحاولة.",
   errSinClasificar: "لم نتمكن من إتمام التفعيل.",
@@ -1841,12 +1841,12 @@ const ar: Cadenas = {
   errRetiroNoRegistradoApoyo: "لم نخصم منك شيئًا. أعد المحاولة.",
 
   botTitulo: "Sophon Promoters",
-  botNecesitasCodigo: "تحتاج رمز تفعيل للدخول. يعطيك إياه superadmin.",
+  botNecesitasCodigo: "تحتاج رمز تفعيل للدخول. يعطيك إياه المشغّل.",
   botCuandoLoTengas: "عندما تحصل عليه، اربط حسابك هنا.",
   botHola: (nombre: string) => `مرحبًا، ${nombre}. اختر من أين تبدأ.`,
   botVincularCuenta: "اربط حسابي",
-  botSuspendido: "حسابك موقوف. راسل superadmin لإعادة تفعيله.",
-  botSinPublicar: "التطبيق غير منشور بعد. أبلغ superadmin.",
+  botSuspendido: "حسابك موقوف. راسل المشغّل لإعادة تفعيله.",
+  botSinPublicar: "التطبيق غير منشور بعد. أبلغ المشغّل.",
   botCadaComando: "كل أمر يفتح شاشة:",
   botOStart: "أو /start للقائمة الكاملة.",
   botComandoDesconocido: "لا أعرف هذا الأمر. جرّب /ayuda.",

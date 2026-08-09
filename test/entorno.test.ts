@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { revisarEntorno } from "../lib/entorno.ts";
+import { esOperador, usaNombreAntiguo } from "../lib/operador.ts";
 
 /**
  * La revisión del entorno, que ahora decide si el proceso arranca.
@@ -53,7 +54,7 @@ const COMPLETO = {
   PIMIENTA_OTP: "pimienta",
   APP_URL: "https://promoters.example.com",
   TELEGRAM_WEBHOOK_SECRET: "s",
-  TELEGRAM_SUPERADMIN_ID: "1",
+  TELEGRAM_OPERADOR_ID: "1",
   CRON_SECRET: "s",
   SMTP_HOST: "smtp.example.com",
   SOPHON_EMAIL: "a@example.com",
@@ -113,6 +114,66 @@ describe("revisión del entorno", () => {
       const r = revisarEntorno();
       assert.deepEqual(r.faltanEsenciales, []);
       assert.equal(r.faltanDeFuncion.length, 2);
+    });
+  });
+});
+
+/**
+ * El nombre de la variable del Operador cambió, y el valor no vive aquí.
+ *
+ * `TELEGRAM_SUPERADMIN_ID` pasó a `TELEGRAM_OPERADOR_ID` al renombrar el rol.
+ * Renombrarla en el código y ya está tenía un problema que no se ve desde el
+ * repositorio: **el valor está en el panel de Skyway**. Un despliegue con el
+ * nombre nuevo en el código y el viejo en el panel deja al Operador sin panel,
+ * sin comandos del bot y sin avisos de retiro —y los tres fallan EN SILENCIO:
+ * el bot ignora el comando y el panel contesta «sesión requerida»—.
+ *
+ * De ahí el respaldo. Y de ahí que se avise al arrancar: un respaldo que no se
+ * cuenta se queda para siempre.
+ */
+describe("el nombre antiguo de la variable del Operador", () => {
+  const OPERADOR = "1234567890";
+  const OTRO = "9999999999";
+
+  it("vale el nombre nuevo", () => {
+    con({ ...COMPLETO, TELEGRAM_OPERADOR_ID: OPERADOR }, () => {
+      assert.equal(esOperador(Number(OPERADOR)), true);
+      assert.equal(usaNombreAntiguo(), false);
+    });
+  });
+
+  it("vale el antiguo, y se avisa de que es de transición", () => {
+    con({ ...COMPLETO, TELEGRAM_OPERADOR_ID: undefined, TELEGRAM_SUPERADMIN_ID: OPERADOR }, () => {
+      assert.equal(esOperador(Number(OPERADOR)), true, "un despliegue sin actualizar sigue entrando");
+      assert.deepEqual(revisarEntorno().faltanDeFuncion, [], "no puede contarse como que falta");
+      assert.equal(usaNombreAntiguo(), true, "y tiene que poder avisarse");
+    });
+  });
+
+  it("el nuevo MANDA sobre el antiguo", () => {
+    // Si alguien pone los dos con valores distintos, gana el nuevo: es el que
+    // se ha escrito a propósito.
+    con({ ...COMPLETO, TELEGRAM_OPERADOR_ID: OPERADOR, TELEGRAM_SUPERADMIN_ID: OTRO }, () => {
+      assert.equal(esOperador(Number(OPERADOR)), true);
+      assert.equal(esOperador(Number(OTRO)), false);
+    });
+  });
+
+  it("sin ninguno de los dos, no hay Operador y se dice", () => {
+    con({ ...COMPLETO, TELEGRAM_OPERADOR_ID: undefined }, () => {
+      assert.equal(esOperador(Number(OPERADOR)), false, "sin declarar, nadie es Operador");
+      assert.equal(revisarEntorno().faltanDeFuncion.length, 1);
+    });
+  });
+
+  it("la comparación es en TEXTO, no en número", () => {
+    // Un id de Telegram cabe en un bigint pero no siempre en el entero seguro
+    // de JavaScript. Compararlo como número metería un redondeo en un control
+    // de acceso, que es el peor sitio posible para uno.
+    const grande = "9007199254740993"; // Number.MAX_SAFE_INTEGER + 2
+    con({ ...COMPLETO, TELEGRAM_OPERADOR_ID: grande }, () => {
+      assert.equal(esOperador(BigInt(grande)), true);
+      assert.equal(esOperador(BigInt("9007199254740992")), false, "un vecino no puede colarse");
     });
   });
 });

@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   /*
    * El panel tiene su propia raíz, así que NO hereda los iconos de la Mini App:
    * se quedaba sin ninguno y la pestaña salía con el icono genérico del
-   * navegador. Es la pestaña que el superadmin tiene abierta al lado de otras
+   * navegador. Es la pestaña que el Operador tiene abierta al lado de otras
    * quince mientras paga retiros, o sea justo donde una marca sirve para algo.
    *
    * Sin manifiesto ni Open Graph a propósito: esto no se instala ni se comparte.

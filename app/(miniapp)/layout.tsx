@@ -112,7 +112,7 @@ export const metadata: Metadata = {
   },
   /*
    * La previsualización del enlace, que en este producto no es un adorno: el
-   * alta empieza con el superadmin pasándole la URL al agente por Telegram, y
+   * alta empieza con el Operador pasándole la URL al agente por Telegram, y
    * lo que ese agente ve antes de tocar nada es esta tarjeta. Sin ella salía la
    * URL desnuda, que es indistinguible de un enlace cualquiera.
    */

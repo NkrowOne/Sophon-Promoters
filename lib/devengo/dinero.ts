@@ -119,7 +119,7 @@ function separadoresDe(idioma: Idioma): { grupo: string; decimal: string } {
  * El `$` va pospuesto y separado en las cinco lenguas: es la convención que ya
  * tiene el producto y cambiarla movería la cifra de sitio en media interfaz.
  *
- * El idioma va TERCERO y con valor por defecto porque el panel de superadmin y
+ * El idioma va TERCERO y con valor por defecto porque el panel de Operador y
  * el cron —unos treinta y cinco sitios de llamada— no se traducen: es la
  * decisión escrita en `lib/i18n.ts`, y ahí el español es la respuesta correcta,
  * no una omisión.

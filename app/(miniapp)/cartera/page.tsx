@@ -210,7 +210,7 @@ export default function CarteraPagina() {
 
         {/* Una sola línea aquí: la que explica por qué disponible < devengado, que
             es la pregunta que nace al mirar la escalera. Lo que tarda el
-            superadmin se dice junto al botón de pedir, que es cuando importa. */}
+            Operador se dice junto al botón de pedir, que es cuando importa. */}
         <p className="mt-3 text-apoyo text-texto-apoyo">{t.soloConsolidado}</p>
 
         {/* El aviso vive FUERA del ternario de abajo. Estaba dentro de la rama

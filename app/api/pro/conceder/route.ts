@@ -26,7 +26,7 @@ import { concederAnio } from "@/lib/pro/conceder";
  *
  * Lo que sí sigue haciendo, porque es el vector de fraude que queda: comprobar
  * que el webmaster es **de este agente**. Sin eso, cualquiera podría renovarle
- * el PRO a la red de otro con el token maestro del superadmin.
+ * el PRO a la red de otro con el token maestro del Operador.
  *
  * Y lo que hace nuevo: **rechazar si el PRO sigue vivo**. El guardián está en
  * `lib/pro/conceder.ts` —los dos caminos que conceden no pueden divergir— y esta

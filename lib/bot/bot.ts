@@ -6,6 +6,7 @@ import { formatearCodigo, generarCodigoActivacion, leerWallet, normalizarEmail }
 import { formatearMicros } from "../devengo/dinero.ts";
 import { cadenas, type Cadenas } from "../i18n.ts";
 import { idiomaDesdeTelegram } from "../idiomas.ts";
+import { esOperador } from "../operador.ts";
 
 /**
  * El bot.
@@ -22,8 +23,8 @@ import { idiomaDesdeTelegram } from "../idiomas.ts";
  * saldo ni el histórico al lado—. Esas acciones viven en el panel, que es donde
  * se ve el contexto completo. El bot avisa; el panel decide.
  *
- * Todos los comandos de gestión son del superadmin. La comprobación se hace
- * contra `TELEGRAM_SUPERADMIN_ID` en cada uno, no una sola vez al arrancar: un
+ * Todos los comandos de gestión son del Operador. La comprobación se hace
+ * contra `TELEGRAM_OPERADOR_ID` en cada uno, no una sola vez al arrancar: un
  * middleware global que se olvidara de cubrir un comando nuevo sería un agujero
  * silencioso.
  */
@@ -48,11 +49,6 @@ export function bot(): Bot {
   registrar(b);
   instancia = b;
   return b;
-}
-
-function esSuperadmin(id: number | undefined): boolean {
-  const declarado = process.env["TELEGRAM_SUPERADMIN_ID"];
-  return Boolean(declarado && id !== undefined && String(id) === declarado.trim());
 }
 
 function urlMiniApp(): string {
@@ -257,7 +253,7 @@ function registrar(b: Bot): void {
   }
 
   b.command("panel", async (ctx) => {
-    if (!esSuperadmin(ctx.from?.id)) return;
+    if (!esOperador(ctx.from?.id)) return;
 
     const enlace = await crearEnlaceDeEntrada(BigInt(ctx.from!.id));
     if (!enlace) {
@@ -279,7 +275,7 @@ function registrar(b: Bot): void {
   });
 
   b.command("ayuda", async (ctx) => {
-    if (!esSuperadmin(ctx.from?.id)) {
+    if (!esOperador(ctx.from?.id)) {
       const url = urlMiniApp();
       const t = idiomaDe(ctx);
       await ctx.reply(
@@ -315,7 +311,7 @@ function registrar(b: Bot): void {
   });
 
   b.command("codigo", async (ctx) => {
-    if (!esSuperadmin(ctx.from?.id)) return;
+    if (!esOperador(ctx.from?.id)) return;
 
     const partes = (ctx.match ?? "").trim().split(/\s+/).filter(Boolean);
     const posibleEmail = partes.find((p) => p.includes("@"));
@@ -340,7 +336,7 @@ function registrar(b: Bot): void {
 
     await db.auditoria.create({
       data: {
-        actorTipo: "SUPERADMIN",
+        actorTipo: "OPERADOR",
         actorId: String(ctx.from?.id ?? ""),
         accion: "codigo.generado",
         recurso: codigo,
@@ -366,7 +362,7 @@ function registrar(b: Bot): void {
   });
 
   b.command("agentes", async (ctx) => {
-    if (!esSuperadmin(ctx.from?.id)) return;
+    if (!esOperador(ctx.from?.id)) return;
 
     const agentes = await db.agente.findMany({
       orderBy: { creadoEn: "desc" },
@@ -409,7 +405,7 @@ function registrar(b: Bot): void {
   });
 
   b.command("retiros", async (ctx) => {
-    if (!esSuperadmin(ctx.from?.id)) return;
+    if (!esOperador(ctx.from?.id)) return;
 
     const pendientes = await db.solicitudRetiro.findMany({
       where: { estado: { in: ["SOLICITADO", "APROBADO"] } },
@@ -441,7 +437,7 @@ function registrar(b: Bot): void {
           [
             `${escapar(r.agente.nombreVisible)} — <b>${formatearMicros(r.importeMicros)}</b>`,
             // Descifrada: en la base está cifrada y aquí se manda entera, que
-            // es como el superadmin la copia para pagar desde el móvil.
+            // es como el Operador la copia para pagar desde el móvil.
             `${r.red} · <code>${escapar(leerWallet(r.wallet))}</code>`,
             `<i>${r.estado.toLowerCase()} desde el ${r.solicitadoEn.toISOString().slice(0, 10)}</i>`,
           ].join("\n"),

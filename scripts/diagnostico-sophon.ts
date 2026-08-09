@@ -147,7 +147,7 @@ async function main(): Promise<void> {
 
   // ── Tesorería de la cuenta maestra ──────────────────────────────────────
   // No se consultan los retiros de Sophon: los agentes no retiran allí y sus
-  // pagos los hace el superadmin a mano. Aquí solo interesa cuánto hay.
+  // pagos los hace el Operador a mano. Aquí solo interesa cuánto hay.
   titulo("Tesorería de la cuenta maestra");
   try {
     const t = await cliente.tesoreria();

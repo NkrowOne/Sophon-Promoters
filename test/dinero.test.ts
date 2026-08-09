@@ -116,7 +116,7 @@ test("cada idioma usa sus separadores, y son los del catálogo", () => {
   }
 });
 
-test("sin idioma se formatea en español: el panel del superadmin no se traduce", () => {
+test("sin idioma se formatea en español: el panel del Operador no se traduce", () => {
   assert.equal(formatearMicros(55_842_050_000n), formatearMicros(55_842_050_000n, 2, "es"));
   assert.equal(formatearMicros(225_000n, 4), formatearMicros(225_000n, 4, "es"));
 });
@@ -188,14 +188,14 @@ test("absMicros para comparar descuadres", () => {
 
 test("reproduce el reparto real observado en la API", () => {
   // Día 2026-07-24 de esgabrielcabrera: pago 9,99 $.
-  // L1 (total) 50 %, L2 (webmaster) 35 %, superadmin 15 %.
+  // L1 (total) 50 %, L2 (webmaster) 35 %, Operador 15 %.
   const pago = microsDesdeCadena("9.99");
   const total = aplicarBps(pago, bpsDesdePorcentaje(50)).importe;
   const webmaster = aplicarBps(pago, bpsDesdePorcentaje(35)).importe;
-  const superadmin = total - webmaster;
+  const Operador = total - webmaster;
   assert.equal(formatearMicros(total), "5,00 $");
   assert.equal(formatearMicros(webmaster), "3,50 $");
-  assert.equal(formatearMicros(superadmin), "1,50 $");
+  assert.equal(formatearMicros(Operador), "1,50 $");
   // El 15 % directo debe coincidir con la diferencia: sin esto el ledger no cuadra.
-  assert.equal(superadmin, aplicarBps(pago, bpsDesdePorcentaje(15)).importe);
+  assert.equal(Operador, aplicarBps(pago, bpsDesdePorcentaje(15)).importe);
 });

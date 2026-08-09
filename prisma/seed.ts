@@ -13,11 +13,11 @@
  *
  * **Idempotente y solo para el arranque en frío.** Si ya hay cualquier versión
  * —aunque esté cerrada— no toca nada: reponer una tarifa por defecto encima de
- * una que el superadmin cambió a conciencia sería devolverle sus decisiones al
+ * una que el Operador cambió a conciencia sería devolverle sus decisiones al
  * valor de fábrica en cada despliegue.
  *
  * Los valores son los del planteamiento (§1): de los 0,06 $ por registro y el
- * 15 % del CPS que le entran al superadmin, cede 0,03 $ y el 5 %.
+ * 15 % del CPS que le entran al Operador, cede 0,03 $ y el 5 %.
  */
 
 import { PrismaClient } from "@prisma/client";

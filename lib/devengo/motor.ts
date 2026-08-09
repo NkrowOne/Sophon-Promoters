@@ -53,10 +53,10 @@ export interface Tarifa {
 /*
  * Lo máximo que se le puede ceder a un agente.
  *
- * Al superadmin le entran 0,06 $ por registro y el 15 % del CPS (§2.2.1 del
+ * Al Operador le entran 0,06 $ por registro y el 15 % del CPS (§2.2.1 del
  * plan, despejado de la propia API). Ceder por encima de eso no es una tarifa
  * generosa: es pagar de su bolsillo por cada registro que entra, y crece con el
- * volumen, así que cuanto mejor le va al agente más pierde el superadmin.
+ * volumen, así que cuanto mejor le va al agente más pierde el Operador.
  *
  * Viven aquí y no en la acción del panel por dos razones. La primera es que un
  * fichero `"use server"` solo puede exportar funciones asíncronas —exportarlas
@@ -101,8 +101,8 @@ export interface ContextoDevengo {
   fechaAjuste: string;
 }
 
-/** Lo que gana el superadmin por esa fila, antes de pagar al agente. */
-export function margenSuperadmin(fila: FilaDiaria): Micros {
+/** Lo que gana el Operador por esa fila, antes de pagar al agente. */
+export function margenOperador(fila: FilaDiaria): Micros {
   return fila.gananciaTotalMicros - fila.gananciaWebmasterMicros;
 }
 

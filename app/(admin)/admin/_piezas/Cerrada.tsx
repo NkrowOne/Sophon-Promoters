@@ -15,7 +15,7 @@ export function Cerrada() {
       </h1>
       <p style={{ marginTop: "0.6rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
         El comando <code>/panel</code> del bot genera un enlace de un solo uso. Solo
-        funciona desde el Telegram del superadmin.
+        funciona desde el Telegram del Operador.
       </p>
     </div>
   );

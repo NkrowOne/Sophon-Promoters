@@ -31,7 +31,7 @@ import {
  *
  * El importe de cada día es lo que gana EL AGENTE, que sale de sus asientos, no
  * de la ganancia bruta que Sophon publica para esa fila. Son cifras distintas y
- * confundirlas mostraría al agente el dinero del superadmin.
+ * confundirlas mostraría al agente el dinero del Operador.
  */
 
 export const dynamic = "force-dynamic";

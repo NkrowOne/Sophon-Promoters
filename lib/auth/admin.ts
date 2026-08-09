@@ -1,9 +1,9 @@
 /**
- * Sesión del panel de superadmin.
+ * Sesión del panel de Operador.
  *
  * **Sin contraseña, a propósito.** El bot manda un enlace de un solo uso al
- * Telegram del superadmin, que ya es el ancla de confianza de toda la
- * aplicación: `TELEGRAM_SUPERADMIN_ID` decide quién puede generar códigos de
+ * Telegram del Operador, que ya es el ancla de confianza de toda la
+ * aplicación: `TELEGRAM_OPERADOR_ID` decide quién puede generar códigos de
  * activación y quién recibe los avisos de retiro. Añadir una contraseña de
  * entorno sería una credencial más que rotar y que filtrar, sin cubrir ningún
  * riesgo que el control de ese Telegram no cubriera ya.
@@ -30,10 +30,11 @@ export const HORAS_SESION_ADMIN = 12;
 /** Ventana para canjear el enlace que manda el bot. */
 export const MINUTOS_CANJE = 15;
 
-export function esSuperadmin(telegramId: number | bigint | undefined | null): boolean {
-  const declarado = process.env["TELEGRAM_SUPERADMIN_ID"];
-  return Boolean(declarado && telegramId != null && String(telegramId) === declarado.trim());
-}
+// La comprobación vive en `lib/operador.ts`, que es quien acepta también el
+// nombre antiguo de la variable mientras los despliegues se actualizan. Se
+// reexporta para no cambiar los sitios de llamada que ya la piden de aquí.
+export { esOperador } from "../operador.ts";
+import { esOperador } from "../operador.ts";
 
 /**
  * Crea un enlace de entrada de un solo uso.
@@ -45,7 +46,7 @@ export async function crearEnlaceDeEntrada(telegramId: bigint): Promise<string |
   const base = (process.env["APP_URL"] ?? "").replace(/\/+$/, "");
   if (!base) return null;
 
-  // Se invalidan los enlaces anteriores sin canjear: si el superadmin pide uno
+  // Se invalidan los enlaces anteriores sin canjear: si el Operador pide uno
   // nuevo es porque el anterior no le sirve, y dejarlo vivo solo amplía la
   // ventana en la que un mensaje viejo sigue abriendo el panel.
   await db.sesionAdmin.deleteMany({ where: { telegramId, canjeadoEn: null } });
@@ -78,7 +79,7 @@ export async function canjearEnlace(canje: string, ip?: string | null): Promise<
     select: { id: true, expiraEn: true, canjeadoEn: true, telegramId: true },
   });
   if (!fila || fila.canjeadoEn || fila.expiraEn < new Date()) return null;
-  if (!esSuperadmin(fila.telegramId)) return null;
+  if (!esOperador(fila.telegramId)) return null;
 
   const { token, hash } = generarTokenSesion();
 
@@ -99,7 +100,7 @@ export async function canjearEnlace(canje: string, ip?: string | null): Promise<
 
   await db.auditoria.create({
     data: {
-      actorTipo: "SUPERADMIN",
+      actorTipo: "OPERADOR",
       actorId: String(fila.telegramId),
       accion: "admin.sesion_abierta",
       ip: ip ?? null,
@@ -125,15 +126,15 @@ export async function sesionAdmin(): Promise<SesionAdmin | null> {
   });
 
   if (!fila || fila.revocadaEn || !fila.canjeadoEn || fila.expiraEn < new Date()) return null;
-  // Se vuelve a comprobar contra el entorno en CADA petición: si el superadmin
+  // Se vuelve a comprobar contra el entorno en CADA petición: si el Operador
   // cambia de cuenta de Telegram, las sesiones de la anterior mueren solas sin
   // tener que acordarse de borrarlas.
-  if (!esSuperadmin(fila.telegramId)) return null;
+  if (!esOperador(fila.telegramId)) return null;
 
   return { id: fila.id, telegramId: fila.telegramId };
 }
 
-/** Exige sesión de superadmin. Devuelve `null` si no la hay. */
+/** Exige sesión de Operador. Devuelve `null` si no la hay. */
 export async function exigirAdmin(): Promise<SesionAdmin | null> {
   return sesionAdmin();
 }

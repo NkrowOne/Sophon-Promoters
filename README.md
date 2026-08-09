@@ -5,7 +5,7 @@ de Sophon y cobren sus comisiones.
 
 Un agente entra desde el bot, da de alta webmasters —cada alta concede un año de
 PRO—, ve lo que devengan sus registros día a día y pide el retiro de su saldo. El
-superadmin lo aprueba y lo paga desde un panel aparte.
+Operador lo aprueba y lo paga desde un panel aparte.
 
 ---
 
@@ -30,7 +30,7 @@ contenedor:
 | Cara | Ruta | Quién entra | Cómo se autentica |
 |---|---|---|---|
 | Mini App | `/`, `/red`, `/cartera`, `/pro`, `/historico`… | El agente comercial | `initData` firmado por Telegram **más** cookie de sesión |
-| Panel | `/admin/*` | El superadmin, una sola persona | Enlace de un solo uso que manda el bot a su Telegram |
+| Panel | `/admin/*` | El Operador, una sola persona | Enlace de un solo uso que manda el bot a su Telegram |
 | Bot | `/api/bot` | Telegram | Secreto en `X-Telegram-Bot-Api-Secret-Token` |
 
 No hay servicio aparte para el bot —funciona por webhook, no por *polling*— ni
@@ -38,7 +38,7 @@ para el planificador: las tareas se disparan desde fuera contra `/api/cron`.
 
 ```
 app/(miniapp)   la aplicación del agente, en cinco idiomas
-app/(admin)     el panel del superadmin, solo en español y a propósito
+app/(admin)     el panel del Operador, solo en español y a propósito
 app/api         rutas de datos, autenticación, bot y cron
 components      las piezas de interfaz (Escalera, Malla, Mecha, Testigo, Isotipo…)
 lib/devengo     el motor de comisiones: aritmética pura en micros de dólar
@@ -54,7 +54,7 @@ test            150 pruebas, sin base de datos: `npm test`
 Español, inglés, italiano, portugués y árabe (con la interfaz invertida). El
 idioma sale del `language_code` que Telegram firma en el `initData` y se
 persiste en el agente, así que los avisos del bot y el correo del código de
-acceso llegan también en su lengua. El panel del superadmin **no** se traduce:
+acceso llegan también en su lengua. El panel del Operador **no** se traduce:
 lo usa una persona.
 
 ---
@@ -232,7 +232,7 @@ planificador mal configurado no puede ser invisible.**
 
 ## Operación diaria
 
-Casi todo se hace desde el bot, como superadmin:
+Casi todo se hace desde el bot, como Operador:
 
 | Comando | Para qué |
 |---|---|
