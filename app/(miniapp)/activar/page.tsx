@@ -179,10 +179,20 @@ function ActivarPasos() {
           {/* El correo grande y entero: es lo único que hay que revisar aquí, y
               revisarlo en el tamaño de un campo de formulario es no revisarlo. */}
           <p className="cifra mt-2 break-all text-cuerpo font-semibold">{email.trim()}</p>
+          {/*
+            Mismo arreglo que en `/alta`, y aquí importa todavía más: este es el
+            único camino para corregir un correo mal tecleado ANTES de activarlo,
+            y un alta sobre el correo equivocado no se deshace —crea la
+            atribución en Sophon y consume el año de PRO—. Un objetivo de 20 px
+            para la última salida antes de una acción irreversible.
+
+            `-mb-3` y no `-my-3`: por arriba el `mt-3` ya separa del correo, así
+            que solo hay que recuperar los 12 px que la altura añade por abajo.
+          */}
           <button
             type="button"
             onClick={() => irA("email")}
-            className="mt-3 text-apoyo font-medium underline underline-offset-4"
+            className="-mb-3 mt-1.5 inline-flex min-h-11 items-center text-apoyo font-medium underline underline-offset-4"
           >
             {t.corregirElCorreo}
           </button>

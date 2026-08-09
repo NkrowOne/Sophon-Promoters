@@ -80,7 +80,22 @@ export default function Renovaciones() {
       .get<EstadoPro>("/api/pro")
       .then(setDatos)
       .catch((e) => setError(aErrorApi(e)));
-  }, [t]);
+    /*
+     * SIN `t` en las dependencias, y ya no hace falta.
+     *
+     * Estaba porque el respaldo del error se construía aquí con el catálogo, y
+     * era la única pantalla que lo declaraba bien. Pero declararlo bien tenía su
+     * propio precio: `useEffect(cargar, [cargar])` vuelve a disparar cuando
+     * `cargar` cambia de identidad, y `t` cambia una vez —al resolverse el
+     * idioma en el efecto de `TelegramProvider`—, así que TODO agente que no
+     * lea en español pedía `/api/pro` dos veces en cada arranque en frío.
+     *
+     * Con el texto genérico resuelto al pintar, `cargar` ya no toca el catálogo
+     * y la dependencia se cae sola. Es el mismo arreglo mirado desde el otro
+     * lado: cuando el texto se traduce donde toca, la petición deja de
+     * duplicarse.
+     */
+  }, []);
 
   useEffect(cargar, [cargar]);
 
