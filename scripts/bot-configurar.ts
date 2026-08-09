@@ -124,10 +124,10 @@ async function principal(): Promise<void> {
     });
   }
 
-  // Comandos de gestión, solo en el chat del superadmin: un agente no debería
+  // Comandos de gestión, solo en el chat del Operador: un agente no debería
   // ni ver en el menú lo que no puede usar.
-  const superadmin = process.env["TELEGRAM_SUPERADMIN_ID"];
-  if (superadmin) {
+  const Operador = process.env["TELEGRAM_OPERADOR_ID"];
+  if (Operador) {
     await llamar("setMyCommands", {
       commands: [
         { command: "start", description: "Menú" },
@@ -136,10 +136,10 @@ async function principal(): Promise<void> {
         { command: "retiros", description: "Retiros pendientes de pagar" },
         { command: "ayuda", description: "Comandos disponibles" },
       ],
-      scope: { type: "chat", chat_id: Number(superadmin) },
+      scope: { type: "chat", chat_id: Number(Operador) },
     });
   } else {
-    console.warn("· sin TELEGRAM_SUPERADMIN_ID: no se registran los comandos de gestión");
+    console.warn("· sin TELEGRAM_OPERADOR_ID: no se registran los comandos de gestión");
   }
 
   // «Panel» y no el nombre del producto: es el botón que abre la Mini App desde

@@ -58,7 +58,7 @@ export type MotivoAlta =
 
 export interface AltaRechazada {
   motivo: MotivoAlta;
-  /** El código tal cual vino, para la bitácora y para el aviso al superadmin. */
+  /** El código tal cual vino, para la bitácora y para el aviso al Operador. */
   codigo: number | null;
   mensaje: string;
   traceId: string | null;
@@ -120,7 +120,7 @@ export function clasificarAlta(e: unknown): AltaRechazada {
 }
 
 /**
- * ¿Merece que el superadmin se entere?
+ * ¿Merece que el Operador se entere?
  *
  * Solo lo que no sabemos leer. Los cuatro motivos reconocidos ya tienen su
  * respuesta y su mensaje para el agente; avisar de ellos convertiría el canal en
@@ -131,6 +131,6 @@ export function clasificarAlta(e: unknown): AltaRechazada {
  * `IntentoVinculacion`, que nadie mira. Es como se descubren los códigos nuevos
  * en vez de tragárselos.
  */
-export function hayQueAvisarAlSuperadmin(motivo: MotivoAlta): boolean {
+export function hayQueAvisarAlOperador(motivo: MotivoAlta): boolean {
   return motivo === "DESCONOCIDO";
 }

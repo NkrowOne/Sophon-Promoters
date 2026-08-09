@@ -65,21 +65,63 @@ const arabe = Noto_Sans_Arabic({
   preload: false,
 });
 
+/**
+ * La base de las URL absolutas.
+ *
+ * Open Graph NO admite rutas relativas: un `og:image` que diga «/og.png» lo
+ * descarta Telegram, que es precisamente por donde circula el enlace de esta
+ * aplicación. Con esto, Next resuelve las absolutas solo.
+ *
+ * Cae a `localhost` en desarrollo, donde la previsualización no se mira. En
+ * producción `APP_URL` está siempre —la comprueba `lib/entorno.ts` al arrancar—
+ * porque también la necesitan los enlaces que manda el bot.
+ */
+const base = process.env["APP_URL"]?.trim() || "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(base),
   title: "Sophon Promoters",
   description: "Gestiona tus webmasters de Sophon y consulta tus ganancias.",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Sophon Promoters",
   /*
-   * Un solo SVG y ningún PNG.
+   * EL SVG SIGUE MANDANDO, y los PNG son los sitios donde el SVG no vale.
    *
-   * La marca es geometría —tres trazos circulares—, así que un vectorial de
-   * 600 bytes sirve para el favicon de 16 px, para el icono de la pantalla de
-   * inicio de iOS y para cualquier densidad futura, sin generar el juego de
-   * ocho PNG que normalmente acompaña a esto. Es la ventaja concreta de haber
-   * vectorizado en vez de incrustar el bitmap que llegó.
+   * Aquí ponía «un solo SVG y ningún PNG», con el argumento de que la marca es
+   * geometría y un vectorial sirve para cualquier densidad. El argumento es
+   * bueno y el resultado era falso en el caso que más importaba: **Safari solo
+   * acepta PNG en `apple-touch-icon`**, así que el agente que añadía la Mini App
+   * a su pantalla de inicio —lo normal en una herramienta de uso diario— se
+   * quedaba con una captura de la página en vez de con la marca. Justo el único
+   * sitio donde el logotipo tiene que estar sí o sí.
+   *
+   * Así que: SVG para todo lo que lo entienda, `.ico` para el `/favicon.ico`
+   * que los navegadores piden a pelo aunque no se declare, y PNG para iOS y
+   * para el manifiesto. Los genera `scripts/iconos.mjs` de la MISMA geometría
+   * que `components/Isotipo.tsx`, así que no pueden desincronizarse a mano.
    */
   icons: {
-    icon: "/icono.svg",
-    apple: "/icono.svg",
+    icon: [
+      // El orden importa: el navegador se queda con el último que entienda, y
+      // el vectorial es el que queremos que gane donde haya soporte.
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icono-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icono.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  /*
+   * La previsualización del enlace, que en este producto no es un adorno: el
+   * alta empieza con el Operador pasándole la URL al agente por Telegram, y
+   * lo que ese agente ve antes de tocar nada es esta tarjeta. Sin ella salía la
+   * URL desnuda, que es indistinguible de un enlace cualquiera.
+   */
+  openGraph: {
+    type: "website",
+    siteName: "Sophon Promoters",
+    title: "Sophon Promoters",
+    description: "Gestiona tus webmasters de Sophon y consulta tus ganancias.",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Sophon" }],
   },
 };
 

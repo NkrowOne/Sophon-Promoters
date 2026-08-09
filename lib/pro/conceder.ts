@@ -103,6 +103,21 @@ export interface DependenciasConcesion {
       duracionSegundos: number,
     ) => Promise<ResultadoMembresia>;
   };
+  /**
+   * El reloj contra el que se mide la vigencia.
+   *
+   * En producción es el del sistema y no se pasa. Existe porque sin él la
+   * prueba que garantiza la regla —«a un PRO vivo no se le llama a Sophon»—
+   * era una **bomba de relojería**: fijaba «ahora» en una fecha concreta,
+   * construía la vigencia relativa a ella y luego `proActivo` comparaba contra
+   * el reloj de verdad. Mientras esa fecha estuvo en el futuro pasó; al
+   * quedarse atrás, un PRO «de un día por delante» se leyó como caducado y la
+   * prueba empezó a fallar sola, sin que nadie tocara el código.
+   *
+   * Una regla que decide si a un webmaster se le borran meses de suscripción no
+   * puede tener por única prueba una que caduca.
+   */
+  ahora?: () => Date;
 }
 
 interface TransaccionConcesion {
@@ -149,6 +164,7 @@ export async function concederAnio(
 ): Promise<ResultadoConcesion> {
   const { agenteId, webmasterId, emailWebmaster, motivo, claveIdempotencia } = params;
   const { db, sophon } = deps;
+  const ahora = deps.ahora ?? (() => new Date());
   const t = cadenas(params.idioma);
 
   // ── Reserva ────────────────────────────────────────────────────────────
@@ -188,7 +204,7 @@ export async function concederAnio(
         where: { id: webmasterId },
         select: { proVigenteHasta: true },
       });
-      if (proActivo(actual?.proVigenteHasta ?? null)) {
+      if (proActivo(actual?.proVigenteHasta ?? null, ahora())) {
         throw new Error(`${YA_ACTIVO}${isoCorto(actual?.proVigenteHasta)}`);
       }
 

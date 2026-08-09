@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Malla, DIAS_APAGADO, type WebmasterMalla } from "@/components/Malla";
 import { Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
 
 interface Respuesta {
   webmasters: WebmasterMalla[];
@@ -32,7 +32,7 @@ export default function Red() {
     api
       .get<Respuesta>("/api/agente/red")
       .then(setDatos)
-      .catch((e) => setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null)));
+      .catch((e) => setError(aErrorApi(e)));
   }, []);
 
   useEffect(cargar, [cargar]);

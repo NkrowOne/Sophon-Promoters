@@ -9,6 +9,7 @@ import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
 import { CPA_MAXIMO_MICROS, CPS_MAXIMO_BPS } from "@/lib/devengo/motor";
 import { motivoEscaleraInvalida } from "@/lib/devengo/bonos";
 import { revocarSesiones } from "@/lib/auth/sesion";
+import { leerWallet } from "@/lib/cripto";
 import { idiomaGuardado } from "@/lib/idiomas";
 
 /**
@@ -25,13 +26,13 @@ import { idiomaGuardado } from "@/lib/idiomas";
 
 async function admin(): Promise<string> {
   const sesion = await exigirAdmin();
-  if (!sesion) throw new Error("sin sesión de superadmin");
+  if (!sesion) throw new Error("sin sesión de Operador");
   return String(sesion.telegramId);
 }
 
 async function anotar(actorId: string, accion: string, recurso: string, detalle: object) {
   await db.auditoria.create({
-    data: { actorTipo: "SUPERADMIN", actorId, accion, recurso, detalle: detalle as never },
+    data: { actorTipo: "OPERADOR", actorId, accion, recurso, detalle: detalle as never },
   });
 }
 
@@ -354,7 +355,7 @@ export async function resolverRetiro(
      * El importe, en el idioma del AGENTE y no en el del panel.
      *
      * Es el único sitio donde el que dispara el aviso y el que lo lee hablan
-     * idiomas distintos: aquí manda el superadmin desde un panel que está en
+     * idiomas distintos: aquí manda el Operador desde un panel que está en
      * español y el mensaje sale hacia el agente. La llamada ya pasaba
      * `idioma` para las cadenas y formateaba la cifra sin él, así que un agente
      * inglés recibía el texto traducido con «2.147,39 $» dentro: la cifra por
@@ -362,7 +363,7 @@ export async function resolverRetiro(
      */
     importe: formatearMicros(solicitud.importeMicros, 2, idiomaGuardado(solicitud.agente.idioma)),
     red: solicitud.red,
-    wallet: solicitud.wallet,
+    wallet: leerWallet(solicitud.wallet),
     referencia: referencia || null,
     motivo: nota || null,
   });

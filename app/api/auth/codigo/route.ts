@@ -11,7 +11,7 @@ import { telegramDeLaPeticion } from "@/lib/auth/sesion";
 /**
  * Paso 1 del alta: canjear el código de activación y pedir el OTP.
  *
- * El código lo genera el superadmin desde el bot y se lo pasa al agente. Aquí se
+ * El código lo genera el Operador desde el bot y se lo pasa al agente. Aquí se
  * valida, se reserva y se manda el código de un solo uso al correo que el agente
  * declara, que será su identificador a partir de entonces.
  */
@@ -35,7 +35,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   // El agente todavía no existe, así que no hay `Agente.idioma` que leer: el
   // idioma sale del `language_code` que Telegram firma en el initData, el mismo
   // que se persistirá al crear la cuenta en el paso 2.
-  const t = cadenas(idiomaDesdeTelegram(usuario?.language_code));
+  const idioma = idiomaDesdeTelegram(usuario?.language_code);
+  const t = cadenas(idioma);
   if (!usuario) {
     return NextResponse.json(
       { error: t.errSinTelegram, apoyo: t.errSinTelegramApoyo },
@@ -57,7 +58,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   const invitacion = await db.codigoActivacion.findUnique({ where: { codigo } });
   if (!invitacion || invitacion.anuladoEn || invitacion.expiraEn < new Date()) {
     return NextResponse.json(
-      { error: t.errCodigoNoVale, apoyo: t.teLoDaElSuperadmin },
+      { error: t.errCodigoNoVale, apoyo: t.teLoDaElOperador },
       { status: 400 },
     );
   }
@@ -116,7 +117,14 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   });
 
   try {
-    await enviarOtp({ email: parseado.data.email, codigo: otp, minutosValidez: MINUTOS_OTP });
+    // El idioma viaja al correo: es el único mensaje de todo el alta que sale
+    // fuera de la aplicación, y era el único que no estaba traducido.
+    await enviarOtp({
+      email: parseado.data.email,
+      codigo: otp,
+      minutosValidez: MINUTOS_OTP,
+      idioma,
+    });
   } catch (e) {
     console.error("[auth] fallo al enviar el OTP", e);
     return NextResponse.json(

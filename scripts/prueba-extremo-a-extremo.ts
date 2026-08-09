@@ -228,7 +228,7 @@ async function principal(): Promise<void> {
     `idioma = ${reciente?.idioma}`,
   );
 
-  // ── 5. La sesión abre la API, y sin margen del superadmin ─────────────────
+  // ── 5. La sesión abre la API, y sin margen del Operador ─────────────────
   const cabeceras = { "x-telegram-init-data": initData, cookie };
 
   const resumen = await fetch(`${BASE}/api/agente/resumen`, { headers: cabeceras });
@@ -238,10 +238,10 @@ async function principal(): Promise<void> {
   // La prueba de aislamiento se hace sobre el JSON CRUDO, no sobre el objeto
   // ya parseado: así también atrapa un campo colado dentro de un anidado que
   // nadie estaba mirando.
-  const filtrado = ["gananciaTotal", "gananciaSuperadmin", "superadmin", "myEarning"].filter(
+  const filtrado = ["gananciaTotal", "gananciaOperador", "Operador", "myEarning"].filter(
     (campo) => cuerpo.includes(campo),
   );
-  comprobar("la respuesta no lleva el margen del superadmin", filtrado.length === 0,
+  comprobar("la respuesta no lleva el margen del Operador", filtrado.length === 0,
     filtrado.join(", "));
 
   // ── 6. El corte por época invalida la sesión al instante ──────────────────
@@ -397,7 +397,7 @@ async function principal(): Promise<void> {
           paymentAmountMicros: 0n,
           gananciaTotalMicros: 0n,
           gananciaWebmasterMicros: 0n,
-          gananciaSuperadminMicros: 0n,
+          gananciaOperadorMicros: 0n,
           cerrado: false,
         },
       });
@@ -459,7 +459,7 @@ async function principal(): Promise<void> {
   //
   // Un agente cobra por lo que capta él, así que solo puede dar de alta cuentas
   // que se registren por él. Todo lo que ya estaba en el programa de socios es
-  // del superadmin, y la aplicación lo conoce porque sus barridos recorren el
+  // del Operador, y la aplicación lo conoce porque sus barridos recorren el
   // árbol entero: cualquier fila `Webmaster` sin agente salió de ahí.
   //
   // Se comprueba la DECISIÓN, no la llamada: que un correo ya conocido se
@@ -491,7 +491,7 @@ async function principal(): Promise<void> {
         `${r.status} ${cuerpo.error ?? ""}`.trim(),
       );
 
-      // Y sigue siendo del superadmin: el rechazo no puede dejarla a medias.
+      // Y sigue siendo del Operador: el rechazo no puede dejarla a medias.
       const despues = await db.webmaster.findUnique({
         where: { emailNormalizado: ajeno },
         select: { agenteId: true, origen: true },

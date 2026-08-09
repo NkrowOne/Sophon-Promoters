@@ -33,7 +33,7 @@ export default async function Cerrado({
       </p>
       <p style={{ marginTop: "1.25rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
         El comando <code>/panel</code> del bot genera un enlace nuevo. Solo funciona desde
-        el Telegram del superadmin.
+        el Telegram del Operador.
       </p>
     </div>
   );

@@ -7,8 +7,8 @@ import { cadenas, type Cadenas } from "@/lib/i18n";
 import { esRespuesta, exigirAgente } from "@/lib/api/agente";
 import { concederAnio } from "@/lib/pro/conceder";
 import { clienteSophon } from "@/lib/sophon/instancia";
-import { clasificarAlta, hayQueAvisarAlSuperadmin } from "@/lib/sophon/errores";
-import { avisarErrorSinClasificarAlSuperadmin } from "@/lib/bot/avisos";
+import { clasificarAlta, hayQueAvisarAlOperador } from "@/lib/sophon/errores";
+import { avisarErrorSinClasificarAlOperador } from "@/lib/bot/avisos";
 import { hoyContable } from "@/lib/sync/registros";
 import { confirmarEnSophon } from "@/lib/sync/webmasters";
 
@@ -37,7 +37,7 @@ import { confirmarEnSophon } from "@/lib/sync/webmasters";
  *
  * Un agente cobra por lo que capta él, así que solo puede dar de alta cuentas
  * que se registren por él. Las que ya estaban en el programa de socios son del
- * superadmin.
+ * Operador.
  *
  * Y esa frontera no la calcula esta aplicación: **el alta ES el registro en el
  * programa**, de modo que la autoridad es la respuesta de `bind_sub_aff`. Si
@@ -51,7 +51,7 @@ import { confirmarEnSophon } from "@/lib/sync/webmasters";
  * La comprobación local del paso 1 —si ya conocemos el correo, se rechaza sin
  * llamar— es un ATAJO, no la regla: cualquier correo que la aplicación conozca
  * llegó por uno de los dos barridos, que recorren el árbol entero del
- * superadmin, así que Sophon iba a responder «already an affiliate» igualmente.
+ * Operador, así que Sophon iba a responder «already an affiliate» igualmente.
  * Ahorra la llamada y le da al agente una respuesta instantánea.
  *
  * No hay tope de altas: el agente puede activar cuantas cuentas nuevas traiga.
@@ -115,7 +115,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
        * adelante.
        *
        * Una fila sin agente solo puede haber llegado de dos sitios, y los dos
-       * son el árbol del superadmin: `barrerWebmasters` pagina `sub-aff/status`
+       * son el árbol del Operador: `barrerWebmasters` pagina `sub-aff/status`
        * entero y crea una por cada sub-afiliado que existe en Sophon, y
        * `barrerRegistros` crea una por cada correo que aparezca produciendo. O
        * sea que **si la aplicación ya conoce el correo, esa cuenta ya estaba en
@@ -205,8 +205,8 @@ export async function POST(peticion: Request): Promise<NextResponse> {
      * mira esa tabla, así que la clasificación se habría degradado en silencio
      * y todos los rechazos habrían pasado a leerse como «Sophon no responde».
      */
-    if (hayQueAvisarAlSuperadmin(rechazo.motivo)) {
-      await avisarErrorSinClasificarAlSuperadmin({
+    if (hayQueAvisarAlOperador(rechazo.motivo)) {
+      await avisarErrorSinClasificarAlOperador({
         email: parseado.data.email,
         codigo: rechazo.codigo,
         mensaje: rechazo.mensaje,

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Aviso, Banda, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
-import { api, ErrorApi } from "@/lib/api/cliente";
+import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
 
 /**
  * Alta del agente: código → correo → OTP.
@@ -93,7 +93,7 @@ function AltaPasos() {
       if (paso !== "otp") router.push("/alta?paso=otp");
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setError(aErrorApi(e));
     } finally {
       setEnviando(false);
     }
@@ -111,7 +111,7 @@ function AltaPasos() {
       router.replace("/");
     } catch (e) {
       haptica("error");
-      setError(e instanceof ErrorApi ? e : new ErrorApi(t.algoHaFallado, 0, null));
+      setError(aErrorApi(e));
       setOtp("");
     } finally {
       setEnviando(false);
@@ -159,20 +159,39 @@ function AltaPasos() {
 
           {error && (
             <div className="mt-5">
-              <Aviso error={error.message} apoyo={error.apoyo} />
+              <Aviso error={error} />
             </div>
           )}
         </Banda>
 
         <Banda orden={1} tono={1} className="py-4">
-          <div className="flex items-baseline justify-between gap-3">
+          {/*
+            Las dos salidas de esta pantalla, y las dos medían 20 px de alto.
+
+            Un texto de 14 px subrayado es un objetivo táctil de la altura de su
+            línea: por debajo del mínimo de 24 px que pide WCAG 2.5.8 y muy por
+            debajo de los 44 px de un dedo. Y no son enlaces accesorios: si el
+            correo del código no llega, «reenviar» ES la recuperación, y se
+            pulsa con prisa y a menudo en la calle.
+
+            Se arregla con el patrón que la aplicación ya tenía escrito en
+            `BotonReintentar`: `min-h-11` para llegar a 44 px y un margen
+            vertical negativo que devuelve exactamente lo que la altura añade
+            —(44 − 20) / 2 = 12 px por lado—, así que el bloque se ve idéntico y
+            solo crece la zona que responde al dedo.
+
+            `items-center` en vez de `items-baseline`: con dos cajas de 44 px
+            cuyo texto no ocupa toda la altura, alinear por la base de la letra
+            las descuadra.
+          */}
+          <div className="-my-3 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {
                 setError(null);
                 router.back();
               }}
-              className="text-apoyo text-texto-apoyo underline underline-offset-4"
+              className="inline-flex min-h-11 items-center text-apoyo text-texto-apoyo underline underline-offset-4"
             >
               {t.cambiarElCorreo}
             </button>
@@ -180,7 +199,7 @@ function AltaPasos() {
               type="button"
               onClick={pedirOtp}
               disabled={espera > 0 || enviando}
-              className="text-apoyo font-medium underline underline-offset-4 disabled:no-underline disabled:opacity-50"
+              className="inline-flex min-h-11 items-center text-apoyo font-medium underline underline-offset-4 disabled:no-underline disabled:opacity-50"
             >
               {espera > 0 ? t.reenviarEn(espera) : t.reenviarElCodigo}
             </button>
@@ -222,7 +241,7 @@ function AltaPasos() {
                 línea que dice «escribe el código de activación» ocupa sitio para
                 no añadir nada. Solo se dice lo que el rótulo no puede: de dónde
                 sale. */}
-            <p className="mt-2 text-apoyo text-texto-apoyo">{t.teLoDaElSuperadmin}</p>
+            <p className="mt-2 text-apoyo text-texto-apoyo">{t.teLoDaElOperador}</p>
           </div>
 
           <div className="mt-6">
@@ -246,7 +265,7 @@ function AltaPasos() {
 
           {error && (
             <div className="mt-6">
-              <Aviso error={error.message} apoyo={error.apoyo} onReintentar={pedirOtp} />
+              <Aviso error={error} onReintentar={pedirOtp} />
             </div>
           )}
         </Banda>

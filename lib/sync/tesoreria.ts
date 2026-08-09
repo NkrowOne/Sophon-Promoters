@@ -11,9 +11,9 @@
  * posible aquí.
  *
  * NO se consulta el historial de retiros de Sophon. Los agentes no retiran allí
- * —no tienen cuenta— y sus pagos los hace el superadmin a mano contra
+ * —no tienen cuenta— y sus pagos los hace el Operador a mano contra
  * `SolicitudRetiro`. Son dos flujos de dinero distintos y mezclarlos en el mismo
- * cuadre haría que un movimiento del superadmin en Sophon pareciera un descuadre
+ * cuadre haría que un movimiento del Operador en Sophon pareciera un descuadre
  * de las comisiones de sus agentes.
  */
 

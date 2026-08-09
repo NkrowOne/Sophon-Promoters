@@ -1,8 +1,8 @@
 /**
  * Capa común de las rutas del agente.
  *
- * Existe por una razón concreta: el margen del superadmin vive en la misma fila
- * que los datos del agente (`FilaDiariaSophon.gananciaSuperadminMicros`). Si
+ * Existe por una razón concreta: el margen del Operador vive en la misma fila
+ * que los datos del agente (`FilaDiariaSophon.gananciaOperadorMicros`). Si
  * cada ruta seleccionara campos a mano, bastaría un `select` olvidado o un
  * `include` cómodo para filtrarlo. Aquí se centraliza qué columnas pueden salir
  * y se serializa siempre por las mismas funciones.
@@ -71,7 +71,7 @@ export async function exigirAgente(
    * «vuelve a entrar con tu correo» mandaba al agente a repetir el alta para
    * recibir exactamente el mismo mensaje, sin enterarse nunca de que su cuenta
    * está parada. Va con 403 —autenticado pero no autorizado— y el apoyo dice lo
-   * único que puede hacer, que es escribir al superadmin.
+   * único que puede hacer, que es escribir al Operador.
    */
   if (sesion === "SUSPENDIDO") {
     return NextResponse.json(
@@ -95,8 +95,8 @@ export function esRespuesta(v: Contexto | NextResponse): v is NextResponse {
 /**
  * Columnas de la fila diaria que un agente puede ver.
  *
- * `gananciaSuperadminMicros` y `gananciaTotalMicros` quedan FUERA a propósito:
- * son la economía del superadmin. El agente ve lo suyo, que se calcula desde sus
+ * `gananciaOperadorMicros` y `gananciaTotalMicros` quedan FUERA a propósito:
+ * son la economía del Operador. El agente ve lo suyo, que se calcula desde sus
  * asientos, no desde la ganancia bruta de Sophon.
  */
 export const CAMPOS_FILA_VISIBLES = {

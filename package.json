@@ -11,8 +11,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint",
     "test": "node --test --experimental-strip-types \"test/**/*.test.ts\"",
+    "comprobar": "npm run typecheck && npm test",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
@@ -20,6 +20,7 @@
     "db:studio": "prisma studio",
     "docker:local": "docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build",
     "docker:local:parar": "docker compose -f docker-compose.yml -f docker-compose.local.yml down",
+    "iconos": "node scripts/iconos.mjs",
     "sophon:diagnostico": "node --experimental-strip-types scripts/diagnostico-sophon.ts",
     "bot:configurar": "node --experimental-strip-types scripts/bot-configurar.ts",
     "prueba:e2e": "node --experimental-strip-types scripts/prueba-extremo-a-extremo.ts"

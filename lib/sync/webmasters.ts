@@ -3,7 +3,7 @@
  *
  * La atribución agente → webmaster vive **solo aquí**: Sophon no conoce a los
  * agentes. Eso la hace frágil, porque el árbol puede cambiar por fuera —soporte
- * de Sophon, el propio superadmin, o un webmaster que se da de baja— y nuestra
+ * de Sophon, el propio Operador, o un webmaster que se da de baja— y nuestra
  * fila seguiría intacta, devengando por tráfico que ya no entra por él.
  *
  * Este barrido es la defensa: marca lo que aparece, lo que cambia de estado y lo

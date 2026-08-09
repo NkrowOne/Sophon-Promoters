@@ -345,18 +345,39 @@ export function Aviso({
   apoyo,
   onReintentar,
 }: {
-  error: string;
+  /**
+   * El error, o su texto ya resuelto.
+   *
+   * Admite el OBJETO además de la cadena, y esa es la corrección: pasándole
+   * `error.message` desde la pantalla, el texto quedaba fijado en el momento en
+   * que se construyó el error, y el respaldo genérico se construía dentro de un
+   * `useCallback` que había capturado el catálogo del primer render —siempre el
+   * español, porque el idioma se resuelve en un efecto posterior—. Un agente
+   * inglés sin cobertura leía el aviso en español.
+   *
+   * Con el objeto, la traducción ocurre AQUÍ, al pintar, donde el catálogo está
+   * fresco por construcción.
+   */
+  error: string | ErrorApi;
   apoyo?: string | null;
   onReintentar?: () => void;
 }) {
+  const t = useCadenas();
+  const esObjeto = typeof error !== "string";
+  // Genérico = el texto lo pusimos nosotros de relleno. Lo que viene del
+  // servidor ya llega traducido al idioma de la sesión y se respeta tal cual.
+  const generico = esObjeto && error.generico;
+  const texto = generico ? t.algoHaFallado : esObjeto ? error.message : error;
+  const textoApoyo = apoyo ?? (generico ? t.algoHaFalladoApoyo : esObjeto ? error.apoyo : null);
+
   return (
     // El icono sustituye al filete de 2 px: dice «esto va mal» antes de leer, y
     // libera la sangría que el filete se llevaba. Una caja menos.
     <div role="alert" className="flex gap-3 py-2">
       <Icono nombre="aviso" tam={20} className="mt-0.5 text-peligro" />
       <div className="min-w-0">
-        <p className="text-cuerpo">{error}</p>
-        {apoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{apoyo}</p>}
+        <p className="text-cuerpo">{texto}</p>
+        {textoApoyo && <p className="mt-1 text-apoyo text-texto-apoyo">{textoApoyo}</p>}
         {onReintentar && <BotonReintentar onReintentar={onReintentar} />}
       </div>
     </div>
@@ -394,7 +415,9 @@ export function FalloDeCarga({
     );
   }
 
-  return <Aviso error={error.message} apoyo={error.apoyo} onReintentar={onReintentar} />;
+  // El OBJETO, no `error.message`: es `Aviso` quien traduce el respaldo
+  // genérico, y solo él tiene el catálogo fresco al pintar.
+  return <Aviso error={error} onReintentar={onReintentar} />;
 }
 
 function BotonReintentar({ onReintentar }: { onReintentar: () => void }) {
@@ -413,15 +436,41 @@ function BotonReintentar({ onReintentar }: { onReintentar: () => void }) {
   );
 }
 
-/** Carga: una sola línea, sin esqueletos que fingen contenido que no existe. */
+/**
+ * Carga: una línea y un medidor. Sin esqueletos que fingen contenido inexistente.
+ *
+ * El texto solo no bastaba. Esto se usa de pie en la calle con la red de un
+ * móvil, y una pantalla donde pone «Cargando datos» y no se mueve nada durante
+ * seis segundos es indistinguible de una colgada: lo que hace entonces el
+ * agente es cerrar la Mini App y volver a abrirla, que es la peor respuesta
+ * posible a una petición que iba a llegar.
+ *
+ * El medidor es la ÚNICA animación de la aplicación que no mide un dato, y no
+ * es una excepción a la regla sino su otro lado: mide que el proceso sigue
+ * vivo, que es exactamente la pregunta de quien espera. Un esqueleto habría
+ * hecho lo contrario —dibujar la forma de unos datos que todavía no se sabe si
+ * van a llegar—.
+ *
+ * `aria-hidden` en la barra: el `aria-live` del texto ya anuncia la espera, y un
+ * lector de pantalla no tiene nada que hacer con un rectángulo que se desplaza.
+ */
 export function Cargando({ que }: { que?: string }) {
   const { cargando } = useCadenas();
   const texto = que ?? cargando;
   return (
-    // Sin `toUpperCase`. Las versalitas eran parte del «efecto estarcido»: un
-    // «CARGANDO…» a 11 px tracado grita para decir que espere.
-    <p className="py-10 text-cuerpo text-texto-apoyo" aria-live="polite">
-      {texto}…
-    </p>
+    <div className="py-10">
+      {/* Sin `toUpperCase`. Las versalitas eran parte del «efecto estarcido»: un
+          «CARGANDO…» a 11 px tracado grita para decir que espere. */}
+      <p className="text-cuerpo text-texto-apoyo" aria-live="polite">
+        {texto}…
+      </p>
+      {/* Corto y no a todo el ancho: una barra de borde a borde se lee como
+          progreso de la PÁGINA —«va por la mitad»— y esto no sabe cuánto falta.
+          Del ancho de una palabra, debajo del texto, es una señal de actividad y
+          no una promesa de plazo. */}
+      <span className="medidor mt-3 block h-1 w-24" aria-hidden>
+        <span />
+      </span>
+    </div>
   );
 }

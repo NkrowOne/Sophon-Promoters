@@ -196,3 +196,115 @@
   border-left: 2px solid var(--p-tinta);
   padding-left: 0.75rem;
 }
+
+/* ═══════════════════════ EL MOVIMIENTO, TAMBIÉN AQUÍ ═══════════════════════
+ *
+ * El panel no tenía ni una transición. Ni una: los botones que aprueban y pagan
+ * retiros no acusaban el clic, las tablas aparecían de golpe y el foco de
+ * teclado no se veía en ninguna parte. Es la otra cara de la misma aplicación,
+ * así que hereda su gramática en lugar de inventarse otra —mismas curvas,
+ * mismas duraciones, mismo criterio de qué se mueve y qué no—.
+ *
+ * Lo que NO se copia de allí es el escalonado banda a banda: en la Mini App hay
+ * cuatro estratos y aquí hay tablas de cincuenta filas. Cincuenta retardos
+ * encadenados no son una entrada orquestada, son una espera. El panel entra de
+ * una pieza.
+ */
+.panel {
+  /* Los mismos valores que `app/(miniapp)/globals.css`. Están repetidos porque
+     el panel tiene su propia raíz y no ve aquellas variables; si allí cambian,
+     cambian aquí, y esta nota es el único hilo entre las dos. */
+  --p-curva: cubic-bezier(0.23, 1, 0.32, 1);
+  --p-t-toque: 140ms;
+  --p-t-entrada: 240ms;
+}
+
+@keyframes panel-depositar {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel {
+  animation: panel-depositar var(--p-t-entrada) var(--p-curva) both;
+}
+
+/*
+ * El acuse de recibo del clic.
+ *
+ * En la Mini App esto lo hace `.pulsable` y existe porque en táctil no hay
+ * puntero. Aquí hay ratón y sí hay `:hover`, pero el `:hover` responde a pasar
+ * por encima, no a PULSAR: entre hacer clic en «Marcar como pagado» y ver la
+ * página recargada hay un viaje al servidor, y sin hundimiento no hay nada que
+ * confirme que el clic ha entrado. En un panel donde el mismo botón pulsado dos
+ * veces es un pago contado dos veces, eso no es un detalle.
+ */
+.panel .boton,
+.panel input,
+.panel select {
+  transition:
+    background-color var(--p-t-toque) var(--p-curva),
+    border-color var(--p-t-toque) var(--p-curva),
+    transform var(--p-t-toque) var(--p-curva);
+}
+
+.panel .boton:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/*
+ * EL FOCO, que faltaba entero.
+ *
+ * `.panel input:focus` quitaba el contorno del navegador y lo sustituía por un
+ * borde teñido; los BOTONES no tenían nada, así que quien recorre el panel con
+ * el tabulador —o quien no puede usar el ratón— no veía dónde estaba. En la
+ * pantalla desde la que se aprueban pagos.
+ *
+ * `:focus-visible` y no `:focus`: con el segundo, el anillo aparece también al
+ * hacer clic con el ratón, que es ruido y es lo que empuja a la gente a poner
+ * `outline: none` y dejarlo sin arreglar.
+ *
+ * `outline` y no `box-shadow`: el contorno no participa en la maquetación y
+ * respeta la forma redondeada con `outline-offset`, así que no mueve nada ni
+ * hay que dibujarlo dos veces para los dos temas.
+ */
+.panel .boton:focus-visible,
+.panel a:focus-visible,
+.panel button:focus-visible,
+.panel input:focus-visible,
+.panel select:focus-visible {
+  outline: 2px solid var(--p-tinta);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Los controles que ya tienen radio conservan el suyo: un anillo de 4 px
+   alrededor de una caja de 12 px se lee como un segundo borde mal puesto. */
+.panel .boton:focus-visible,
+.panel input:focus-visible,
+.panel select:focus-visible {
+  border-radius: 12px;
+}
+
+/*
+ * Movimiento reducido: se quita el DESPLAZAMIENTO, no el color.
+ *
+ * Misma decisión que en la Mini App, y por el mismo motivo: lo que molesta a
+ * quien activa esta preferencia es que las cosas se muevan por la pantalla. El
+ * cambio de fondo al pasar por encima y el anillo de foco se quedan; son los
+ * que dicen dónde estás.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+
+  .panel .boton:active:not(:disabled) {
+    transform: none;
+  }
+}

@@ -79,13 +79,13 @@ test("una clave que es función en español lo es en los cinco idiomas, con la m
   }
 });
 
-/* ── La regla dura: el margen del superadmin no sale nunca ──────────────── */
+/* ── La regla dura: el margen del Operador no sale nunca ──────────────── */
 
-test("ninguna cadena revela el reparto del superadmin", () => {
+test("ninguna cadena revela el reparto del Operador", () => {
   // Lo que el agente cobra sí puede aparecer. Lo que NO puede aparecer es el
   // reparto de arriba: ni el margen, ni lo que cobra el webmaster, ni la
-  // palabra «superadmin» junto a una cifra.
-  const prohibidas = [/margen/i, /superadmin[^.]{0,30}\d/i, /\bmi comisión\b/i];
+  // palabra «Operador» junto a una cifra.
+  const prohibidas = [/margen/i, /Operador[^.]{0,30}\d/i, /\bmi comisión\b/i];
 
   for (const idioma of IDIOMAS) {
     for (const texto of textosDe(idioma)) {

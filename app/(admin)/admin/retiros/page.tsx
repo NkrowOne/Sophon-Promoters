@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { formatearMicros } from "@/lib/devengo/dinero";
+import { leerWallet } from "@/lib/cripto";
 import { resolverRetiro } from "../acciones";
 import { Importe } from "../_piezas/Importe";
 import { Cerrada } from "../_piezas/Cerrada";
@@ -104,7 +105,10 @@ export default async function Retiros() {
                     borderRadius: 3,
                   }}
                 >
-                  {s.wallet}
+                  {/* Se descifra al pintarla: en la base está cifrada, y aquí
+                      tiene que salir entera porque es lo que se copia y se pega
+                      en el monedero para hacer la transferencia. */}
+                  {leerWallet(s.wallet)}
                 </code>
               </p>
               <p className="apoyo" style={{ marginTop: "0.35rem" }}>

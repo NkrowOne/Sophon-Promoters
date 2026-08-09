@@ -27,7 +27,7 @@ enum EstadoAgente {
 
 enum OrigenAtribucion {
   VINCULADO_APP // el agente lo activó desde la Mini App: atribución limpia
-  ASIGNADO_MANUAL // el superadmin se lo asignó después: devengo prospectivo
+  ASIGNADO_MANUAL // el Operador se lo asignó después: devengo prospectivo
   HUERFANO // existía en Sophon antes que la app; sin agente
 }
 
@@ -104,7 +104,11 @@ enum EstadoSync {
 
 enum ActorTipo {
   AGENTE
-  SUPERADMIN
+  /// Quien administra: reparte códigos, fija tarifas y paga los retiros.
+  /// Se llamaba SUPERADMIN; la migración `20260806000000_operador` renombra el
+  /// valor del enum en sitio, así que los asientos de auditoría ya escritos
+  /// siguen apuntando al mismo actor.
+  OPERADOR
   SISTEMA
 }
 
@@ -142,7 +146,7 @@ model Agente {
   /// Idioma en el que se le habla desde el SERVIDOR.
   ///
   /// La Mini App no lo necesita —lo saca de `initDataUnsafe` en cada carga—,
-  /// pero el bot sí: cuando el superadmin resuelve un retiro no hay ninguna
+  /// pero el bot sí: cuando el Operador resuelve un retiro no hay ninguna
   /// actualización de Telegram de la que leer `language_code`, así que sin esta
   /// columna el aviso de «te hemos pagado» saldría en español para todo el
   /// mundo. Se escribe al vincular la cuenta y se refresca en cada `/start`.
@@ -186,11 +190,11 @@ model SesionAgente {
   @@index([expiraEn])
 }
 
-/// Sesión del panel de superadmin.
+/// Sesión del panel de Operador.
 ///
 /// No hay contraseña: el bot emite un enlace de un solo uso al Telegram del
-/// superadmin, que ya es el ancla de confianza de toda la aplicación
-/// (`TELEGRAM_SUPERADMIN_ID`). Una contraseña más en el entorno sería una
+/// Operador, que ya es el ancla de confianza de toda la aplicación
+/// (`TELEGRAM_OPERADOR_ID`). Una contraseña más en el entorno sería una
 /// credencial más que rotar, filtrar y olvidar, sin añadir ninguna garantía
 /// que el control del Telegram no diera ya.
 ///
@@ -218,7 +222,7 @@ model SesionAdmin {
   @@index([expiraEn])
 }
 
-/// Código que genera el superadmin desde el bot para dar de alta a un agente.
+/// Código que genera el Operador desde el bot para dar de alta a un agente.
 model CodigoActivacion {
   id     String @id @default(cuid())
   codigo String @unique
@@ -267,10 +271,10 @@ model Webmaster {
   emailOriginal    String
   uidSophon        String? @unique
 
-  /// Nulo = del superadmin. Un agente solo puede tener aquí cuentas que haya
+  /// Nulo = del Operador. Un agente solo puede tener aquí cuentas que haya
   /// dado de alta él: la adopción de filas preexistentes está cerrada, porque
   /// una fila sin agente solo puede haberla creado un barrido, y los barridos
-  /// recorren el árbol del superadmin.
+  /// recorren el árbol del Operador.
   agenteId    String?
   agente      Agente?          @relation(fields: [agenteId], references: [id], onDelete: SetNull)
   origen      OrigenAtribucion @default(HUERFANO)
@@ -366,8 +370,8 @@ model FilaDiariaSophon {
   /// `myEarning` con affiliateLevel=2: ganancia del WEBMASTER.
   gananciaWebmasterMicros BigInt
 
-  /// Diferencia de las dos anteriores: lo que entra al superadmin. Es privado.
-  gananciaSuperadminMicros BigInt
+  /// Diferencia de las dos anteriores: lo que entra al Operador. Es privado.
+  gananciaOperadorMicros BigInt
 
   /// Un día sigue abierto mientras Sophon pueda revisarlo.
   cerrado      Boolean  @default(false)
@@ -566,7 +570,7 @@ model SolicitudRetiro {
   resueltoEn   DateTime?
   resueltoPor  String?
   motivo       String?
-  /// Hash de la transacción, cuando el superadmin la marca como pagada.
+  /// Hash de la transacción, cuando el Operador la marca como pagada.
   referenciaPago String?
 
   claveIdempotencia String @unique

@@ -11,7 +11,7 @@ import {
   conciliar,
   estaCerrado,
   inicioVentana,
-  margenSuperadmin,
+  margenOperador,
   objetivoDevengo,
   planificarAsientos,
 } from "../lib/devengo/motor.ts";
@@ -53,9 +53,9 @@ function ctx(sobre: Partial<ContextoDevengo> = {}): ContextoDevengo {
   };
 }
 
-test("el margen del superadmin es la diferencia entre los dos niveles", () => {
+test("el margen del Operador es la diferencia entre los dos niveles", () => {
   // Dato real: L1 7,65 − L2 5,65 = 2,00 $.
-  assert.equal(margenSuperadmin(filaReal()), microsDesdeCadena("2.00"));
+  assert.equal(margenOperador(filaReal()), microsDesdeCadena("2.00"));
 });
 
 test("la comisión objetivo del agente sale de sus registros y sus pagos", () => {

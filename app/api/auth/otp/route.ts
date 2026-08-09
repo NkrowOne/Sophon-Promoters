@@ -176,7 +176,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     const motivo = e instanceof Error ? e.message : "";
     if (motivo === "CODIGO_INVALIDO") {
       return NextResponse.json(
-        { error: t.errCodigoNoVale, apoyo: t.teLoDaElSuperadmin },
+        { error: t.errCodigoNoVale, apoyo: t.teLoDaElOperador },
         { status: 400 },
       );
     }

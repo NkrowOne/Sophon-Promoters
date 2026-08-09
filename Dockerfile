@@ -49,6 +49,19 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 USER nextjs
 EXPOSE 3000
 
+# ¿Está viva? `/api/salud` toca la base de datos y responde 503 si no contesta o
+# si falta una variable esencial, así que esto distingue «el proceso escucha» de
+# «la aplicación sirve», que es lo único que le interesa saber al orquestador.
+#
+# `start-period` largo a propósito: antes de servir, el `CMD` de abajo migra y
+# siembra. Con el margen por defecto —cero— la primera comprobación llegaría a
+# mitad de `migrate deploy` y marcaría el contenedor como enfermo justo cuando
+# está haciendo lo que debe.
+#
+# `wget` y no `curl`: BusyBox trae el primero y la imagen no instala el segundo.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:3000/api/salud || exit 1
+
 # Migrar y sembrar antes de servir: en Skyway el contenedor se recrea en cada
 # despliegue.
 #

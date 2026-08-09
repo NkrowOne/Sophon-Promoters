@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { ErrorSophon } from "../lib/sophon/cliente.ts";
-import { clasificarAlta, hayQueAvisarAlSuperadmin } from "../lib/sophon/errores.ts";
+import { clasificarAlta, hayQueAvisarAlOperador } from "../lib/sophon/errores.ts";
 
 /**
  * La clasificación del rechazo de Sophon.
@@ -73,13 +73,13 @@ test("un rechazo que no reconocemos NUNCA se lee como éxito", () => {
   assert.equal(r.traceId, "traza-123");
 });
 
-test("solo lo desconocido molesta al superadmin", () => {
-  assert.equal(hayQueAvisarAlSuperadmin("DESCONOCIDO"), true);
+test("solo lo desconocido molesta al Operador", () => {
+  assert.equal(hayQueAvisarAlOperador("DESCONOCIDO"), true);
   // Los reconocidos ya tienen su respuesta y su mensaje para el agente. Avisar
   // de ellos convertiría el canal en ruido y acabaría con el bot silenciado, y
   // con él el aviso de que a alguien le han pagado.
   for (const motivo of ["YA_AFILIADO", "NO_REGISTRADO", "SIN_WHITELIST", "SIN_RESPUESTA"] as const) {
-    assert.equal(hayQueAvisarAlSuperadmin(motivo), false, motivo);
+    assert.equal(hayQueAvisarAlOperador(motivo), false, motivo);
   }
 });
 

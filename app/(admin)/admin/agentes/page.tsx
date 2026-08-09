@@ -8,7 +8,7 @@ import { inicioDelMes } from "@/lib/pro/conceder";
 /**
  * Agentes.
  *
- * Lo que se administra aquí es **lo que un agente puede gastar del superadmin**.
+ * Lo que se administra aquí es **lo que un agente puede gastar del Operador**.
  * Y desde que el PRO va atado al alta, eso es una sola cifra: cada alta regala
  * un año de VIP, así que el tope de altas ES el tope de gasto. Ya no hay planes
  * que autorizar ni cupo de PRO aparte que cuadrar con él.

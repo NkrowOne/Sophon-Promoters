@@ -8,7 +8,7 @@ import { hoyContable } from "@/lib/sync/registros";
 import { Cerrada } from "./_piezas/Cerrada";
 
 /**
- * Panel: la contabilidad del superadmin.
+ * Panel: la contabilidad del Operador.
  *
  * Responde tres preguntas, en este orden:
  *
@@ -30,7 +30,7 @@ export default async function Panel() {
   const [entradas, devengado, retiros, agentes, webmasters, sincronizaciones, conciliacion] =
     await Promise.all([
       db.filaDiariaSophon.aggregate({
-        _sum: { gananciaSuperadminMicros: true, gananciaTotalMicros: true },
+        _sum: { gananciaOperadorMicros: true, gananciaTotalMicros: true },
       }),
       db.asientoComision.aggregate({
         where: { estado: { not: "ANULADO" }, tipo: { not: "RETIRO" } },
@@ -60,7 +60,7 @@ export default async function Panel() {
   // está cobrando nada. Por eso se comprueba aquí y se avisa arriba del todo.
   const hayTarifa = (await db.tarifaVersion.count({ where: { validaHasta: null } })) > 0;
 
-  const entradasMicros = entradas._sum.gananciaSuperadminMicros ?? 0n;
+  const entradasMicros = entradas._sum.gananciaOperadorMicros ?? 0n;
   const devengadoMicros = devengado._sum.importeMicros ?? 0n;
   const margenMicros = entradasMicros - devengadoMicros;
 

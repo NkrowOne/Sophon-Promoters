@@ -21,10 +21,10 @@ export interface RespuestaSophon<T> {
 /**
  * Nivel de agregación de `myEarning`, resuelto empíricamente sobre datos reales:
  * con `1` Sophon devuelve la ganancia TOTAL (CPS al 50 %) y con `2` la del
- * WEBMASTER (CPS al 35 %). La diferencia entre ambas es lo que entra al superadmin.
+ * WEBMASTER (CPS al 35 %). La diferencia entre ambas es lo que entra al Operador.
  */
 export const NivelAfiliado = {
-  /** Ganancia TOTAL del registro (incluye la parte del webmaster y la del superadmin). */
+  /** Ganancia TOTAL del registro (incluye la parte del webmaster y la del Operador). */
   Total: 1,
   /** Ganancia del WEBMASTER únicamente. */
   Webmaster: 2,
@@ -149,7 +149,7 @@ export interface Tesoreria {
 
 /*
  * Los tipos de retiro de Sophon se eliminaron a propósito: los agentes no
- * retiran en Sophon —no tienen cuenta allí— y sus pagos los hace el superadmin
+ * retiran en Sophon —no tienen cuenta allí— y sus pagos los hace el Operador
  * a mano. Ver `SolicitudRetiro` en el esquema.
  */
 

@@ -35,6 +35,20 @@ export const metadata: Metadata = {
   title: "Panel · Sophon Promoters",
   // Márgenes privados y wallets: esto no se indexa.
   robots: { index: false, follow: false },
+  /*
+   * El panel tiene su propia raíz, así que NO hereda los iconos de la Mini App:
+   * se quedaba sin ninguno y la pestaña salía con el icono genérico del
+   * navegador. Es la pestaña que el Operador tiene abierta al lado de otras
+   * quince mientras paga retiros, o sea justo donde una marca sirve para algo.
+   *
+   * Sin manifiesto ni Open Graph a propósito: esto no se instala ni se comparte.
+   */
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icono.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {

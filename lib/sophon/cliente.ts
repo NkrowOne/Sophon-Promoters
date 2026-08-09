@@ -256,9 +256,9 @@ export class ClienteSophon {
    *
    * NOTA: los endpoints de retiro de Sophon (`/api/uc/withdraw/*`) NO se usan
    * a propósito. Los agentes no retiran nada en Sophon —no tienen cuenta allí—
-   * y sus pagos los hace el superadmin a mano desde `SolicitudRetiro`. Añadir
+   * y sus pagos los hace el Operador a mano desde `SolicitudRetiro`. Añadir
    * aquí el historial de retiros de Sophon mezclaría dos flujos de dinero
-   * distintos: el que la plataforma paga al superadmin y el que el superadmin
+   * distintos: el que la plataforma paga al Operador y el que el Operador
    * paga a sus agentes.
    */
   async tesoreria(): Promise<Tesoreria> {

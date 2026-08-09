@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { claveIdempotencia } from "@/lib/cripto";
+import { claveIdempotencia, guardarWallet, leerWallet, mascaraWallet } from "@/lib/cripto";
 import { cadenas } from "@/lib/i18n";
 import { dinero, esRespuesta, exigirAgente, saldos } from "@/lib/api/agente";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
-import { avisarRetiroAlSuperadmin } from "@/lib/bot/avisos";
+import { avisarRetiroAlOperador } from "@/lib/bot/avisos";
 
 /**
  * Solicitud de retiro.
@@ -15,7 +15,7 @@ import { avisarRetiroAlSuperadmin } from "@/lib/bot/avisos";
  *
  *  1. **Una sola solicitud viva por agente.** Sin esto, la sesión persistente en
  *     móvil y escritorio —que el producto exige— permite pulsar dos veces y
- *     generar dos solicitudes del mismo saldo, que el superadmin aprobaría a
+ *     generar dos solicitudes del mismo saldo, que el Operador aprobaría a
  *     mano sin ver que son la misma.
  *  2. **El importe se valida contra el saldo recalculado en el servidor**, nunca
  *     contra lo que manda el cliente. El disponible solo cuenta días
@@ -25,7 +25,7 @@ import { avisarRetiroAlSuperadmin } from "@/lib/bot/avisos";
 
 export const dynamic = "force-dynamic";
 
-/** Mínimo por defecto; el superadmin puede cambiarlo en configuración. */
+/** Mínimo por defecto; el Operador puede cambiarlo en configuración. */
 const MINIMO_POR_DEFECTO_MICROS = 20_000_000n; // 20,00 $
 
 const Cuerpo = z.object({
@@ -75,12 +75,13 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     },
     minimo: dinero(minimo, idioma),
     // La wallet se muestra recortada: el agente la reconoce sin exponerla entera
-    // en una captura de pantalla que pueda compartir.
+    // en una captura de pantalla que pueda compartir. Se descifra para
+    // recortarla —en la base está cifrada— y el texto en claro no sale de aquí.
     historial: historial.map((h) => ({
       id: h.id,
       importe: dinero(h.importeMicros, idioma),
       red: h.red,
-      wallet: `${h.wallet.slice(0, 6)}…${h.wallet.slice(-4)}`,
+      wallet: mascaraWallet(leerWallet(h.wallet)),
       estado: h.estado,
       solicitadoEn: h.solicitadoEn.toISOString(),
       resueltoEn: h.resueltoEn?.toISOString() ?? null,
@@ -150,7 +151,9 @@ export async function POST(peticion: Request): Promise<NextResponse> {
           agenteId,
           importeMicros,
           red: parseado.data.red,
-          wallet: parseado.data.wallet,
+          // Cifrada. La valida el `Cuerpo` de arriba en claro —la forma de la
+          // dirección hay que poder comprobarla— y se guarda ya ilegible.
+          wallet: guardarWallet(parseado.data.wallet),
           claveIdempotencia: clave,
         },
         select: { id: true },
@@ -205,10 +208,10 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     },
   });
 
-  // El aviso al superadmin es la vía por la que se entera de que hay que pagar,
+  // El aviso al Operador es la vía por la que se entera de que hay que pagar,
   // pero no puede tumbar la solicitud: si Telegram falla, el retiro ya está
   // registrado y visible en el panel.
-  void avisarRetiroAlSuperadmin({
+  void avisarRetiroAlOperador({
     agente: nombreVisible,
     email: emailNormalizado,
     importe: formatearMicros(importeMicros),
