@@ -21,6 +21,35 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
+# ──────────────────────────────────────────────────────────────────────────────
+# El CLI de Prisma, con su árbol de dependencias COMPLETO.
+#
+# Esta etapa existe por un fallo que solo aparecía al desplegar, y que costó el
+# primer despliegue entero. El runner copiaba tres carpetas sueltas
+# —`node_modules/{.prisma,@prisma,prisma}`— y arrancaba con
+# `node_modules/.bin/prisma migrate deploy`. Dos cosas mal:
+#
+#  1. **`.bin` no se copiaba nunca.** Ese `prisma` es un enlace simbólico que npm
+#     crea en `node_modules/.bin`, y esa carpeta no estaba en ninguna línea
+#     `COPY`. El contenedor moría con `sh: node_modules/.bin/prisma: not found`.
+#  2. **Y arreglar la ruta no bastaba.** El CLI necesita 33 paquetes
+#     transitivos, y varios —`effect`, `c12`, `chokidar`…— viven en la raíz de
+#     `node_modules`, no bajo `@prisma/`. Invocarlo por su fichero real fallaba
+#     igual, ahora con `Cannot find module 'effect'`.
+#
+# Enumerar esos 33 paquetes a mano sería frágil: la lista cambia con cada versión
+# de Prisma y el fallo volvería a aparecer solo al desplegar. Así que **el cierre
+# lo calcula npm**, instalando el CLI a secas en su versión EXACTA del lockfile.
+#
+# Cuesta menos de lo que parece: 155 MB de los cuales los motores —lo gordo— ya
+# se copiaban antes. Y no trae `@prisma/client`, así que al fusionarse sobre el
+# `node_modules` de la salida autocontenida no pisa el cliente de la aplicación.
+FROM node:22-alpine AS cliprisma
+WORKDIR /cli
+COPY package-lock.json ./
+RUN npm i --no-save --no-audit --no-fund \
+      "prisma@$(node -p "require('./package-lock.json').packages['node_modules/prisma'].version")"
+
 FROM node:22-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache openssl
@@ -40,11 +69,25 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# El esquema y el cliente generado hacen falta para migrar al arrancar.
+# El esquema y las migraciones: sin ellos no hay nada que aplicar.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+# El cliente GENERADO por `prisma generate`. No sale de ningún `npm install`:
+# lo produce el build a partir del esquema, así que solo puede venir del builder.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+# Y el CLI con su cierre completo, fusionado sobre el `node_modules` que ya trajo
+# la salida autocontenida. Va el ÚLTIMO a propósito: si trajera un
+# `@prisma/client` propio, pisaría al que Next ha trazado —no lo trae, y por eso
+# este orden es seguro—.
+COPY --from=cliprisma --chown=nextjs:nodejs /cli/node_modules ./node_modules
+
+# ── LA AUTOCOMPROBACIÓN ──
+#
+# Ejecuta el CLI en tiempo de CONSTRUCCIÓN. Si le falta una dependencia, la
+# imagen no se construye; antes se construía perfecta y el contenedor moría al
+# arrancar, que es donde el fallo cuesta un despliegue en vez de treinta
+# segundos. Es la línea que impide que esto vuelva a pasar: cualquier cambio
+# futuro en lo que se copia lo caza aquí.
+RUN node node_modules/prisma/build/index.js --version
 
 USER nextjs
 EXPOSE 3000
@@ -73,4 +116,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
 # tarifa en su portada, y dejar la aplicación caída por eso sería cambiar un
 # problema que se arregla desde una pantalla por otro que no se arregla desde
 # ninguna.
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && { node --experimental-strip-types prisma/seed.ts || echo '[arranque] la semilla falló; pon la tarifa en /admin/tarifas'; } && node server.js"]
+# Se invoca el CLI por su FICHERO, no por el enlace de `node_modules/.bin`: ese
+# enlace lo crea `npm install` y aquí no se instala nada, así que no existe. Ver
+# la etapa `cliprisma`.
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && { node --experimental-strip-types prisma/seed.ts || echo '[arranque] la semilla falló; pon la tarifa en /admin/tarifas'; } && node server.js"]

@@ -78,6 +78,22 @@ services:
     # con él el TLS que Telegram exige para las Mini Apps—.
     expose:
       - "3000"
+    # ── EL HEALTHCHECK, DECLARADO AQUÍ Y NO SOLO EN EL DOCKERFILE ──
+    #
+    # El `HEALTHCHECK` de la imagen existe, y aun así el despliegue dijo «Sin
+    # healthcheck configurado: periodo de gracia de 5s». Skyway lee este fichero,
+    # no las instrucciones de la imagen, así que sin esta sección da por muerto al
+    # contenedor a los cinco segundos —y antes de servir hay que migrar la base,
+    # que tarda más que eso—.
+    #
+    # `start_period` de 90 s cubre `migrate deploy` más la semilla. Durante ese
+    # margen, un fallo del test no cuenta como caída.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/salud || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
     labels:
       traefik.enable: "true"
       traefik.http.services.sophon-promoters.loadbalancer.server.port: "3000"
