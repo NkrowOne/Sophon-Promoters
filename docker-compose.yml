@@ -26,12 +26,8 @@
 #      con `?connection_limit=10` al final: sin ese tope Prisma abre
 #      `núcleos × 2 + 1` conexiones y agota el cupo de una base pequeña.
 #   3. El resto de variables, en el panel. Están todas en `.env.example`.
-#   4. `npm run bot:configurar` desde un clon, con `APP_URL` apuntando ya al
-#      dominio. No se puede lanzar dentro del contenedor: la imagen final no
-#      copia `scripts/`.
-#   5. Las líneas de cron de `.env.example`. La que no puede faltar es la de las
-#      **16:05 UTC**: Sophon cierra su día a las 00:00 UTC+8 y es entonces cuando
-#      hay cifras nuevas que leer.
+#   4. Nada más. El bot se registra solo al arrancar y los barridos corren
+#      dentro del proceso; no hay guion que lanzar ni cron que configurar.
 #
 # Las migraciones NO se lanzan a mano en ningún caso: el `CMD` de la imagen
 # ejecuta `prisma migrate deploy` antes de servir. Y hace falta **también** en
@@ -46,10 +42,10 @@
 # ── Por qué un solo servicio ──
 #
 # El bot NO es un servicio aparte —vive dentro de la aplicación, en `/api/bot`,
-# porque funciona por webhook y no por polling— y el planificador tampoco: las
-# tareas de sincronización se disparan contra `/api/cron` desde fuera. Un
-# contenedor por cosa que no necesita contenedor propio es coste de operación
-# sin nada a cambio.
+# porque funciona por webhook y no por polling— y el planificador tampoco: corre
+# dentro del mismo proceso, con cerrojos en la base para que varias réplicas no
+# se pisen. Un contenedor por cosa que no necesita contenedor propio es coste de
+# operación sin nada a cambio.
 
 services:
   app:
@@ -94,32 +90,41 @@ services:
       timeout: 5s
       retries: 3
       start_period: 90s
+    # ── LA RED DEL BORDE ──
+    #
+    # Traefik arranca con `--providers.docker.network=skyway-edge`: SOLO mira
+    # contenedores de esa red. El contenedor estaba únicamente en la privada
+    # `skyway-sophon-promoters`, así que Traefik ni lo veía —y por eso contestaba
+    # su 404 de fábrica en todas las rutas por muchas etiquetas que hubiera—.
+    #
+    # Sigue en la privada, que es por donde habla con su Postgres, y se asoma
+    # además al borde. `external: true` porque la crea Traefik, no este fichero.
+    networks:
+      - default
+      - skyway-edge
     labels:
       traefik.enable: "true"
+      # Con el contenedor en DOS redes hay que decirle a Traefik por cuál
+      # alcanzarlo, o elige una y puede elegir la privada, a la que no llega.
+      traefik.docker.network: skyway-edge
+      # Los nombres salen del propio Traefik de este servidor:
+      #   --entrypoints.websecure.address=:443           → «websecure»
+      #   --certificatesresolvers.le.acme.email=...      → «le»
+      # Su reto ACME es HTTP-01 sobre el entrypoint `web`, así que el 80 tiene
+      # que seguir llegando al servidor: es por donde se valida el certificado.
+      traefik.http.routers.sophon-promoters.rule: Host(`promoters.nkrow.com`)
+      traefik.http.routers.sophon-promoters.entrypoints: websecure
+      traefik.http.routers.sophon-promoters.tls.certresolver: le
       traefik.http.services.sophon-promoters.loadbalancer.server.port: "3000"
-      # ⚠️ AQUÍ FALTA EL ENRUTADOR, y su ausencia ya costó un despliegue.
-      #
-      # SÍNTOMA, por si vuelve: Traefik contesta `404 page not found` en TODAS
-      # las rutas —incluida `/`— y sirve un certificado autofirmado, así que el
-      # navegador da error de SSL. Las dos cosas son la misma: sin enrutador no
-      # hay a quién enviar la petición, y tampoco hay para qué host pedirle un
-      # certificado al `certresolver`.
-      #
-      # CÓMO DISTINGUIRLO de un fallo de la aplicación, en un comando:
-      #
-      #   curl -sk -D- https://promoters.nkrow.com/api/salud
-      #
-      # Si responde `404 page not found` con `content-length: 19` y SIN las
-      # cabeceras `Strict-Transport-Security` ni `Referrer-Policy`, quien
-      # contesta es Traefik y la petición no ha llegado al contenedor. Si llega,
-      # la respuesta es JSON.
-      #
-      # Las tres etiquetas van descomentadas AQUÍ solo si el panel de Skyway no
-      # monta el enrutador por su cuenta. Los dos últimos nombres son de tu
-      # instalación de Traefik, no del proyecto —cópialos de otro servicio que ya
-      # publique bien—: puestos a ojo dan un servicio que Traefik ve y no
-      # publica, o que publica sin TLS, y sin TLS Telegram no abre la Mini App.
-      #
-      #   traefik.http.routers.sophon-promoters.rule: Host(`promoters.nkrow.com`)
-      #   traefik.http.routers.sophon-promoters.entrypoints: <el de HTTPS>
-      #   traefik.http.routers.sophon-promoters.tls.certresolver: <el tuyo>
+      # Quien llegue por http va a https. Telegram exige HTTPS para la Mini App,
+      # así que un enlace en claro no es un inconveniente: no abre.
+      traefik.http.routers.sophon-promoters-http.rule: Host(`promoters.nkrow.com`)
+      traefik.http.routers.sophon-promoters-http.entrypoints: web
+      traefik.http.routers.sophon-promoters-http.middlewares: sophon-promoters-https
+      traefik.http.middlewares.sophon-promoters-https.redirectscheme.scheme: https
+
+networks:
+  default:
+  # La crea Traefik; aquí solo nos enganchamos.
+  skyway-edge:
+    external: true
