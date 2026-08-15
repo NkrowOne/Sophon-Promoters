@@ -8,10 +8,10 @@
  * arrancaba perfecta y no devengaba nada. El panel tenía que llevar un aviso
  * dedicado precisamente para que ese fallo no fuera invisible.
  *
- * Todo lo difícil ya estaba resuelto: cada barrido toma un **cerrojo consultivo
- * de Postgres** (`conCerrojo`) y se salta la vuelta si otro lo tiene. Eso es lo
- * que hace seguro esto con varias réplicas: todas ponen su reloj, y la primera
- * que llega hace el trabajo mientras las demás se retiran sin esperar.
+ * Todo lo difícil ya estaba resuelto: cada barrido toma un **cerrojo**
+ * (`conCerrojo`) y se salta la vuelta si otro lo tiene. Eso es lo que hace
+ * seguro esto con varias réplicas: todas ponen su reloj, y la primera que llega
+ * hace el trabajo mientras las demás se retiran sin esperar.
  *
  * ── EL RELOJ ──
  *
@@ -54,8 +54,17 @@ async function correr(tarea: string): Promise<void> {
   const cliente = clienteSophon();
   const inicio = Date.now();
   try {
+    /*
+     * Un barrido devuelve `null` cuando el cerrojo lo tiene otro, y eso HAY QUE
+     * DECIRLO. Callarlo es lo que habría dejado invisible el cerrojo que no se
+     * soltaba: los barridos se saltaban en silencio y el devengado se quedaba
+     * clavado sin un solo error en el log.
+     */
+    let omitidos = 0;
+
     if (tarea === "registros" || tarea === "cierre") {
       const r = await barrerRegistros(cliente);
+      if (r === null) omitidos++;
       // Un barrido que lee decenas de miles de filas y emite cero asientos no
       // puede salir en los logs con el mismo aspecto que uno bueno: sin tarifa
       // en vigor nadie está devengando nada.
@@ -65,17 +74,26 @@ async function correr(tarea: string): Promise<void> {
         );
       }
     }
-    if (tarea === "webmasters" || tarea === "cierre") await barrerWebmasters(cliente);
-    if (tarea === "tesoreria" || tarea === "cierre") await barrerTesoreria(cliente);
+    if (tarea === "webmasters" || tarea === "cierre") {
+      if ((await barrerWebmasters(cliente)) === null) omitidos++;
+    }
+    if (tarea === "tesoreria" || tarea === "cierre") {
+      if ((await barrerTesoreria(cliente)) === null) omitidos++;
+    }
     /*
      * Los avisos van los ÚLTIMOS del cierre y sin cliente de Sophon: miran lo
      * que los otros tres acaban de escribir, y solo leen nuestra base. Si Sophon
      * está caído, este es el único barrido que sigue funcionando, y es
      * justamente el que le habla al agente.
      */
-    if (tarea === "avisos" || tarea === "cierre") await barrerAvisos();
+    if (tarea === "avisos" || tarea === "cierre") {
+      // Aquí `null` significa además «hoy ya se avisó», que es el caso normal:
+      // el reloj tica cada minuto y este barrido es diario.
+      await barrerAvisos();
+    }
 
-    console.info(`[planificador] ${tarea} en ${Date.now() - inicio} ms`);
+    const cola = omitidos > 0 ? ` · ${omitidos} omitido(s): el cerrojo lo tiene otro` : "";
+    console.info(`[planificador] ${tarea} en ${Date.now() - inicio} ms${cola}`);
   } catch (e) {
     // Un barrido que falla no puede llevarse el reloj por delante: el siguiente
     // tic tiene que seguir llegando.
