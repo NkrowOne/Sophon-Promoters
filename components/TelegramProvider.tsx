@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { cadenas, type Cadenas } from "@/lib/i18n";
 import { esRtl, idiomaDesdeTelegram, IDIOMA_POR_DEFECTO, type Idioma } from "@/lib/idiomas";
@@ -272,23 +272,57 @@ export function BotonPrincipalAccion({
 }) {
   const { webApp, botonTapado } = useTelegram();
 
+  /*
+   * ── EL BOTÓN SE ACTUALIZA; NO SE VUELVE A MONTAR ──
+   *
+   * Esto era UN solo efecto con `onClick` entre sus dependencias, y su limpieza
+   * hacía `boton.hide()`. El `onClick` que le llega es un `useCallback` cuyas
+   * dependencias incluyen lo que el agente está tecleando, así que cambiaba de
+   * identidad **en cada pulsación de tecla**: React limpiaba el efecto —ocultando
+   * el botón— y lo volvía a ejecutar —mostrándolo—, y Telegram reanimaba su
+   * botón nativo letra a letra. Se veía como un parpadeo constante mientras
+   * escribes el correo, que es justo el momento en que la pantalla tiene que
+   * estar quieta.
+   *
+   * La separación en dos efectos es la corrección:
+   *
+   *  1. **Alta y baja**, que solo depende del cliente de Telegram. El manejador
+   *     se registra UNA vez y lee el `onClick` fresco de una referencia, así que
+   *     su identidad deja de importar.
+   *  2. **Estado** —texto, habilitado, progreso—, que son actualizaciones sobre
+   *     un botón que ya está puesto. Deshabilitar no es ocultar.
+   */
+  const manejador = useRef(onClick);
+  // Sin lista de dependencias: se refresca en cada render, de modo que el clic
+  // siempre ejecuta el `onClick` actual aunque el efecto de arriba no se repita.
+  useEffect(() => {
+    manejador.current = onClick;
+  });
+
+  useEffect(() => {
+    const boton = webApp?.MainButton;
+    if (!boton || botonTapado) return;
+
+    const disparar = () => manejador.current();
+    boton.onClick(disparar);
+    boton.show();
+
+    return () => {
+      boton.offClick(disparar);
+      boton.hide();
+    };
+  }, [webApp, botonTapado]);
+
   useEffect(() => {
     const boton = webApp?.MainButton;
     if (!boton || botonTapado) return;
 
     boton.setText(texto);
-    boton.show();
     if (activo && !cargando) boton.enable();
     else boton.disable();
     if (cargando) boton.showProgress(false);
     else boton.hideProgress();
-
-    boton.onClick(onClick);
-    return () => {
-      boton.offClick(onClick);
-      boton.hide();
-    };
-  }, [webApp, botonTapado, texto, onClick, activo, cargando]);
+  }, [webApp, botonTapado, texto, activo, cargando]);
 
   // Reserva en el DOM: siempre presente fuera de Telegram y cuando el nativo
   // pueda estar tapado por el teclado.
