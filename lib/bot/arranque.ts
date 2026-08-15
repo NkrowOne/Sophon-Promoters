@@ -42,6 +42,19 @@ async function aplicar(): Promise<void> {
     return;
   }
 
+  /*
+   * La huella NO se guarda si quedan comandos de gestión pendientes.
+   *
+   * Guardarla daría la configuración por completa y no se volvería a intentar
+   * jamás, ni siquiera después de que el Operador le escriba `/start` al bot.
+   * Al dejarla sin escribir, el siguiente arranque reintenta —nueve llamadas a
+   * Telegram, una vez— y a partir de ahí se salta como cualquier otro reinicio.
+   */
+  if (r.operadorPendiente) {
+    console.warn(`[bot] configurado a medias: ${r.detalle}`);
+    return;
+  }
+
   await db.configuracion.upsert({
     where: { clave: CLAVE },
     create: { clave: CLAVE, valor: r.huella ?? esperada },
