@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { webhookCallback } from "grammy";
 
 import { bot } from "@/lib/bot/bot";
+import { secretoWebhook } from "@/lib/secretos";
 
 /**
  * Webhook de Telegram.
@@ -39,9 +40,19 @@ function tratar(): (p: Request) => Promise<Response> {
 }
 
 export async function POST(peticion: Request): Promise<Response> {
-  const secreto = process.env["TELEGRAM_WEBHOOK_SECRET"];
+  /*
+   * El secreto se DERIVA del token del bot cuando no está declarado.
+   *
+   * Antes, sin `TELEGRAM_WEBHOOK_SECRET` la ruta se apagaba con un 503 —lo
+   * correcto frente a dejarla abierta— y el síntoma era un bot completamente
+   * mudo sin un solo error visible: Telegram entrega, nosotros rechazamos, y
+   * nadie mira los logs de una ruta que nunca contesta. Como el secreto solo
+   * tiene que ser idéntico a los dos lados y ambos conocen el token, se calcula
+   * en vez de pedirse. Ver `lib/secretos.ts`.
+   */
+  const secreto = secretoWebhook();
   if (!secreto) {
-    console.warn("[bot] webhook deshabilitado: falta TELEGRAM_WEBHOOK_SECRET");
+    console.warn("[bot] webhook deshabilitado: falta TELEGRAM_BOT_TOKEN");
     return NextResponse.json({ error: "Webhook no configurado." }, { status: 503 });
   }
 
