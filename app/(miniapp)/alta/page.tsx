@@ -125,7 +125,7 @@ function AltaPasos() {
           <p className="text-apoyo text-texto-apoyo">{t.otpEnviado(email.trim())}</p>
 
           <label htmlFor="otp" className="text-rotulo mt-7 block text-texto-apoyo">
-            {t.codigoDeSeisDigitos}
+            {t.codigoDeVerificacion}
           </label>
 
           {/* UN campo, no seis casillas. Seis inputs es el patrón por defecto y
@@ -221,7 +221,7 @@ function AltaPasos() {
     // que lo lleva; el porqué está en la prop, en `Pantalla`.
     <Pantalla titulo={t.vinculaTuCuenta} marca>
       <Banda orden={0} tono={0} className="pb-7">
-          <p className="text-apoyo text-texto-apoyo">{t.soloSeHaceUnaVez}</p>
+          <p className="text-apoyo text-texto-apoyo">{t.introduceCodigoYCorreo}</p>
 
           <div className="mt-7">
             <label htmlFor="codigo" className="text-rotulo block text-texto-apoyo">

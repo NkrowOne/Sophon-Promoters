@@ -202,6 +202,40 @@ function registrar(b: Bot): void {
       return;
     }
 
+    /*
+     * EL OPERADOR NO ES UN AGENTE.
+     *
+     * Sin esto se llevaba la pantalla de un agente nuevo —«necesitas un código
+     * de activación»— y un botón que le abría el alta. O sea: la aplicación le
+     * pedía a su dueño que se diera de alta en su propio producto, con un código
+     * que tendría que generarse a sí mismo.
+     *
+     * La Mini App es del agente y el Operador tiene otra superficie: sus
+     * comandos y el panel. Se comprueba ANTES de la rama del no vinculado y
+     * DESPUÉS de la del vinculado, porque las dos cosas no se excluyen: si algún
+     * día el Operador se diera de alta también como agente, lo que quiere al
+     * escribir /start es su red, no este índice.
+     *
+     * En español, como el resto de lo suyo: el panel tampoco se traduce, y lo
+     * usa una sola persona.
+     */
+    if (!vinculado && esOperador(id)) {
+      await ctx.reply(
+        [
+          "<b>Sophon Promoters</b>",
+          "",
+          "Eres el Operador. Desde aquí gestionas la aplicación:",
+          "",
+          "/codigo — generar un código de activación para un agente",
+          "/agentes — agentes dados de alta",
+          "/retiros — retiros pendientes de pagar",
+          "/panel — abrir el panel web",
+        ].join("\n"),
+        { parse_mode: "HTML" },
+      );
+      return;
+    }
+
     // Un agente vinculado recibe el índice completo; uno nuevo, una sola puerta
     // —el alta—, porque las demás no le sirven todavía y ofrecérselas sería
     // mandarle a cinco pantallas que solo pueden decirle que no tiene cuenta.
