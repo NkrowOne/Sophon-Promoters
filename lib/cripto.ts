@@ -16,6 +16,8 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 
+import { pimientaOtp } from "./secretos.ts";
+
 const ALGORITMO = "aes-256-gcm";
 const LONGITUD_IV = 12;
 const LONGITUD_ETIQUETA = 16;
@@ -114,8 +116,8 @@ export function mascaraWallet(direccion: string): string {
  * dígitos, así que sin pimienta un atacante con la tabla los rompería al instante.
  */
 export function hashOtp(codigo: string, emailNormalizado: string): string {
-  const pimienta = process.env["PIMIENTA_OTP"];
-  if (!pimienta) throw new Error("falta la variable de entorno PIMIENTA_OTP");
+  // Declarada manda; si no, se deriva de la clave maestra. Ver `lib/secretos.ts`.
+  const pimienta = pimientaOtp();
   return createHmac("sha256", pimienta).update(`${emailNormalizado}:${codigo}`).digest("hex");
 }
 

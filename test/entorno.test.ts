@@ -20,7 +20,8 @@ import { esOperador, usaNombreAntiguo } from "../lib/operador.ts";
  * avise.
  */
 
-const ESENCIALES = ["DATABASE_URL", "TELEGRAM_BOT_TOKEN", "CLAVE_CIFRADO", "PIMIENTA_OTP"];
+// `PIMIENTA_OTP` salió de aquí al pasar a derivarse: ver `lib/secretos.ts`.
+const ESENCIALES = ["DATABASE_URL", "TELEGRAM_BOT_TOKEN", "CLAVE_CIFRADO"];
 
 /** Deja el entorno en un estado conocido y lo restaura al terminar. */
 function con(entorno: Record<string, string | undefined>, fn: () => void): void {
@@ -100,7 +101,7 @@ describe("revisión del entorno", () => {
   it("lo blanco no cuenta como puesto", () => {
     // Un panel de despliegue con la casilla vacía deja la variable definida y
     // con espacios. Sin `trim`, eso pasaría por buena y fallaría más adelante.
-    con({ ...COMPLETO, PIMIENTA_OTP: "   " }, () => {
+    con({ ...COMPLETO, DATABASE_URL: "   " }, () => {
       assert.equal(revisarEntorno().faltanEsenciales.length, 1);
     });
   });
@@ -110,7 +111,7 @@ describe("revisión del entorno", () => {
     // SMTP no se puede dar de alta a nadie nuevo, pero los agentes que ya
     // existen siguen viendo su dinero. Tratarlo como esencial dejaría la
     // aplicación caída por una pieza que solo se usa una vez por agente.
-    con({ ...COMPLETO, SMTP_HOST: undefined, CRON_SECRET: undefined }, () => {
+    con({ ...COMPLETO, SMTP_HOST: undefined, SOPHON_EMAIL: undefined }, () => {
       const r = revisarEntorno();
       assert.deepEqual(r.faltanEsenciales, []);
       assert.equal(r.faltanDeFuncion.length, 2);

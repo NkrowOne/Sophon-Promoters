@@ -6,6 +6,7 @@ import { barrerTesoreria } from "@/lib/sync/tesoreria";
 import { barrerWebmasters } from "@/lib/sync/webmasters";
 import { clienteSophon } from "@/lib/sophon/instancia";
 import { formatearMicros } from "@/lib/devengo/dinero";
+import { secretoCron } from "@/lib/secretos";
 
 /**
  * Disparador de los barridos.
@@ -26,13 +27,10 @@ export const maxDuration = 300;
 type Tarea = "registros" | "webmasters" | "tesoreria" | "avisos" | "todo";
 
 export async function POST(peticion: Request): Promise<NextResponse> {
-  const secreto = process.env["CRON_SECRET"];
-  if (!secreto) {
-    return NextResponse.json(
-      { error: "Ruta deshabilitada: falta configuración." },
-      { status: 503 },
-    );
-  }
+  // Derivado si no está declarado: esta ruta es ya solo el disparador MANUAL
+  // —los barridos corren dentro del proceso—, así que su secreto no tiene que
+  // viajar a ningún planificador externo.
+  const secreto = secretoCron();
 
   // Cabecera y no parámetro de URL: los parámetros acaban en los logs de acceso
   // de cualquier proxy por el que pase la petición.

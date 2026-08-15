@@ -16,7 +16,7 @@ Operador lo aprueba y lo paga desde un panel aparte.
 3. [Requisitos y variables](#requisitos-y-variables)
 4. [Trabajar en local](#trabajar-en-local)
 5. [Desplegar](#desplegar)
-6. [El planificador](#el-planificador-y-por-qué-la-línea-de-las-1605-no-es-opcional)
+6. [Los barridos](#los-barridos-y-por-qué-la-cita-de-las-1605-no-es-opcional)
 7. [Operación diaria](#operación-diaria)
 8. [Lo que hay que saber antes de dar por buena la producción](#lo-que-hay-que-saber-antes-de-dar-por-buena-la-producción)
 
@@ -34,7 +34,8 @@ contenedor:
 | Bot | `/api/bot` | Telegram | Secreto en `X-Telegram-Bot-Api-Secret-Token` |
 
 No hay servicio aparte para el bot —funciona por webhook, no por *polling*— ni
-para el planificador: las tareas se disparan desde fuera contra `/api/cron`.
+para el planificador: los barridos corren dentro del mismo proceso, con cerrojos
+de Postgres para que varias réplicas no se pisen.
 
 ```
 app/(miniapp)   la aplicación del agente, en cinco idiomas
@@ -46,7 +47,7 @@ lib/sync        los cuatro barridos contra Sophon
 lib/sophon      el cliente HTTP con reintentos y cortacircuitos
 lib/i18n.ts     los cinco catálogos, completos y verificados por el compilador
 prisma          esquema y migraciones
-test            150 pruebas, sin base de datos: `npm test`
+test            167 pruebas, sin base de datos: `npm test`
 ```
 
 ### Idiomas
@@ -93,21 +94,27 @@ Todas las variables están documentadas una a una en **`.env.example`**. La
 aplicación las comprueba **al arrancar** (`lib/entorno.ts`) y distingue dos
 niveles:
 
-- **Esenciales** — `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `CLAVE_CIFRADO`,
-  `PIMIENTA_OTP`. Sin ellas el proceso **no arranca** en producción. Es
+- **Esenciales** — `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `CLAVE_CIFRADO`.
+  Sin ellas el proceso **no arranca** en producción. Es
   deliberado: un contenedor que se niega a arrancar se ve en el panel de
   despliegue en treinta segundos, mientras que uno que arranca a medias se
   descubre sobre un usuario real.
 - **De función** — el resto. La aplicación sirve, pero una pieza concreta queda
   apagada y el arranque lo dice por consola nombrando qué se ha perdido.
 
-Los dos secretos que hay que generar:
+**Un solo secreto que generar:**
 
 ```bash
-openssl rand -base64 32   # CLAVE_CIFRADO — cifra las wallets de los retiros
-openssl rand -base64 32   # PIMIENTA_OTP  — pimienta del hash de los OTP
-openssl rand -hex 32      # CRON_SECRET   — protege /api/cron
+openssl rand -base64 32   # CLAVE_CIFRADO
 ```
+
+`PIMIENTA_OTP`, `TELEGRAM_WEBHOOK_SECRET` y `CRON_SECRET` **ya no se piden**: se
+derivan por HMAC de una raíz que ya existe, con una etiqueta por uso
+(`lib/secretos.ts`). No eran hechos del mundo, sino cadenas que solo tenían que
+ser imposibles de adivinar y coincidir a los dos lados — y eso se calcula. Las
+dos últimas eran además fallos silenciosos cuando faltaban: el bot respondía 503
+a Telegram y los barridos respondían 503 al planificador, sin nadie mirando. Si
+las declaras, mandan ellas.
 
 `CLAVE_CIFRADO` perdida no rompe nada ni impide cobrar: deja ilegibles las
 wallets ya guardadas, así que un retiro pendiente habría que volver a pedirlo.
@@ -134,7 +141,7 @@ npm run dev
 Comprobaciones:
 
 ```bash
-npm run comprobar   # typecheck + las 150 pruebas. Es lo que corre en CI
+npm run comprobar   # typecheck + las 167 pruebas. Es lo que corre en CI
 npm test            # solo las pruebas: sin base de datos y sin red
 npm run typecheck
 ```
@@ -188,10 +195,10 @@ variables desde su panel.
    con `?connection_limit=10` al final. Sin ese tope Prisma abre
    `núcleos × 2 + 1` conexiones y agota el cupo de una base pequeña.
 3. El resto de variables, en el panel. Están todas en `.env.example`.
-4. `npm run bot:configurar` desde un clon, con `APP_URL` apuntando ya al
-   dominio. No se puede lanzar dentro del contenedor: la imagen final no copia
-   `scripts/`.
-5. Poner las líneas del planificador (abajo).
+4. Nada más. **El bot se configura solo al arrancar** —webhook, comandos en los
+   cinco idiomas y botón de menú— y **los barridos corren dentro del proceso**.
+   Antes esto eran dos pasos manuales que, olvidados, dejaban el bot mudo y la
+   aplicación sin devengar, en los dos casos sin un error que mirar.
 
 **Las migraciones no se lanzan a mano nunca.** El `CMD` de la imagen ejecuta
 `prisma migrate deploy` antes de servir, y hace falta también sobre una base
@@ -205,30 +212,40 @@ de verdad y responde `503` si no contesta o si falta una variable esencial.
 
 ---
 
-## El planificador, y por qué la línea de las 16:05 no es opcional
+## Los barridos, y por qué la cita de las 16:05 no es opcional
 
-Sophon no tiene webhooks: todo es *polling* contra `/api/cron`. El secreto viaja
-en la cabecera `x-cron-secret` y no como parámetro de URL, porque los parámetros
-acaban en los logs de acceso de cualquier proxy.
+Sophon no tiene webhooks: todo es *polling*. **Lo dispara la propia aplicación**
+(`lib/sync/planificador.ts`), no un cron externo:
 
-```cron
- 5 16  * * *   curl -XPOST -H "x-cron-secret: $CRON_SECRET" $APP_URL/api/cron?tarea=todo
-*/30  * * * *  ...  ?tarea=registros
-*/30  * * * *  ...  ?tarea=webmasters
- 0    * * * *  ...  ?tarea=tesoreria
-30    7 * * *  ...  ?tarea=avisos
+| Cuándo (UTC) | Qué |
+|---|---|
+| cada 30 min | registros y webmasters |
+| cada hora | tesorería |
+| **16:05** | **el cierre**: registros, webmasters, tesorería y avisos |
+| 07:30 | avisos al agente |
+
+La cita de las **16:05** es la que recoge el cierre: Sophon cierra su día
+contable a las 00:00 UTC+8 —las 16:00 UTC— y publica entonces los contadores del
+día que acaba. Las demás mantienen la pantalla fresca durante la jornada.
+
+Es un tic por minuto con una tabla de citas, y no un intervalo por tarea, por dos
+motivos: el cierre es **una hora concreta**, que con intervalos se cumple por
+casualidad; y los intervalos derivan —uno de 30 minutos que arranca a las 14:07
+dispara a y 37, y 07…—. Cada barrido toma un **cerrojo consultivo de Postgres**,
+así que varias réplicas o dos vueltas solapadas no se pisan: la primera trabaja y
+las demás se retiran.
+
+En desarrollo el reloj **no** arranca —un barrido automático hablaría con Sophon
+de verdad y escribiría en el ledger sin que nadie lo pida—. Para forzar una
+vuelta, a mano y en cualquier entorno:
+
+```bash
+curl -XPOST -H "x-cron-secret: $CRON_SECRET" $APP_URL/api/cron?tarea=todo
 ```
 
-Las horas van en **UTC**. La línea de las **16:05** es la que recoge el cierre:
-Sophon cierra su día contable a las 00:00 UTC+8 —las 16:00 UTC— y publica
-entonces los contadores del día que acaba. Las demás mantienen la pantalla
-fresca durante el día.
-
-Si ninguna llega a ponerse, la portada del panel lo dice: avisa cuando no ha
-corrido ningún barrido de registros desde el último cierre de Sophon. **Un
-planificador mal configurado no puede ser invisible.**
-
----
+Si el reloj se para, el panel lo dice: avisa arriba cuando no ha corrido ningún
+barrido de registros desde el último cierre de Sophon. **Un sistema que no
+sincroniza no puede ser invisible.**
 
 ## Operación diaria
 

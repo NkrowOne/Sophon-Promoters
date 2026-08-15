@@ -35,6 +35,21 @@ interface Requisito {
   alternativa?: string;
 }
 
+/*
+ * TRES VARIABLES QUE YA NO SE PIDEN.
+ *
+ * `PIMIENTA_OTP`, `TELEGRAM_WEBHOOK_SECRET` y `CRON_SECRET` no eran hechos del
+ * mundo —no son la contraseña de nadie ni el nombre de un dominio—: eran cadenas
+ * aleatorias cuyo único requisito es ser imposibles de adivinar y ser la misma a
+ * los dos lados. Eso se deriva (`lib/secretos.ts`), y derivar es mejor que
+ * pedir: no hay nada que copiar, nada que pegar mal y nada que se quede sin
+ * poner. Si alguna está declarada, manda ella.
+ *
+ * Las dos últimas eran además fallos SILENCIOSOS cuando faltaban: el bot
+ * respondía 503 a Telegram y los barridos respondían 503 al planificador, y en
+ * ninguno de los dos casos hay nadie mirando.
+ */
+
 /** 32 bytes en base64, que es lo que exige AES-256. */
 function claveDe32Bytes(valor: string): string | null {
   const b = Buffer.from(valor, "base64");
@@ -54,12 +69,13 @@ const ESENCIALES: readonly Requisito[] = [
     para: "cifrar las wallets de los retiros",
     formato: claveDe32Bytes,
   },
-  { nombre: "PIMIENTA_OTP", para: "el hash de los códigos de acceso por correo" },
 ];
 
 const DE_FUNCION: readonly Requisito[] = [
-  { nombre: "APP_URL", para: "los enlaces que manda el bot (entrada al panel, alta de agentes)" },
-  { nombre: "TELEGRAM_WEBHOOK_SECRET", para: "el bot: /api/bot responde 503 sin esto" },
+  {
+    nombre: "APP_URL",
+    para: "los enlaces del bot y el registro del webhook; sin ella el bot no se configura",
+  },
   {
     nombre: "TELEGRAM_OPERADOR_ID",
     para: "el panel del Operador, sus comandos del bot y los avisos de retiro",
@@ -67,7 +83,6 @@ const DE_FUNCION: readonly Requisito[] = [
     // en el panel de despliegue, no aquí. Ver `lib/operador.ts`.
     alternativa: "TELEGRAM_SUPERADMIN_ID",
   },
-  { nombre: "CRON_SECRET", para: "los barridos: /api/cron responde 503 sin esto" },
   { nombre: "SMTP_HOST", para: "el envío de los códigos de acceso; sin él nadie puede darse de alta" },
   { nombre: "SOPHON_EMAIL", para: "leer registros e ingresos de Sophon" },
   { nombre: "SOPHON_PASSWORD", para: "leer registros e ingresos de Sophon" },
