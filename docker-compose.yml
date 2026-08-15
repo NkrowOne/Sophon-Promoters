@@ -97,14 +97,29 @@ services:
     labels:
       traefik.enable: "true"
       traefik.http.services.sophon-promoters.loadbalancer.server.port: "3000"
-      # ⚠️ AQUÍ FALTA EL ENRUTADOR, y falta a sabiendas. Un `rule=Host(...)` va
-      # acompañado de `entrypoints` y `certresolver`, y esos dos nombres son de
-      # la instalación de Traefik, no del proyecto: ponerlos a ojo daría un
-      # servicio que Traefik ve y no publica, o que publica sin TLS —y sin TLS
-      # Telegram no abre la Mini App—.
+      # ⚠️ AQUÍ FALTA EL ENRUTADOR, y su ausencia ya costó un despliegue.
       #
-      # Si Skyway no monta el enrutador solo a partir del dominio de su panel,
-      # se añaden aquí tres etiquetas con los nombres reales de tu instalación:
-      #   traefik.http.routers.sophon-promoters.rule: Host(`promoters.example.com`)
+      # SÍNTOMA, por si vuelve: Traefik contesta `404 page not found` en TODAS
+      # las rutas —incluida `/`— y sirve un certificado autofirmado, así que el
+      # navegador da error de SSL. Las dos cosas son la misma: sin enrutador no
+      # hay a quién enviar la petición, y tampoco hay para qué host pedirle un
+      # certificado al `certresolver`.
+      #
+      # CÓMO DISTINGUIRLO de un fallo de la aplicación, en un comando:
+      #
+      #   curl -sk -D- https://promoters.nkrow.com/api/salud
+      #
+      # Si responde `404 page not found` con `content-length: 19` y SIN las
+      # cabeceras `Strict-Transport-Security` ni `Referrer-Policy`, quien
+      # contesta es Traefik y la petición no ha llegado al contenedor. Si llega,
+      # la respuesta es JSON.
+      #
+      # Las tres etiquetas van descomentadas AQUÍ solo si el panel de Skyway no
+      # monta el enrutador por su cuenta. Los dos últimos nombres son de tu
+      # instalación de Traefik, no del proyecto —cópialos de otro servicio que ya
+      # publique bien—: puestos a ojo dan un servicio que Traefik ve y no
+      # publica, o que publica sin TLS, y sin TLS Telegram no abre la Mini App.
+      #
+      #   traefik.http.routers.sophon-promoters.rule: Host(`promoters.nkrow.com`)
       #   traefik.http.routers.sophon-promoters.entrypoints: <el de HTTPS>
       #   traefik.http.routers.sophon-promoters.tls.certresolver: <el tuyo>
