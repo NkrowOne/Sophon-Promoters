@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { PrismaClient } from "@prisma/client";
 
 /**
@@ -18,38 +20,112 @@ export const db =
 if (process.env.NODE_ENV !== "production") global_.prisma = db;
 
 /**
- * Claves de bloqueo consultivo de Postgres.
+ * Las claves de los cerrojos de barrido.
  *
- * Los barridos se disparan por cron y pueden solaparse si uno tarda más de su
- * intervalo. Sin bloqueo, dos ejecuciones simultáneas leerían el mismo estado
+ * Los barridos se disparan por reloj y pueden solaparse si uno tarda más que su
+ * intervalo. Sin cerrojo, dos ejecuciones simultáneas leerían el mismo estado
  * «ya asentado» y escribirían el mismo devengo dos veces: la clave de
  * idempotencia frenaría la segunda, pero con un error feo en vez de un
  * comportamiento previsto.
  */
 export const CERROJO = {
-  SYNC_REGISTROS: 811_001,
-  SYNC_WEBMASTERS: 811_002,
-  SYNC_TESORERIA: 811_003,
-  SYNC_AVISOS: 811_004,
+  SYNC_REGISTROS: "sync.registros",
+  SYNC_WEBMASTERS: "sync.webmasters",
+  SYNC_TESORERIA: "sync.tesoreria",
+  SYNC_AVISOS: "sync.avisos",
 } as const;
 
+export type ClaveCerrojo = (typeof CERROJO)[keyof typeof CERROJO];
+
 /**
- * Ejecuta `fn` sosteniendo un bloqueo consultivo. Si otro proceso lo tiene,
- * devuelve `null` de inmediato en lugar de esperar: para un barrido periódico
- * es preferible saltarse una vuelta que encolar ejecuciones.
+ * Quién sostiene el cerrojo. Uno por proceso, para poder soltar solo lo propio.
+ *
+ * `randomUUID` y no el PID: en un despliegue con varias réplicas los PID se
+ * repiten —cada contenedor empieza por 1— y dos réplicas distintas se creerían
+ * la misma.
+ */
+const YO = randomUUID();
+
+/**
+ * Cuánto vale un cerrojo antes de considerarse abandonado.
+ *
+ * Es el seguro contra un proceso que muere a mitad de barrido: sin caducidad, un
+ * contenedor reiniciado en el peor momento dejaría el cerrojo tomado para
+ * siempre y ningún barrido volvería a correr jamás.
+ *
+ * Quince minutos: mucho más de lo que tarda el barrido más largo —los medidos
+ * van entre 1,7 y 3,1 segundos— y menos que la cadencia de 30 minutos, así que
+ * un abandono se recupera antes de la vuelta siguiente.
+ */
+const VIDA_MS = 15 * 60_000;
+
+/**
+ * Ejecuta `fn` sosteniendo el cerrojo. Si otro lo tiene, devuelve `null` de
+ * inmediato en lugar de esperar: para un barrido periódico es preferible
+ * saltarse una vuelta que encolar ejecuciones.
+ *
+ * ── POR QUÉ NO SON YA BLOQUEOS CONSULTIVOS DE POSTGRES ──
+ *
+ * Lo eran, y estaban rotos de una forma que solo se ve en el log de la base:
+ *
+ *     WARNING: you don't own a lock of type ExclusiveLock
+ *
+ * Los bloqueos consultivos de Postgres son **por sesión**, y Prisma reparte las
+ * consultas entre las conexiones de un pool. Así que
+ * `SELECT pg_try_advisory_lock(...)` se ejecutaba en una conexión y el
+ * `pg_advisory_unlock(...)` del `finally` en OTRA: el aviso lo emite la segunda,
+ * que efectivamente no tenía nada que soltar.
+ *
+ * Y lo grave no es el aviso: **el bloqueo de la primera conexión no se soltaba
+ * nunca**. Se quedaba tomado mientras esa conexión viviera en el pool, de modo
+ * que a partir de ahí `pg_try_advisory_lock` devolvía falso y TODOS los barridos
+ * siguientes se saltaban en silencio —`conCerrojo` devuelve `null`, que el
+ * llamante lee como «ya hay otro en curso»—. El síntoma sería el peor de todos:
+ * un devengado clavado, sin un solo error, hasta que alguien reiniciara.
+ *
+ * Un cerrojo en una FILA no depende de qué conexión lo tome. Sobrevive al
+ * reparto del pool, se ve con un `SELECT` cuando hay que depurarlo, y caduca
+ * solo si quien lo tenía se muere.
  */
 export async function conCerrojo<T>(
-  clave: number,
+  clave: ClaveCerrojo,
   fn: () => Promise<T>,
+  vidaMs: number = VIDA_MS,
 ): Promise<T | null> {
-  const [fila] = await db.$queryRaw<{ pg_try_advisory_lock: boolean }[]>`
-    SELECT pg_try_advisory_lock(${clave}::bigint)
+  /*
+   * Tomarlo es UNA sentencia, y tiene que serlo.
+   *
+   * `ON CONFLICT ... DO UPDATE ... WHERE` es atómico: o inserta, o pisa un
+   * cerrojo caducado, o no hace nada. Leer primero y escribir después dejaría
+   * una ventana entre las dos en la que dos réplicas se lo llevarían las dos.
+   *
+   * `$executeRaw` devuelve el número de filas afectadas: 1 si es nuestro, 0 si
+   * lo tiene otro y sigue vigente.
+   */
+  const tomadas = await db.$executeRaw`
+    INSERT INTO "Cerrojo" ("clave", "duenno", "tomadoEn", "expiraEn")
+    VALUES (${clave}, ${YO}, now(), now() + make_interval(secs => ${vidaMs / 1000}))
+    ON CONFLICT ("clave") DO UPDATE
+      SET "duenno" = EXCLUDED."duenno",
+          "tomadoEn" = EXCLUDED."tomadoEn",
+          "expiraEn" = EXCLUDED."expiraEn"
+      WHERE "Cerrojo"."expiraEn" < now()
   `;
-  if (!fila?.pg_try_advisory_lock) return null;
+  if (tomadas === 0) return null;
 
   try {
     return await fn();
   } finally {
-    await db.$queryRaw`SELECT pg_advisory_unlock(${clave}::bigint)`;
+    /*
+     * Se suelta solo lo PROPIO.
+     *
+     * El `AND "duenno"` no es celo: si nuestro cerrojo hubiera caducado a mitad
+     * de barrido y otro proceso lo hubiera tomado, un borrado a secas le
+     * quitaría el suyo y los dos acabarían corriendo a la vez, que es
+     * exactamente lo que este código existe para impedir.
+     */
+    await db.$executeRaw`
+      DELETE FROM "Cerrojo" WHERE "clave" = ${clave} AND "duenno" = ${YO}
+    `;
   }
 }

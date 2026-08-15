@@ -639,3 +639,28 @@ model Configuracion {
   valor         String
   actualizadoEn DateTime @updatedAt
 }
+
+/// Cerrojo de exclusión entre barridos, en una FILA y no en un bloqueo
+/// consultivo de Postgres.
+///
+/// Los consultivos son por SESIÓN, y Prisma reparte las consultas entre las
+/// conexiones de un pool: el `pg_try_advisory_lock` caía en una conexión y el
+/// `pg_advisory_unlock` en otra, de modo que el bloqueo no se soltaba nunca y a
+/// partir de ahí todos los barridos se saltaban en silencio. Se vio en el log de
+/// la base: «you don't own a lock of type ExclusiveLock».
+model Cerrojo {
+  clave String @id
+
+  /// Identificador del proceso que lo tiene. Se compara al soltarlo para no
+  /// quitarle el cerrojo a quien lo haya tomado después de caducar el nuestro.
+  duenno String
+
+  tomadoEn DateTime @default(now())
+
+  /// Caducidad. Es el seguro contra un proceso que muere a mitad de barrido:
+  /// sin ella, un reinicio en el peor momento dejaría el cerrojo tomado para
+  /// siempre y ningún barrido volvería a correr.
+  expiraEn DateTime
+
+  @@index([expiraEn])
+}
