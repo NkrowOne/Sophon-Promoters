@@ -29,6 +29,15 @@ export interface ResultadoConfiguracion {
   detalle: string;
   /** Huella de lo aplicado; sirve para no repetir el trabajo en cada arranque. */
   huella?: string;
+  /**
+   * Los comandos de gestión no han podido registrarse porque el Operador aún no
+   * le ha escrito al bot.
+   *
+   * Quien llama NO debe guardar la huella en este caso: si la guardara, daría la
+   * configuración por completa y no volvería a intentarlo nunca, ni siquiera
+   * después de que el Operador escriba `/start`.
+   */
+  operadorPendiente?: boolean;
 }
 
 /**
@@ -154,14 +163,42 @@ export async function configurarBot(): Promise<ResultadoConfiguracion> {
     });
   }
 
-  // Los comandos de gestión, solo en el chat del Operador: un agente no debería
-  // ni ver en el menú lo que no puede usar.
+  /*
+   * Los comandos de gestión, solo en el chat del Operador: un agente no debería
+   * ni ver en el menú lo que no puede usar.
+   *
+   * ── ESTO NO PUEDE SER FATAL, Y LO FUE ──
+   *
+   * Telegram responde `Bad Request: chat not found` cuando todavía no existe
+   * conversación entre el bot y esa cuenta, y esa conversación solo nace cuando
+   * el Operador le escribe `/start` una vez. O sea: en un despliegue nuevo esta
+   * llamada falla SIEMPRE, porque el bot acaba de existir.
+   *
+   * Y al fallar se llevaba por delante el resto: la excepción salía de
+   * `configurarBot` y el botón de menú —que va justo detrás— no llegaba a
+   * registrarse nunca. El webhook y los comandos de los cinco idiomas sí habían
+   * quedado puestos, así que el bot funcionaba a medias sin que el log dijera
+   * qué parte había entrado y cuál no.
+   *
+   * Ahora se intenta, se anota si no ha podido ser, y se sigue. Quien lea el log
+   * se encuentra con lo único que hay que hacer —escribirle `/start` al bot— en
+   * vez de con una traza.
+   */
   const operador = idOperador();
+  let operadorPendiente = false;
   if (operador) {
-    await llamar(token, "setMyCommands", {
-      commands: COMANDOS_OPERADOR,
-      scope: { type: "chat", chat_id: Number(operador) },
-    });
+    try {
+      await llamar(token, "setMyCommands", {
+        commands: COMANDOS_OPERADOR,
+        scope: { type: "chat", chat_id: Number(operador) },
+      });
+    } catch (e) {
+      operadorPendiente = true;
+      console.warn(
+        `[bot] los comandos de gestión quedan pendientes (${e instanceof Error ? e.message : e}). ` +
+          "Escríbele /start al bot desde la cuenta del Operador y se registrarán al siguiente arranque.",
+      );
+    }
   }
 
   // «Panel» y no el nombre del producto: dentro de Telegram el nombre del bot ya
@@ -170,9 +207,16 @@ export async function configurarBot(): Promise<ResultadoConfiguracion> {
     menu_button: { type: "web_app", text: "Panel", web_app: { url } },
   });
 
+  const pendiente = !operador
+    ? " · sin comandos de gestión: falta el id del Operador"
+    : operadorPendiente
+      ? " · comandos de gestión PENDIENTES: escríbele /start al bot desde la cuenta del Operador"
+      : "";
+
   return {
     ok: true,
-    detalle: `bot apuntando a ${url}/api/bot${operador ? "" : " (sin comandos de gestión: falta el id del Operador)"}`,
+    detalle: `bot apuntando a ${url}/api/bot${pendiente}`,
     huella: huellaConfiguracion(url),
+    operadorPendiente,
   };
 }
