@@ -7,6 +7,7 @@ import { formatearMicros } from "../devengo/dinero.ts";
 import { cadenas, type Cadenas } from "../i18n.ts";
 import { idiomaDesdeTelegram } from "../idiomas.ts";
 import { esOperador } from "../operador.ts";
+import { tokenBot } from "./token.ts";
 
 /**
  * El bot.
@@ -38,7 +39,10 @@ let instancia: Bot | null = null;
 export function bot(): Bot {
   if (instancia) return instancia;
 
-  const token = process.env["TELEGRAM_BOT_TOKEN"];
+  // Por `tokenBot()` y no por `process.env` a pelo: aquí se leía sin recortar y
+  // en `validarInitData` también, así que un espacio de más rompía la firma de
+  // la Mini App mientras el bot seguía contestando. Ver `lib/bot/token.ts`.
+  const token = tokenBot();
   if (!token) throw new Error("falta TELEGRAM_BOT_TOKEN");
 
   // `TELEGRAM_API_ROOT` permite apuntar a un servidor Bot API propio, que es
@@ -306,6 +310,37 @@ function registrar(b: Bot): void {
       // gastaría el enlace de un solo uso antes de que nadie lo tocara.
       { link_preview_options: { is_disabled: true } },
     );
+  });
+
+  /*
+   * POR QUÉ NO SE VERIFICA EL ACCESO, EN LA PANTALLA DEL OPERADOR.
+   *
+   * «Telegram no ha verificado tu acceso» es un 401 con cinco causas posibles y
+   * ninguna distinguible desde fuera. El motivo se escribe en el registro del
+   * servidor, pero eso obliga a tener abierto el panel de despliegue en el mismo
+   * instante en que alguien abre la app, con el móvil en la otra mano.
+   *
+   * Este comando abre `/diagnostico`, que lo dice en dos segundos y mirando las
+   * dos mitades del circuito. Va con botón `web_app` y no como enlace: la mitad
+   * de la respuesta es si Telegram entrega el `initData`, y eso solo pasa cuando
+   * la app se abre desde dentro de Telegram. Un enlace normal abriría el
+   * navegador y daría siempre el mismo «no hay initData», que es la respuesta
+   * equivocada a la pregunta.
+   *
+   * Solo el Operador, como `/panel`: no es una pantalla de agente.
+   */
+  b.command("diagnostico", async (ctx) => {
+    if (!esOperador(ctx.from?.id)) return;
+
+    const url = urlMiniApp();
+    if (!url.startsWith("https://")) {
+      await ctx.reply("Falta APP_URL en HTTPS: sin ella no hay Mini App que diagnosticar.");
+      return;
+    }
+
+    await ctx.reply("Ábrelo desde aquí, no por enlace: hace falta que lo abra Telegram.", {
+      reply_markup: new InlineKeyboard().webApp("Diagnóstico", `${url}/diagnostico`),
+    });
   });
 
   b.command("ayuda", async (ctx) => {

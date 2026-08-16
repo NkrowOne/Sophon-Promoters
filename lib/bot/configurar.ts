@@ -20,6 +20,7 @@ import { cadenas, type Cadenas } from "../i18n.ts";
 import { IDIOMAS } from "../idiomas.ts";
 import { idOperador } from "../operador.ts";
 import { secretoWebhook } from "../secretos.ts";
+import { tokenBot } from "./token.ts";
 
 const API = process.env["TELEGRAM_API_URL"] ?? "https://api.telegram.org";
 
@@ -71,6 +72,7 @@ const COMANDOS_OPERADOR = [
   { command: "codigo", description: "Generar un código de activación" },
   { command: "agentes", description: "Agentes dados de alta" },
   { command: "retiros", description: "Retiros pendientes de pagar" },
+  { command: "diagnostico", description: "Por qué no verifica el acceso" },
   { command: "ayuda", description: "Comandos disponibles" },
 ];
 
@@ -111,7 +113,7 @@ export function huellaConfiguracion(url: string): string {
  * exacto para enseñarlo.
  */
 export async function configurarBot(): Promise<ResultadoConfiguracion> {
-  const token = process.env["TELEGRAM_BOT_TOKEN"]?.trim();
+  const token = tokenBot();
   if (!token) return { ok: false, detalle: "sin TELEGRAM_BOT_TOKEN" };
 
   const url = (process.env["APP_URL"] ?? "").trim().replace(/\/+$/, "");
