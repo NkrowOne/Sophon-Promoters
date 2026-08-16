@@ -11,6 +11,7 @@
 import { cookies } from "next/headers";
 
 import { db } from "../db.ts";
+import { tokenBot } from "../bot/token.ts";
 import { generarTokenSesion, hashToken } from "../cripto.ts";
 import { idiomaGuardado, type Idioma } from "../idiomas.ts";
 import { validarInitData, type UsuarioTelegram } from "./telegram.ts";
@@ -148,20 +149,67 @@ export async function revocarSesiones(agenteId: string): Promise<void> {
 }
 
 /**
+ * Un motivo de rechazo, como mucho una vez por minuto.
+ *
+ * Sin freno, una Mini App que no autentica es un bucle: cada pantalla reintenta,
+ * cada reintento escribe, y el registro se llena de la misma línea hasta tapar
+ * todo lo demás. Con freno se lee igual de bien y no ahoga nada.
+ *
+ * A nivel de módulo porque el proceso es uno y el freno tiene que ser común a
+ * todas las peticiones; el mapa tiene como mucho media docena de entradas.
+ */
+const ultimoAviso = new Map<string, number>();
+const CADA_MS = 60_000;
+
+function avisar(motivo: string): void {
+  const ahora = Date.now();
+  const previo = ultimoAviso.get(motivo) ?? 0;
+  if (ahora - previo < CADA_MS) return;
+  ultimoAviso.set(motivo, ahora);
+  console.warn(`[auth] initData rechazado: ${motivo}`);
+}
+
+/**
  * Verifica el `initData` de la petición y devuelve el usuario de Telegram.
  *
  * Es el suelo de confianza de toda la API: sin esto, cualquiera podría llamar a
  * los endpoints declarando el `telegramId` que quisiera. La cookie de sesión
  * identifica al agente, pero el `initData` prueba que la petición sale de
  * Telegram de verdad.
+ *
+ * ── POR QUÉ ESCRIBE EN EL REGISTRO ──
+ *
+ * Este `catch` estaba vacío, y ese vacío costó una tarde. La Mini App abría, el
+ * bot respondía, y toda petición moría en un 401 que decía «Telegram no ha
+ * verificado tu acceso» mientras en los registros del servidor **no aparecía
+ * absolutamente nada**. No había forma de distinguir desde fuera las cinco cosas
+ * distintas que producen ese mismo 401: que la app se haya abierto en un
+ * navegador suelto, que falte el token, que el token no case con el del bot que
+ * firmó, que el `initData` haya caducado o que venga incompleto.
+ *
+ * Ahora cada una escribe su motivo. Lo que NO se escribe es el `initData`: lleva
+ * el nombre y el id de Telegram del agente, y un registro no es sitio para eso.
+ * El motivo basta, porque es justo lo que no se podía deducir.
  */
 export function telegramDeLaPeticion(peticion: Request): UsuarioTelegram | null {
   const initData = peticion.headers.get("x-telegram-init-data");
-  const tokenBot = process.env["TELEGRAM_BOT_TOKEN"];
-  if (!initData || !tokenBot) return null;
+  const token = tokenBot();
+  if (!token) {
+    avisar("falta TELEGRAM_BOT_TOKEN: no hay con qué verificar la firma");
+    return null;
+  }
+  /*
+   * Sin cabecera es el caso normal de abrir la URL fuera de Telegram, así que se
+   * anota como información y no como fallo: no hay nada roto que arreglar.
+   */
+  if (!initData) {
+    avisar("la petición no trae la cabecera x-telegram-init-data (¿abierta fuera de Telegram?)");
+    return null;
+  }
   try {
-    return validarInitData(initData, tokenBot).usuario;
-  } catch {
+    return validarInitData(initData, token).usuario;
+  } catch (e) {
+    avisar(e instanceof Error ? e.message : "motivo desconocido");
     return null;
   }
 }

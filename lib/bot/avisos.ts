@@ -20,6 +20,7 @@
 import { cadenas } from "../i18n.ts";
 import { idiomaGuardado } from "../idiomas.ts";
 import { idOperador } from "../operador.ts";
+import { tokenBot } from "./token.ts";
 
 /**
  * Dónde vive la Bot API.
@@ -37,7 +38,7 @@ import { idOperador } from "../operador.ts";
 const API_TELEGRAM = process.env["TELEGRAM_API_URL"] ?? "https://api.telegram.org";
 
 async function enviarA(destino: string | null, texto: string): Promise<void> {
-  const token = process.env["TELEGRAM_BOT_TOKEN"];
+  const token = tokenBot();
   if (!token || !destino) {
     console.warn("[bot] sin token o sin destinatario: aviso omitido");
     return;

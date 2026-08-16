@@ -7,6 +7,7 @@ import { formatearMicros } from "../devengo/dinero.ts";
 import { cadenas, type Cadenas } from "../i18n.ts";
 import { idiomaDesdeTelegram } from "../idiomas.ts";
 import { esOperador } from "../operador.ts";
+import { tokenBot } from "./token.ts";
 
 /**
  * El bot.
@@ -38,7 +39,10 @@ let instancia: Bot | null = null;
 export function bot(): Bot {
   if (instancia) return instancia;
 
-  const token = process.env["TELEGRAM_BOT_TOKEN"];
+  // Por `tokenBot()` y no por `process.env` a pelo: aquí se leía sin recortar y
+  // en `validarInitData` también, así que un espacio de más rompía la firma de
+  // la Mini App mientras el bot seguía contestando. Ver `lib/bot/token.ts`.
+  const token = tokenBot();
   if (!token) throw new Error("falta TELEGRAM_BOT_TOKEN");
 
   // `TELEGRAM_API_ROOT` permite apuntar a un servidor Bot API propio, que es

@@ -44,6 +44,8 @@
 
 import { createHmac } from "node:crypto";
 
+import { tokenBot } from "./bot/token.ts";
+
 /** La raíz de la casa. Se lee aquí y no se importa de `cripto.ts` para no dar el rodeo. */
 function claveMaestra(): Buffer {
   const bruto = process.env["CLAVE_CIFRADO"];
@@ -69,7 +71,7 @@ export function secretoWebhook(): string | null {
   const declarado = process.env["TELEGRAM_WEBHOOK_SECRET"]?.trim();
   if (declarado) return declarado;
 
-  const token = process.env["TELEGRAM_BOT_TOKEN"]?.trim();
+  const token = tokenBot();
   // Sin token no hay bot en absoluto, así que tampoco hay secreto que derivar.
   if (!token) return null;
   return derivar(token, "webhook");

@@ -23,6 +23,7 @@
  * pasa cualquier `if (!clave)` y revienta en el primer cifrado.
  */
 
+import { pegaDelToken } from "./bot/token.ts";
 import { usaNombreAntiguo } from "./operador.ts";
 
 interface Requisito {
@@ -91,6 +92,42 @@ const DE_FUNCION: readonly Requisito[] = [
 export interface RevisionEntorno {
   faltanEsenciales: string[];
   faltanDeFuncion: string[];
+  /** Variables declaradas con espacios o saltos de línea alrededor. */
+  conEspacios: string[];
+}
+
+/**
+ * Variables pegadas con un espacio o un salto de línea de más.
+ *
+ * Es EL error del panel de despliegue —se copia el valor y se lleva el retorno
+ * de carro—, y hasta ahora no lo veía nadie porque todo el mundo recortaba…
+ * menos quien no lo hacía. El caso real: el token del bot con un salto de línea
+ * al final dejaba el bot funcionando (el analizador de URL borra los saltos de
+ * línea antes de llamar a Telegram) y la Mini App sin autenticar ni una sola
+ * petición, porque ahí el token es la clave de un HMAC y un byte de más cambia
+ * el resumen entero.
+ *
+ * Ya no rompe nada —se recorta en todas partes—, y aun así se avisa: una
+ * contraseña con un espacio al final es un inicio de sesión de Sophon que falla
+ * sin motivo aparente, y un `DATABASE_URL` con un salto es una conexión que se
+ * cae por «host desconocido». Vale más leerlo una vez al arrancar.
+ */
+function conEspaciosAlrededor(): string[] {
+  const nombres = [
+    ...ESENCIALES.flatMap((r) => [r.nombre, ...(r.alternativa ? [r.alternativa] : [])]),
+    ...DE_FUNCION.flatMap((r) => [r.nombre, ...(r.alternativa ? [r.alternativa] : [])]),
+    // No son requisito de nadie porque se derivan, pero si están declaradas
+    // tienen que coincidir byte a byte con el otro extremo.
+    "PIMIENTA_OTP",
+    "TELEGRAM_WEBHOOK_SECRET",
+    "CRON_SECRET",
+    "SMTP_USER",
+    "SMTP_PASSWORD",
+  ];
+  return nombres.filter((n) => {
+    const v = process.env[n];
+    return typeof v === "string" && v.length > 0 && v !== v.trim();
+  });
 }
 
 function revisar(lista: readonly Requisito[]): string[] {
@@ -120,6 +157,7 @@ export function revisarEntorno(): RevisionEntorno {
   return {
     faltanEsenciales: revisar(ESENCIALES),
     faltanDeFuncion: revisar(DE_FUNCION),
+    conEspacios: conEspaciosAlrededor(),
   };
 }
 
@@ -132,7 +170,19 @@ export function revisarEntorno(): RevisionEntorno {
  * la comprobación en algo que se desactiva. Avisa igual de fuerte.
  */
 export function exigirEntorno(): void {
-  const { faltanEsenciales, faltanDeFuncion } = revisarEntorno();
+  const { faltanEsenciales, faltanDeFuncion, conEspacios } = revisarEntorno();
+
+  if (conEspacios.length > 0) {
+    console.warn(
+      `[entorno] con espacios o saltos de línea alrededor: ${conEspacios.join(", ")}. ` +
+        "Se recortan al leerlas, pero repásalas en el panel de despliegue.",
+    );
+  }
+
+  // El token del bot aparte, porque su forma se puede comprobar y porque es el
+  // único valor cuyo defecto no se manifiesta donde se usa.
+  const pega = pegaDelToken();
+  if (pega) console.warn(`[entorno] TELEGRAM_BOT_TOKEN ${pega}`);
 
   // El respaldo funciona, pero callarlo lo convertiría en permanente.
   if (usaNombreAntiguo()) {
