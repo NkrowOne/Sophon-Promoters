@@ -147,8 +147,22 @@ function Junta({ mes, total }: { mes: string; total?: string }) {
       <span className="text-rotulo text-texto-apoyo">
         {meses[Number(m) - 1]} {anio}
       </span>
+      {/*
+        El total del mes es la única cifra de la columna que no es un día, y a
+        14 px de apoyo se perdía entre las setenta que tiene encima y debajo:
+        bajando deprisa, el hito que el agente viene buscando pasaba de largo.
+        Sube a cuerpo y a tinta plena, que es lo que lo separa de sus vecinas.
+
+        Se probó en PÍLDORA y no vale aquí, y merece quedar escrito: la cápsula
+        neutra se pinta sobre `--superficie-alta`, y en claro eso es #f5f5f6
+        sobre el #fafafa de esta banda —una silueta que no existe—. El contraste
+        sí funciona en las dos polaridades, que es de lo que va esta paleta.
+
+        Solo cuando hay total: la variante densa de la ficha usa esta misma junta
+        sin él, y allí sigue siendo la línea de 2 px de siempre.
+      */}
       {total && (
-        <span className="cifra text-apoyo font-semibold">
+        <span className="cifra text-cuerpo font-semibold text-texto">
           <ImporteDesnudo texto={total} />
         </span>
       )}
@@ -244,7 +258,19 @@ function FilaTocable({
         aria-expanded={abierto}
         className="pulsable -mx-2 flex min-h-11 w-full items-center gap-2.5 rounded-control px-2 py-1.5 text-start"
       >
-        <span className="cifra w-14 shrink-0 text-apoyo text-texto-apoyo">
+        {/* Abierta, la fecha pasa a tinta plena. El desglose se abre debajo de
+            una fila idéntica a las otras sesenta y nueve, y sin esto hay que
+            volver a buscar de qué día era lo que se está leyendo. Va por
+            contraste y no por un velo de fondo: `superficie-alta` sobre
+            `superficie` son #f5f5f6 sobre #fafafa en claro, o sea nada.
+
+            Solo el color, sin tocar el peso: la casilla mide 56 px fijos y en
+            semibold «31 dic» se sale por la derecha justo encima de la banda. */}
+        <span
+          className={`cifra w-14 shrink-0 text-apoyo ${
+            abierto ? "text-texto" : "text-texto-apoyo"
+          }`}
+        >
           {dia.fecha.slice(8)} {meses[Number(dia.fecha.slice(5, 7)) - 1]}
         </span>
         <Banda dia={dia} largo={largo} alto={14} />
@@ -264,9 +290,17 @@ function FilaTocable({
       {/* El desglose se ABRE EN LA FILA en vez de flotar: en móvil no hay
           puntero, así que un tooltip no llega a existir. Y empujar el contenido
           conserva el sitio del día en la columna, que es como el agente lo
-          está mirando. */}
+          está mirando.
+
+          En tarjeta de FILETE, y es sostenible porque solo hay una abierta a la
+          vez: la regla que prohíbe la tarjeta en lo denso —veinte sombras
+          seguidas son ruido— habla de veinte objetos simultáneos, no de uno. El
+          filete de un solo lado no cerraba el desglose por abajo y se leía como
+          una fila más de la columna con la sangría cambiada; la caja dice dónde
+          empieza y dónde acaba lo que se ha abierto. La sangría se conserva
+          igual, así que el sitio del día en la columna tampoco se pierde. */}
       {abierto && (
-        <div className="mb-1.5 ms-[54px] border-s-2 border-borde ps-2.5 text-apoyo tabular-nums text-texto-apoyo">
+        <div className="tarjeta-borde mb-2 ms-[54px] !px-3 !py-2.5 text-apoyo tabular-nums text-texto-apoyo">
           {etiquetas.desglose(dia.registros, dia.registrosT1, dia.registrosT2, dia.registrosT3)}
           {dia.usuariosPago > 0 && <> · {etiquetas.dePago(dia.usuariosPago)}</>}
           {/* «El día aún se está contando» no es una acción: no lleva chapa

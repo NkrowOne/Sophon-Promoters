@@ -3,11 +3,11 @@
 /**
  * La Malla: la superficie que responde «¿cuál de mis webmasters se ha apagado?».
  *
- * No es una lista. Una lista de tarjetas —nombre, cifra, flecha— obliga a leer
- * cada fila y a comparar de memoria, y con veinte webmasters eso ya no se hace.
- * Aquí cada webmaster es una **tesela con sus últimos 14 días en minibarras**,
- * y todas se ven a la vez: el que deja de producir aparece como un hueco oscuro
- * sin necesidad de leer un solo número.
+ * No es una lista. Una lista de filas —nombre, cifra, flecha— obliga a leer cada
+ * una y a comparar de memoria, y con veinte webmasters eso ya no se hace. Aquí
+ * cada webmaster es una **tesela con sus últimos 14 días en minibarras**, y
+ * todas se ven a la vez: el que deja de producir aparece como un hueco sin
+ * necesidad de leer un solo número.
  *
  * Esa es la única acción comercial que el agente tiene que tomar, así que es lo
  * que la pantalla hace evidente.
@@ -15,11 +15,21 @@
  * Cada marca codifica una cantidad real: altura de barra = registros del día,
  * densidad de tinta = tier.
  *
- * El estado se dibujaba en el MARCO de la tesela. Ya no: la tesela era una caja
- * con borde dentro de una banda con fondo dentro de la pantalla, y seis marcos
- * dibujados a la vez compiten con los datos que hay dentro de ellos. Ahora lo
- * lleva un icono en la línea de abajo, que se localiza igual de rápido en una
- * retícula y no obliga a envolver cada webmaster en su propia caja.
+ * ── LA TESELA VUELVE A TENER SUPERFICIE ──
+ *
+ * Estuvo sin marco, y por una razón buena: era una caja con borde dentro de una
+ * banda con fondo dentro de la pantalla, y seis marcos DIBUJADOS a la vez
+ * compiten con los datos que hay dentro de ellos. Pero quitarlo entero dejó una
+ * retícula de contenido flotando sobre nada, que es la otra mitad de «lo veo muy
+ * soso».
+ *
+ * Lo que vuelve no es el marco: es una TARJETA. La diferencia se ve —un filete
+ * llama la atención sobre sí mismo, una sombra llama la atención sobre lo que
+ * levanta— y es lo que permite que el estado baje a una PÍLDORA en vez de teñir
+ * un borde, que era justo lo que obligaba a dibujar seis cajas de colores.
+ *
+ * Y es el único sitio de la aplicación donde `tarjeta-pulsable` es literal: aquí
+ * la tarjeta ES el objeto que se abre, no una caja alrededor de un enlace.
  */
 
 import { useMemo } from "react";
@@ -49,7 +59,6 @@ export interface WebmasterMalla {
   serie: DiaWebmaster[];
 }
 
-const ANCHO_TESELA = 92;
 const ALTO_BARRAS = 34;
 
 /** Días sin actividad a partir de los cuales la tesela se marca como apagada. */
@@ -79,15 +88,16 @@ export function Malla({
 
   return (
     /*
-       El hueco separa las teselas, así que tiene que ser lo bastante ancho para
-       hacerlo SOLO: al quitarles el marco, con `gap-2.5` las dos columnas se
-       leían como una sola línea —«186   237,80 $   41   12,45 $»— y el ojo
-       saltaba de una tesela a la de al lado a mitad de cifra.
+       Doce de hueco, y el MISMO en los dos ejes.
 
-       El hueco horizontal es mayor que el vertical a propósito: en vertical ya
-       separa el cambio de nombre, en horizontal no hay nada más que separe.
+       Era `gap-x-4 gap-y-6` porque las teselas no tenían marco y el hueco era lo
+       único que las separaba: con menos, las dos columnas se leían como una sola
+       línea —«186   237,80 $   41   12,45 $»— y el ojo saltaba de una tesela a
+       la de al lado a mitad de cifra. Ahora separa la tarjeta, así que el hueco
+       vuelve a ser hueco; y cada píxel que se le dé aquí se lo quita a catorce
+       barras que en media pantalla de 390 ya van justas.
     */
-    <ul className="-mx-2 grid grid-cols-2 gap-x-4 gap-y-6" role="list">
+    <ul className="grid grid-cols-2 gap-3" role="list">
       {webmasters.map((w) => (
         <Tesela key={w.id} w={w} maximo={maximo} dias={dias} onAbrir={onAbrir} />
       ))}
@@ -186,6 +196,17 @@ function Tesela({
           ? "parado"
           : null;
 
+  /*
+   * El tono de la píldora, del mismo árbol y por el mismo motivo.
+   *
+   * Solo dos llevan color, y son los dos que abren una acción: lo que va MAL
+   * —peligro— y el PRO que se puede renovar hoy —aviso—. «Confirmando» y una
+   * racha sin actividad se quedan en neutro: son cosas que pasan solas o que ya
+   * cuenta la columna de barras, y teñirlas convertiría la retícula en la
+   * cuadrícula de cápsulas de colores que este sistema evita a propósito.
+   */
+  const tono = problema ? "pildora-peligro" : proApagado ? "pildora-aviso" : "";
+
   // La serie llega ordenada de reciente a antigua; se pinta al revés para que
   // el tiempo avance de izquierda a derecha, como se lee.
   const serie = [...w.serie].reverse();
@@ -197,18 +218,17 @@ function Tesela({
         type="button"
         onClick={() => onAbrir?.(w.id)}
         /*
-         * SIN MARCO. La tesela era una caja con borde dentro de una banda con
-         * fondo dentro de la pantalla: tres niveles de contenedor para enseñar
-         * catorce barras y dos cifras, y en una retícula de seis, seis marcos
-         * dibujados compiten con el dato que hay dentro de ellos.
+         * `tarjeta tarjeta-pulsable`, y el hundimiento lo trae ya la tarjeta: el
+         * `.pulsable` de antes además teñía el fondo al tocar, que sobre una
+         * superficie con sombra se ve como si la tesela cambiara de material.
          *
-         * Lo que separa ahora es el HUECO de la retícula, que es como se separa
-         * una serie de múltiplos pequeños. El estado, que antes se codificaba en
-         * el color del marco, baja al icono de la línea de abajo: se lee a la
-         * misma distancia y no necesita dibujar una caja para decirlo.
+         * `!p-3` no es un atajo. `.tarjeta` se declara DESPUÉS de
+         * `@tailwind utilities` en la hoja, así que a igualdad de especificidad
+         * gana ella y un `p-3` a secas no llegaría a aplicarse. Doce y no los
+         * dieciocho de la tarjeta porque aquí el relleno se paga en ancho de
+         * barra: seis píxeles por lado son medio día de serie.
          */
-        className="pulsable w-full rounded-panel px-2 py-1.5 text-start"
-        style={{ minWidth: ANCHO_TESELA }}
+        className="tarjeta tarjeta-pulsable block w-full !p-3 text-start"
       >
         <span className="block truncate text-apoyo font-medium" title={w.email}>
           {w.email.split("@")[0]}
@@ -232,31 +252,32 @@ function Tesela({
           ))}
         </span>
 
+        {/* La cifra de la ventana sube a `text-cifra`: es el dato por el que se
+            entra en la tesela y con `text-cuerpo` pesaba lo mismo que el correo
+            de arriba. El importe se queda en apoyo y puede truncarse — con
+            cinco dígitos y separador de miles las dos cifras se tocan. */}
         <span className="mt-2.5 flex items-baseline justify-between gap-2">
-          <span className="cifra text-cuerpo">{w.registrosVentana}</span>
-          <span className="cifra text-apoyo text-texto-apoyo">{w.ganadoTotal.texto}</span>
+          <span className="cifra text-cifra">{w.registrosVentana}</span>
+          <span className="cifra truncate text-apoyo text-texto-apoyo">{w.ganadoTotal.texto}</span>
         </span>
 
-        {/* La franja de estado ocupa SIEMPRE una línea, aunque esté vacía.
+        {/* La franja de estado ocupa SIEMPRE su línea, aunque esté vacía.
             Sin altura reservada, una tesela con etiqueta crecía más que sus
             vecinas y la retícula se desalineaba —justo lo que rompe una
             superficie cuya razón de ser es comparar unas con otras—.
 
-            Y ahora la lleva un ICONO, que es lo que sustituye al marco de color:
-            un webmaster con problema se localiza en la retícula sin leer, y sin
-            que la tesela tenga que dibujar una caja alrededor de sí misma. */}
-        <span className="mt-2 flex h-5 items-center gap-1.5 text-rotulo">
+            Va en PÍLDORA y no en texto suelto porque ahora la tesela es una
+            superficie: sobre la tarjeta, dos palabras grises al pie se leen como
+            un pie de foto en vez de como un estado. Y se TRUNCA en lugar de
+            envolver —una cápsula de dos líneas deja de ser una cápsula—: con
+            147 px de tesela, «Se le ha caducado el PRO» no cabe entera de
+            ninguna manera, y quien lo dice sin leer es el icono. */}
+        <span className="mt-2 flex min-h-6 items-center">
           {etiqueta && (
-            <>
-              <Icono
-                nombre={icono!}
-                tam={15}
-                className={problema ? "text-peligro" : proApagado ? "text-t2" : "text-texto-apoyo"}
-              />
-              <span className={`truncate ${problema ? "text-peligro" : "text-texto-apoyo"}`}>
-                {etiqueta}
-              </span>
-            </>
+            <span className={`pildora max-w-full ${tono}`}>
+              <Icono nombre={icono!} tam={13} />
+              <span className="truncate">{etiqueta}</span>
+            </span>
           )}
         </span>
       </button>
@@ -268,7 +289,7 @@ function Tesela({
 function BarraDia({ dia, maximo }: { dia: DiaWebmaster; maximo: number }) {
   if (dia.registros === 0) {
     // Día sin registros: una muesca al pie. Va de `borde` y no de
-    // `superficie-alta`, que sobre la banda de la Malla casi no se veía: si la
+    // `superficie-alta`, que sobre el blanco de la tarjeta casi no se ve: si la
     // muesca no se ve, un día de cero y un día sin datos vuelven a ser lo mismo.
     return <span className="h-[2px] flex-1 self-end bg-borde" />;
   }
@@ -279,7 +300,13 @@ function BarraDia({ dia, maximo }: { dia: DiaWebmaster; maximo: number }) {
 
   return (
     <span className="flex flex-1 flex-col justify-end" style={{ height: ALTO_BARRAS }}>
-      <span className="flex w-full flex-col" style={{ height: alto }}>
+      {/* Redondeada SOLO por arriba, y no entera como en el kit. Con catorce
+          columnas en media pantalla cada barra mide ~8,6 px de ancho: los 4 px
+          de `radio-marca` en las cuatro esquinas convierten el día de valor
+          mínimo —4 px de alto— en una pastilla flotante, y una marca de dato
+          despegada de su línea base miente sobre dónde empieza el valor. Arriba
+          es donde se lee el máximo y donde el canto blando se agradece. */}
+      <span className="flex w-full flex-col overflow-hidden rounded-t-marca" style={{ height: alto }}>
         {conTier === 0 ? (
           <span className="h-full w-full bg-t2" />
         ) : (

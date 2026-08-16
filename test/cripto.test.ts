@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  LONGITUD_CODIGO,
   claveIdempotencia,
   formatearCodigo,
   generarCodigoActivacion,
@@ -67,6 +68,40 @@ describe("códigos de activación", () => {
     const bonito = formatearCodigo(codigo);
     assert.ok(bonito.includes("-"), "se dicta en grupos");
     assert.equal(normalizarCodigo(bonito), codigo);
+  });
+
+  it("formatear es IDEMPOTENTE, que es lo que permite usarlo mientras se teclea", () => {
+    /*
+     * El campo de alta llama a `formatearCodigo` en cada pulsación, sobre lo que
+     * ya está formateado. Si no fuera idempotente, cada tecla añadiría un guion
+     * y el campo se llenaría de basura a los tres caracteres.
+     *
+     * Funciona porque `formatearCodigo` normaliza ANTES de agrupar, o sea que
+     * parte siempre del canónico. Este test es lo que impide que alguien
+     * «optimice» esa normalización por parecer redundante.
+     */
+    const bonito = formatearCodigo(generarCodigoActivacion());
+    assert.equal(formatearCodigo(bonito), bonito);
+    assert.equal(formatearCodigo(formatearCodigo(bonito)), bonito);
+  });
+
+  it("un código real tiene la forma que la pantalla de alta enseña y exige", () => {
+    /*
+     * La pantalla habilita su botón cuando lo normalizado mide `LONGITUD_CODIGO`
+     * —antes usaba `>= 4`, que es el mínimo defensivo del esquema del servidor y
+     * no la longitud real, así que se activaba con el código a medias y gastaba
+     * una ida y vuelta para recibir «no es válido»— y enseña `XXXXX-XXXXX` de
+     * marcador, después de años poniendo `XXXX-XXXX`, que son grupos de cuatro y
+     * ningún código real los tiene.
+     *
+     * Las dos cosas dependen de que un código siga siendo diez caracteres en
+     * grupos de cinco. Se comprueba aquí en vez de confiar en dos literales
+     * escritos dentro de un `.tsx`.
+     */
+    const codigo = generarCodigoActivacion();
+    assert.equal(codigo.length, LONGITUD_CODIGO);
+    assert.equal(formatearCodigo(codigo), `${codigo.slice(0, 5)}-${codigo.slice(5)}`);
+    assert.equal(formatearCodigo(codigo).length, "XXXXX-XXXXX".length);
   });
 });
 

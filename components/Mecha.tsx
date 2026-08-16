@@ -61,7 +61,7 @@ const MARCAS_MAXIMAS = 70;
  * dos.
  */
 
-import { Marca } from "./Pantalla";
+import { Icono } from "./Icono";
 
 /** Lo que necesita traducido. Se pasa desde la pantalla, que ya tiene el catálogo. */
 export interface EtiquetasMecha {
@@ -152,9 +152,10 @@ export function Mecha({
           una mecha.
 
           `bg-t1` y no `bg-tinta`: el escalón denso de la rampa es la tinta de
-          DATOS, y esto es un dato. `--tinta-plena` dejó de ser el T1 al bajar la
-          rampa a marrón de verdad, así que seguir usándola aquí habría pintado
-          la mecha del color de los controles.
+          DATOS y esto es un dato, mientras que `--tinta-plena` es la de los
+          CONTROLES. Son valores parecidos y por eso conviene no confundirlos:
+          mover la rampa —que ya ha pasado del marrón a la escala neutra— no
+          puede arrastrar consigo el color de los botones ni al revés.
         */}
         {Array.from({ length: marcasVivas }, (_, i) => (
           <Muesca key={`viva-${i}`} className="bg-t1" />
@@ -163,13 +164,28 @@ export function Mecha({
       </div>
 
       {/*
-        Un PRO apagado se dice con su icono y nada más: sin cápsula y sin color.
-        El acento vive en el botón amarillo que hay justo debajo, y repetirlo aquí
-        sería gastar dos señales para un solo mensaje.
+        El pie dice dos cosas distintas y por eso tiene dos formas.
+
+        Con plazo vivo es una MEDIDA —«46 semanas de PRO.»—, o sea el rótulo de
+        la barra de arriba, y va como texto: una cifra dentro de una cápsula
+        parecería un estado en vez de la lectura del instrumento.
+
+        Caducado no es una medida, es un ESTADO, y desde que la mecha vive dentro
+        de una tarjeta necesitaba forma propia: suelto en el flujo pesaba lo
+        mismo que el correo y la fecha, y el hecho que decide si hay algo que
+        hacer con esta fila quedaba escondido en el renglón más gris.
+
+        Neutra, nunca ámbar. Debajo hay una chapa amarilla —cuando un PRO se
+        apaga es justo cuando aparece—, y el color de esa señal ya está gastado
+        en ella. Lo que dice que ha caducado sin repetir el acento es el remate
+        rojo del raíl, que además está donde se ha terminado la medida.
       */}
       <p className="mt-2.5 text-apoyo tabular-nums">
         {caducado ? (
-          <Marca icono="caducado">{etiquetas.proYaCaducado}</Marca>
+          <span className="pildora">
+            <Icono nombre="caducado" tam={13} />
+            {etiquetas.proYaCaducado}
+          </span>
         ) : rotuloEnSemanas ? (
           `${etiquetas.semanasDePro(Math.floor(restan / 7))}.`
         ) : (
@@ -195,8 +211,8 @@ export function unidadComun(diasRestantes: readonly (number | null)[]): boolean 
 /**
  * Una muesca de la mecha: paso fijo, para que la longitud mida el tiempo.
  *
- * Se llamaba `Marca`, igual que la píldora de estado de `Pantalla.tsx`, y eran
- * dos cosas distintas con el mismo nombre. Aquí es una muesca de una escala
+ * Se llamaba `Marca`, igual que el estado de fila de `Pantalla.tsx`, y eran dos
+ * cosas distintas con el mismo nombre. Aquí es una muesca de una escala
  * temporal; allí es una etiqueta de estado.
  */
 function Muesca({ className }: { className: string }) {
@@ -214,6 +230,11 @@ function Muesca({ className }: { className: string }) {
  *
  * Se dibuja igualmente, con el raíl hueco, en lugar de ocultar la sección. Un
  * hueco marcado dice «esto puede activarse»; no mostrar nada no dice nada.
+ *
+ * Su pie NO va en píldora aunque diga casi lo mismo que el de la mecha caducada.
+ * El criterio lo pone el propio catálogo: «PRO caducado» es una etiqueta y «Sin
+ * PRO activo.» es una frase, con su punto final. Una cápsula con una oración
+ * dentro deja de leerse como estado, y las cadenas no se tocan desde aquí.
  */
 export function MechaApagada({ etiquetas }: { etiquetas: EtiquetasMecha }) {
   return (

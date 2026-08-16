@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
+import { Icono } from "@/components/Icono";
 import { Importe } from "@/components/Importe";
-import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
 import { formatearMicros, microsACadena } from "@/lib/devengo/dinero";
@@ -61,6 +63,27 @@ const REDES = [
     ejemplo: "EQBvW8Z5huBkMJYdnfAEM5JqTNk…",
   },
 ] as const;
+
+/**
+ * La caja de campo del sistema, en un solo sitio.
+ *
+ * Los dos campos de esta pantalla la llevan idéntica, y escrita dos veces se
+ * queda vieja en una de las dos: es la pantalla con más controles de la
+ * aplicación y la que más veces se ha retocado.
+ *
+ * El contorno va de `--borde-control` y no de `--borde`: WCAG 1.4.11 pide 3:1
+ * para el contorno de algo que se puede USAR, y aquí es donde el agente teclea
+ * la dirección a la que le mandamos su dinero. Al foco el canto sube a tinta y
+ * aparece el anillo de 3 px del amarillo diluido —el mismo gesto que la casilla
+ * activa del código—: es la única marca amarilla del campo y dura lo que dura el
+ * cursor dentro, así que no le discute nada al botón de pedir.
+ *
+ * `bg-fondo` y no la superficie de la banda: sobre el estrato 1 el campo queda
+ * un escalón por delante en claro y un escalón por detrás en oscuro, y en las
+ * dos polaridades se lee como un hueco donde se escribe.
+ */
+const CAJA_CAMPO =
+  "rounded-control border border-borde-control bg-fondo px-4 py-3.5 outline-none focus:border-tinta focus:shadow-[0_0_0_3px_var(--brand-soft)]";
 
 /**
  * Importe para escribir en un campo: coma decimal y sin ceros de relleno.
@@ -197,19 +220,28 @@ export default function CarteraPagina() {
       titulo={t.cartera}
       /* «¿Cuándo cobro?» empieza por «¿cuánto puedo pedir ya?». Eso es lo que
          va sobre la placa; la Escalera de debajo explica por qué el disponible
-         no es igual al devengado. */
-      placa={{
-        rotulo: t.disponible,
-        valor: (
-          <Importe texto={datos.cartera.disponible.texto} className="cifra text-cifra-mayor" />
-        ),
-      }}
+         no es igual al devengado.
+
+         En la cara de display y contando desde cero, como la de la portada: es
+         LA cifra de la pantalla —de ella salen el mínimo, el «Todo» y el importe
+         del botón— y verla subir dice de dónde viene. Que las dos placas de la
+         aplicación se pinten con la misma pieza es además lo que impide que una
+         se quede con la cifra de la otra. */
+      placa={{ rotulo: t.disponible, valor: <CifraProtagonista micros={disponibleMicros} /> }}
     >
       <Banda orden={0} tono={0} className="pb-6">
-        <Escalera cartera={datos.cartera} etiquetas={t} />
+        {/* La Escalera va en TARJETA. Los cuatro estados son un mismo dinero
+            avanzando, así que son una unidad: levantada del papel se lee de un
+            vistazo como una sola cosa, y suelta sobre la banda eran cuatro
+            renglones que había que agrupar con la vista. Una tarjeta dentro de
+            una banda; nunca al revés. */}
+        <div className="tarjeta">
+          <Escalera cartera={datos.cartera} etiquetas={t} />
+        </div>
 
-        {/* Una sola línea aquí: la que explica por qué disponible < devengado, que
-            es la pregunta que nace al mirar la escalera. Lo que tarda el
+        {/* Una sola línea aquí, y FUERA de la tarjeta: la que explica por qué
+            disponible < devengado, que es la pregunta que nace al mirar la
+            escalera. Dentro se leería como un peldaño más. Lo que tarda el
             Operador se dice junto al botón de pedir, que es cuando importa. */}
         <p className="mt-3 text-apoyo text-texto-apoyo">{t.soloConsolidado}</p>
 
@@ -227,23 +259,43 @@ export default function CarteraPagina() {
 
       {viva ? (
         <Banda orden={1} tono={1} etiqueta={t.solicitudEnCurso} className="py-6">
-          {/* Un filete amarillo de 2 px sería invisible sobre papel claro
-              —1,49:1—. El estado de la solicitud viva va sobre PLACA, que es
-              donde el amarillo se lee y además es lo que el agente ha venido a
-              mirar. */}
-          <div>
+          {/*
+            La solicitud viva, en TARJETA y con MALLA.
+
+            Es una unidad —un importe, un estado, una wallet, una fecha— y es a
+            lo que el agente ha venido: levantarla del papel es exactamente para
+            lo que existe la tarjeta.
+
+            La malla se la queda esta rama y solo esta: cuando hay una solicitud
+            en curso no hay formulario, o sea que no hay chapa, o sea que no hay
+            un solo píxel amarillo en toda la pantalla. El motivo pone la marca
+            detrás de la respuesta sin fingir que se pulsa —un campo radial
+            diluido no tiene forma de botón— y devuelve el color a la única
+            pantalla del flujo que se quedaba sin él.
+          */}
+          <div className="tarjeta campo-malla">
             <p className="text-rotulo text-texto-apoyo">{t.solicitudEnCurso}</p>
             <p className="mt-1.5">
               <Importe texto={viva.importe.texto} className="text-cifra" />
             </p>
-            <p className="mt-1.5">
-              <Marca>{estadoLegible(viva.estado, t)}</Marca>
+            {/* Píldora NEUTRA. Las dos formas de estar viva —pendiente de
+                revisión y aprobada sin pagar— son esperas, y el tinte de color
+                se reserva a lo que ya se cobró o a lo que salió mal: un verde
+                aquí diría que el dinero ha llegado.
+
+                El icono se pide por su DIBUJO y no por su nombre: `caducado` es
+                un reloj, y lo que dice aquí es que hay un plazo corriendo. */}
+            <p className="mt-2.5">
+              <span className="pildora">
+                <Icono nombre="caducado" tam={13} />
+                {estadoLegible(viva.estado, t)}
+              </span>
             </p>
             {/* `break-all` en la wallet: son 42 caracteres en mono sin ningún
                 sitio por donde partir, así que sin esto la línea se sale de la
                 banda. En árabe se veía desbordar por la izquierda; en español
                 desbordaba igual, solo que hacia fuera de la pantalla. */}
-            <p className="mt-2 break-all text-apoyo text-texto-apoyo">
+            <p className="mt-3 break-all text-apoyo text-texto-apoyo">
               {viva.red} · <span className="cifra">{viva.wallet}</span>
             </p>
             <p className="mt-2 text-apoyo text-texto-apoyo">
@@ -260,6 +312,11 @@ export default function CarteraPagina() {
           <label htmlFor="importe" className="text-rotulo block text-texto-apoyo">
             {t.cuanto}
           </label>
+          {/* El importe y «Todo» comparten fila, y los dos llegan al mínimo
+              táctil por la misma vía: el campo mide 56 px por su propio relleno
+              y el botón es un hermano flexible sin altura propia, así que se
+              estira hasta la del campo. Nada de esto depende de una altura
+              escrita a mano que haya que recordar cuando cambie el cuerpo. */}
           <div className="mt-2 flex gap-2">
             <input
               id="importe"
@@ -267,16 +324,24 @@ export default function CarteraPagina() {
               onChange={(e) => setImporte(e.target.value.replace(/[^\d.,]/g, ""))}
               inputMode="decimal"
               placeholder={paraEscribir(minimoMicros)}
-              className="cifra min-w-0 flex-1 rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta"
+              /* El importe se teclea en cuerpo de cifra: es el dato de la
+                 pantalla, y escrito a 16 px pesaba menos que la etiqueta que lo
+                 nombra. */
+              className={`cifra min-w-0 flex-1 text-cifra ${CAJA_CAMPO}`}
             />
             {/* «Todo» evita el error más común de este formulario: teclear el
                 disponible a mano y equivocarse en un céntimo, que el servidor
-                rechaza por pasarse del saldo. */}
+                rechaza por pasarse del saldo.
+                Chapa HUECA: se pulsa, así que tiene forma de control, pero el
+                amarillo es de la acción principal y aquí solo hay sitio para
+                una. Deshabilitada pierde el canto y la sombra en vez de bajar la
+                opacidad —una chapa lavada del mismo color sigue pareciendo
+                pulsable—, que es lo que hace `.chapa:disabled`. */}
             <button
               type="button"
               onClick={() => setImporte(paraEscribir(disponibleMicros))}
               disabled={disponibleMicros < minimoMicros}
-              className="pulsable shrink-0 rounded-control border border-borde-control px-4 text-cuerpo font-medium disabled:opacity-40"
+              className="chapa-hueca pulsable shrink-0 text-cuerpo disabled:border-borde disabled:bg-superficie-alta disabled:text-[var(--text-disabled)] disabled:shadow-none"
             >
               {t.todo}
             </button>
@@ -310,17 +375,28 @@ export default function CarteraPagina() {
                     setRed(r.id);
                   }}
                   /*
-                    `min-h-11`: medían 114×41 y elegir la red de un pago es el
-                    control donde menos conviene fallar un toque —una wallet en
-                    la red equivocada no se recupera—.
+                    Las tres chapas del sistema, que ya traen los 46 px de alto:
+                    medían 114×41 y elegir la red de un pago es el control donde
+                    menos conviene fallar un toque —una wallet en la red
+                    equivocada no se recupera—.
 
-                    La red elegida va de TINTA, no de campo: es un estado, no
+                    La red elegida va de TINTA y no de campo: es un estado, no
                     una acción. Reservar el amarillo para lo que hay que pulsar
                     es lo que hace que signifique algo cuando aparece.
+
+                    Y el acuse del toque se escribe aquí en vez de con
+                    `.pulsable`: esa clase tiñe el fondo al pulsar con
+                    especificidad (0,2,0), o sea que le ganaría al campo de
+                    `.chapa-tinta` (0,1,0) y la chapa oscura se pondría gris
+                    claro con su texto blanco encima durante 120 ms. Es el mismo
+                    defecto que `.chapa:active:not(:disabled)` corrige para la
+                    amarilla. Solo `transform`, y solo si no se ha pedido
+                    quietud.
                   */
                   className={[
-                    "pulsable flex min-h-12 items-center justify-center rounded-control text-cuerpo font-medium",
-                    red === r.id ? "bg-tinta text-fondo" : "border border-borde-control",
+                    "text-cuerpo transition-transform duration-toque ease-sonda",
+                    "motion-safe:active:scale-[0.97]",
+                    red === r.id ? "chapa-tinta" : "chapa-hueca",
                   ].join(" ")}
                 >
                   {r.corto}
@@ -345,7 +421,7 @@ export default function CarteraPagina() {
               autoCapitalize="none"
               spellCheck={false}
               placeholder={definicionRed.ejemplo}
-              className="cifra mt-2 w-full break-all rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-apoyo outline-none focus:border-tinta"
+              className={`cifra mt-2 w-full break-all text-apoyo ${CAJA_CAMPO}`}
             />
             <p
               className={`mt-2 text-apoyo ${
@@ -380,24 +456,41 @@ export default function CarteraPagina() {
           solicitudes distintas, que es justo la confusión que este flujo —una
           sola viva a la vez— tiene que evitar. */}
       <Banda orden={2} tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
-        <p className="text-rotulo mb-1 border-b border-junta pb-2 text-texto-apoyo">
-          {t.solicitudesAnteriores}
-        </p>
+        {/* Sin filete bajo el rótulo: la raya existe para separarlo de un
+            contenido suelto, y aquí lo que viene debajo es una tarjeta que ya
+            trae su propio canto. Dos líneas horizontales a catorce píxeles una
+            de otra no separan nada, solo se ven. */}
+        <p className="text-rotulo mb-3 text-texto-apoyo">{t.solicitudesAnteriores}</p>
         {resueltas.length === 0 ? (
           <p className="py-4 text-apoyo text-texto-apoyo">{t.sinMovimientos}</p>
         ) : (
-          <ul className="divide-y divide-borde" role="list">
+          /*
+            Tarjeta de BORDE, y por dos motivos que se suman.
+
+            Uno: es lo denso. Cada cobro son hasta cuatro líneas, y una sombra
+            bajo una lista de veinte no levanta nada, hace ruido.
+
+            Dos: es lo que hace legible el arreglo de abajo. La lista se
+            separaba con `divide-borde` —el canto de un objeto— mientras las
+            demás listas de la casa usan `divide-junta`, pero la junta está
+            calibrada contra papel casi blanco: sobre el estrato 2, que es el
+            más oscuro de los tres, se queda en 1,03:1 y desaparece. Con la
+            lista sobre la tarjeta, la junta vuelve a tener el mismo contraste
+            que en el menú de la portada y las filas se distinguen otra vez.
+
+            Los peldaños llevan `first:pt-0 last:pb-0`: el aire de los extremos
+            lo pone el relleno de la tarjeta, y sumado al de la fila abría el
+            doble arriba y abajo que entre filas.
+          */
+          <ul className="tarjeta-borde divide-y divide-junta" role="list">
             {resueltas.map((h) => (
-              <li key={h.id} className="py-3">
-                <div className="flex items-baseline justify-between gap-3">
+              <li key={h.id} className="py-3 first:pt-0 last:pb-0">
+                {/* `items-center` y no `items-baseline`: la píldora es una caja,
+                    y alinear una cápsula por la línea base de su texto la deja
+                    montada sobre la cifra de al lado. */}
+                <div className="flex items-center justify-between gap-3">
                   <Importe texto={h.importe.texto} className="text-cuerpo" />
-                  <span
-                    className={`text-apoyo ${
-                      h.estado === "RECHAZADO" ? "text-peligro" : "text-texto-apoyo"
-                    }`}
-                  >
-                    {estadoLegible(h.estado, t)}
-                  </span>
+                  <EstadoResuelto estado={h.estado} t={t} />
                 </div>
                 <p className="mt-0.5 break-all text-apoyo text-texto-apoyo">
                   {formatoFecha(h.solicitadoEn)} · {h.red} ·{" "}
@@ -427,6 +520,41 @@ export default function CarteraPagina() {
       </Banda>
     </Pantalla>
   );
+}
+
+/**
+ * El estado de una solicitud ya resuelta.
+ *
+ * Píldora SOLO en los dos extremos: cobrado y rechazado. Es la regla de escasez
+ * de la cápsula, y sin ella vuelve el defecto que la hizo desaparecer de esta
+ * aplicación —una lista donde cada fila lleva su chip de color es la firma del
+ * panel de control genérico, y además el tinte deja de significar nada en cuanto
+ * lo lleva todo—. Una cancelada no es ni una cosa ni la otra, así que se dice en
+ * texto de apoyo: que un dato secundario se lea como secundario es la opción
+ * aburrida y es la correcta.
+ *
+ * El rechazo lleva además su motivo justo debajo, en la fila: la píldora dice
+ * que pasó algo y el motivo dice qué, que es lo que permite corregir y volver a
+ * pedir sin escribir al Operador.
+ */
+function EstadoResuelto({ estado, t }: { estado: string; t: Cadenas }) {
+  if (estado === "PAGADO") {
+    return (
+      <span className="pildora pildora-exito">
+        <Icono nombre="activo" tam={13} />
+        {estadoLegible(estado, t)}
+      </span>
+    );
+  }
+  if (estado === "RECHAZADO") {
+    return (
+      <span className="pildora pildora-peligro">
+        <Icono nombre="aviso" tam={13} />
+        {estadoLegible(estado, t)}
+      </span>
+    );
+  }
+  return <span className="text-apoyo text-texto-apoyo">{estadoLegible(estado, t)}</span>;
 }
 
 /** El estado de una solicitud, dicho en el idioma del agente. */

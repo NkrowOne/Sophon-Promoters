@@ -719,8 +719,26 @@ textarea::placeholder {
     box-shadow var(--t-toque) var(--curva);
 }
 
+/*
+ * Al pulsar, la chapa se ACLARA. Nunca se agrisa.
+ *
+ * `.chapa` y `.pulsable` conviven en cinco sitios, y `.pulsable:active` declara
+ * `background-color: var(--superficie-alta)` con especificidad (0,2,0) contra el
+ * `background` de `.chapa` (0,1,0): o sea que el botón amarillo se ponía GRIS
+ * mientras el dedo lo tocaba, que es exactamente el color con el que esta misma
+ * hoja dice «deshabilitado» dos reglas más abajo. El acuse de recibo decía lo
+ * contrario de lo que pasaba.
+ *
+ * Se corrige aquí y no quitando `.pulsable` de esos cinco sitios, porque el
+ * velo de superficie SÍ es lo correcto para todo lo demás que se pulsa —filas,
+ * teselas— y solo estorba sobre un objeto que ya tiene campo propio.
+ *
+ * `:not(:disabled)` sube esta regla a (0,3,0) y gana. El amarillo se aclara al
+ * de encima de la escala, que es el mismo gesto que el `:hover` del sistema.
+ */
 .chapa:active:not(:disabled) {
   transform: translateY(1px) scale(0.985);
+  background-color: var(--amber-300);
   box-shadow: var(--shadow-button);
 }
 

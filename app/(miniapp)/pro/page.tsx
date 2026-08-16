@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Icono } from "@/components/Icono";
 import { Mecha, unidadComun } from "@/components/Mecha";
-import { Aviso, Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
 import type { Cadenas } from "@/lib/i18n";
@@ -35,6 +35,24 @@ import type { Cadenas } from "@/lib/i18n";
  * Y por eso desapareció «renuévalo antes de que se apague»: con la regla nueva
  * es un consejo imposible de seguir. Lo que se puede decir de un PRO vivo es
  * cuándo se libera.
+ *
+ * ── La forma ──
+ *
+ * Cada webmaster es una TARJETA, separadas 12 px, y no una fila de una lista con
+ * filete. Un webmaster es una UNIDAD —un correo, un plazo y, si toca, su
+ * acción—, y con `divide-y` los dos grupos se leían como una misma tabla
+ * continua en la que la única diferencia entre «puedo» y «no puedo» era que unas
+ * filas traían botón. Ahora la diferencia empieza en el objeto: sombra arriba
+ * —lo que se levanta porque hay algo que hacer— y filete abajo, que además es lo
+ * que evita que veinte sombras seguidas se conviertan en ruido.
+ *
+ * El amarillo aparece una vez por ACCIÓN y ni una más. Que haya varias chapas no
+ * rompe la regla de un amarillo por pantalla: es la MISMA acción repetida por
+ * destinatario, que es literalmente de lo que va una cola. Lo que la regla
+ * prohíbe —y esta pantalla es donde se rompió— es teñir de campo algo que no se
+ * pulsa: los estados van en PÍLDORA, cápsula al ancho de su texto, y nunca en
+ * ámbar, porque una etiqueta ámbar a 16 px de un botón amarillo es exactamente
+ * el defecto que el usuario rodeó con un círculo rojo.
  */
 
 interface WebmasterPro {
@@ -128,7 +146,11 @@ export default function Renovaciones() {
         setEnCurso(null);
       }
     },
-    [enCurso, haptica, cargar, t],
+    // Sin `t`: no se toca el catálogo aquí dentro —el aviso lo traduce al
+    // pintar—, y una dependencia que no se usa vuelve a cambiar la identidad del
+    // callback al resolverse el idioma, que es el mismo defecto que se explica
+    // arriba en `cargar`.
+    [enCurso, haptica, cargar],
   );
 
   if (error && !datos) {
@@ -166,6 +188,25 @@ export default function Renovaciones() {
   const renovables = datos.webmasters.filter((w) => w.renovable);
   const activos = datos.webmasters.filter((w) => !w.renovable);
 
+  /*
+   * ¿Hay cabecera?
+   *
+   * Se pintaba siempre, así que en el caso normal —hay renovables, no se ha
+   * renovado nada aún, no hay error— quedaba una banda vacía de 24 px justo
+   * debajo de la placa: una franja muerta en el sitio de más valor de la
+   * pantalla.
+   *
+   * Se calcula UNA vez porque decide dos cosas: si la banda existe y, con ella,
+   * cuál es la primera y por tanto a quién le toca ir sin relleno superior. Con
+   * la condición escrita dos veces se desincronizan a la primera, y el síntoma
+   * es una costura de fondo entre la placa y el estrato que debería morderla.
+   *
+   * El invariante que lo sostiene: si no hay cabecera es porque hay renovables
+   * —`datos.renovables === 0` la enciende—, o sea que hay placa y la banda de
+   * renovables es la primera.
+   */
+  const cabecera = datos.renovables === 0 || Boolean(hecho) || Boolean(error);
+
   return (
     <Pantalla
       titulo={t.colaRenovaciones}
@@ -177,53 +218,88 @@ export default function Renovaciones() {
         datos.renovables > 0
           ? {
               rotulo: t.colaRenovaciones,
-              valor: <p className="text-titulo font-semibold">{t.puedesRenovar(datos.renovables)}</p>,
+              /*
+               * La única placa de la aplicación cuyo valor es una FRASE y no una
+               * cifra suelta, y se queda así a propósito.
+               *
+               * Convertirla en cifra sería poner «3» bajo el rótulo, y el rótulo
+               * de la placa es el `h1` —el nombre de la pantalla, «Renovaciones»,
+               * no hay otro título debajo—, así que no puede hacer de unidad como
+               * «Disponible» hace con los dólares del saldo. Un «3» bajo
+               * «Renovaciones» se lee como tres renovaciones, que es justo la
+               * pregunta que esta pantalla NO contesta: contesta a cuántos puedo
+               * renovar HOY. Y sacar el dígito de `puedesRenovar` para agrandarlo
+               * solo obliga a rebanar cinco catálogos traducidos —uno de ellos en
+               * árabe— confiando en que el número siga yendo delante.
+               *
+               * Lo que sí sube es el PESO: la frase toma la cara de las cifras
+               * protagonistas (`display`, Archivo Black), que además cae sobre el
+               * número porque las cinco traducciones lo ponen primero. El tamaño
+               * no sube a los 40 px de una cifra porque una frase a 40 px son tres
+               * líneas en un móvil de 390, y esta cabecera es pegajosa: su alto lo
+               * paga la pantalla entera mientras dure el scroll.
+               */
+              valor: (
+                <p className="display text-cifra tabular-nums">
+                  {t.puedesRenovar(datos.renovables)}
+                </p>
+              ),
             }
           : undefined
       }
     >
-      {/* La banda de cabecera solo existe si tiene ALGO que decir.
-          Se pintaba siempre, así que en el caso normal —hay renovables, no se ha
-          renovado nada aún, no hay error— quedaba una banda vacía de 24 px justo
-          debajo de la placa: una franja muerta en el sitio de más valor de la
-          pantalla, y con la placa flotando sobre ella en vez de morder la
-          primera lista. */}
-      {(datos.renovables === 0 || hecho || error) && (
-      <Banda orden={0} tono={0} como="header" className="pb-6 pt-5">
-        {datos.renovables === 0 && (
-          <p className="text-apoyo text-texto-apoyo">{t.ningunoRenovable}</p>
-        )}
+      {cabecera && (
+        /* Sin relleno superior: cuando hay placa, la cabecera tiene que
+           MORDERLA —una franja de fondo entre las dos se lee como una costura
+           mal cerrada justo debajo de la pieza que abre la pantalla—, y cuando
+           no la hay el aire lo pone `Pantalla`, que en esa rama sí abre con
+           `pt`. */
+        <Banda orden={0} tono={0} como="header" className="pb-6">
+          {datos.renovables === 0 && (
+            <p className="text-apoyo text-texto-apoyo">{t.ningunoRenovable}</p>
+          )}
 
-        {hecho && (
-          <p className="mt-4 border-s-2 border-tinta ps-3 text-apoyo">
-            {t.renovado(hecho.email, hecho.vigenteHasta ? formatoDia(hecho.vigenteHasta) : "—")}
-          </p>
-        )}
+          {hecho && (
+            <p className="mt-4 border-s-2 border-tinta ps-3 text-apoyo">
+              {t.renovado(hecho.email, hecho.vigenteHasta ? formatoDia(hecho.vigenteHasta) : "—")}
+            </p>
+          )}
 
-        {/* El error de una renovación se reintenta renovando otra vez, así que
-            el aviso lleva la acción: sin ella el agente solo podía volver a
-            buscar la fila y adivinar si el toque anterior llegó a contar.
+          {/* El error de una renovación se reintenta renovando otra vez, así que
+              el aviso lleva la acción: sin ella el agente solo podía volver a
+              buscar la fila y adivinar si el toque anterior llegó a contar.
 
-            Salvo si el rechazo es «ese PRO sigue activo»: ahí reintentar va a
-            fallar igual, y lo que hace falta es la lista al día. Por eso el 409
-            no ofrece acción —ya se ha recargado sola—. */}
-        {error && (
-          <div className="mt-4">
-            <Aviso
-              error={error}
-              onReintentar={ultimo && error.estado !== 409 ? () => renovar(ultimo) : undefined}
-            />
-          </div>
-        )}
-      </Banda>
+              Salvo si el rechazo es «ese PRO sigue activo»: ahí reintentar va a
+              fallar igual, y lo que hace falta es la lista al día. Por eso el
+              409 no ofrece acción —ya se ha recargado sola—. */}
+          {error && (
+            <div className="mt-4">
+              <Aviso
+                error={error}
+                onReintentar={ultimo && error.estado !== 409 ? () => renovar(ultimo) : undefined}
+              />
+            </div>
+          )}
+        </Banda>
       )}
 
       {renovables.length > 0 && (
-        <Banda orden={1} tono={1} etiqueta={t.puedesRenovarAhora} className="py-2">
-          <p className="pb-1 pt-4 text-rotulo text-texto-apoyo">{t.puedesRenovarAhora}</p>
-          <ul className="divide-y divide-junta" role="list">
+        /* Cuando no hay cabecera, esta es la primera banda y le toca a ella
+           morder la placa; con cabecera delante recupera su aire de estrato. */
+        <Banda
+          orden={1}
+          tono={1}
+          etiqueta={t.puedesRenovarAhora}
+          className={cabecera ? "py-6" : "pb-6"}
+        >
+          <p className="pb-3 text-rotulo text-texto-apoyo">{t.puedesRenovarAhora}</p>
+          {/* 12 px entre tarjetas: es la separación que las deja leerse como
+              objetos sueltos sobre el estrato. Menos y la sombra de una toca a
+              la siguiente, que es lo que hace que una pila de tarjetas se lea
+              otra vez como una tabla. */}
+          <ul className="flex flex-col gap-3" role="list">
             {renovables.map((w) => (
-              <li key={w.id} className="py-5">
+              <li key={w.id}>
                 <Fila
                   w={w}
                   t={t}
@@ -243,11 +319,11 @@ export default function Renovaciones() {
            descarte: siguen siendo la red del agente y su plazo es lo que le dice
            cuándo tendrá que volver. Pero no piden nada hoy, y el estrato lo
            dice sin escribirlo. */
-        <Banda orden={2} tono={2} etiqueta={t.proActivo} className="py-2">
-          <p className="pb-1 pt-4 text-rotulo text-texto-apoyo">{t.proActivo}</p>
-          <ul className="divide-y divide-junta" role="list">
+        <Banda orden={2} tono={2} etiqueta={t.proActivo} className="py-6">
+          <p className="pb-3 text-rotulo text-texto-apoyo">{t.proActivo}</p>
+          <ul className="flex flex-col gap-3" role="list">
             {activos.map((w) => (
-              <li key={w.id} className="py-5">
+              <li key={w.id}>
                 <Fila w={w} t={t} porSemanas={porSemanas} cargando={false} deshabilitado onRenovar={noop} />
               </li>
             ))}
@@ -276,7 +352,14 @@ function Fila({
   onRenovar: () => void;
 }) {
   return (
-    <>
+    /*
+     * Sombra o filete según el grupo, y lo decide el mismo `renovable` que ha
+     * partido las listas: así no hay una segunda fuente de verdad que se pueda
+     * quedar atrás. El relieve dice lo que dice el estrato —arriba hay algo que
+     * hacer— sin gastar ni una palabra, y en la lista larga de los activos el
+     * filete evita que veinte sombras seguidas se conviertan en textura.
+     */
+    <div className={w.renovable ? "tarjeta" : "tarjeta-borde"}>
       <p className="break-all text-cuerpo">{w.email}</p>
 
       <div className="mt-2.5">
@@ -285,10 +368,18 @@ function Fila({
           // es más honesto que pintar un raíl vacío, que se leería como un plazo
           // agotado en vez de como un plazo que nunca existió.
           //
-          // Y va en PÍLDORA, no en chapa: era la etiqueta amarilla que el usuario
-          // rodeó con un círculo rojo justo encima del botón amarillo. Una
-          // cápsula perfilada de 26 px no se confunde con un bloque de 50.
-          <Marca icono="caducado">{t.nuncaTuvoPro}</Marca>
+          // En PÍLDORA y NEUTRA. Esta etiqueta es el origen de todo el sistema de
+          // formas: era una chapa amarilla, del mismo ancho y el mismo radio que
+          // el botón amarillo que tiene 16 px más abajo, y es la que el usuario
+          // rodeó con un círculo rojo. La cápsula al ancho de su texto ya no se
+          // puede confundir con un bloque de 50 px a sangre; y se queda en el
+          // gris de estado en vez del ámbar que le pondría `pildora-aviso`,
+          // porque a esta distancia de una chapa cualquier cosa entre amarilla y
+          // ámbar vuelve a plantear la misma duda que costó la versión anterior.
+          <span className="pildora">
+            <Icono nombre="caducado" tam={13} />
+            {t.nuncaTuvoPro}
+          </span>
         ) : (
           <Mecha
             diasRestantes={w.diasRestantes ?? 0}
@@ -309,12 +400,14 @@ function Fila({
         amarillo en filas que no lo merecían. Un botón deshabilitado tampoco
         vale: sigue diciendo «esto es lo que hay que hacer aquí», y no lo es.
 
-        Lo que se pone en su lugar no es un hueco: es el dato accionable que
-        queda —cuándo se libera—, que es la única respuesta útil a «¿y este
-        cuándo?».
+        Lo que se pone en su lugar no es un hueco: es la única respuesta útil a
+        «¿y este cuándo?», y hasta ahora ese renglón estaba escrito en el
+        catálogo y no lo pintaba nadie —la tarjeta del activo terminaba en la
+        mecha, o sea que la ausencia de botón no la explicaba nada—.
 
-        `min-h-11` porque estos botones medían 314×43: un píxel por debajo del
-        mínimo táctil, y son la acción de la pantalla.
+        El alto táctil ya no se pide aquí: `.chapa` trae sus 50 px, y estos
+        botones medían 314×43 —un píxel por debajo del mínimo— cuando el tamaño
+        lo ponía la propia pantalla.
       */}
       {w.renovable ? (
         <button
@@ -332,16 +425,24 @@ function Fila({
             </>
           )}
         </button>
-      ) : null}
+      ) : (
+        <p className="mt-3 text-apoyo text-texto-apoyo">{t.podrasRenovarloCuandoSeApague}</p>
+      )}
 
+      {/* El único color de la tarjeta, y solo aquí: una cuenta bloqueada en
+          Sophon va mal y el agente no lo puede arreglar desde esta pantalla,
+          que es exactamente lo que el sistema reserva para el tinte de peligro.
+          Además cierra el sentido del botón gris que tiene encima —una chapa
+          deshabilitada sin motivo escrito parece un fallo de la aplicación—. */}
       {w.bloqueado && (
-        <p className="mt-2.5">
-          <Marca icono="bloqueado" tono="problema">
+        <p className="mt-3">
+          <span className="pildora pildora-peligro">
+            <Icono nombre="bloqueado" tam={13} />
             {t.bloqueadoEnSophon}
-          </Marca>
+          </span>
         </p>
       )}
-    </>
+    </div>
   );
 }
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Icono, type NombreIcono } from "@/components/Icono";
-import { Aviso, Banda, Cargando, Marca, Placa, Vacio } from "@/components/Pantalla";
+import { Aviso, Banda, Cargando, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
@@ -26,6 +26,30 @@ import type { Cadenas } from "@/lib/i18n";
  * columna en el orden de la jornada del agente, la misma que usa el bot. Cada
  * fila lleva SU PROPIO dato, así que el menú es además un cuadro de mando, y
  * solo lleva marca amarilla lo que exige actuar hoy.
+ *
+ * ── DÓNDE ESTÁ EL RELIEVE ──
+ *
+ * La pantalla era una pila de bandas planas: cinco estratos de papel casi del
+ * mismo valor, sin un solo objeto levantado. Es la mitad de «lo veo muy soso».
+ * Ahora hay exactamente **dos objetos con sombra**, y los dos son el mismo tipo
+ * de cosa —una respuesta cerrada que se puede leer sola—:
+ *
+ *   · la tarjeta del bono, que además lleva la malla de marca por detrás: es
+ *     la única de la portada donde el color tiene permiso para extenderse;
+ *   · la tarjeta de la escalera del saldo.
+ *
+ * Lo denso NO lleva sombra: los cuatro escalones del bono van de filete
+ * (`.tarjeta-borde`) porque cuatro sombras seguidas en una fila de 82 px son
+ * ruido, no jerarquía. La regla que las separa sigue en pie y aquí se cumple
+ * literalmente: **una tarjeta nunca contiene bandas**, así que los escalones,
+ * el ritmo y la lista de quién acerca cuelgan de la banda y no de la tarjeta.
+ *
+ * ── EL AMARILLO, UNA VEZ ──
+ *
+ * Hay UNA chapa en toda la pantalla, y ni una gota más de campo. Los estados
+ * —«ya es tuyo»—, los escalones alcanzados y la barra del bono se distinguen
+ * por CONTRASTE sobre la escala neutra, que es de lo que va el sistema entero:
+ * el amarillo se ve muchísimo porque aparece muy poco.
  */
 
 interface DiaApi extends Omit<DiaTestigo, "importeMicros"> {
@@ -172,9 +196,11 @@ export default function Inicio() {
 
   return (
     <main className="relative min-h-dvh">
-      {/* La Placa: lo devengado del mes sobre campo amarillo. Es la identidad y
-          es el dato, en la misma pieza. Solo aparece cuando hay una respuesta
-          que dar: sin datos todavía no hay nada que plantear. */}
+      {/* La Placa: lo devengado del mes sobre el degradado casi negro, con la
+          malla y el arco del isotipo por detrás. Es la identidad y es el dato,
+          en la misma pieza, y está terminada: aquí no se toca. Solo aparece
+          cuando hay una respuesta que dar —sin datos todavía no hay nada que
+          plantear—, y esa misma condición gobierna el relleno de abajo. */}
       {datos && dias.length > 0 && (
         <Placa
           rotulo={t.devengadoTreintaDias}
@@ -187,10 +213,13 @@ export default function Inicio() {
         />
       )}
 
-      {/* Sin relleno superior cuando hay placa: la Cinta muerde la placa en vez
-          de dejar una franja de fondo entre las dos. La placa solo se pinta
-          cuando hay datos, y en esa rama el primer hijo es siempre una banda con
-          su propio `py-6`, así que el aire no se pierde: cambia de dueño. */}
+      {/* Sin relleno superior cuando hay placa: la primera banda MUERDE la placa
+          en vez de dejar una franja de fondo entre las dos, que se lee como una
+          costura mal cerrada justo debajo de la pieza que abre la pantalla. La
+          condición es literalmente la misma que decide si la placa se pinta, así
+          que no pueden desincronizarse. Y en esa rama el primer hijo es siempre
+          una banda con su propio `py-6` —la Cinta, o el bono si no hay tiers—,
+          así que el aire no se pierde: cambia de dueño. */}
       <div
         className={datos && dias.length > 0 ? "pb-16" : "pb-16 pt-6"}
         style={{ paddingInline: "var(--margen-pantalla)" }}
@@ -203,10 +232,23 @@ export default function Inicio() {
           <Vacio
             titulo={datos.webmasters === 0 ? t.sinWebmasters : t.sinIngresos}
             apoyo={datos.webmasters === 0 ? t.sinWebmastersApoyo : t.sinIngresosApoyo}
+            /*
+             * Con equipo pero sin registros, el vacío se queda SIN chapa.
+             *
+             * Ofrecía «Ver mi equipo» y el menú de abajo seguía pintando
+             * «Activar webmaster»: dos chapas amarillas en la misma pantalla, y
+             * el amarillo solo significa algo si hay una. La que se retira es la
+             * del vacío, y por dos motivos: su destino ya está tres filas más
+             * abajo —con el recuento al lado, que la chapa no tenía— y la que
+             * queda es la acción de la aplicación, no una navegación.
+             *
+             * `vacioYaOfreceActivar` cubre el caso simétrico: con la red a cero
+             * es el vacío el que se queda la chapa y el menú el que la cede.
+             */
             accion={
               datos.webmasters === 0
                 ? { texto: t.activarWebmaster, href: "/activar", icono: "activar" as const }
-                : { texto: t.red, href: "/red", icono: "red" as const }
+                : undefined
             }
           />
         ) : (
@@ -244,10 +286,22 @@ export default function Inicio() {
             {datos?.hito && <BandaHito hito={datos.hito} etiquetas={t} orden={orden(1)} />}
 
             {/* La Escalera: el dinero es un flujo con estados, no cuatro saldos
-                sueltos. Cuatro tarjetas KPI perderían justo esa secuencia. */}
+                sueltos. Cuatro tarjetas KPI perderían justo esa secuencia.
+
+                Va DENTRO de una tarjeta, y el estrato que la aloja es el más
+                oscuro de los tres: la escalera es una respuesta cerrada —los
+                cuatro estados de un mismo dinero— y como objeto levantado se lee
+                de un vistazo como una sola cosa. Suelta sobre la banda eran
+                cuatro renglones que había que agrupar con la vista.
+
+                La nota de las revisiones se queda FUERA. Es una condición del
+                servicio, no un peldaño más: metida dentro se leería como si
+                formara parte del saldo. */}
             {cartera && (
               <Banda como="div" tono={2} orden={orden(2)} className="py-6">
-                <Escalera cartera={cartera} titulo={t.cartera} etiquetas={t} />
+                <div className="tarjeta">
+                  <Escalera cartera={cartera} titulo={t.cartera} etiquetas={t} />
+                </div>
                 <p className="mt-3 text-apoyo text-texto-apoyo">{t.revisionManual}</p>
               </Banda>
             )}
@@ -260,14 +314,15 @@ export default function Inicio() {
             pantalla con enlaces a todo lo demás— sin una sola salida. El agente
             se quedaba encerrado en un aviso con un botón de reintentar. */}
         <Banda como="nav" tono={0} etiqueta={t.acciones} orden={orden(3)} className="pb-2 pt-7">
-          {/* La chapa, salvo cuando el estado vacío ya la está ofreciendo: con la
-              red a cero eran dos bloques amarillos idénticos, uno debajo del
-              otro. Ver `vacioYaOfreceActivar` arriba. */}
+          {/*
+            LA ÚNICA CHAPA DE LA PANTALLA, y por tanto el único amarillo. Se cede
+            cuando el estado vacío ya la está ofreciendo: con la red a cero eran
+            dos bloques amarillos idénticos, uno debajo del otro. Ver
+            `vacioYaOfreceActivar` arriba, y la nota del vacío para el caso
+            simétrico —equipo sin registros—.
+          */}
           {!vacioYaOfreceActivar && (
-            <Link
-              href="/activar"
-              className="chapa pulsable text-cuerpo"
-            >
+            <Link href="/activar" className="chapa pulsable text-cuerpo">
               <Icono nombre="activar" />
               {t.activarWebmaster}
             </Link>
@@ -346,11 +401,25 @@ function Fila({
         y sus animaciones de entrada repetidas— y, sobre todo, que volver atrás
         reconstruyera la portada desde cero en vez de repintarla al instante.
       */}
-      <Link href={href} className="pulsable -mx-2 flex min-h-14 items-center gap-3.5 rounded-control px-2 text-cuerpo">
-        {/* El icono va del T1 —la tinta densa de los datos— y no del texto: así
-            la columna de iconos se lee como una sola cosa y no compite con los
-            nombres de las secciones. */}
-        <Icono nombre={icono} tam={22} className="text-t1" />
+      <Link href={href} className="pulsable -mx-2 flex min-h-14 items-center gap-3 rounded-control px-2 text-cuerpo">
+        {/*
+          El icono va en su propia cápsula, y es lo que convierte una lista de
+          palabras en un menú que se reconoce sin leerlo: tres cuadrados en
+          columna se ven antes que tres nombres.
+
+          La cápsula es NEUTRA y no de tinte de marca, que es lo que hace el kit.
+          Medido: `--brand-tint` es `#FEF9E3` y sobre el papel blanco de esta
+          banda da 1,04:1 —o sea, no se ve—. Un tinte invisible no dibuja la
+          cápsula y encima gasta la regla del amarillo a cambio de nada. El
+          filete la define en claro, el relleno en oscuro, y el trabajo lo hace
+          el contraste sobre la escala neutra, como en el resto del sistema.
+
+          El icono va del T1 —la tinta densa de los datos— y no del texto: así la
+          columna se lee como una sola cosa y no compite con los nombres.
+        */}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-borde bg-superficie-alta text-t1">
+          <Icono nombre={icono} tam={19} />
+        </span>
         <span>{etiqueta}</span>
         {dato && <span className="cifra ms-auto text-apoyo text-texto-apoyo">{dato}</span>}
         <Icono nombre="avance" tam={18} className={`text-texto-apoyo ${dato ? "" : "ms-auto"}`} />
@@ -401,6 +470,19 @@ function prefiereQuietud(): boolean {
  * apoyo en una esquina. Ahora la cifra que manda es la del premio, con la misma
  * `CifraProtagonista` que la Placa y la ficha del webmaster, y el recuento baja
  * a la línea de métricas, que es su sitio: es la medida, no la respuesta.
+ *
+ * ── Cómo se reparte en objetos ──
+ *
+ * La banda contesta tres preguntas encadenadas y cada una tiene su forma, que es
+ * lo que la sacó de ser una columna de nueve renglones del mismo peso:
+ *
+ *   dónde estoy    → TARJETA con relieve y malla de marca. Es la respuesta.
+ *   cómo es el juego → cuatro tarjetas de filete, una por escalón.
+ *   quién me lleva  → lista de filas enlazadas, densa y sin caja.
+ *
+ * Las tres cuelgan de la banda y no unas de otras: una tarjeta es un objeto
+ * DENTRO de un estrato, y meter la escalera o la lista dentro de la tarjeta la
+ * convertiría en un contenedor de secciones, que es justo lo que la banda ya es.
  *
  * ── Lo que no se hace ──
  *
@@ -474,62 +556,116 @@ function BandaHito({
 
   return (
     <Banda tono={0} etiqueta={t.bonoDelMes} orden={orden} className="py-6">
-      <p className="text-rotulo text-texto-apoyo">{t.bonoDelMes}</p>
+      {/*
+        LA TARJETA DEL BONO: el único objeto de la portada que lleva color.
 
-      {/* El premio, del tamaño que le corresponde. La marca va al lado y no
-          debajo: «ya es tuyo» es un predicado de esa cifra, no otro dato. */}
-      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-apoyo">
-        <CifraProtagonista micros={BigInt(preside.micros)} />
-        {yaHaGanado && <Marca icono="activo">{t.bonoYaEsTuyo}</Marca>}
-      </div>
+        Es la pieza que responde «cuánto vale el premio y a cuánto estoy», y
+        antes eran seis renglones sueltos sobre el papel de la banda, del mismo
+        peso que la nota de las revisiones que hay dos estratos más abajo. Con
+        relieve se lee como UNA respuesta: la cifra, su estado, la medida y lo
+        que la medida significa, todo dentro del mismo canto.
 
-      <p className="mt-2 text-apoyo text-texto-apoyo tabular-nums">{apoyo}</p>
+        `campo-malla` mete la malla de marca por detrás —amarillo muy diluido,
+        arriba a la izquierda—. Es LA respuesta a «hazlo más vibrante» que el
+        sistema autoriza: el color se extiende en los motivos, no en los bloques.
+        Y va aquí y en ningún otro sitio de la pantalla, porque un motivo
+        repetido cinco veces deja de ser un motivo y pasa a ser un fondo.
 
-      {/* El raíl con los escalones ya superados marcados.
+        Nada de `motivo-arcos` encima: la placa ya trae su arco a 300 px de aquí,
+        y dos veces la misma geometría en la primera pantalla de scroll es
+        firmar dos veces el mismo papel.
+      */}
+      <div className="tarjeta campo-malla">
+        <p className="text-rotulo text-texto-apoyo">{t.bonoDelMes}</p>
 
-          Las muescas se posicionaban con anchos ACUMULADOS en una fila flexible,
-          y como los hijos de un flex encogen por defecto, la suma —que pasaba
-          holgadamente del 100 %— se repartía a prorrata: con 12.000 registros
-          las marcas debían caer al 50 % y al 100 %, y caían al 20 %, 60 % y
-          100 %. Ninguna estaba sobre su escalón. Ahora cada una se coloca sola,
-          en su sitio, con una propiedad lógica que se espeja en árabe.
+        {/* El premio, del tamaño que le corresponde. El estado va al lado y no
+            debajo: «ya es tuyo» es un predicado de esa cifra, no otro dato. */}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <CifraProtagonista micros={BigInt(preside.micros)} />
+          {yaHaGanado && (
+            /*
+              Píldora NEUTRA, y las dos alternativas se descartaron por medida:
 
-          La del propio objetivo no se dibuja: el final del raíl ES ese escalón,
-          y una muesca ahí queda medio recortada por el `overflow`. */}
-      <div className="relative mt-3 h-1.5 overflow-hidden rounded-marca bg-borde">
-        <BarraCreciente porcentaje={Math.max(porcentaje, 1.5)} className="bg-t2" />
-        {meta > 0 &&
-          hito.escalones.map((e) => {
-            const posicion = (e.usuarios / meta) * 100;
-            if (posicion <= 0 || posicion >= 100) return null;
-            return (
-              <span
-                key={e.usuarios}
-                aria-hidden
-                className="pointer-events-none absolute top-0 h-full w-px bg-fondo"
-                style={{ insetInlineStart: `${posicion}%` }}
-              />
-            );
-          })}
-      </div>
+               · `pildora-marca` es campo amarillo macizo. Aunque la forma la
+                 separe de la chapa —para eso se rehízo el sistema de formas—,
+                 esto NO se pulsa, y la regla de la casa es que el amarillo es la
+                 acción. Con la chapa del menú abajo serían dos amarillos en la
+                 misma pantalla diciendo cosas distintas: el defecto histórico.
+               · `pildora-exito` empareja `--success` sobre `--success-tint`, y
+                 eso mide 4,29:1 en un rótulo de 13 px. Por debajo de 4,5:1, así
+                 que no entra.
 
-      {/* La línea de métricas: lo que mide la barra que tiene encima.
+              En neutro da 5,89:1 en claro y 6,21:1 en oscuro, y de paso la
+              portada se queda en blanco, grises y amarillo sin un cuarto tono.
+            */
+            <span className="pildora">
+              <Icono nombre="activo" tam={14} />
+              {t.bonoYaEsTuyo}
+            </span>
+          )}
+        </div>
 
-          `flex-wrap`: con seis cifras —35.000 registros— las dos columnas se
-          estrangulaban y cada una partía en dos líneas, dejando cuatro
-          renglones para lo que es una frase. Envolviendo, la comparación baja
-          entera. */}
-      <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-apoyo text-texto-apoyo tabular-nums">
-        <p>
-          {hito.siguiente
-            ? t.bonoEsteMesLlevas(hito.registros, hito.siguiente.faltan)
-            : t.registrosEsteMes(hito.registros)}
-        </p>
-        {/* La comparación con el mes cerrado anterior. Es la cifra que se mueve
-            aunque el nivel esté lejos, y la única de la banda que puede ser
-            negativa: se dice igual, porque un mes flojo que la aplicación
-            esconde es un mes flojo que el agente descubre al no cobrar. */}
-        {variacion !== null && <p>{t.frenteAlMesPasado(variacion)}</p>}
+        <p className="mt-2 text-apoyo text-texto-apoyo tabular-nums">{apoyo}</p>
+
+        {/* El raíl con los escalones ya superados marcados.
+
+            Las muescas se posicionaban con anchos ACUMULADOS en una fila
+            flexible, y como los hijos de un flex encogen por defecto, la suma
+            —que pasaba holgadamente del 100 %— se repartía a prorrata: con
+            12.000 registros las marcas debían caer al 50 % y al 100 %, y caían
+            al 20 %, 60 % y 100 %. Ninguna estaba sobre su escalón. Ahora cada
+            una se coloca sola, en su sitio, con una propiedad lógica que se
+            espeja en árabe.
+
+            La del propio objetivo no se dibuja: el final del raíl ES ese
+            escalón, y una muesca ahí queda medio recortada por el `overflow`.
+
+            La barra sube a tinta plena y el raíl a 8 px. Iba en T2 sobre 6 px
+            cuando estaba sobre el papel de la banda; dentro de la tarjeta la
+            medida es lo único que mide algo aquí, así que se lleva el escalón
+            más denso de la rampa. Amarilla NO: `--chart-accent` existe para la
+            serie que hay que mirar, pero un progreso no se pulsa y el amarillo
+            de esta pantalla ya tiene dueño. */}
+        <div className="relative mt-3.5 h-2 overflow-hidden rounded-marca bg-borde">
+          <BarraCreciente porcentaje={Math.max(porcentaje, 1.5)} className="bg-tinta" />
+          {meta > 0 &&
+            hito.escalones.map((e) => {
+              const posicion = (e.usuarios / meta) * 100;
+              if (posicion <= 0 || posicion >= 100) return null;
+              return (
+                /* La muesca es del color de LA TARJETA, no del fondo de página:
+                   el raíl se mudó aquí dentro y en oscuro esos dos valores no
+                   son el mismo —`--fondo` es #0E0E10 y `--card` es #16161A—, así
+                   que la muesca se veía como una raya negra dentro de la barra
+                   en vez de como un corte. */
+                <span
+                  key={e.usuarios}
+                  aria-hidden
+                  className="pointer-events-none absolute top-0 h-full w-0.5 bg-[var(--card)]"
+                  style={{ insetInlineStart: `${posicion}%` }}
+                />
+              );
+            })}
+        </div>
+
+        {/* La línea de métricas: lo que mide la barra que tiene encima.
+
+            `flex-wrap`: con seis cifras —35.000 registros— las dos columnas se
+            estrangulaban y cada una partía en dos líneas, dejando cuatro
+            renglones para lo que es una frase. Envolviendo, la comparación baja
+            entera. */}
+        <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-apoyo text-texto-apoyo tabular-nums">
+          <p>
+            {hito.siguiente
+              ? t.bonoEsteMesLlevas(hito.registros, hito.siguiente.faltan)
+              : t.registrosEsteMes(hito.registros)}
+          </p>
+          {/* La comparación con el mes cerrado anterior. Es la cifra que se
+              mueve aunque el nivel esté lejos, y la única de la banda que puede
+              ser negativa: se dice igual, porque un mes flojo que la aplicación
+              esconde es un mes flojo que el agente descubre al no cobrar. */}
+          {variacion !== null && <p>{t.frenteAlMesPasado(variacion)}</p>}
+        </div>
       </div>
 
       {/* La escalera entera, con lo que paga cada peldaño.
@@ -537,10 +673,27 @@ function BandaHito({
           El premio y el estado de cada escalón ya viajaban en la respuesta y la
           pantalla solo leía el umbral: enseñarlos no cuesta ni una consulta. Y
           cambia la pregunta que contesta la banda —de «cuánto me falta» a «cómo
-          es el juego»—, que es lo que hace que valga la pena perseguirlo. */}
+          es el juego»—, que es lo que hace que valga la pena perseguirlo.
+
+          Cada escalón es ahora una TARJETA DE FILETE, y esa es la variante y no
+          la de sombra a propósito: son cuatro objetos idénticos en fila de
+          ~82 px, y cuatro sombras seguidas no son cuatro objetos levantados,
+          son ruido. El filete cierra cada peldaño para que el par
+          «umbral / premio» se lea como una unidad —antes eran ocho cifras
+          sueltas en dos renglones y había que emparejarlas con la vista—.
+
+          Va FUERA de la tarjeta del bono, colgando de la banda: una tarjeta no
+          contiene tarjetas, igual que no contiene bandas. La tarjeta responde
+          «dónde estoy», la escalera responde «cómo es el juego», y son dos
+          preguntas.
+
+          El relleno se recorta con `!`: `.tarjeta-borde` trae los 18 px de una
+          tarjeta de ancho completo, y esta hoja se sirve detrás de las
+          utilidades de Tailwind, así que sin la marca de importancia gana ella.
+          Con 18 px por lado, un umbral de cinco cifras no cabe en la columna. */}
       <ul
         aria-label={t.escaleraDelBono}
-        className="mt-4 grid gap-2 text-center"
+        className="mt-3.5 grid gap-2 text-center"
         style={{ gridTemplateColumns: `repeat(${hito.escalones.length}, minmax(0, 1fr))` }}
       >
         {hito.escalones.map((e) => {
@@ -563,10 +716,15 @@ function BandaHito({
           return (
             <li
               key={e.usuarios}
-              /* Cumplido en tinta plena, pendiente apagado. El estado NO va solo
-                 por color: el cumplido va además en negrita, así que se distingue
-                 en escala de grises y con cualquier tema raro del cliente. */
-              className={e.alcanzado ? "text-texto" : "text-texto-apoyo"}
+              /* Cumplido en tinta plena y con el filete fuerte; pendiente en
+                 tinta de apoyo y con el filete normal. El estado NO va por
+                 color: va por CONTRASTE y por peso, así que se distingue en
+                 escala de grises, en oscuro y con cualquier tema raro del
+                 cliente. Es además la única forma de marcarlo que no gasta
+                 amarillo en algo que no se pulsa. */
+              className={`tarjeta-borde !px-1 !py-2.5 ${
+                e.alcanzado ? "!border-borde-control text-texto" : "text-texto-apoyo"
+              }`}
               style={
                 e.alcanzado
                   ? {
@@ -580,7 +738,7 @@ function BandaHito({
               <p className={`text-apoyo tabular-nums ${e.alcanzado ? "font-semibold" : ""}`}>
                 {t.numero(e.usuarios)}
               </p>
-              <p className="text-apoyo tabular-nums opacity-80">{e.premio.texto}</p>
+              <p className="text-rotulo font-normal tabular-nums opacity-80">{e.premio.texto}</p>
             </li>
           );
         })}
@@ -605,7 +763,14 @@ function BandaHito({
           no dice de dónde viene no se puede empujar: el agente ve que le faltan
           9.280 y no tiene ni idea de a quién telefonear. Tres como mucho —una
           lista de veinte correos en un móvil no se lee— y enlazadas a su ficha,
-          que es donde están sus enlaces de captación. */}
+          que es donde están sus enlaces de captación.
+
+          Se queda en LISTA y no pasa a tarjetas, aunque el kit las use: la banda
+          ya tiene una tarjeta con sombra y cuatro de filete, y tres más aquí
+          convertirían la respuesta en un muro de cajas. Lo que sí gana es el
+          chevron —lo tienen las tres filas del menú y no lo tenían estas—, que
+          es lo único que distingue una fila que LLEVA a algún sitio de una fila
+          que solo enseña un dato. */}
       {hito.porWebmaster.length > 0 && (
         <div className="mt-4">
           <p className="text-rotulo text-texto-apoyo">{t.quienTeAcerca}</p>
@@ -614,12 +779,13 @@ function BandaHito({
               <li key={w.webmasterId}>
                 <Link
                   href={`/red/${encodeURIComponent(w.email)}`}
-                  className="pulsable -mx-2 flex min-h-11 items-center gap-3 rounded-control px-2"
+                  className="pulsable -mx-2 flex min-h-11 items-center gap-2.5 rounded-control px-2"
                 >
                   <span className="min-w-0 flex-1 truncate text-apoyo">{w.email}</span>
                   <span className="cifra shrink-0 text-apoyo tabular-nums">
                     {t.registrosCortos(w.registros)}
                   </span>
+                  <Icono nombre="avance" tam={16} className="text-texto-apoyo" />
                 </Link>
               </li>
             ))}

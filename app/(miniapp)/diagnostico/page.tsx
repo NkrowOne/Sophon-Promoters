@@ -29,6 +29,22 @@ import { api } from "@/lib/api/cliente";
  * No enseña el `initData` ni ningún valor suyo: lleva el nombre y el id de
  * Telegram de quien abre la app. Nombres de campo y tamaños, que es lo que
  * distingue una cadena buena de una recortada.
+ *
+ * ── CÓMO SE VE ──
+ *
+ * La conclusión va en TARJETA con sombra y las dos mitades del circuito en
+ * tarjeta de BORDE. Es la distinción del sistema —sombra para lo que se levanta
+ * del papel, filete para lo denso, porque once sombras seguidas son ruido— y
+ * aquí además dice la jerarquía de la pantalla con relieve en vez de con
+ * tamaño: arriba la frase que hay que leer, debajo las pruebas en las que se
+ * apoya.
+ *
+ * Las píldoras marcan **solo los tres pasos binarios del circuito** —¿hay
+ * cliente?, ¿trae `initData`?, ¿llega la cabecera?—, que es lo que el Operador
+ * escanea antes de leer una sola palabra. El veredicto no lleva ninguna: es una
+ * frase del servidor, de largo imprevisible, y una cápsula no parte líneas; y
+ * ya está contado arriba. Teñir las once filas convertiría esto en el panel de
+ * control genérico del que huye el resto de la aplicación.
  */
 
 interface Diagnostico {
@@ -59,31 +75,52 @@ export default function DiagnosticoPagina() {
 
   return (
     <Pantalla titulo="Diagnóstico">
+      {/* La respuesta, y en el único objeto con sombra de la pantalla. Todo lo
+          que hay debajo es la prueba de esta frase. */}
       <Banda orden={0} tono={0} className="pb-6">
-        <p className="text-rotulo text-texto-apoyo">CONCLUSIÓN</p>
-        <p className="mt-2 text-cuerpo">{conclusion}</p>
+        <div className="tarjeta">
+          <p className="text-rotulo text-texto-apoyo">CONCLUSIÓN</p>
+          <p className="mt-2 text-cuerpo">{conclusion}</p>
+        </div>
       </Banda>
 
+      {/* El rótulo se queda FUERA de la tarjeta: nombra la mitad del circuito,
+          que es un trozo de la página, y meterlo dentro lo convertiría en un
+          título de la tarjeta. El hueco entre filas lo pone el `gap` y no un
+          margen por fila, para que la primera no empiece separada del canto. */}
       <Banda orden={1} tono={1} className="py-6">
         <p className="text-rotulo text-texto-apoyo">AQUÍ (TELEGRAM)</p>
-        <Dato que="Cliente de Telegram" vale={webApp ? "sí" : "NO"} />
-        <Dato que="Versión" vale={webApp?.version ?? "—"} />
-        <Dato que="Plataforma" vale={webApp?.platform ?? "—"} />
-        <Dato que="initData" vale={initData ? `${initData.length} caracteres` : "VACÍO"} />
+        <div className="tarjeta-borde mt-3 flex flex-col gap-3">
+          <Dato que="Cliente de Telegram" vale={webApp ? "sí" : "NO"} pasa={webApp !== null} />
+          <Dato que="Versión" vale={webApp?.version ?? "—"} />
+          <Dato que="Plataforma" vale={webApp?.platform ?? "—"} />
+          <Dato
+            que="initData"
+            vale={initData ? `${initData.length} caracteres` : "VACÍO"}
+            pasa={initData !== ""}
+          />
+        </div>
       </Banda>
 
       <Banda orden={2} tono={2} className="py-6">
         <p className="text-rotulo text-texto-apoyo">ALLÍ (SERVIDOR)</p>
+        {/* Ni el fallo de red ni la espera van en tarjeta: no hay nada tabular
+            que encuadrar, y una sola frase dentro de un filete se lee como un
+            dato más en vez de como la ausencia de todos. */}
         {falloRed ? (
           <p className="mt-2 text-cuerpo">No responde. Mira si el contenedor está en pie.</p>
         ) : !servidor ? (
           <p className="mt-2 text-apoyo text-texto-apoyo">Preguntando…</p>
         ) : (
-          <>
+          <div className="tarjeta-borde mt-3 flex flex-col gap-3">
             <Dato que="Veredicto" vale={servidor.veredicto} />
             {servidor.variante && <Dato que="Forma del resumen" vale={servidor.variante} />}
             <Dato que="Bot configurado" vale={servidor.bot.id ?? "sin forma reconocible"} />
-            <Dato que="Cabecera recibida" vale={`${servidor.cabecera.longitud} caracteres`} />
+            <Dato
+              que="Cabecera recibida"
+              vale={`${servidor.cabecera.longitud} caracteres`}
+              pasa={servidor.cabecera.longitud > 0}
+            />
             <Dato que="Campos" vale={servidor.cabecera.campos.join(", ") || "—"} />
             <Dato
               que="Desfase de reloj"
@@ -94,20 +131,35 @@ export default function DiagnosticoPagina() {
               }
             />
             {servidor.bot.pega && <Dato que="Aviso del token" vale={servidor.bot.pega} />}
-          </>
+          </div>
         )}
       </Banda>
     </Pantalla>
   );
 }
 
-function Dato({ que, vale }: { que: string; vale: string }) {
+/**
+ * Una fila del circuito.
+ *
+ * `pasa` solo lo llevan los tres eslabones que se contestan con sí o no. Ahí la
+ * píldora hace un trabajo que el texto no puede hacer: dice de qué lado está el
+ * corte sin que haya que leer la fila. En los demás el valor es una medida o
+ * una frase, y una cápsula de color sobre una medida no significa nada.
+ *
+ * Se LEE y no se pulsa, que es toda la regla de la píldora: va al ancho de su
+ * texto, dentro de una fila, y nunca al ancho de la tarjeta.
+ */
+function Dato({ que, vale, pasa }: { que: string; vale: string; pasa?: boolean }) {
   return (
-    <div className="mt-3 flex items-baseline justify-between gap-4">
+    <div className="flex items-baseline justify-between gap-4">
       <span className="text-apoyo text-texto-apoyo">{que}</span>
-      {/* `break-all`: la lista de campos y algunos motivos son largos y sin
-          espacios donde partir. */}
-      <span className="cifra break-all text-end text-apoyo">{vale}</span>
+      {pasa === undefined ? (
+        // `break-all`: la lista de campos y algunos motivos son largos y sin
+        // espacios donde partir.
+        <span className="cifra break-all text-end text-apoyo">{vale}</span>
+      ) : (
+        <span className={`pildora cifra ${pasa ? "pildora-exito" : "pildora-peligro"}`}>{vale}</span>
+      )}
     </div>
   );
 }

@@ -32,6 +32,27 @@ import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
  * Y el resultado se cuenta con precisión: si el alta entra y el PRO no, la
  * pantalla lo dice y ofrece la reparación en la ficha, en vez de dar por bueno
  * un trabajo hecho a medias.
+ *
+ * ── LO QUE CAMBIA EN ESTA PASADA ──
+ *
+ * Los tres pasos eran texto plano sobre papel: ni un objeto con relieve en toda
+ * la tarea, que es la mitad de «lo veo muy soso». Ahora hay **una sola tarjeta
+ * por paso y siempre en el mismo sitio** —debajo del título, primera banda—, y
+ * lo que cambia entre pasos es lo que lleva dentro: primero el campo donde se
+ * teclea el correo, después el correo ya escrito y grande para revisarlo. El
+ * objeto no se mueve; lo que se endurece es su contenido, de campo a
+ * afirmación, y ese es justo el gesto que el paso de confirmación describe.
+ *
+ * El motivo de malla va detrás de las dos, como en `/alta`: la tarea de la
+ * pantalla es esa tarjeta, así que es ahí donde el amarillo tiene permiso para
+ * aparecer sin ser un botón. La chapa sigue siendo una sola y la pone Telegram
+ * abajo.
+ *
+ * El paso «hecho» repetía a mano el par de botones —el mismo que `error.tsx` y
+ * `not-found.tsx` escriben cada uno por su cuenta: `min-h-12`, `rounded-control`,
+ * `bg-tinta` y la clase del borde— y ese calco es la razón de que los tres
+ * midieran distinto. Ahora son `.chapa-hueca` y `.chapa-tinta`, que ya traen la
+ * forma, los 46 px y la sombra del sistema.
  */
 interface Resultado {
   email: string;
@@ -102,9 +123,14 @@ function ActivarPasos() {
     } finally {
       setEnviando(false);
     }
-  }, [email, valido, enviando, haptica, router, t]);
+  }, [email, valido, enviando, haptica, router]);
 
   if (hecho) {
+    // El alta entró y el PRO no: es la única rama en la que queda trabajo, y
+    // decide tres cosas de esta pantalla —el remate de la banda, el objeto de
+    // aviso y a dónde lleva el botón de tinta—, así que se resuelve una vez.
+    const proFallado = Boolean(hecho.pro && !hecho.pro.concedido);
+
     return (
       <Pantalla titulo={t.activarWebmaster}>
         {/* El alta y, debajo, sus consecuencias en la misma banda.
@@ -115,11 +141,14 @@ function ActivarPasos() {
             que el agente haya hecho, es algo que pasó porque dio de alta a
             alguien, así que se cuenta en una línea junto a «cobrarás desde hoy».
 
-            Lo que NO se funde es el fallo. Si el PRO no entró, el alta sí y la
-            suscripción no, y eso hay que repararlo: mantiene su tratamiento
-            aparte —marca de problema y la explicación debajo— porque es la única
-            parte de esta pantalla en la que queda algo por hacer. */}
-        <Banda orden={0} tono={0} className="pb-6">
+            Los ARCOS DE MARCA, solo cuando todo salió bien. Es el único remate
+            decorativo de la tarea y aquí se lo ha ganado —esta banda es el
+            desenlace de tres pasos y no tiene chapa ni cifra que la sostengan—,
+            pero adornar con la geometría del isotipo un estrato que justo debajo
+            confiesa un fallo es celebrar a medias. Sin PRO la banda se queda
+            desnuda y el peso visual se lo lleva el problema, que es lo único que
+            queda por hacer. */}
+        <Banda orden={0} tono={0} className={proFallado ? "pb-6" : "motivo-arcos pb-6"}>
           <p className="text-cuerpo font-medium">{t.yaEstaEnTuRed(hecho.email)}</p>
           <p className="mt-1.5 text-apoyo text-texto-apoyo">
             {t.cobrarasDesdeHoy}
@@ -128,17 +157,45 @@ function ActivarPasos() {
             )}
           </p>
 
-          {hecho.pro && !hecho.pro.concedido && (
-            <div className="mt-4 border-s-2 border-peligro ps-3">
-              <p className="text-apoyo">
+          {/* Lo que NO se funde con la prosa es el fallo. Si el PRO no entró, el
+              alta sí y la suscripción no, y eso hay que repararlo.
+
+              Va en `.tarjeta-borde` y no en el filete lateral que tenía: en una
+              pantalla donde ya no queda nada pendiente, lo único pendiente tiene
+              que ser un OBJETO y no un párrafo más de la misma columna. Filete y
+              no sombra porque la tarjeta con relieve es la de la TAREA —la de
+              los otros dos pasos— y esto es una nota al pie del resultado. La
+              jerarquía de dentro es la de `Aviso`: qué pasa en cuerpo, qué hacer
+              en apoyo. */}
+          {proFallado && (
+            <div className="tarjeta-borde mt-5">
+              <p className="text-cuerpo">
                 <Marca icono="aviso" tono="problema">{t.proNoConcedido}</Marca>
               </p>
-              <p className="mt-1 text-apoyo text-texto-apoyo">{t.proNoConcedidoApoyo}</p>
+              <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.proNoConcedidoApoyo}</p>
             </div>
           )}
         </Banda>
 
         <Banda orden={1} tono={0} className="pt-6">
+          {/* Las dos salidas, con las chapas del sistema.
+
+              Estaban escritas a mano —`min-h-12`, `rounded-control`, `bg-tinta`,
+              el borde— igual que en `error.tsx` y en `not-found.tsx`: el mismo
+              par calcado en tres sitios y con tres alturas distintas. Ninguna de
+              las dos es amarilla, y aquí no hay ninguna que lo sea: el trabajo
+              ya está hecho, así que no hay acción principal, solo dos destinos.
+
+              El acuse de la de tinta se escribe aquí y no con `.pulsable`: esa
+              clase tiñe el fondo con especificidad (0,2,0) y le ganaría al campo
+              de `.chapa-tinta` (0,1,0), así que la chapa oscura se pondría gris
+              claro con su texto blanco encima durante 120 ms. Solo `transform`,
+              y solo si no se ha pedido quietud. La hueca sí lo lleva: sobre un
+              fondo de tarjeta el velo de superficie es justo el acuse correcto.
+
+              `min-w-0` con `flex-1`: sin él, un rótulo largo —«Ver a minha
+              equipa» en portugués— impone su ancho mínimo y las dos chapas dejan
+              de medir lo mismo. */}
           <div className="flex gap-2.5">
             <button
               type="button"
@@ -148,7 +205,7 @@ function ActivarPasos() {
                 clave.current = nuevaIdempotencia();
                 router.replace("/activar");
               }}
-              className="pulsable flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde-control px-4 text-cuerpo font-medium"
+              className="chapa-hueca pulsable min-w-0 flex-1 text-cuerpo"
             >
               {t.activarOtro}
             </button>
@@ -156,14 +213,12 @@ function ActivarPasos() {
               type="button"
               onClick={() =>
                 router.push(
-                  hecho.pro && !hecho.pro.concedido
-                    ? `/red/${encodeURIComponent(hecho.email.toLowerCase())}`
-                    : "/red",
+                  proFallado ? `/red/${encodeURIComponent(hecho.email.toLowerCase())}` : "/red",
                 )
               }
-              className="pulsable flex min-h-12 flex-1 items-center justify-center gap-2 rounded-control bg-tinta px-4 text-cuerpo font-semibold text-fondo"
+              className="chapa-tinta min-w-0 flex-1 text-cuerpo transition-transform duration-toque ease-sonda motion-safe:active:scale-[0.97]"
             >
-              {hecho.pro && !hecho.pro.concedido ? t.verSuFicha : t.verMiRed}
+              {proFallado ? t.verSuFicha : t.verMiRed}
             </button>
           </div>
         </Banda>
@@ -175,27 +230,40 @@ function ActivarPasos() {
     return (
       <Pantalla titulo={t.activarWebmaster}>
         <Banda orden={0} tono={0} className="pb-6">
-          <p className="text-rotulo text-texto-apoyo">{t.vasAActivar}</p>
-          {/* El correo grande y entero: es lo único que hay que revisar aquí, y
-              revisarlo en el tamaño de un campo de formulario es no revisarlo. */}
-          <p className="cifra mt-2 break-all text-cuerpo font-semibold">{email.trim()}</p>
-          {/*
-            Mismo arreglo que en `/alta`, y aquí importa todavía más: este es el
-            único camino para corregir un correo mal tecleado ANTES de activarlo,
-            y un alta sobre el correo equivocado no se deshace —crea la
-            atribución en Sophon y consume el año de PRO—. Un objetivo de 20 px
-            para la última salida antes de una acción irreversible.
+          {/* La MISMA tarjeta del paso anterior, en el mismo sitio y con el
+              mismo motivo detrás: lo único que ha cambiado es que el correo ya
+              no se teclea, se lee. Que el objeto no se mueva entre los dos pasos
+              es lo que hace que la confirmación se entienda como una relectura
+              de lo escrito y no como otra pantalla más de la que hay que
+              enterarse.
 
-            `-mb-3` y no `-my-3`: por arriba el `mt-3` ya separa del correo, así
-            que solo hay que recuperar los 12 px que la altura añade por abajo.
-          */}
-          <button
-            type="button"
-            onClick={() => irA("email")}
-            className="-mb-3 mt-1.5 inline-flex min-h-11 items-center text-apoyo font-medium underline underline-offset-4"
-          >
-            {t.corregirElCorreo}
-          </button>
+              Y el correo va en cuerpo de cifra, no de campo: es lo único que hay
+              que revisar aquí, y revisarlo en el tamaño de un formulario es no
+              revisarlo. `break-all` porque un correo largo no ofrece puntos de
+              corte y a 22 px desbordaría la tarjeta. */}
+          <div className="tarjeta campo-malla">
+            <p className="text-rotulo text-texto-apoyo">{t.vasAActivar}</p>
+            <p className="cifra mt-2 break-all text-cifra">{email.trim()}</p>
+            {/*
+              Mismo arreglo que en `/alta`, y aquí importa todavía más: este es el
+              único camino para corregir un correo mal tecleado ANTES de activarlo,
+              y un alta sobre el correo equivocado no se deshace —crea la
+              atribución en Sophon y consume el año de PRO—. Un objetivo de 20 px
+              para la última salida antes de una acción irreversible.
+
+              `-mb-3` y no `-my-3`: por arriba el `mt-1.5` ya separa del correo,
+              así que solo hay que devolverle a la tarjeta los 12 px que la altura
+              táctil añade por abajo. Sin eso el relleno se lee descuadrado —18 px
+              arriba y 30 abajo—, que en un objeto con canto propio sí se nota.
+            */}
+            <button
+              type="button"
+              onClick={() => irA("email")}
+              className="-mb-3 mt-1.5 inline-flex min-h-11 items-center text-apoyo font-medium underline underline-offset-4"
+            >
+              {t.corregirElCorreo}
+            </button>
+          </div>
         </Banda>
 
         <Banda orden={1} tono={1} className="py-5">
@@ -218,22 +286,34 @@ function ActivarPasos() {
   return (
     <Pantalla titulo={t.activarWebmaster}>
       <Banda orden={0} tono={0} className="pb-6">
-        <label htmlFor="email" className="text-rotulo block text-texto-apoyo">
-          {t.correoDelWebmaster}
-        </label>
-        <input
-          id="email"
-          type="email"
-          inputMode="email"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="correo@ejemplo.com"
-          className="mt-2 w-full rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo outline-none focus:border-tinta"
-        />
-        <p className="mt-2 text-apoyo text-texto-apoyo">{t.tieneQueExistirYa}</p>
+        {/* El campo, dentro de la tarjeta y con la malla detrás, igual que en
+            `/alta`: la tarea de la pantalla es escribir este correo, así que es
+            el único objeto que se levanta del papel y el único sitio donde el
+            amarillo aparece sin ser la acción. Suelto sobre la banda era un
+            rectángulo perfilado sobre papel blanco, y la pantalla entera se leía
+            como un formulario sin protagonista. */}
+        <div className="tarjeta campo-malla">
+          <label htmlFor="email" className="text-rotulo block text-texto-apoyo">
+            {t.correoDelWebmaster}
+          </label>
+          <input
+            id="email"
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="correo@ejemplo.com"
+            className="mt-2 w-full rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo outline-none transition-colors duration-toque ease-sonda focus:border-tinta"
+          />
+          {/* La ayuda no repite el rótulo: dice lo que el rótulo no puede, que la
+              cuenta tiene que existir ya en Sophon. Es el motivo por el que se
+              cae la mitad de los altas, y enterarse después de pulsar cuesta una
+              ida y vuelta al servidor. */}
+          <p className="mt-2 text-apoyo text-texto-apoyo">{t.tieneQueExistirYa}</p>
+        </div>
       </Banda>
 
       {/* Estado previo: qué pasa al continuar. No es letra pequeña, es contexto,

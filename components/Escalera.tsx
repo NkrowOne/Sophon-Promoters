@@ -11,6 +11,13 @@
  *
  * Vive en su propio fichero porque la usan inicio y cartera; duplicarla habría
  * garantizado que una de las dos se quedara atrás.
+ *
+ * **No trae superficie propia.** Sus dos consumidores la meten en una
+ * `.tarjeta`, que es lo correcto —cuatro estados de un mismo dinero son UNA
+ * unidad, y como objeto levantado se lee de un vistazo en vez de como cuatro
+ * renglones que hay que agrupar con la vista—, pero el relieve lo pone quien la
+ * coloca: una pieza que se levanta sola no se puede volver a usar dentro de otra
+ * que ya está levantada.
  */
 
 import { BarraCreciente } from "./Animacion";
@@ -53,9 +60,14 @@ export function Escalera({
   return (
     <section aria-label={etiquetas.estadoDeTuDinero}>
       {titulo && (
-        <p className="text-rotulo mb-1 border-b border-borde pb-2 text-texto-apoyo">{titulo}</p>
+        <p className="text-rotulo mb-1 border-b border-junta pb-2 text-texto-apoyo">{titulo}</p>
       )}
-      <div className="divide-y divide-borde">
+      {/* `divide-junta` y no `divide-borde`: la junta es la línea con la que
+          esta aplicación separa filas de una misma lista —el menú de la portada,
+          el historial de cobros— y el borde es el CANTO de un objeto. Dentro de
+          una tarjeta, que ya tiene canto, tres filetes del mismo grosor que el
+          suyo la parten en cuatro cajas en vez de dejarla ser una. */}
+      <div className="divide-y divide-junta">
         <Peldano etiqueta={etiquetas.devengado} saldo={cartera.devengado} proporcion={100} destacado />
         <Peldano
           etiqueta={etiquetas.disponible}
@@ -110,10 +122,11 @@ function Peldano({
       </div>
       {/* Extremos rectos: una barra de datos con las puntas redondeadas miente
           sobre dónde empieza y acaba la medida, y solo está ahí por blandura. */}
-      {/* `bg-borde` y no `bg-superficie-alta`: el raíl vivía del mismo color
-          que la banda que lo contiene en inicio —1,000:1—, así que la barra
-          parecía flotar sin escala detrás. Un raíl tiene que verse para que
-          la longitud de lo lleno signifique algo. */}
+      {/* `bg-borde` y no `bg-superficie-alta`: el raíl vivía del mismo color que
+          la banda que lo contenía —1,000:1—, así que la barra parecía flotar sin
+          escala detrás. Ahora la Escalera va dentro de una tarjeta blanca, donde
+          la superficie alta es todavía menos visible. Un raíl tiene que verse
+          para que la longitud de lo lleno signifique algo. */}
       <span className="block h-1.5 overflow-hidden rounded-marca bg-borde">
         <BarraCreciente
           porcentaje={Math.max(proporcion, 1.5)}

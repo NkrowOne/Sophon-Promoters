@@ -16,6 +16,12 @@ import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
  * el agente viene buscando cuando baja —no qué día fue mejor, sino cuánto hizo
  * en junio—.
  *
+ * Tres estratos y ni uno más: el total arriba, la columna de días en medio y el
+ * fondo del sondeo abajo. **Sin placa**, y no por descuido: la placa da la
+ * respuesta CERRADA de una pantalla, y aquí el número de arriba depende de
+ * cuánto haya bajado el agente. Lo que preside es una tarjeta de filete, que
+ * pesa lo justo para abrir sin prometer un cierre que no existe.
+ *
  * La paginación va por fecha de corte y no por número de página: con `pageNum`,
  * un devengo nuevo del día en curso desplazaría toda la serie y el agente vería
  * días repetidos al seguir bajando.
@@ -141,15 +147,43 @@ export default function Historico() {
 
   return (
     <Pantalla titulo={t.historico}>
+      {/*
+        La cabecera, en tarjeta de FILETE y compacta.
+
+        Era un párrafo sobre el papel desnudo, y por eso esta era la única
+        pantalla de datos sin nada que la presidiera: el total —lo que el agente
+        viene a saber— pesaba exactamente lo mismo que la nota de debajo. De
+        filete y no de sombra porque no se pulsa, y porque a dos centímetros
+        empiezan setenta filas de dato: una sombra aquí levantaría el resumen
+        por encima del instrumento, que es al revés de como se lee esto.
+
+        `campo-malla` es el único oro de la pantalla, y por eso está. No hay
+        placa y no hay nada que pulsar en todo el histórico, así que sin él la
+        pantalla es blanca y gris de arriba abajo. Es un MOTIVO detrás de la
+        cifra, no una chapa: la regla de un amarillo por pantalla queda intacta
+        porque aquí no hay ninguna acción con la que se pueda confundir.
+      */}
       <Banda orden={0} tono={0} como="header" className="pb-5">
-        <p className="text-apoyo text-texto-apoyo">
-          <Importe micros={total} className="text-cuerpo font-semibold text-texto" />{" "}
-          {t.enDias(serie.length)}
-        </p>
-        {/* Solo se explica lo que no se descubre solo. Que bajando se va hacia
-            atrás lo enseña la propia lista en el primer gesto; que una banda se
-            abre al tocarla, no. */}
-        <p className="text-apoyo text-texto-apoyo">{t.tocaUnDia}</p>
+        <div className="tarjeta-borde campo-malla !px-4 !py-3.5">
+          {/*
+            El total sube de 16 a 22 px y a la cara de display.
+
+            Estaba escrito del tamaño de su propio pie de foto. No sube a los
+            40 px de una placa y es deliberado: este total NO cierra nada —crece
+            cada vez que el sondeo baja otro tramo—, y una cifra de portada que
+            cambia sola mientras se hace scroll miente sobre lo que es. Lo que
+            la mantiene honesta es el «en N días» pegado detrás en tinta de
+            apoyo: la convierte en una medida del tramo cargado y no en un saldo.
+          */}
+          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-apoyo text-texto-apoyo">
+            <Importe micros={total} className="display text-cifra text-texto" />
+            <span>{t.enDias(serie.length)}</span>
+          </p>
+          {/* Solo se explica lo que no se descubre solo. Que bajando se va hacia
+              atrás lo enseña la propia lista en el primer gesto; que una banda se
+              abre al tocarla, no. */}
+          <p className="mt-1 text-apoyo text-texto-apoyo">{t.tocaUnDia}</p>
+        </div>
       </Banda>
 
       {/* El testigo va sobre superficie y no sobre el fondo desnudo: las bandas
@@ -171,6 +205,12 @@ export default function Historico() {
           {agotado ? (
             // El fondo del sondeo tiene que verse: sin este cierre, el scroll
             // acaba en blanco y no se distingue de una carga que falló.
+            //
+            // El filete es de TINTA y no de campo aunque el prototipo lo pinte
+            // amarillo: la roca madre no se pulsa. En esta paleta el contraste
+            // ya hace solo el trabajo de decir «hasta aquí», y gastar el único
+            // color del producto en una línea de cierre es justo lo que lo
+            // devalúa donde sí significa algo.
             <div className="border-t-2 border-tinta pt-3 text-apoyo text-texto-apoyo">
               {t.aquiEmpieza}
             </div>
@@ -180,9 +220,20 @@ export default function Historico() {
               onReintentar={() => void cargar(cursor)}
             />
           ) : (
-            <p className="text-rotulo text-texto-apoyo" aria-live="polite">
-              {t.perforando}…
-            </p>
+            // La barrena sigue girando. El renglón solo no bastaba: esto se
+            // consulta de pie y con la red de un móvil, y un texto quieto seis
+            // segundos no se distingue de una aplicación colgada —y lo que hace
+            // entonces el agente es cerrarla—. Del ancho de una palabra y no de
+            // borde a borde, porque el medidor no sabe cuánto falta: dice que
+            // hay actividad, no que vaya por la mitad.
+            <div>
+              <p className="text-apoyo text-texto-apoyo" aria-live="polite">
+                {t.perforando}…
+              </p>
+              <span className="medidor mt-2 block h-1 w-24" aria-hidden>
+                <span />
+              </span>
+            </div>
           )}
         </div>
       </Banda>
