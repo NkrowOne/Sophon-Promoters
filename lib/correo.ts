@@ -44,24 +44,92 @@ const TEXTO = "#1f1710";
 const TEXTO_APOYO = "#6e5b4a";
 const BORDE = "#eadfc6";
 
+/**
+ * Una variable del SMTP, recortada.
+ *
+ * Lo mismo que pasó con el token del bot, y aquí duele más rápido: una
+ * contraseña con un espacio o un salto de línea al final llega al servidor tal
+ * cual y este contesta `535 Authentication Failed`, que es exactamente el error
+ * que da una contraseña equivocada. Se pierde la tarde mirando la contraseña
+ * buena. `lib/entorno.ts` avisa aparte y por su nombre de cualquier variable así.
+ */
+function ajuste(nombre: string): string | undefined {
+  const v = process.env[nombre]?.trim();
+  return v && v.length > 0 ? v : undefined;
+}
+
+/** Cómo está montado el transporte. Lo enseña el diagnóstico; nunca la contraseña. */
+export function ajustesSmtp(): { host?: string; puerto: number; usuario?: string; seguro: boolean } {
+  const puerto = Number(ajuste("SMTP_PORT") ?? 587);
+  return {
+    host: ajuste("SMTP_HOST"),
+    puerto,
+    usuario: ajuste("SMTP_USER"),
+    seguro: puerto === 465,
+  };
+}
+
 function transporte(): Transporter {
   if (global_.transporte) return global_.transporte;
 
-  const host = process.env["SMTP_HOST"];
+  const { host, puerto, usuario, seguro } = ajustesSmtp();
   if (!host) throw new Error("Falta SMTP_HOST: no se pueden enviar códigos por correo.");
 
   const t = nodemailer.createTransport({
     host,
-    port: Number(process.env["SMTP_PORT"] ?? 587),
+    port: puerto,
     // 465 es SMTPS implícito; el resto negocia STARTTLS.
-    secure: Number(process.env["SMTP_PORT"] ?? 587) === 465,
-    auth: process.env["SMTP_USER"]
-      ? { user: process.env["SMTP_USER"], pass: process.env["SMTP_PASSWORD"] ?? "" }
-      : undefined,
+    secure: seguro,
+    /*
+     * STARTTLS obligatorio en los puertos que no son el 465.
+     *
+     * Sin esto nodemailer negocia el cifrado si el servidor lo ofrece y sigue en
+     * claro si no lo ofrece. O sea que un servidor mal configurado —o alguien
+     * en medio que borre el anuncio de STARTTLS, que es el ataque clásico de
+     * degradación— se lleva la contraseña del correo por la red sin cifrar. El
+     * fallo correcto aquí es no enviar.
+     */
+    requireTLS: !seguro,
+    auth: usuario ? { user: usuario, pass: process.env["SMTP_PASSWORD"]?.trim() ?? "" } : undefined,
   });
 
   global_.transporte = t;
   return t;
+}
+
+/**
+ * Prueba la autenticación contra el servidor de correo, sin mandar nada.
+ *
+ * `verify` abre la conexión, negocia el cifrado y hace el `AUTH`. Es lo que
+ * separa «el servidor no me deja entrar» de «el servidor no me responde», que
+ * desde el error de un envío no se distingue.
+ *
+ * Devuelve el motivo en vez de lanzarlo: quien la llama la usa para enseñarlo.
+ */
+export async function probarSmtp(): Promise<{ ok: boolean; detalle: string }> {
+  const { host, puerto, usuario } = ajustesSmtp();
+  if (!host) return { ok: false, detalle: "falta SMTP_HOST" };
+  const donde = `${host}:${puerto}${usuario ? ` como ${usuario}` : " sin usuario"}`;
+  try {
+    await transporte().verify();
+    return { ok: true, detalle: `entra en ${donde}` };
+  } catch (e) {
+    const codigo = (e as { responseCode?: number }).responseCode;
+    const mensaje = e instanceof Error ? e.message : String(e);
+    /*
+     * El 535 es el que se lleva las tardes, porque dice lo mismo para cuatro
+     * causas distintas. Las cuatro salen aquí escritas.
+     */
+    const pista =
+      codigo === 535
+        ? "\n\nEl servidor rechaza el usuario o la contraseña. Repasa, por este orden:\n" +
+          "· SMTP_USER tiene que ser la dirección ENTERA, con el @dominio.\n" +
+          "· La contraseña, ¿sobra un espacio o un salto al final?\n" +
+          "· En Purelymail hace falta una contraseña de aplicación, no la de la cuenta.\n" +
+          "· Que ese buzón exista y pueda enviar."
+        : "";
+    return { ok: false, detalle: `${donde}\n${mensaje}${pista}` };
+  }
 }
 
 /**

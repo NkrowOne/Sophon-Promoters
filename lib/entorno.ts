@@ -113,7 +113,9 @@ export interface RevisionEntorno {
  * cae por «host desconocido». Vale más leerlo una vez al arrancar.
  */
 function conEspaciosAlrededor(): string[] {
-  const nombres = [
+  // `Set`: las de abajo se solapan con los requisitos, y una variable repetida
+  // saldría dos veces en el aviso.
+  const nombres = new Set([
     ...ESENCIALES.flatMap((r) => [r.nombre, ...(r.alternativa ? [r.alternativa] : [])]),
     ...DE_FUNCION.flatMap((r) => [r.nombre, ...(r.alternativa ? [r.alternativa] : [])]),
     // No son requisito de nadie porque se derivan, pero si están declaradas
@@ -123,8 +125,10 @@ function conEspaciosAlrededor(): string[] {
     "CRON_SECRET",
     "SMTP_USER",
     "SMTP_PASSWORD",
-  ];
-  return nombres.filter((n) => {
+    "SMTP_PORT",
+    "SMTP_REMITENTE",
+  ]);
+  return [...nombres].filter((n) => {
     const v = process.env[n];
     return typeof v === "string" && v.length > 0 && v !== v.trim();
   });

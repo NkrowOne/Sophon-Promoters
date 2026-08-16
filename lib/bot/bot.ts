@@ -3,6 +3,7 @@ import { Bot, InlineKeyboard, type Context } from "grammy";
 import { db } from "../db.ts";
 import { crearEnlaceDeEntrada, MINUTOS_CANJE } from "../auth/admin.ts";
 import { formatearCodigo, generarCodigoActivacion, leerWallet, normalizarEmail } from "../cripto.ts";
+import { enviarOtp, probarSmtp } from "../correo.ts";
 import { formatearMicros } from "../devengo/dinero.ts";
 import { cadenas, type Cadenas } from "../i18n.ts";
 import { idiomaDesdeTelegram } from "../idiomas.ts";
@@ -341,6 +342,54 @@ function registrar(b: Bot): void {
     await ctx.reply("Ábrelo desde aquí, no por enlace: hace falta que lo abra Telegram.", {
       reply_markup: new InlineKeyboard().webApp("Diagnóstico", `${url}/diagnostico`),
     });
+  });
+
+  /*
+   * ¿ENTRA EL SERVIDOR EN EL CORREO? Preguntado desde producción.
+   *
+   * El síntoma real fue `535 Authentication Failed` en mitad de un alta: un
+   * agente que no puede entrar, un error en el registro y ninguna forma de
+   * probar la credencial sin volver a pedirle a alguien que se dé de alta.
+   * Peor todavía, ese 535 dice exactamente lo mismo para cuatro causas
+   * distintas —usuario sin el dominio, un espacio de más en la contraseña, la
+   * contraseña de la cuenta donde hace falta una de aplicación, o un buzón que
+   * no puede enviar—, así que sin poder repetirlo a voluntad se prueban las
+   * cuatro a ciegas.
+   *
+   * `verify()` abre la conexión, negocia el cifrado y hace el AUTH SIN mandar
+   * ningún correo, así que se puede repetir todas las veces que haga falta.
+   * Con un argumento —`/correo yo@ejemplo.com`— manda además uno de prueba, que
+   * es la otra mitad: autenticar y poder entregar no son lo mismo.
+   */
+  b.command("correo", async (ctx) => {
+    if (!esOperador(ctx.from?.id)) return;
+
+    const destino = ctx.match?.trim();
+    const r = await probarSmtp();
+    if (!r.ok) {
+      await ctx.reply(`No entra:\n\n${r.detalle}`);
+      return;
+    }
+
+    if (!destino) {
+      await ctx.reply(
+        `Autentica bien: ${r.detalle}.\n\n` +
+          "Para probar la entrega de verdad: /correo tu@dirección.com",
+      );
+      return;
+    }
+
+    try {
+      // El mismo camino EXACTO que el alta: misma plantilla, misma imagen
+      // incrustada, mismo remitente. Una prueba con un envío simplificado
+      // podría pasar y dejar el de verdad rebotando por el adjunto.
+      // El código y los minutos son de mentira: aquí solo se mira si sale y
+      // llega. La caducidad de verdad la pone la ruta del alta.
+      await enviarOtp({ email: destino, codigo: "000000", minutosValidez: 10 });
+      await ctx.reply(`Enviado a ${destino}. Si no llega, mira la carpeta de correo no deseado.`);
+    } catch (e) {
+      await ctx.reply(`Autentica pero no entrega:\n\n${e instanceof Error ? e.message : e}`);
+    }
   });
 
   b.command("ayuda", async (ctx) => {

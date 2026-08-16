@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { generarOtp, hashOtp, normalizarCodigo, normalizarEmail } from "@/lib/cripto";
-import { enviarOtp } from "@/lib/correo";
+import { ajustesSmtp, enviarOtp } from "@/lib/correo";
 import { cadenas } from "@/lib/i18n";
 import { idiomaDesdeTelegram } from "@/lib/idiomas";
 import { telegramDeLaPeticion } from "@/lib/auth/sesion";
@@ -126,7 +126,21 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       idioma,
     });
   } catch (e) {
-    console.error("[auth] fallo al enviar el OTP", e);
+    /*
+     * CONTRA QUÉ servidor ha fallado, y no solo que ha fallado.
+     *
+     * La traza de nodemailer dice `535 Authentication Failed` y nada más: no
+     * dice a qué host se estaba conectando ni con qué usuario, que es
+     * justamente lo que hay que comparar con el panel de despliegue. El
+     * usuario es una dirección de correo del Operador —no un secreto— y la
+     * contraseña no sale por ningún lado.
+     */
+    const s = ajustesSmtp();
+    console.error(
+      `[auth] fallo al enviar el OTP por ${s.host ?? "(sin SMTP_HOST)"}:${s.puerto} ` +
+        `como ${s.usuario ?? "(sin SMTP_USER)"}`,
+      e,
+    );
     return NextResponse.json(
       { error: t.errCorreoNoEnviado, apoyo: t.errCorreoNoEnviadoApoyo },
       { status: 502 },

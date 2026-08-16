@@ -73,6 +73,7 @@ const COMANDOS_OPERADOR = [
   { command: "agentes", description: "Agentes dados de alta" },
   { command: "retiros", description: "Retiros pendientes de pagar" },
   { command: "diagnostico", description: "Por qué no verifica el acceso" },
+  { command: "correo", description: "Probar el servidor de correo" },
   { command: "ayuda", description: "Comandos disponibles" },
 ];
 
