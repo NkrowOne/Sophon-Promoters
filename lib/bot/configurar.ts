@@ -72,6 +72,7 @@ const COMANDOS_OPERADOR = [
   { command: "codigo", description: "Generar un código de activación" },
   { command: "agentes", description: "Agentes dados de alta" },
   { command: "retiros", description: "Retiros pendientes de pagar" },
+  { command: "diagnostico", description: "Por qué no verifica el acceso" },
   { command: "ayuda", description: "Comandos disponibles" },
 ];
 

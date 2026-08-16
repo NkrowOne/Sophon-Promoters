@@ -54,6 +54,14 @@ interface WebApp {
   initData: string;
   /** Datos SIN verificar: solo se usan para elegir idioma, nunca para autorizar. */
   initDataUnsafe?: { user?: UsuarioInicial };
+  /**
+   * Versión de la Bot API que soporta este cliente y en qué app corre
+   * (`android`, `ios`, `tdesktop`, `web`…). Solo los mira `/diagnostico`: son
+   * las dos cosas que hay que saber cuando algo funciona en un cliente y no en
+   * otro, que es la mitad de los fallos de una Mini App.
+   */
+  version?: string;
+  platform?: string;
   colorScheme: "light" | "dark";
   themeParams: Record<string, string>;
   viewportStableHeight?: number;
