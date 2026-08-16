@@ -118,14 +118,25 @@ export async function probarSmtp(): Promise<{ ok: boolean; detalle: string }> {
     const mensaje = e instanceof Error ? e.message : String(e);
     /*
      * El 535 es el que se lleva las tardes, porque dice lo mismo para cuatro
-     * causas distintas. Las cuatro salen aquí escritas.
+     * causas distintas. Las cuatro salen aquí escritas, y en el orden en que
+     * conviene descartarlas.
+     *
+     * La primera es la primera por un motivo: es la que da una contraseña
+     * CORRECTA. Con la verificación en dos pasos activada, ningún servidor de
+     * correo acepta la contraseña de siempre por SMTP —el protocolo no tiene
+     * dónde meter el segundo factor—, así que responde 535 igual que si
+     * estuviera mal escrita. Uno se queda mirando una contraseña buena.
+     * Purelymail lo dice con todas las letras en su página de configuración
+     * técnica; Google y Microsoft hacen lo mismo.
      */
     const pista =
       codigo === 535
         ? "\n\nEl servidor rechaza el usuario o la contraseña. Repasa, por este orden:\n" +
+          "· ¿Tienes verificación en dos pasos en ese buzón? Entonces la contraseña " +
+          "normal NO vale por SMTP aunque sea correcta: hay que crear una contraseña " +
+          "de aplicación y poner esa en SMTP_PASSWORD.\n" +
           "· SMTP_USER tiene que ser la dirección ENTERA, con el @dominio.\n" +
-          "· La contraseña, ¿sobra un espacio o un salto al final?\n" +
-          "· En Purelymail hace falta una contraseña de aplicación, no la de la cuenta.\n" +
+          "· ¿Sobra un espacio o un salto de línea al final de la contraseña?\n" +
           "· Que ese buzón exista y pueda enviar."
         : "";
     return { ok: false, detalle: `${donde}\n${mensaje}${pista}` };
