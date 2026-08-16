@@ -467,6 +467,26 @@
   --destructive-tint: color-mix(in srgb, var(--destructive) 11%, var(--card));
   --info-tint: color-mix(in srgb, var(--info) 8%, var(--card));
   --brand-soft: color-mix(in srgb, var(--brand) 20%, var(--card));
+
+  /*
+   * EL FILETE DEL AMARILLO PÁLIDO, y por qué hace falta uno.
+   *
+   * Amarillo sobre blanco es el peor par que existe: el campo saca 1,49:1 y sus
+   * diluciones aún menos —`--brand-tint` da 1,06:1 y la malla 1,14:1—. Una
+   * superficie amarilla pálida sobre papel blanco no se lee como una superficie:
+   * se lee como una mancha, o como que la pantalla está mal calibrada. Es
+   * literalmente la queja: «el amarillo y el blanco no se distinguen bien».
+   *
+   * La salida NO es subir el amarillo, que es lo que se intenta siempre y lo
+   * único que consigue es una pantalla ictérica sin ganar contraste —de 1,06 a
+   * 1,28 no hay diferencia perceptible—. La salida es darle un LÍMITE: un objeto
+   * definido por su canto se lee como un objeto aunque su relleno apenas tiña.
+   *
+   * 55 % del canto sobre la tarjeta da 1,89:1: se ve, y no se convierte en la
+   * raya dura que sale al 100 % (3,49:1) y que volvería a llenar la página de
+   * cajas marcadas.
+   */
+  --campo-canto-suave: color-mix(in srgb, var(--campo-canto) 55%, var(--card));
 }
 
 /* ──────────────────────────────── BASE ──────────────────────────────── */
@@ -592,6 +612,63 @@ textarea::placeholder {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* ──────────────────────────── EL CAMPO DE TEXTO ────────────────────────────
+ *
+ * Vivía como una constante de cadena dentro de `cartera/page.tsx`
+ * (`CAJA_CAMPO`), así que sus dos campos tenían anillo de foco y los de `/alta`
+ * y `/activar` no: el mismo objeto se comportaba distinto según la pantalla en
+ * la que hubieras entrado. Ahora es una clase y hay un solo campo en la app.
+ *
+ * `font-size: 16px` NO es decorativo y no se puede bajar. iOS hace zoom solo al
+ * enfocar cualquier campo por debajo de 16 px, y no lo deshace al salir: es la
+ * causa más común de «se me ha puesto el zoom sin querer». El campo de la
+ * wallet estaba a 14 px.
+ */
+.campo-texto {
+  width: 100%;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-control);
+  background: var(--fondo);
+  color: inherit;
+  padding: 13px 16px;
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  transition:
+    border-color var(--t-toque) var(--curva),
+    box-shadow var(--t-toque) var(--curva);
+}
+
+/*
+ * El anillo de foco va del canto de oro y no de `--brand-soft`.
+ *
+ * Aquel es el campo mezclado al 20 % con la tarjeta: **1,09:1**, o sea un
+ * anillo que no está. Este da 3,49:1, que es lo que WCAG 2.4.11 pide para un
+ * indicador de foco, y es el mismo oro con el que la chapa se recorta del
+ * papel. Es la misma corrección que ya llevaba la casilla del código.
+ */
+.campo-texto:focus {
+  border-color: var(--campo-canto);
+  box-shadow: 0 0 0 2px var(--campo-canto);
+}
+
+.campo-texto[aria-invalid="true"] {
+  border-color: var(--peligro);
+}
+
+/*
+ * SIN doble toque para hacer zoom.
+ *
+ * `manipulation` conserva el desplazamiento y el pellizco y quita solo el
+ * doble toque, que es el gesto que se dispara sin querer al tocar dos veces
+ * seguidas una fila o un botón. De paso el navegador deja de esperar los 300 ms
+ * que necesitaba para saber si venía un segundo toque, así que todo responde
+ * antes.
+ */
+* {
+  touch-action: manipulation;
 }
 
 /* ──────────────────────────────── LA PLACA ────────────────────────────────
@@ -954,6 +1031,45 @@ textarea::placeholder {
   background-image: var(--mesh-brand);
   border-radius: inherit;
   pointer-events: none;
+}
+
+/*
+ * Una TARJETA con malla lleva canto de oro.
+ *
+ * Es donde se juntaban los dos problemas: una tarjeta blanca sobre una banda
+ * blanca, separada solo por una sombra suave, y encima una malla amarilla que
+ * sobre ese blanco da 1,14:1. Dos cosas que no se distinguen de su fondo, una
+ * dentro de la otra. En claro el conjunto se leía como papel sucio.
+ *
+ * Con el canto, la tarjeta es un objeto **amarillo** —se sabe que la malla está
+ * ahí a propósito— y deja de depender de la sombra para existir. La sombra se
+ * queda: una levanta, el otro delimita, y son trabajos distintos.
+ *
+ * Va solo sobre `.tarjeta`, no sobre cualquier `.campo-malla`: una banda entera
+ * con malla (la pantalla de error) no es un objeto y no lleva canto.
+ */
+.tarjeta.campo-malla,
+.tarjeta-borde.campo-malla {
+  border: 1px solid var(--campo-canto-suave);
+}
+
+/*
+ * LA TARJETA DE MARCA: papel teñido de amarillo, con su canto.
+ *
+ * Es el tinte macizo —`--brand-tint`, para lo que no es una acción— y arrastra
+ * el mismo problema por la vía peor: sobre papel blanco da **1,06:1**. Una
+ * tarjeta pintada de un color que no se distingue del fondo es una tarjeta que
+ * el ojo no ve; lo único que la delataba era la sombra, y la sombra en claro es
+ * suave a propósito.
+ *
+ * Estaba escrita a mano con un `style` en línea en la ficha del webmaster. Aquí
+ * es una clase para que el canto viaje con el tinte: quien use uno se lleva el
+ * otro, que es justo lo que impide que el defecto vuelva a aparecer la próxima
+ * vez que alguien quiera una tarjeta amarilla.
+ */
+.tarjeta-marca {
+  background: var(--brand-tint);
+  border: 1px solid var(--campo-canto-suave);
 }
 
 .campo-malla-neutro::before {

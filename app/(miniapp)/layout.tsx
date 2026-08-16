@@ -153,15 +153,28 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   /*
-   * SIN `maximumScale`. Estaba en 1 «porque la Mini App se comporta como una
-   * app», y eso bloquea el zoom por pellizco.
+   * ZOOM BLOQUEADO, por decisión explícita del Operador.
    *
-   * Quien usa esto es un comercial de cuarenta y tantos mirando importes de pie
-   * en la calle, a veces a pleno sol. Impedirle acercar la pantalla es quitarle
-   * la última salida que le queda cuando algo no se lee, y no compra nada: el
-   * layout es fluido y ya se verifica a 360 px. Es la infracción de WCAG 1.4.4
-   * más fácil de cometer y la más fácil de arreglar.
+   * Aquí no había bloqueo, y el motivo estaba escrito: quien usa esto es un
+   * comercial mirando importes de pie en la calle, a veces a pleno sol, y
+   * quitarle el acercamiento es quitarle la última salida cuando algo no se lee.
+   * Sigue siendo verdad, y sigue siendo la infracción de WCAG 1.4.4 más fácil de
+   * cometer. Se hace igual porque en uso real el zoom se activaba solo y dejaba
+   * la pantalla torcida, que resultó ser el problema más frecuente de los dos.
+   *
+   * ANTES DE LLEGAR AQUÍ se cerraron las dos causas accidentales, que es lo que
+   * hace que este bloqueo sea una red de seguridad y no el único parche:
+   *
+   *  1. `touch-action: manipulation` en `globals.css` mata el doble toque.
+   *  2. Todos los campos van a 16 px (`.campo-texto`). Por debajo de eso iOS
+   *     hace zoom SOLO al enfocarlos y no lo deshace al salir; el campo de la
+   *     wallet estaba a 14 px y era el sospechoso número uno.
+   *
+   * Si algún día se quiere devolver el acercamiento, se quitan estas dos líneas
+   * y las otras dos protecciones se quedan: el zoom accidental ya no vuelve.
    */
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 

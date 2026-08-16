@@ -423,7 +423,7 @@ function AltaPasos() {
           </div>
         </Banda>
 
-        <Banda orden={1} tono={1} className="py-4">
+        <Banda orden={1} tono={1} className="py-6">
           {/*
             Las dos salidas de esta pantalla, y las dos medían 20 px de alto.
 
@@ -481,7 +481,7 @@ function AltaPasos() {
     // `marca`: el isotipo sobre el título. Es la única pantalla de la Mini App
     // que lo lleva; el porqué está en la prop, en `Pantalla`.
     <Pantalla titulo={t.vinculaTuCuenta} marca>
-      <Banda orden={0} tono={0} className="pb-7">
+      <Banda orden={0} tono={0} className="pb-6">
         <p className="text-apoyo text-texto-apoyo">{t.introduceCodigoYCorreo}</p>
 
         <div className="tarjeta campo-malla mt-6">
@@ -518,7 +518,7 @@ function AltaPasos() {
               inputMode="text"
               maxLength={39}
               placeholder="XXXXX-XXXXX"
-              className="cifra mt-2 w-full rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo tracking-[0.14em] outline-none transition-colors duration-toque ease-sonda focus:border-tinta"
+              className="campo-texto cifra mt-2 tracking-[0.14em]"
             />
             {/* La ayuda no repite el rótulo: bajo «CÓDIGO DE ACTIVACIÓN», una
                 línea que dice «escribe el código de activación» ocupa sitio para
@@ -544,7 +544,7 @@ function AltaPasos() {
                 setEmail(e.target.value);
               }}
               placeholder="correo@ejemplo.com"
-              className="mt-2 w-full rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo outline-none transition-colors duration-toque ease-sonda focus:border-tinta"
+              className="campo-texto mt-2"
             />
             <p className="mt-2 text-apoyo text-texto-apoyo">{t.seraTuIdentificador}</p>
           </div>

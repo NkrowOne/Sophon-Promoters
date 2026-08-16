@@ -82,8 +82,14 @@ const REDES = [
  * un escalón por delante en claro y un escalón por detrás en oscuro, y en las
  * dos polaridades se lee como un hueco donde se escribe.
  */
-const CAJA_CAMPO =
-  "rounded-control border border-borde-control bg-fondo px-4 py-3.5 outline-none focus:border-tinta focus:shadow-[0_0_0_3px_var(--brand-soft)]";
+/*
+ * El estilo del campo se ha ido a `.campo-texto`, en `globals.css`.
+ *
+ * Vivía aquí como una cadena, así que los dos campos de esta pantalla tenían
+ * anillo de foco y los de `/alta` y `/activar` no: el mismo objeto se comportaba
+ * distinto según por dónde hubieras entrado. Y su anillo iba de `--brand-soft`,
+ * que sobre papel blanco da 1,09:1 — o sea que tampoco estaba de verdad.
+ */
 
 /**
  * Importe para escribir en un campo: coma decimal y sin ceros de relleno.
@@ -327,7 +333,7 @@ export default function CarteraPagina() {
               /* El importe se teclea en cuerpo de cifra: es el dato de la
                  pantalla, y escrito a 16 px pesaba menos que la etiqueta que lo
                  nombra. */
-              className={`cifra min-w-0 flex-1 text-cifra ${CAJA_CAMPO}`}
+              className="campo-texto cifra min-w-0 flex-1 text-cifra"
             />
             {/* «Todo» evita el error más común de este formulario: teclear el
                 disponible a mano y equivocarse en un céntimo, que el servidor
@@ -421,7 +427,7 @@ export default function CarteraPagina() {
               autoCapitalize="none"
               spellCheck={false}
               placeholder={definicionRed.ejemplo}
-              className={`cifra mt-2 w-full break-all text-apoyo ${CAJA_CAMPO}`}
+              className="campo-texto cifra mt-2 w-full break-all"
             />
             <p
               className={`mt-2 text-apoyo ${

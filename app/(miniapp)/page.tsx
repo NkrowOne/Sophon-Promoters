@@ -316,7 +316,7 @@ export default function Inicio() {
             ventana de treinta días sin devengo dejaban la portada —la única
             pantalla con enlaces a todo lo demás— sin una sola salida. El agente
             se quedaba encerrado en un aviso con un botón de reintentar. */}
-        <Banda como="nav" tono={0} etiqueta={t.acciones} orden={orden(3)} className="pb-2 pt-7">
+        <Banda como="nav" tono={0} etiqueta={t.acciones} orden={orden(3)} className="py-6">
           {/*
             LA ÚNICA CHAPA DE LA PANTALLA, y por tanto el único amarillo. Se cede
             cuando el estado vacío ya la está ofreciendo: con la red a cero eran

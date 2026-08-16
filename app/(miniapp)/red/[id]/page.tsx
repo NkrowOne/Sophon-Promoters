@@ -308,7 +308,7 @@ export default function FichaWebmaster({ params }: { params: Promise<{ id: strin
           hecho de la tarjeta un segundo estrato con todo el contenido de la
           banda, que es exactamente lo que una tarjeta no es.
         */}
-        <div className="tarjeta motivo-arcos" style={{ background: "var(--brand-tint)" }}>
+        <div className="tarjeta tarjeta-marca motivo-arcos">
           <p className="text-rotulo text-texto-apoyo">{t.teHaDado}</p>
           <div className="mt-1.5">
             <CifraProtagonista micros={BigInt(tot.ganado.micros)} />

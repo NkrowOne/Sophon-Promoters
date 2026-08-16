@@ -266,14 +266,14 @@ function ActivarPasos() {
           </div>
         </Banda>
 
-        <Banda orden={1} tono={1} className="py-5">
+        <Banda orden={1} tono={1} className="py-6">
           <p className="text-apoyo">{t.incluyeUnAnio}</p>
           <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.comoCobras}</p>
           <p className="mt-3 text-apoyo text-texto-apoyo">{t.altaNoSeDeshace}</p>
         </Banda>
 
         {error && (
-          <Banda orden={2} tono={0} className="pt-5">
+          <Banda orden={2} tono={0} className="pt-6">
             <Aviso error={error} onReintentar={activar} />
           </Banda>
         )}
@@ -306,7 +306,7 @@ function ActivarPasos() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="correo@ejemplo.com"
-            className="mt-2 w-full rounded-control border border-borde-control bg-fondo px-4 py-3.5 text-cuerpo outline-none transition-colors duration-toque ease-sonda focus:border-tinta"
+            className="campo-texto mt-2"
           />
           {/* La ayuda no repite el rótulo: dice lo que el rótulo no puede, que la
               cuenta tiene que existir ya en Sophon. Es el motivo por el que se
@@ -318,7 +318,7 @@ function ActivarPasos() {
 
       {/* Estado previo: qué pasa al continuar. No es letra pequeña, es contexto,
           y desde que el alta concede un año de PRO lo es todavía más. */}
-      <Banda orden={1} tono={1} className="py-5">
+      <Banda orden={1} tono={1} className="py-6">
         <p className="text-apoyo">{t.incluyeUnAnio}</p>
         <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.comoCobras}</p>
       </Banda>

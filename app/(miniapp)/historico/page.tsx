@@ -163,7 +163,7 @@ export default function Historico() {
         cifra, no una chapa: la regla de un amarillo por pantalla queda intacta
         porque aquí no hay ninguna acción con la que se pueda confundir.
       */}
-      <Banda orden={0} tono={0} como="header" className="pb-5">
+      <Banda orden={0} tono={0} como="header" className="pb-6">
         <div className="tarjeta-borde campo-malla !px-4 !py-3.5">
           {/*
             El total sube de 16 a 22 px y a la cara de display.
@@ -189,7 +189,7 @@ export default function Historico() {
       {/* El testigo va sobre superficie y no sobre el fondo desnudo: las bandas
           de días son el dato, y necesitan un suelo propio contra el que medirse
           igual que el raíl lo tiene en las demás pantallas. */}
-      <Banda orden={1} tono={1} etiqueta={t.historico} className="pb-2 pt-4">
+      <Banda orden={1} tono={1} etiqueta={t.historico} className="py-6">
         {/* Cabecera de la columna de importes: la unidad se dice una vez aquí y
             desaparece de las setenta filas de abajo. */}
         <div className="mb-1 flex items-baseline justify-between border-b border-junta pb-1.5">
