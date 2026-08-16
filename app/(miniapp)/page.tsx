@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
@@ -9,6 +10,7 @@ import { Aviso, Banda, Cargando, Marca, Placa, Vacio } from "@/components/Pantal
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
+import { useRecurso } from "@/lib/api/recurso";
 import type { Cadenas } from "@/lib/i18n";
 
 /**
@@ -83,20 +85,20 @@ export default function Inicio() {
   useTelegram();
   const t = useCadenas();
 
-  const [datos, setDatos] = useState<Resumen | null>(null);
-  const [error, setError] = useState<ErrorApi | null>(null);
-
-  const cargar = useCallback(() => {
-    setError(null);
-    api
-      .get<Resumen>("/api/agente/resumen")
-      .then(setDatos)
-      .catch((e) =>
-        setError(aErrorApi(e)),
-      );
-  }, []);
-
-  useEffect(cargar, [cargar]);
+  /*
+   * Los datos SOBREVIVEN a salir de esta pantalla y volver.
+   *
+   * Estaban en estado del componente, y React lo tira al desmontar: pulsar
+   * «atrás» desde la red reconstruía la portada desde cero. Medido con el
+   * navegador: a los 80, 200 y 400 ms se veía solo el menú con «Cargando
+   * datos…», y la cabecera con la cifra no aparecía hasta pasados 800. Ir a la
+   * red y volver es EL gesto de esta aplicación, así que ese destello salía en
+   * cada viaje.
+   *
+   * `useRecurso` guarda la última respuesta fuera del árbol de React y pinta con
+   * ella en el primer fotograma, refrescando por detrás. Ver `lib/api/recurso.ts`.
+   */
+  const { datos, error, recargar: cargar } = useRecurso<Resumen>("/api/agente/resumen");
 
   // Los importes llegan como cadena porque JSON no admite BigInt: se reconstruyen
   // aquí, y nunca se pasan por coma flotante.
@@ -262,13 +264,13 @@ export default function Inicio() {
               red a cero eran dos bloques amarillos idénticos, uno debajo del
               otro. Ver `vacioYaOfreceActivar` arriba. */}
           {!vacioYaOfreceActivar && (
-            <a
+            <Link
               href="/activar"
               className="chapa pulsable text-cuerpo"
             >
               <Icono nombre="activar" />
               {t.activarWebmaster}
-            </a>
+            </Link>
           )}
 
           {/* Tres filas en el orden de la jornada, cada una con su dato. Antes
@@ -336,7 +338,15 @@ function Fila({
 }) {
   return (
     <li>
-      <a href={href} className="pulsable -mx-2 flex min-h-14 items-center gap-3.5 rounded-control px-2 text-cuerpo">
+      {/*
+        `Link` y no `<a>`.
+        Un ancla pelada en el App Router provoca una RECARGA COMPLETA: documento
+        nuevo, contexto de JavaScript nuevo y todo el paquete otra vez. Eso hacía
+        que cada salto desde la portada fuera una carga en frío —con su destello
+        y sus animaciones de entrada repetidas— y, sobre todo, que volver atrás
+        reconstruyera la portada desde cero en vez de repintarla al instante.
+      */}
+      <Link href={href} className="pulsable -mx-2 flex min-h-14 items-center gap-3.5 rounded-control px-2 text-cuerpo">
         {/* El icono va del T1 —la tinta densa de los datos— y no del texto: así
             la columna de iconos se lee como una sola cosa y no compite con los
             nombres de las secciones. */}
@@ -344,7 +354,7 @@ function Fila({
         <span>{etiqueta}</span>
         {dato && <span className="cifra ms-auto text-apoyo text-texto-apoyo">{dato}</span>}
         <Icono nombre="avance" tam={18} className={`text-texto-apoyo ${dato ? "" : "ms-auto"}`} />
-      </a>
+      </Link>
     </li>
   );
 }
@@ -602,7 +612,7 @@ function BandaHito({
           <ul className="mt-1.5 divide-y divide-junta" role="list">
             {hito.porWebmaster.map((w) => (
               <li key={w.webmasterId}>
-                <a
+                <Link
                   href={`/red/${encodeURIComponent(w.email)}`}
                   className="pulsable -mx-2 flex min-h-11 items-center gap-3 rounded-control px-2"
                 >
@@ -610,7 +620,7 @@ function BandaHito({
                   <span className="cifra shrink-0 text-apoyo tabular-nums">
                     {t.registrosCortos(w.registros)}
                   </span>
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
