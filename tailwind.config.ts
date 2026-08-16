@@ -1,18 +1,30 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Sistema visual «LA PLACA».
+ * Sistema visual «BLANCO, GRISES Y AMARILLO».
  *
- * Dos colores, y cada uno hace UN trabajo:
+ * Un solo color, y hace tres trabajos que son el mismo:
  *
- *   AMARILLO  #F9D027  la ACCIÓN. Solo lo que se pulsa y las marcas de urgencia.
- *   MARRÓN    hue 55°  todo lo demás: la placa de cabecera y la rampa de datos.
+ *   AMARILLO  #F9D027  la MARCA, los MOTIVOS y la ACCIÓN.
+ *   GRISES              todo lo demás, incluida la rampa de datos.
+ *   BLANCO              el papel. Blanco de verdad, no crema.
  *
- * Esa división es la corrección de un defecto concreto. La versión anterior
- * ponía la cabecera y el botón del mismo amarillo bajo la regla «todo lo que hay
- * que hacer o saber va sobre campo», y el resultado fue *«ese amarillo se
- * camufla con los botones»*: dos trabajos distintos con una sola apariencia. Con
- * el amarillo restringido a lo pulsable no hay nada con lo que camuflarse.
+ * La versión anterior repartía el trabajo entre el amarillo y un marrón
+ * espresso, con la teoría de que un producto que solo usa los dos colores de su
+ * logotipo es un producto coherente. El argumento es bueno y el resultado se
+ * veía como una fotocopia en sepia: tres marrones y un beige no son una paleta,
+ * son un tinte.
+ *
+ * Ahora la jerarquía la hace el CONTRASTE sobre una escala neutra de trece
+ * escalones, y el amarillo aparece muy poco y por eso se ve muchísimo. La regla
+ * que lo sacó de la cabecera sigue en pie —lo más oscuro informa, lo más
+ * brillante se pulsa—, solo que la placa pasa de espresso a casi negra.
+ *
+ * Este fichero NO declara ni un color: todos apuntan a las variables de
+ * `app/(miniapp)/globals.css`, que es donde vive la capa canónica. Que el cambio
+ * de paleta no haya tocado una sola referencia de aquí es la prueba de que los
+ * nombres estaban bien puestos: cada uno dice qué TRABAJO hace el color, no qué
+ * color es.
  *
  * El amarillo NUNCA es tinta: 1,49:1 sobre blanco. Ese hecho medido es lo que
  * decide el sistema entero —campo, no acento— y de paso lo que hace que el par
@@ -103,6 +115,18 @@ const config: Config = {
         // sistema— y la mono sobraba: Archivo ya trae cifras tabulares. Ver la
         // nota larga en `app/(miniapp)/layout.tsx`.
         sans: ["var(--fuente)", "var(--fuente-arabe)", "system-ui", "sans-serif"],
+        /*
+         * La cara de DISPLAY: Archivo Black.
+         *
+         * Es el extremo pesado de la MISMA familia, así que no mete una voz
+         * ajena: la cifra que abre una pantalla pesa más que todo lo demás sin
+         * cambiar de casa. Es la diferencia entre una portada con protagonista y
+         * una lista de datos del mismo tamaño.
+         *
+         * No es una segunda familia por la puerta de atrás —eso fue Martian Mono
+         * y se retiró—: comparte esqueleto, métricas y `tnum` con la de texto.
+         */
+        display: ["var(--fuente-display)", "var(--fuente)", "system-ui", "sans-serif"],
       },
       /*
        * LA ESCALA. Ratio 1,25 desde 13, y sin un solo escalón por debajo.
@@ -160,10 +184,55 @@ const config: Config = {
        * además se leían duros —«bordes afilados»—.
        */
       borderRadius: {
-        marca: "3px",
-        control: "12px",
-        panel: "16px",
-        pildora: "999px",
+        /*
+         * Apuntan a las variables y ya no repiten el número.
+         *
+         * Estaban escritos a mano aquí Y en `globals.css`: dos sitios para el
+         * mismo reglaje, o sea dos sitios donde uno puede quedarse viejo. Ahora
+         * la escala se deriva con `calc` de un solo radio base —lo de
+         * styleseed—, así que mover la personalidad de la forma es mover un
+         * número, no cuatro.
+         */
+        marca: "var(--radio-marca)",
+        control: "var(--radio-control)",
+        panel: "var(--radio-panel)",
+        /* La TARJETA: el objeto que se levanta del papel. No existía porque no
+           existían las tarjetas. */
+        tarjeta: "var(--radio-tarjeta)",
+        pildora: "var(--radio-pildora)",
+      },
+      /*
+       * LAS SOMBRAS, en dos capas.
+       *
+       * Una corta y densa que pega el objeto al papel, y una larga y difusa que
+       * lo levanta. Una sola capa da el halo plano de plantilla.
+       *
+       * La regla de la casa sigue en pie: una sombra permanente sobre algo que
+       * no está por encima de nada es decoración. La tarjeta sí lo está.
+       */
+      boxShadow: {
+        xs: "var(--shadow-xs)",
+        boton: "var(--shadow-button)",
+        tarjeta: "var(--shadow-card)",
+        "tarjeta-alta": "var(--shadow-card-hover)",
+        elevado: "var(--shadow-elevated)",
+        /* Teñida de oro: un objeto amarillo con sombra gris se ve despegado del
+           color que proyecta. */
+        marca: "var(--shadow-brand)",
+        pegada: "var(--shadow-sticky)",
+      },
+      /*
+       * LOS MOTIVOS: campos de malla y degradados derivados de la geometría del
+       * isotipo. Es donde vive el color, y el único sitio donde se le deja
+       * extenderse.
+       */
+      backgroundImage: {
+        "malla-marca": "var(--mesh-brand)",
+        "malla-neutra": "var(--mesh-neutral)",
+        "malla-placa": "var(--mesh-plate)",
+        "grad-marca": "var(--gradient-brand)",
+        "grad-placa": "var(--gradient-plate)",
+        "grad-suave": "var(--gradient-soft)",
       },
       /*
        * Una sola fuente para la curva. Aquí había un `cubic-bezier` escrito a
@@ -173,6 +242,16 @@ const config: Config = {
        */
       transitionTimingFunction: {
         sonda: "var(--curva)",
+        mover: "var(--curva-mover)",
+        dibujo: "var(--curva-dibujo)",
+        /* Sobrepasa y vuelve. UN solo uso: el acuse de un código verificado. Si
+           aparece en un segundo sitio, es decoración. */
+        muelle: "var(--curva-muelle)",
+      },
+      transitionDuration: {
+        toque: "var(--t-toque)",
+        entrada: "var(--t-entrada)",
+        dibujo: "var(--t-dibujo)",
       },
       /*
        * `emerger` se ha ido. Era un segundo fotograma de entrada —180 ms y 8 px—

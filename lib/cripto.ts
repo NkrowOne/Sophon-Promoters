@@ -16,6 +16,10 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 
+// La forma de un código vive aparte y sin `node:crypto`: la necesita la pantalla
+// de alta, que es cliente. Se importa además de reexportarse porque un
+// `export … from` no trae el nombre al ámbito local, y aquí se usa.
+import { LONGITUD_CODIGO } from "./codigo.ts";
 import { pimientaOtp } from "./secretos.ts";
 
 const ALGORITMO = "aes-256-gcm";
@@ -165,7 +169,7 @@ const ALFABETO_CODIGO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
  * La regla que lo cierra: **se guarda y se compara siempre lo normalizado**, y
  * los guiones son cosa de la presentación (`formatearCodigo`).
  */
-export function generarCodigoActivacion(longitud = 10): string {
+export function generarCodigoActivacion(longitud = LONGITUD_CODIGO): string {
   let salida = "";
   for (let i = 0; i < longitud; i++) {
     salida += ALFABETO_CODIGO[randomInt(0, ALFABETO_CODIGO.length)];
@@ -173,18 +177,18 @@ export function generarCodigoActivacion(longitud = 10): string {
   return salida;
 }
 
-export function normalizarCodigo(codigo: string): string {
-  return codigo.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-/**
- * Forma legible de un código: grupos de cinco separados por guion.
+/*
+ * `LONGITUD_CODIGO`, `normalizarCodigo` y `formatearCodigo` viven en
+ * `lib/codigo.ts` y se reexportan desde aquí.
  *
- * Solo para enseñarlo y dictarlo. Nunca se guarda ni se compara así.
+ * No es organización: es empaquetado. Este fichero importa `node:crypto`, y la
+ * pantalla de alta —componente de cliente— necesita normalizar y formatear.
+ * Importarlas de aquí arrastraba `node:crypto` al paquete del navegador y el
+ * build fallaba con `UnhandledSchemeError`. Lo puro se fue a un fichero sin
+ * dependencias de Node; la reexportación existe para que nadie tenga que
+ * enterarse ni cambiar sus importaciones.
  */
-export function formatearCodigo(codigo: string): string {
-  return (normalizarCodigo(codigo).match(/.{1,5}/g) ?? []).join("-");
-}
+export { LONGITUD_CODIGO, formatearCodigo, normalizarCodigo } from "./codigo.ts";
 
 /** Normaliza un email para usarlo como identificador único. */
 export function normalizarEmail(email: string): string {

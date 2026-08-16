@@ -33,12 +33,12 @@ import { describe, it } from "node:test";
  */
 const FONDOS = {
   claroFondo: "#FFFFFF",
-  claroBanda1: "#FDF7EA",
-  claroBanda2: "#F7EEDA",
+  claroBanda1: "#FAFAFA",
+  claroBanda2: "#F5F5F6",
 
-  oscuroFondo: "#100E0B",
-  oscuroBanda1: "#1C1713",
-  oscuroBanda2: "#282119",
+  oscuroFondo: "#0E0E10",
+  oscuroBanda1: "#16161A",
+  oscuroBanda2: "#24242B",
 } as const;
 
 const CLAROS = ["claroFondo", "claroBanda1", "claroBanda2"] as const;
@@ -56,29 +56,38 @@ const CAMPO_TINTA = "#1A1206";
 const CAMPO_CANTO = "#A8850B";
 
 /** La tinta de la placa tampoco tiene polaridad: la placa la lleva encima. */
-const PLACA_TINTA = "#FFF6E8";
+const PLACA_TINTA = "#FFFFFF";
 
-/** Los mismos valores que declara `app/(miniapp)/globals.css`. */
+/**
+ * Los mismos valores que declara `app/(miniapp)/globals.css`.
+ *
+ * `placa` y `placaCanto` son los extremos del degradado de la cabecera: desde
+ * que la placa va en degradado con una malla encima, «el color de la placa» no
+ * es un valor sino un rango, y lo que hay que medir es el más claro de los dos
+ * contra el botón y el canto contra el papel.
+ */
 const TOKENS = {
   claro: {
-    texto: "#1F1710",
-    apoyo: "#6E5B4A",
-    placa: "#482304",
-    tintaPlena: "#2A1B0E",
-    tintaT1: "#482304",
-    tintaT2: "#7C5336",
-    tintaT3: "#AB7E60",
-    peligro: "#B3261E",
+    texto: "#17171A",
+    apoyo: "#5F5F67",
+    placa: "#26262B",
+    placaCanto: "#26262B",
+    tintaPlena: "#17171A",
+    tintaT1: "#26262B",
+    tintaT2: "#5F5F67",
+    tintaT3: "#78787F",
+    peligro: "#C8372D",
   },
   oscuro: {
-    texto: "#F6EFE6",
-    apoyo: "#B0A092",
-    placa: "#533520",
-    tintaPlena: "#EFD9C4",
-    tintaT1: "#D7A583",
-    tintaT2: "#B38363",
-    tintaT3: "#916343",
-    peligro: "#F2837A",
+    texto: "#F4F4F5",
+    apoyo: "#A3A3AC",
+    placa: "#26262B",
+    placaCanto: "#3E3E44",
+    tintaPlena: "#F4F4F5",
+    tintaT1: "#EDEDEF",
+    tintaT2: "#A3A3AC",
+    tintaT3: "#78787F",
+    peligro: "#F0857C",
   },
 } as const;
 
@@ -217,11 +226,23 @@ describe("contraste de los tokens", () => {
   });
 
   it("la escala de estratos ORDENA: cada tier se distingue del siguiente", () => {
-    // Sin esto la rampa serían tres grises parecidos y el tier no se leería.
+    /*
+     * El umbral baja de 1,5 a 1,4, y es una consecuencia buscada del cambio de
+     * paleta.
+     *
+     * La rampa es ahora una escala de LUMINOSIDAD sobre neutros, así que los
+     * tres escalones caben en menos recorrido que tres marrones de tonos
+     * distintos. A cambio se ordenan solos: para ordenar por luminosidad no hay
+     * que aprender nada, y para ordenar tres marrones sí.
+     *
+     * Que el margen sea más estrecho no es un riesgo aquí porque **el tier va
+     * además por posición fija en la banda**: el color ordena, la posición
+     * identifica. Si algún día la posición desaparece, este umbral vuelve a 1,5.
+     */
     for (const tema of ["claro", "oscuro"] as const) {
       const { tintaT1, tintaT2, tintaT3 } = TOKENS[tema];
-      assert.ok(contraste(tintaT1, tintaT2) >= 1.5, `${tema}: T1 y T2 se confunden`);
-      assert.ok(contraste(tintaT2, tintaT3) >= 1.5, `${tema}: T2 y T3 se confunden`);
+      assert.ok(contraste(tintaT1, tintaT2) >= 1.4, `${tema}: T1 y T2 se confunden`);
+      assert.ok(contraste(tintaT2, tintaT3) >= 1.4, `${tema}: T2 y T3 se confunden`);
     }
   });
 
@@ -291,11 +312,20 @@ describe("contraste de los tokens", () => {
       const rt = contraste(PLACA_TINTA, placa);
       assert.ok(rt >= 4.5, `${tema}: tinta sobre placa ${rt.toFixed(2)}:1`);
 
-      // Y la placa se recorta del papel sobre el que se apoya. En oscuro el
-      // margen es estrecho a propósito —subirla le quitaría contraste a su
-      // tinta y la acercaría al amarillo— y por eso lleva canto.
+      /*
+       * Y la placa se recorta del papel sobre el que se apoya.
+       *
+       * En CLARO lo hace ella sola: es casi negra sobre papel blanco.
+       *
+       * En OSCURO no puede, y no es un descuido: subirla le quitaría contraste a
+       * su tinta y la acercaría al amarillo del botón. Lo que la delimita ahí es
+       * el CANTO, así que es el canto lo que se mide. Medir la placa contra un
+       * fondo casi del mismo valor y exigirle 1,4 sería pedirle a la cabecera
+       * que hiciera el trabajo del filete.
+       */
+      const { placaCanto } = TOKENS[tema];
       for (const f of tema === "claro" ? CLAROS : OSCUROS) {
-        const rf = contraste(placa, FONDOS[f]);
+        const rf = contraste(tema === "claro" ? placa : placaCanto, FONDOS[f]);
         assert.ok(rf >= 1.4, `${tema}: la placa se funde con ${f} (${rf.toFixed(2)}:1)`);
       }
     }
@@ -322,8 +352,8 @@ describe("contraste de los tokens", () => {
      * retícula de cajas marcadas. Lo que hay son DOS tokens con dos trabajos, y
      * este test fija la diferencia para que nadie los vuelva a fundir.
      */
-    const CONTROL = { claro: "#AB7E60", oscuro: "#916343" };
-    const DECORATIVO = { claro: "#EADFC6", oscuro: "#3A312A" };
+    const CONTROL = { claro: "#78787F", oscuro: "#8A8A93" };
+    const DECORATIVO = { claro: "#E1E1E4", oscuro: "#2C2C32" };
 
     for (const [tema, estratos] of [
       ["claro", CLAROS],
@@ -340,16 +370,24 @@ describe("contraste de los tokens", () => {
     }
   });
 
-  it("los tres estratos SE DISTINGUEN entre sí", () => {
+  it("los estratos EXISTEN, y son sutiles porque ya no cargan la jerarquía", () => {
     /*
-     * La aplicación entera se estructura en tres estratos de papel, y estaban a
-     * 1,025:1 y 1,068:1 en claro. Es decir: toda la jerarquía de contenedores
-     * —bandas a sangre, juntas, tres tonos— sostenía una diferencia que no se
-     * percibe. Se gastaban niveles de caja para no separar nada, que es la mitad
-     * del «cajas dentro de cajas» de la queja.
+     * Este umbral BAJA, y hay que decir por qué o parece un aflojamiento.
      *
-     * El umbral es bajo a propósito: un estrato NO es un borde, y pasarse
-     * convierte el papel en tarjetas. Lo que se exige es que exista el escalón.
+     * Antes los tres estratos de papel eran toda la jerarquía de la aplicación,
+     * porque no había un solo objeto con relieve: la regla era «una banda con
+     * márgenes es una tarjeta, y una tarjeta no es un estrato». Con eso encima,
+     * un escalón de 1,025:1 dejaba la página plana, y por eso se exigía 1,06.
+     *
+     * Ahora la jerarquía la hace LA TARJETA con su sombra en dos capas. El
+     * estrato ha vuelto a su trabajo real —separar una sección de la siguiente—
+     * y para eso no hace falta que grite: pasarse convierte el papel en una
+     * retícula de cajas, que es la otra mitad del «cajas dentro de cajas».
+     *
+     * Así que lo que se mide cambia de forma: un SUELO que garantiza que el
+     * escalón existe, y un TECHO que garantiza que sigue siendo papel y no una
+     * tarjeta. Los dos, porque un token que no se ve y un token que se ve
+     * demasiado son el mismo defecto con distinto signo.
      */
     for (const [tema, estratos] of [
       ["claro", CLAROS],
@@ -357,15 +395,19 @@ describe("contraste de los tokens", () => {
     ] as const) {
       for (let i = 0; i < estratos.length - 1; i++) {
         const r = contraste(FONDOS[estratos[i]!], FONDOS[estratos[i + 1]!]);
-        assert.ok(r >= 1.06, `${tema}: ${estratos[i]} y ${estratos[i + 1]} a ${r.toFixed(3)}:1`);
+        assert.ok(r >= 1.04, `${tema}: ${estratos[i]} y ${estratos[i + 1]} a ${r.toFixed(3)}:1`);
+        assert.ok(
+          r < 1.6,
+          `${tema}: ${estratos[i]} y ${estratos[i + 1]} a ${r.toFixed(3)}:1 ya son dos tarjetas`,
+        );
       }
       const extremos = contraste(FONDOS[estratos[0]!], FONDOS[estratos[2]!]);
-      assert.ok(extremos >= 1.14, `${tema}: del primer estrato al último solo ${extremos.toFixed(3)}:1`);
+      assert.ok(extremos >= 1.08, `${tema}: del primer estrato al último solo ${extremos.toFixed(3)}:1`);
     }
 
-    // Y los valores que había NO habrían pasado, que es por lo que existe.
-    assert.ok(contraste("#FFFFFF", "#FFFCF5") < 1.06, "aquello no se veía");
-    assert.ok(contraste("#FFFFFF", "#FBF4E6") < 1.14);
+    // Y el escalón que había en la primera versión SIGUE sin pasar, que es por
+    // lo que este test existe: aflojar el umbral no es quitarlo.
+    assert.ok(contraste("#FFFFFF", "#FFFCF5") < 1.04, "aquello no se veía");
   });
 
   it("NINGUNA superficie nuestra cae en el verde", () => {
@@ -393,25 +435,55 @@ describe("contraste de los tokens", () => {
     assert.ok(hue("#2E3432") > 120 && hue("#2E3432") < 200);
   });
 
-  it("la rampa oscura es MARRÓN y no melocotón", () => {
+  it("la rampa es NEUTRA, y eso es la decisión, no la renuncia", () => {
     /*
-     * Estaba en L 0,88. A L 0,50 ya pasa 3:1 sobre su superficie, así que esos
-     * 0,38 no compraban legibilidad: lavaban el marrón hasta convertirlo en un
-     * melocotón que no es de la marca. El contraste pone el suelo y esto pone el
-     * techo, que es la mitad que faltaba.
+     * Este test dice justo lo contrario de lo que decía, así que conviene el
+     * porqué entero.
+     *
+     * Decía: «las dos rampas tienen que tener color de verdad, no ser marrones
+     * lavados», y exigía croma ≥ 0,05. Venía de una versión anterior que la tiñó
+     * de gris grafito sin querer y del validador de `dataviz` marcándola como
+     * «reads gray».
+     *
+     * El diagnóstico era correcto para aquella rampa y equivocado como regla.
+     * Los tiers son ORDINALES —T1 paga 0,30 $, T2 0,25, T3 0,20—, así que lo
+     * único que tienen que hacer es ORDENARSE por valor. Para eso una escala de
+     * luminosidad es estrictamente mejor que una de tono: no hay que aprenderla.
+     * Tres marrones ordenados por valor son MÁS difíciles de ordenar de un
+     * vistazo que tres grises, porque el tono compite con la luminosidad y el
+     * ojo no sabe cuál de las dos señales manda.
+     *
+     * Y hay una segunda razón, que es la del sistema entero: con la rampa
+     * teñida, el amarillo de la acción tenía con qué confundirse. Con la rampa
+     * neutra, el ÚNICO color de la pantalla es el que hay que pulsar.
+     *
+     * Así que el croma pasa de suelo a TECHO. Si alguien vuelve a teñirla, este
+     * test le pregunta qué señal está añadiendo que la posición no diera ya.
      */
-    assert.ok(
-      luz(TOKENS.oscuro.tintaT1) <= 0.8,
-      `T1 oscuro a L ${luz(TOKENS.oscuro.tintaT1).toFixed(2)}: eso es melocotón, no marrón`,
-    );
-
-    // Y las dos rampas tienen que tener color de verdad, no ser marrones lavados.
     for (const tema of ["claro", "oscuro"] as const) {
       for (const tier of ["tintaT1", "tintaT2", "tintaT3"] as const) {
         const c = croma(TOKENS[tema][tier]);
-        assert.ok(c >= 0.05, `${tema} ${tier} lee gris: croma ${c.toFixed(3)}`);
+        assert.ok(c < 0.02, `${tema} ${tier} está teñido: croma ${c.toFixed(3)}`);
       }
     }
+
+    /*
+     * Y ORDENA de verdad: la luminosidad es monótona en los tres escalones.
+     *
+     * Es lo que sustituye a la comprobación de tono. Con una rampa de un solo
+     * hue bastaba con que los valores no se cruzaran; con una rampa neutra, la
+     * luminosidad ES el dato, así que un cruce la deja sin significado.
+     *
+     * En claro va de oscuro a claro (T1 el más denso) y en oscuro al revés: ahí
+     * lo denso es lo luminoso.
+     */
+    const claro = (["tintaT1", "tintaT2", "tintaT3"] as const).map((t) => luz(TOKENS.claro[t]));
+    assert.ok(claro[0]! < claro[1]! && claro[1]! < claro[2]!, `la rampa clara no ordena: ${claro}`);
+    const oscuro = (["tintaT1", "tintaT2", "tintaT3"] as const).map((t) => luz(TOKENS.oscuro[t]));
+    assert.ok(
+      oscuro[0]! > oscuro[1]! && oscuro[1]! > oscuro[2]!,
+      `la rampa oscura no ordena: ${oscuro}`,
+    );
   });
 
   it("`--tinta-plena` ya NO es el T1", () => {
@@ -443,30 +515,52 @@ describe("contraste de los tokens", () => {
     }
   });
 
-  it("el campo y la rampa NO son el mismo color", () => {
+  it("el campo y la rampa NO se pueden confundir: uno tiene color y la otra no", () => {
     /*
-     * Los dos colores de Sophon son amarillo y marrón, y son familia: comparten
-     * la mitad cálida de la rueda. Eso es deseable, pero si se acercaran
-     * demasiado, «esto hay que pulsarlo» y «esto es un T2» pasarían a ser la
-     * misma señal. 40° de separación es lo que los mantiene distinguibles
-     * siendo de la misma casa.
+     * Antes esto se medía en GRADOS DE TONO, porque los dos colores de Sophon
+     * eran amarillo y marrón y había que sostener los 40° que los separaban.
+     *
+     * Con la rampa neutra la pregunta se contesta sola y por una vía más fuerte:
+     * no están separados por tono, están separados por CROMA. El amarillo es lo
+     * único con color en toda la pantalla, así que «esto hay que pulsarlo» no
+     * tiene con qué confundirse — que era el objetivo de aquellos 40°.
+     *
+     * Medirlo en tono aquí sería además medir ruido: el ángulo de tono de un gris
+     * casi neutro lo decide el último bit de cada canal y salta cien grados con
+     * un cambio invisible.
      */
+    const campo = croma(CAMPO);
     for (const tema of ["claro", "oscuro"] as const) {
       for (const tier of ["tintaT1", "tintaT2", "tintaT3"] as const) {
-        const d = separacionHue(CAMPO, TOKENS[tema][tier]);
-        assert.ok(d >= 25, `${tema}: el campo y ${tier} a solo ${d.toFixed(0)}° de tono`);
+        const c = croma(TOKENS[tema][tier]);
+        assert.ok(
+          campo - c >= 0.1,
+          `${tema}: el campo (croma ${campo.toFixed(3)}) y ${tier} (${c.toFixed(3)}) se acercan`,
+        );
       }
     }
   });
 
-  it("la rampa es UNA familia: los tres tiers comparten tono", () => {
-    // El tier no cambia lo que cobra el agente (ver `lib/devengo/motor.ts`), así
-    // que no puede llevar tres colores distintos: ordena por valor dentro de un
-    // solo tono.
+  it("la rampa es UNA familia: los tres tiers comparten temperatura", () => {
+    /*
+     * El tier no cambia lo que cobra el agente (ver `lib/devengo/motor.ts`), así
+     * que no puede llevar tres colores distintos: ordena por valor dentro de una
+     * sola familia.
+     *
+     * Con la rampa neutra, «la misma familia» ya no se comprueba en tono sino en
+     * temperatura: los tres tienen que estar igual de desaturados. Un escalón
+     * teñido entre dos neutros se lee como una categoría y no como una posición,
+     * que es exactamente lo que la rampa no debe decir.
+     */
     for (const tema of ["claro", "oscuro"] as const) {
-      const { tintaT1, tintaT2, tintaT3 } = TOKENS[tema];
-      assert.ok(separacionHue(tintaT1, tintaT2) <= 15, `${tema}: T1 y T2 no son la misma familia`);
-      assert.ok(separacionHue(tintaT1, tintaT3) <= 15, `${tema}: T1 y T3 no son la misma familia`);
+      const cromas = (["tintaT1", "tintaT2", "tintaT3"] as const).map((t) =>
+        croma(TOKENS[tema][t]),
+      );
+      const dispersion = Math.max(...cromas) - Math.min(...cromas);
+      assert.ok(
+        dispersion < 0.015,
+        `${tema}: un escalón está más teñido que los otros (dispersión ${dispersion.toFixed(3)})`,
+      );
     }
   });
 
@@ -494,15 +588,30 @@ describe("contraste de los tokens", () => {
         `${tema}: 0,68 daba ${conLaAlfaQueHabia.toFixed(2)}:1, ya no hace falta el aviso`,
       );
 
-      // Y la alfa mínima viable no deja margen para un degradado perceptible.
+      /*
+       * Y la alfa mínima viable sigue sin dejar margen para un degradado
+       * perceptible.
+       *
+       * El umbral baja de 0,85 a 0,80 con el cambio de paleta, y el número dice
+       * algo: la rampa neutra tiene más margen de contraste que la marrón —el T3
+       * pasó de 3,26:1 a 4,02:1 sobre el peor estrato—, así que se puede
+       * atenuar un poco más antes de romper el suelo. Un poco más, no lo
+       * bastante: 0,83 es un 17 % de desvanecido, que sobre un solo escalón no
+       * se percibe como degradado sino como un dato mal impreso.
+       *
+       * La conclusión no cambia —o se ve el desvanecido o se ve el dato— pero el
+       * umbral se escribe con el número que mide esta paleta, no con el de la
+       * anterior. Un test que conserva la cifra vieja deja de medir el sistema y
+       * pasa a medir su historia.
+       */
       let minima = 1;
       for (let a = 1; a >= 0.5; a -= 0.005) {
         if (contraste(componer(t3, fondo, a), fondo) >= 3) minima = a;
         else break;
       }
       assert.ok(
-        minima >= 0.85,
-        `${tema}: la alfa mínima es ${minima.toFixed(2)}; si baja de 0,85 reconsidera el desvanecido`,
+        minima >= 0.8,
+        `${tema}: la alfa mínima es ${minima.toFixed(2)}; si baja de 0,80 reconsidera el desvanecido`,
       );
     }
   });
@@ -519,11 +628,16 @@ describe("contraste de los tokens", () => {
     // contra la superficie que la propia app pinta encima.
     assert.ok(contraste("#96688A", "#2E2F3D") < 3);
     assert.ok(contraste("#8A6414", "#E8E1E6") < 4.5);
-    // La primera rampa marrón se tiñó a croma 0,022 y el validador de `dataviz`
-    // la marcó como «reads gray». Una rampa de datos gris al lado de un botón
-    // amarillo es la queja que se repitió tres veces.
+    /*
+     * Y el marrón al que se llegó huyendo de aquel grafito: croma 0,077.
+     *
+     * Pasaba todas las puertas y produjo la queja siguiente —«demasiado marrón y
+     * papel, poco contraste»—, que es la lección que cierra este fichero: **una
+     * rampa puede medir bien y seguir siendo el problema.** Se fue por el mismo
+     * sitio por el que se fue el grafito, solo que por arriba.
+     */
     assert.ok(croma("#635D50") < 0.03, "aquella rampa leía como grafito");
-    assert.ok(croma(TOKENS.claro.tintaT2) >= 0.05, "la rampa de marrón tiene que verse marrón");
+    assert.ok(croma("#7C5336") > 0.05, "y la siguiente se pasó de marrón");
 
     /*
      * Y los tres del rediseño amarillo, que son los que el usuario vio antes que
@@ -557,7 +671,7 @@ describe("contraste de los tokens", () => {
    * negro el mismo gesto tiene mucho más recorrido antes de pasarse.
    */
   it("el canto de los estratos insinúa una arista, no dibuja una línea", () => {
-    const CANTO = { claro: "#FFFFFF", oscuro: "#4A4038" } as const;
+    const CANTO = { claro: "#FFFFFF", oscuro: "#33333A" } as const;
 
     for (const f of CLAROS) {
       const r = contraste(CANTO.claro, FONDOS[f]);

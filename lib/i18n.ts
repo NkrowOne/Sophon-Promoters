@@ -106,6 +106,7 @@ export const es = {
   cambiarElCorreo: "Cambiar correo",
   reenviarEn: (segundos: number) => `Reenviar en ${segundos} s`,
   reenviarElCodigo: "Reenviar código",
+  pegarCodigo: "Pegar",
 
   // ── Inicio ────────────────────────────────────────────────────────────────
   devengadoTreintaDias: "Ganado · 30 días",
@@ -475,6 +476,11 @@ export const es = {
     `Caduca en ${minutos} minutos y solo sirve una vez.`,
   correoOtpNoPedido:
     "Si no has pedido entrar en Sophon Promoters, ignora este correo: sin el código nadie puede acceder a tu cuenta.",
+  /* El correo no puede llevar un boton que copie: no ejecuta JavaScript.
+     Lo mas rapido que si existe es mantener pulsado el bloque del codigo, que
+     va con `user-select: all` para que la seleccion salga entera al primer
+     intento en vez de por caracteres. Esto lo dice. */
+  correoOtpTocaParaCopiar: "Mantén pulsado el código para copiarlo.",
 } as const;
 
 /**
@@ -540,6 +546,7 @@ const en: Cadenas = {
   cambiarElCorreo: "Change email",
   reenviarEn: (segundos: number) => `Resend in ${segundos}s`,
   reenviarElCodigo: "Resend code",
+  pegarCodigo: "Paste",
 
   devengadoTreintaDias: "Earned · 30 days",
   registrosYWebmasters: (registros: number, webmasters: number) =>
@@ -830,6 +837,7 @@ const en: Cadenas = {
     `It expires in ${minutos} minutes and works only once.`,
   correoOtpNoPedido:
     "If you did not ask to sign in to Sophon Promoters, ignore this email: without the code nobody can get into your account.",
+  correoOtpTocaParaCopiar: "Press and hold the code to copy it.",
 };
 
 const it: Cadenas = {
@@ -880,6 +888,7 @@ const it: Cadenas = {
   cambiarElCorreo: "Cambia email",
   reenviarEn: (segundos: number) => `Rinvia tra ${segundos} s`,
   reenviarElCodigo: "Rinvia codice",
+  pegarCodigo: "Incolla",
 
   devengadoTreintaDias: "Guadagnato · 30 giorni",
   registrosYWebmasters: (registros: number, webmasters: number) =>
@@ -1178,6 +1187,7 @@ const it: Cadenas = {
     `Scade tra ${minutos} minuti e vale una sola volta.`,
   correoOtpNoPedido:
     "Se non hai chiesto tu di entrare in Sophon Promoters, ignora questa email: senza il codice nessuno può entrare nel tuo account.",
+  correoOtpTocaParaCopiar: "Tieni premuto il codice per copiarlo.",
 };
 
 const pt: Cadenas = {
@@ -1228,6 +1238,7 @@ const pt: Cadenas = {
   cambiarElCorreo: "Alterar email",
   reenviarEn: (segundos: number) => `Reenviar em ${segundos} s`,
   reenviarElCodigo: "Reenviar código",
+  pegarCodigo: "Colar",
 
   devengadoTreintaDias: "Ganho · 30 dias",
   registrosYWebmasters: (registros: number, webmasters: number) =>
@@ -1523,6 +1534,7 @@ const pt: Cadenas = {
     `Expira dentro de ${minutos} minutos e só serve uma vez.`,
   correoOtpNoPedido:
     "Se não pediste para entrar no Sophon Promoters, ignora este email: sem o código ninguém consegue aceder à tua conta.",
+  correoOtpTocaParaCopiar: "Mantém o código premido para o copiares.",
 };
 
 /**
@@ -1587,6 +1599,7 @@ const ar: Cadenas = {
   cambiarElCorreo: "تغيير البريد",
   reenviarEn: (segundos: number) => `إعادة الإرسال بعد ${segundos} ث`,
   reenviarElCodigo: "إعادة إرسال الرمز",
+  pegarCodigo: "لصق",
 
   devengadoTreintaDias: "المكتسب · 30 يومًا",
   registrosYWebmasters: (registros: number, webmasters: number) =>
@@ -1888,6 +1901,7 @@ const ar: Cadenas = {
     }، ويصلح مرة واحدة فقط.`,
   correoOtpNoPedido:
     "إذا لم تطلب الدخول إلى Sophon Promoters فتجاهل هذه الرسالة: من دون الرمز لا يمكن لأحد الدخول إلى حسابك.",
+  correoOtpTocaParaCopiar: "اضغط مطولاً على الرمز لنسخه.",
 };
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };

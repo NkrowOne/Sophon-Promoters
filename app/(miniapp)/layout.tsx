@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Noto_Sans_Arabic } from "next/font/google";
+import { Archivo, Archivo_Black, Noto_Sans_Arabic } from "next/font/google";
 import Script from "next/script";
 
 import { AtrasDeTelegram } from "@/components/AtrasDeTelegram";
@@ -53,6 +53,30 @@ const texto = Archivo({
   weight: "variable",
   display: "swap",
   variable: "--fuente",
+});
+
+/**
+ * LA CIFRA PROTAGONISTA: Archivo Black.
+ *
+ * Es el extremo pesado de la MISMA familia, no una segunda voz. Comparte
+ * esqueleto y métricas con la de texto, así que la cifra que abre una pantalla
+ * puede pesar el triple sin que la pantalla cambie de casa — que es exactamente
+ * lo que le pasó a Martian Mono y por lo que se retiró.
+ *
+ * Existe porque a la portada le faltaba un protagonista: todo medía lo mismo, y
+ * una pantalla donde el saldo del mes tiene el peso de una etiqueta de fila es
+ * una lista, no una respuesta.
+ *
+ * Un solo peso —900 es el único que tiene— y un solo fichero. No lleva
+ * `preload: false` porque la cifra que la usa está sobre el pliegue en la
+ * primera pantalla que se abre: cargarla tarde es ver el número saltar de
+ * tamaño.
+ */
+const display = Archivo_Black({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--fuente-display",
 });
 
 const arabe = Noto_Sans_Arabic({
@@ -143,7 +167,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" data-luz="claro" className={`${texto.variable} ${arabe.variable}`}>
+    <html lang="es" data-luz="claro" className={`${texto.variable} ${display.variable} ${arabe.variable}`}>
       <head>
         {/* Antes de pintar: si el WebView no expone las variables de tema, los
             respaldos estáticos ya están puestos y no hay destello de texto invisible. */}

@@ -100,7 +100,16 @@ export function CifraProtagonista({ micros }: { micros: bigint }) {
    */
   return (
     <span
-      className="flex items-baseline gap-1.5 text-cifra-mayor tabular-nums"
+      /*
+       * `display` = Archivo Black.
+       *
+       * Es el extremo pesado de la MISMA familia, así que la cifra que preside
+       * una pantalla pesa el triple sin traer una voz ajena —que es lo que pasó
+       * con Martian Mono y por lo que se retiró—. A 40 px y con el resto de la
+       * pantalla en neutros, es lo que le da a la portada un protagonista en vez
+       * de una lista de datos del mismo tamaño.
+       */
+      className="display flex items-baseline gap-1.5 text-cifra-mayor tabular-nums"
       aria-label={t.dolares(importe)}
     >
       <CifraAnimadaSinMoneda micros={micros} />

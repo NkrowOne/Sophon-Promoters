@@ -2,265 +2,474 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
- * La paleta se ELIGE, no se deduce.
+/* ════════════════════════════════════════════════════════════════════════════
  *
- * Antes, las superficies salían de mezclar el fondo del cliente con el amarillo
- * de marca vía `color-mix`. Sobre el azul-negro de Telegram esa mezcla aterriza
- * en **hue 174°: verde oliva** —medido: 88 % de `#17212B` con `#F9D027` da
- * `#2E3432`—. Ese verde es la mitad de «qué horrible el diseño, sobre todo modo
- * oscuro», y no era un descuido de cálculo: azul y amarillo son casi
- * complementarios, así que su mezcla **pasa por el verde por construcción**.
+ *  BLANCO, GRISES Y AMARILLO.
  *
- * Ahora las diez superficies son literales por polaridad. Cuesta que la
- * aplicación no se camufle con temas exóticos de Telegram —por eso el puente
- * llama a `setBackgroundColor` y `setHeaderColor`, para que el cromo del cliente
- * siga a la app en vez de al revés—, y a cambio lo que mide
- * `test/contraste.test.ts` es exactamente lo que se pinta. Es el mismo motivo
- * por el que la rampa de tiers dejó de derivarse hace dos cambios.
- */
+ *  El color vive en la MARCA, en los MOTIVOS y en la ACCIÓN; todo lo demás es
+ *  neutro.
+ *
+ *  La versión anterior pintaba la aplicación entera de marrón espresso y papel
+ *  cálido, con la teoría de que un producto que solo usa los dos colores de su
+ *  logotipo es un producto coherente. El argumento es bueno y el resultado se
+ *  veía como una fotocopia en sepia: tres marrones y un beige no son una
+ *  paleta, son un tinte. La queja —«lo veo muy soso», «demasiado marrón y
+ *  papel, poco contraste»— señalaba exactamente eso.
+ *
+ *  Lo que hace ahora el trabajo es el CONTRASTE, no el tinte. Una escala neutra
+ *  de trece escalones da toda la jerarquía que la interfaz necesita, y encima
+ *  el amarillo aparece muy poco y por eso se ve muchísimo. Es la misma idea de
+ *  siempre —el amarillo es la acción— llevada hasta el final: cuando el resto
+ *  de la pantalla no compite, no hay que defenderlo.
+ *
+ *  ── LA ARQUITECTURA, DE STYLESEED ──
+ *
+ *  Hay dos capas y el orden importa:
+ *
+ *    1. LA CAPA CANÓNICA (`--neutral-*`, `--brand`, `--card`, `--chart-*`).
+ *       Los nombres de `bitjaru/styleseed`. Aquí se declara CADA valor, una vez.
+ *    2. LOS NOMBRES DEL PRODUCTO (`--campo`, `--placa`, `--tinta-t2`).
+ *       Una capa de traducción que no declara ni un valor nuevo.
+ *
+ *  Que los nombres del producto sobrevivieran al cambio de paleta es la prueba
+ *  de que estaban bien puestos: cada uno dice qué TRABAJO hace el color, no qué
+ *  color es. La placa dejó de ser espresso y pasó a ser casi negra sin que
+ *  ninguna pantalla tuviera que enterarse, y `tailwind.config.ts` no cambia una
+ *  sola referencia.
+ *
+ *  Lo que mide `test/contraste.test.ts` son estos literales.
+ *
+ * ════════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /*
-   * EL CAMPO: el amarillo de Sophon, medido sobre su propio logo.
+  /* ═══════════════════════ ESCALA NEUTRA ═══════════════════════
    *
-   * #F9D027 da **1,49:1 sobre blanco**. No es un color flojo: es que a esa
-   * luminosidad no puede ser tinta ni marca de dato sobre un fondo claro, y no
-   * hay forma de arreglarlo oscureciéndolo —para que pase 4,5:1 sobre blanco
-   * hay que bajarlo hasta ≈#946F00, un oliva apagado y fuera de gamut—.
+   * Neutros de VERDAD: croma por debajo de 0,004. Un gris con temperatura
+   * obliga a que todo lo demás la tenga, y eso es exactamente de donde venía el
+   * sepia. El papel de esta aplicación es blanco, no crema.
+   */
+  --neutral-0: #ffffff;
+  --neutral-25: #fafafa;
+  --neutral-50: #f5f5f6;
+  --neutral-100: #ededef;
+  --neutral-200: #e1e1e4;
+  --neutral-300: #c9c9ce;
+  --neutral-400: #94949c;
+  --neutral-500: #78787f;
+  --neutral-600: #5f5f67;
+  --neutral-700: #3e3e44;
+  --neutral-800: #26262b;
+  --neutral-900: #17171a;
+  --neutral-950: #0e0e10;
+
+  /* ═══════════════════════ EL AMARILLO ═══════════════════════
    *
-   * Así que se usa como se usa un amarillo de verdad: **campo macizo con tinta
-   * oscura encima**, 12,43:1. Y como el campo lleva su propio contraste, este
-   * par vale IGUAL en claro y en oscuro. Que no necesite desdoblarse por
-   * polaridad es la señal de que la elección es estructural y no un adorno: es
-   * el único par de toda la hoja que se declara una sola vez.
+   * Medido sobre el propio logotipo de Sophon. #F9D027 da **1,49:1 sobre
+   * blanco**: a esa luminosidad no puede ser tinta, y no se arregla
+   * oscureciéndolo —para pasar 4,5:1 hay que bajarlo a ≈#946F00, un oliva
+   * apagado que ya se descartó dos veces—.
    *
-   * ⚠️ **El amarillo es LA ACCIÓN, y nada más es amarillo.** La versión
-   * anterior lo usaba a la vez en la cabecera y en el botón —«todo lo que hay
-   * que hacer o saber va en amarillo»—, que es fundir dos trabajos distintos en
-   * una sola apariencia: lo que informa y lo que se pulsa se veían idénticos.
-   * De ahí «ese amarillo se camufla con los botones». Con el campo restringido a
-   * lo pulsable, es imposible que algo se camufle con el botón: es lo único de
-   * ese color en toda la pantalla.
+   * Así que se usa como se usa un amarillo de verdad: CAMPO macizo con tinta
+   * oscura encima, 12,43:1. Como el campo lleva su propio contraste, el par
+   * vale igual en claro y en oscuro: es el único de la hoja que no se desdobla.
    */
-  --campo: #f9d027;
-  --campo-tinta: #1a1206;
+  --amber-50: #fef9e3;
+  --amber-100: #fdf0b8;
+  --amber-200: #fce47f;
+  --amber-300: #fbda4e;
+  --amber-400: #f9d027;
+  --amber-500: #e5bc10;
+  --amber-600: #b8940a;
+  --amber-700: #8a6e07;
+  --amber-950: #1a1206;
 
+  /* ═══════════════════════ MARCA ═══════════════════════ */
+  --brand: var(--amber-400);
+  --brand-foreground: var(--amber-950);
   /*
-   * Canto del campo. Sobre papel claro el amarillo da 1,49:1, así que un botón
-   * macizo sin borde no tiene un límite perceptible —y WCAG 1.4.11 pide 3:1 para
-   * el contorno de un control—. Este oro oscuro da **3,18:1 sobre el papel más
-   * claro** manteniendo el hue a 90°, cuatro grados del campo: es el mismo
-   * amarillo en sombra, no un segundo color.
-   */
-  --campo-canto: #a8850b;
-
-  /*
-   * LA PLACA: espresso. Es el otro color de Sophon, que hasta ahora solo pintaba
-   * barritas de datos.
+   * El canto del campo. Sobre blanco el amarillo no tiene un límite
+   * perceptible, y WCAG 1.4.11 pide 3:1 para el contorno de un control.
    *
-   * La cabecera y el botón tienen que ser inconfundibles a un metro de
-   * distancia, así que no pueden compartir color. Marrón oscuro arriba y
-   * amarillo en la acción es la combinación que la marca ya traía sin usar, y
-   * ordena la pantalla sola: lo más oscuro informa, lo más brillante se pulsa.
+   * Es el ÚNICO valor de la hoja que no sale de la escala, y por un motivo
+   * medido: el sistema de diseño lo declara como `--amber-600` **diciendo que
+   * da 3,18:1**, y `--amber-600` (#B8940A) da 2,65:1 contra el peor estrato
+   * claro. 3,18:1 es exactamente lo que mide este valor, así que la escala es
+   * la errata y esto es lo que el sistema quiso decir.
+   *
+   * Sigue siendo el mismo amarillo en sombra —4,1° de tono— y no un segundo
+   * color. Lo comprueba `test/contraste.test.ts`, que mide las dos cosas: que
+   * llegue a 3:1 y que no se vaya de tono.
    */
-  --placa: #482304;
-  --placa-tinta: #fff6e8;
-  /* En claro la placa se recorta sola del papel (13,84:1), así que el canto es
-     el propio espresso y no se ve. En oscuro sí hace falta: ver más abajo. */
-  --placa-canto: #482304;
+  --brand-edge: #a8850b;
+  --brand-tint: var(--amber-50);
 
-  /*
-   * Los tres estratos de papel. Cálidos, teñidos de amarillo —el papel de esta
-   * aplicación no es blanco de oficina—, y ahora literales.
+  /* Lo que INFORMA: la placa de cabecera. Era espresso y ahora es casi negra.
+     Sigue valiendo la regla que la hizo dejar de ser amarilla —lo más oscuro
+     informa, lo más brillante se pulsa— y ahora además no discute con nada. */
+  --primary: var(--neutral-900);
+  --primary-foreground: #ffffff;
+  --primary-edge: var(--neutral-800);
+
+  /* El acento es el propio amarillo. No hay un tercer color: introducirlo
+     habría sido volver a tener dos cosas que se parecen y no significan lo
+     mismo, que fue el defecto de §12. */
+  --accent: var(--amber-400);
+  --accent-foreground: var(--amber-950);
+  --accent-tint: var(--amber-50);
+
+  /* ═══════════════════════ SUPERFICIES ═══════════════════════
+   *
+   * Los estratos son SUTILES a propósito, y ese es el cambio de fondo respecto
+   * a la versión anterior.
+   *
+   * Antes la jerarquía la hacían tres tonos de papel a sangre, porque no había
+   * ningún objeto con relieve: la regla era «una banda con márgenes es una
+   * tarjeta, y una tarjeta no es un estrato», y llevada al final dejaba páginas
+   * planas. Ahora la jerarquía la hace LA TARJETA con su sombra, así que los
+   * estratos no tienen que gritar: separan secciones, no niveles.
    */
-  --fondo: #ffffff;
-  --superficie: #fdf7ea;
-  --superficie-alta: #f7eeda;
-  --borde: #eadfc6;
+  --background: #ffffff;
+  --foreground: var(--neutral-900);
+  --surface-page: #ffffff;
+  --surface-subtle: var(--neutral-25);
+  --surface-muted: var(--neutral-50);
 
+  /* LA TARJETA EXISTE, y es la adición que contradice a propósito la regla
+     anterior. Es lo que se levanta por encima del papel; la banda sigue siendo
+     el estrato de la página. Conviven: una tarjeta nunca contiene bandas. */
+  --card: #ffffff;
+  --card-foreground: var(--neutral-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--neutral-900);
+
+  /* ═══════════════════════ TEXTO ═══════════════════════ */
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-tertiary: var(--neutral-500);
+  --text-disabled: var(--neutral-400);
+  --icon-default: var(--neutral-600);
+
+  /* ═══════════════════════ BORDES, ENTRADAS, FOCO ═══════════════════════ */
+  --border: var(--neutral-200);
   /*
    * Contorno de CONTROL, distinto del filete decorativo.
    *
-   * `--borde` mide 1,15-1,52:1 contra los estratos: vale para separar dos
+   * `--border` mide 1,1-1,2:1 contra los estratos: vale para separar dos
    * bloques, pero WCAG 1.4.11 pide **3:1** para el contorno de algo que se
-   * puede usar, y un campo de texto es exactamente eso. Con `--borde`, la caja
-   * donde el agente teclea su wallet no tenía un límite perceptible.
+   * puede usar, y un campo de texto es exactamente eso.
    *
-   * Es el mismo valor que el escalón T3 de la rampa —3,08-3,73:1 medido— así
-   * que no entra ningún hex nuevo: se reutiliza el que ya está aprobado.
+   * La capa canónica lo pone en `--neutral-400`. Aquí baja un escalón a
+   * `--neutral-500` porque los estratos de esta aplicación son papel casi
+   * blanco: contra `--surface-muted`, el 400 se queda en 2,76:1 y no llega. Es
+   * la única corrección de valor que el producto le hace al sistema, y la mide
+   * `test/contraste.test.ts`.
    */
-  --borde-control: #ab7e60;
+  --border-strong: var(--neutral-500);
+  --separator: var(--neutral-100);
+  /* El canto iluminado, 1 px por debajo de la junta. Una junta sola separa dos
+     colores; junta oscura + canto claro es un BORDE con espesor. */
+  --edge-light: #ffffff;
+  --input: var(--neutral-300);
+  --input-background: #ffffff;
+  --ring: var(--neutral-900);
 
-  /* Junta entre estratos. Es un canto, no una línea de separación: eso es lo
-     que hace que las capas parezcan tener espesor. */
-  --junta: #f2e7ce;
+  /* ═══════════════════════ ESTADO ═══════════════════════
+   *
+   * Desaturados a propósito: un rojo de semáforo al lado de una escala de
+   * grises se lee como si perteneciera a otra aplicación. El rojo lo pone el
+   * CLIENTE del usuario cuando existe, para que el error se vea del rojo que él
+   * reconoce como error en su propio Telegram.
+   */
+  --destructive: var(--tg-theme-destructive-text-color, #c8372d);
+  --destructive-foreground: #ffffff;
+  --success: #2f7d57;
+  --warning: var(--amber-700);
+  --info: var(--neutral-700);
 
-  /* El canto iluminado, 1 px por debajo de la junta.
-     Una junta sola separa dos colores; junta oscura + canto claro es un BORDE
-     con espesor, y es lo que hace que un estrato se lea como una capa apoyada
-     sobre la anterior en vez de como un cambio de fondo. En claro es blanco
-     franco porque el papel ya es cálido; en oscuro va apenas insinuado, que es
-     donde un canto claro se pasa de frenada enseguida. */
-  --canto-luz: #ffffff;
+  /* ═══════════════════════ DATOS ═══════════════════════
+   *
+   * LA RAMPA DE TIERS ES GRIS, y eso es una decisión, no una renuncia.
+   *
+   * Los tiers son ORDINALES —T1 paga 0,30 $, T2 0,25, T3 0,20— así que lo único
+   * que tienen que hacer es ordenarse por valor, y para eso una escala de
+   * LUMINOSIDAD es mejor que una de tono: no hay que aprenderla. Van además por
+   * posición fija en la banda, de modo que la lectura no depende del color en
+   * absoluto.
+   *
+   * La versión anterior la pintó de marrón para que «tuviera color», y con eso
+   * se llevó por delante el argumento: tres marrones ordenados por valor son
+   * más difíciles de ordenar de un vistazo que tres grises, porque el tono
+   * compite con la luminosidad.
+   *
+   * El amarillo entra como `--chart-accent`, y SOLO para la serie que hay que
+   * mirar: el mes en curso frente al anterior, el tramo que falta, el webmaster
+   * que se está señalando. Una serie amarilla entre grises no necesita leyenda.
+   *
+   * Los tres escalones van 800 / 600 / 500 y no 800 / 500 / 400 como la capa
+   * canónica, por lo mismo que `--border-strong`: sobre papel casi blanco, el
+   * 400 no llega a 3:1 y una marca de dato que no se ve no es un dato.
+   */
+  --chart-1: var(--neutral-800);
+  --chart-2: var(--neutral-600);
+  --chart-3: var(--neutral-500);
+  --chart-4: var(--neutral-400);
+  --chart-accent: var(--amber-400);
+
+  --ink-1: var(--neutral-800);
+  --ink-2: var(--neutral-600);
+  --ink-3: var(--neutral-500);
+  --ink-full: var(--neutral-900);
+
+  /* ═══════════════════════ LA MARCA ═══════════════════════
+   * El isotipo no lleva el color de una pantalla. Amarillo o blanco sobre
+   * oscuro, y este gris sobre papel. Nunca espresso. */
+  --mark-ink: var(--neutral-800);
+
+  /* ═══════════════════════ MOTIVOS ═══════════════════════
+   *
+   * Aquí es donde vive el color, y es el único sitio donde se le deja
+   * extenderse. Son campos y arcos derivados de la geometría del isotipo —tres
+   * trazos circulares—, no fondos decorativos: van detrás de una cifra o dentro
+   * de una placa, con un trabajo concreto, y nunca cubren una página entera.
+   *
+   * Uniformes por construcción: todos salen del mismo amarillo y del mismo
+   * neutro, así que dos motivos de dos pantallas distintas no pueden desafinar.
+   *
+   * Esto es lo que le faltaba de gráfico a la aplicación, y es la respuesta
+   * concreta a «hazlo más vibrante».
+   */
+  --gradient-brand: linear-gradient(135deg, #fbda4e 0%, #f9d027 52%, #e5bc10 100%);
+  --gradient-plate: linear-gradient(160deg, #26262b 0%, #17171a 58%, #0e0e10 100%);
+  --gradient-soft: linear-gradient(180deg, #ffffff 0%, var(--neutral-25) 100%);
+  --mesh-brand:
+    radial-gradient(58% 76% at 4% -8%, rgb(249 208 39 / 30%) 0%, rgb(249 208 39 / 0%) 62%),
+    radial-gradient(50% 70% at 100% 6%, rgb(249 208 39 / 14%) 0%, rgb(249 208 39 / 0%) 60%);
+  --mesh-neutral:
+    radial-gradient(60% 80% at 0% 0%, rgb(23 23 26 / 6%) 0%, rgb(23 23 26 / 0%) 64%),
+    radial-gradient(60% 80% at 100% 100%, rgb(23 23 26 / 4%) 0%, rgb(23 23 26 / 0%) 62%);
+  /* La segunda capa de la placa: sobre casi negro, el amarillo diluido da la
+     profundidad que un degradado plano no tiene. Va por separado del degradado
+     de base porque la placa la compone encima, no en vez de. */
+  --mesh-plate:
+    radial-gradient(56% 74% at 2% -10%, rgb(249 208 39 / 13%) 0%, rgb(249 208 39 / 0%) 60%),
+    radial-gradient(48% 68% at 100% 8%, rgb(249 208 39 / 7%) 0%, rgb(249 208 39 / 0%) 58%);
+
+  /* ═══════════════════════ SOMBRAS ═══════════════════════
+   *
+   * En dos capas, que es lo de styleseed: una corta y densa que pega el objeto
+   * al papel, y una larga y difusa que lo levanta. Una sola capa da el halo
+   * plano de plantilla.
+   *
+   * La regla de la casa sigue en pie: **una sombra permanente sobre algo que no
+   * está por encima de nada es decoración**. La tarjeta sí está por encima; la
+   * placa solo la enciende cuando hay contenido pasando por detrás.
+   */
+  --shadow-xs: 0 1px 2px rgb(23 23 26 / 5%);
+  --shadow-button: 0 1px 2px rgb(23 23 26 / 8%), 0 1px 1px rgb(23 23 26 / 4%);
+  --shadow-card: 0 1px 3px rgb(23 23 26 / 8%), 0 4px 12px -4px rgb(23 23 26 / 6%);
+  --shadow-card-hover: 0 2px 6px rgb(23 23 26 / 10%), 0 12px 24px -8px rgb(23 23 26 / 10%);
+  --shadow-elevated: 0 4px 10px rgb(23 23 26 / 8%), 0 20px 40px -12px rgb(23 23 26 / 14%);
+  /* La sombra del botón va TEÑIDA de su propio color: un objeto amarillo con
+     sombra gris se ve despegado del color que proyecta. */
+  --shadow-brand: 0 1px 2px rgb(138 110 7 / 24%), 0 8px 18px -8px rgb(138 110 7 / 34%);
+  --shadow-sticky: 0 8px 16px -10px rgb(23 23 26 / 30%);
+
+  /* ═══════════════════════ FORMA ═══════════════════════
+   *
+   * LA FORMA DISTINGUE ACCIÓN DE ESTADO, y esa es la corrección de §12: el
+   * usuario rodeó con un círculo rojo una etiqueta amarilla pegada a un botón
+   * amarillo. La etiqueta parecía un botón porque TENÍA FORMA DE BOTÓN.
+   *
+   *   marca    (4px)    DATO. Casi vivo: una marca con esquina blanda miente
+   *                     sobre dónde acaba el valor.
+   *   control  (8px)    ACCIÓN. Se pulsa.
+   *   panel   (16px)    Agrupación de contenido.
+   *   tarjeta (16px)    Objeto con relieve.
+   *   pildora (999px)   ESTADO. Nunca se pulsa.
+   *
+   * Se derivan con `calc` de un solo radio base, que es lo de styleseed: mover
+   * la personalidad de la forma es mover un número.
+   */
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 14px);
+  --radius-full: 9999px;
+
+  --radio-marca: var(--radius-sm);
+  --radio-control: var(--radius-md);
+  --radio-panel: var(--radius-xl);
+  --radio-tarjeta: var(--radius-xl);
+  --radio-pildora: var(--radius-full);
+
+  /* ═══════════════════════ ESPACIADO ═══════════════════════
+   * Base de 6 px, de styleseed. El margen de pantalla sube de 16 a 18: con
+   * tarjetas dentro, 16 dejaba la sombra pegada al canto del móvil. */
+  --space-1: 6px;
+  --space-2: 12px;
+  --space-3: 18px;
+  --space-4: 24px;
+  --space-5: 30px;
+  --space-6: 36px;
+
+  --page-gutter: 18px;
+  --margen-pantalla: var(--page-gutter);
+  --card-padding: 18px;
+  /* Objetivo táctil mínimo. No es WCAG 2.5.8 (24 px): es un pulgar, de pie y en
+     la calle, que es donde se usa esto. */
+  --toque-minimo: 44px;
+  --alto-chapa: 50px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ *  LOS NOMBRES DEL PRODUCTO
+ *
+ *  Capa de traducción. NO declara ni un valor nuevo — si alguna vez lo hace, es
+ *  que se ha colado una decisión de color fuera de la capa canónica.
+ * ════════════════════════════════════════════════════════════════════════════ */
+:root {
+  --campo: var(--brand);
+  --campo-tinta: var(--brand-foreground);
+  --campo-canto: var(--brand-edge);
+
+  --placa: var(--primary);
+  --placa-tinta: var(--primary-foreground);
+  --placa-canto: var(--primary-edge);
+
+  --fondo: var(--background);
+  --superficie: var(--surface-subtle);
+  --superficie-alta: var(--surface-muted);
+  --borde: var(--border);
+  --borde-control: var(--border-strong);
+  --junta: var(--separator);
+  --canto-luz: var(--edge-light);
+
+  --texto: var(--foreground);
+  --tinta-apoyo: var(--text-secondary);
+  --tinta-plena: var(--ink-full);
+  --tinta-t1: var(--ink-1);
+  --tinta-t2: var(--ink-2);
+  --tinta-t3: var(--ink-3);
+  --acento: var(--brand);
+
+  --peligro: var(--destructive);
+  --marca-tinta: var(--mark-ink);
 
   /*
-   * Texto. NUESTRO, no el del cliente.
+   * El par del botón principal, declarado con LITERALES.
    *
-   * Al elegir el fondo hay que elegir la tinta: heredar
-   * `--tg-theme-text-color` sobre un papel que ya no es el suyo es apostar a que
-   * el tema del usuario sea neutro. Y este es cálido —H 55°, el mismo del
-   * espresso—, que es lo que quita el último gris frío de la pantalla. 17,67:1.
-   */
-  --texto: #1f1710;
-
-  /*
-   * LA RAMPA: MARRÓN. Los colores de Sophon son amarillo y marrón, así que el
-   * segundo color de la aplicación no se elige, viene dado.
-   *
-   * hue 55° · croma 0,070. Tres cosas que costó encontrar:
-   *
-   *  1. **El croma no es decorativo.** La primera versión iba a 0,022 y el
-   *     validador de la skill `dataviz` la marcó como «reads gray». Una rampa
-   *     de datos gris al lado de un botón amarillo es exactamente la queja que
-   *     se repitió tres veces: «todo en blancos y grises».
-   *  2. **El hue tenía que bajar a 55°.** A 88° el croma llega más alto pero el
-   *     resultado es caqui, y «oliva» es otra palabra que ya se descartó. A 55°
-   *     sale chocolate, marrón y caramelo de verdad.
-   *  3. **El escalón claro del tema oscuro va a L 0,76.** Estuvo en 0,88 y eso
-   *     es lo que lo convertía en MELOCOTÓN: a 0,50 ya pasa 3:1, así que 0,88
-   *     era 0,38 de luminosidad regalada a cambio de perder el marrón. Bajarlo
-   *     no cuesta contraste —el peor caso sigue en 3,12:1— y devuelve el color.
-   *
-   * Los tiers son ORDINALES —T1 paga 0,30 $, T2 0,25, T3 0,20—, así que van en
-   * una sola familia ordenada por valor y no en tres colores distintos. Se
-   * validan con `validateOrdinal` y no con las comprobaciones categóricas, que
-   * como dice el propio script «FAIL a correct ramp by design». El tier va
-   * además por POSICIÓN fija en la banda: la lectura no depende del color.
-   *
-   * Peor caso sobre los tres estratos de su polaridad:
-   *   claro   T1 chocolate  T2 marrón    T3 caramelo   3,26:1
-   *   oscuro  T1 caramelo   T2 marrón    T3 chocolate  3,12:1
-   *
-   * Separación de hue con el amarillo: 38°. Misma familia, inconfundibles.
-   */
-  --tinta-t1: #482304;
-  --tinta-t2: #7c5336;
-  --tinta-t3: #ab7e60;
-
-  /*
-   * Tinta densa para chips, filetes y foco. **Ya no es el T1.**
-   *
-   * Eran el mismo valor, y eso ataba la tinta de los controles al escalón más
-   * oscuro de la rampa de datos: bajar la rampa a marrón de verdad arrastraba
-   * con ella el chip de red seleccionada y el anillo de foco. Separarlos es lo
-   * que permitió mover la rampa sin tocar los controles.
-   */
-  --tinta-plena: #2a1b0e;
-
-  /*
-   * Tinta secundaria: cálida y NUESTRA, no la de Telegram.
-   *
-   * Estaba en `--tg-theme-hint-color`, que es un gris azulado. Sobre el papel
-   * cálido de esta paleta da **4,17:1**: por debajo del umbral de texto, y
-   * encima de eso es lo que seguía tiñendo de gris frío cada rótulo y cada
-   * etiqueta de la aplicación —justo la sensación que había que quitar—.
-   *
-   * Croma bajo, muy por debajo del de la rampa: es TEXTO. La especificación de
-   * marcas dice que el texto no lleva el color del dato, y este no lo lleva;
-   * solo comparte la temperatura del papel sobre el que se lee. 5,89:1 en el
-   * peor estrato.
-   */
-  --tinta-apoyo: #6e5b4a;
-
-  /*
-   * Rojo de peligro: el del CLIENTE, no el nuestro.
-   *
-   * Telegram publica `destructive_text_color` y el puente ya vuelca todos los
-   * themeParams a variables CSS. Así el error se ve del rojo que ese usuario
-   * reconoce como error en su propio Telegram, y de paso la aplicación se
-   * ahorra el bermellón de marca que la habría metido de lleno en el cliché.
-   */
-  --peligro: var(--tg-theme-destructive-text-color, #b3261e);
-
-  /*
-   * El par del botón principal, declarado UNA vez.
-   *
-   * Lo leen dos consumidores que antes no se hablaban: la clase del botón de
-   * reserva del DOM y `MainButton.setParams`, que pinta el botón NATIVO de
-   * Telegram. Mientras el segundo no existía, la acción principal de cada
-   * pantalla salía del azul del cliente y era el único elemento de la
-   * aplicación fuera de su propio sistema visual.
-   *
-   * Tienen que ser valores RESUELTOS y no `var(--otra-cosa)`: Telegram recibe
-   * una cadena de color por la API del puente, no una hoja de estilos, y
-   * `getComputedStyle` de una custom property devuelve el texto tal cual está
-   * escrito, sin sustituir. Por eso repiten el campo en vez de referenciarlo.
+   * Telegram recibe una CADENA de color por la API del puente, no una hoja de
+   * estilos, y `getComputedStyle` de una custom property devuelve el texto tal
+   * cual está escrito, sin sustituir. Por eso estos dos repiten el valor en vez
+   * de referenciarlo: un `var(--brand)` aquí le llegaría a Telegram como la
+   * cadena literal «var(--brand)».
    */
   --boton-fondo: #f9d027;
   --boton-tinta: #1a1206;
+}
 
-  /*
-   * La escala de radios. Los 2 px de antes eran un valor único para TODO
-   * —botones, etiquetas, teselas, campos— así que no distinguía nada y encima se
-   * leía duro: los «bordes afilados» de la queja.
-   *
-   * Ahora cada radio nombra un tipo de objeto, y eso es lo que permite que la
-   * forma signifique algo. Ver el bloque de la chapa y la píldora más abajo.
-   */
-  --radio-marca: 3px;
-  --radio-control: 12px;
-  --radio-panel: 16px;
-  --radio-pildora: 999px;
+/* ════════════════════════════════════════════════════════════════════════════
+ *  EL TEMA OSCURO, ELEGIDO.
+ *
+ *  Gris-negro NEUTRO, no marrón: es la misma casa con la luz apagada. El
+ *  anterior salió de aritmética sobre el claro y tenía dos defectos que solo se
+ *  ven mirando —bandas en verde oliva y una rampa en melocotón—.
+ *
+ *  El amarillo saca 12,73:1 contra el fondo, así que lo más brillante de la
+ *  pantalla sigue siendo la acción, que es exactamente lo que debe ser.
+ *
+ *  El campo y su tinta NO se redeclaran: llevan su propio contraste.
+ * ════════════════════════════════════════════════════════════════════════════ */
+:root[data-luz="oscuro"] {
+  --primary: var(--neutral-800);
+  --primary-foreground: #ffffff;
+  --primary-edge: var(--neutral-700);
 
-  --margen-pantalla: 1rem;
+  --background: var(--neutral-950);
+  --foreground: #f4f4f5;
+  --surface-page: var(--neutral-950);
+  --surface-subtle: #16161a;
+  --surface-muted: #24242b;
+  --card: #16161a;
+  --card-foreground: #f4f4f5;
+  --popover: #1e1e23;
+  --popover-foreground: #f4f4f5;
+
+  --text-primary: #f4f4f5;
+  --text-secondary: #a3a3ac;
+  --text-tertiary: #8a8a93;
+  --text-disabled: #63636b;
+  --icon-default: #a3a3ac;
+
+  --border: #2c2c32;
+  --border-strong: #8a8a93;
+  --separator: #24242a;
+  --edge-light: #33333a;
+  --input: #3e3e44;
+  --input-background: #16161a;
+  --ring: #f4f4f5;
+
+  --destructive: var(--tg-theme-destructive-text-color, #f0857c);
+  --success: #63b98a;
+  --warning: var(--amber-300);
+  --info: #b4b4bc;
+
+  /* En oscuro la escala se invierte: lo denso es lo luminoso. */
+  --chart-1: #ededef;
+  --chart-2: #a3a3ac;
+  --chart-3: #78787f;
+  --chart-4: #4a4a52;
+
+  --ink-1: #ededef;
+  --ink-2: #a3a3ac;
+  --ink-3: #78787f;
+  --ink-full: #f4f4f5;
+
+  --brand-tint: #2b2408;
+  --accent-tint: #2b2408;
+  --mark-ink: #f4f4f5;
+
+  --gradient-plate: linear-gradient(160deg, #26262b 0%, #1a1a1e 58%, #0e0e10 100%);
+  --gradient-soft: linear-gradient(180deg, #16161a 0%, var(--neutral-950) 100%);
+  --mesh-brand:
+    radial-gradient(58% 76% at 4% -8%, rgb(249 208 39 / 16%) 0%, rgb(249 208 39 / 0%) 62%),
+    radial-gradient(50% 70% at 100% 6%, rgb(249 208 39 / 9%) 0%, rgb(249 208 39 / 0%) 60%);
+  --mesh-neutral:
+    radial-gradient(60% 80% at 0% 0%, rgb(255 255 255 / 6%) 0%, rgb(255 255 255 / 0%) 64%),
+    radial-gradient(60% 80% at 100% 100%, rgb(255 255 255 / 4%) 0%, rgb(255 255 255 / 0%) 62%);
+  --mesh-plate:
+    radial-gradient(56% 74% at 2% -10%, rgb(249 208 39 / 10%) 0%, rgb(249 208 39 / 0%) 60%),
+    radial-gradient(48% 68% at 100% 8%, rgb(249 208 39 / 6%) 0%, rgb(249 208 39 / 0%) 58%);
+
+  /* Sobre negro una sombra no se ve: lo que separa es el canto. Solo se
+     conservan las que de verdad flotan. */
+  --shadow-xs: none;
+  --shadow-button: none;
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --shadow-elevated: 0 20px 40px -12px rgb(0 0 0 / 60%);
+  --shadow-brand: 0 8px 18px -8px rgb(249 208 39 / 22%);
+  --shadow-sticky: 0 8px 16px -10px rgb(0 0 0 / 70%);
 }
 
 /*
- * EL TEMA OSCURO, ELEGIDO.
+ * Tintes de estado, CALCULADOS y no escritos a mano.
  *
- * El anterior salió de aritmética sobre el claro y no lo abrí ni una vez. Tenía
- * dos defectos que solo se ven mirando: las bandas en verde oliva (hue 174°) y
- * una rampa a L 0,88 que no era marrón sino melocotón.
- *
- * Este es marrón-negro de verdad —hue 56-61°, el mismo del espresso—, así que la
- * aplicación es la misma casa en las dos polaridades en vez de una versión fría
- * de sí misma. Y el amarillo de la acción, que aquí saca **12,73:1 contra el
- * fondo**, es con diferencia lo más brillante de la pantalla: exactamente lo que
- * debe ser una acción.
+ * `color-mix` contra `--card` es el mecanismo de styleseed, y aquí gana el
+ * doble: el mismo chip sobre papel blanco y sobre gris-negro sale del mismo
+ * declarado, así que es imposible que uno de los dos se quede sin actualizar.
  */
-:root[data-luz="oscuro"] {
-  /* El campo, su canto y la tinta de la placa NO se redeclaran: valen igual en
-     las dos polaridades. Ver arriba. */
-
-  /* La placa sí sube: sobre negro, el espresso claro se hunde en el fondo. Con
-     este valor mantiene 10,33:1 con su tinta crema. */
-  --placa: #533520;
-  /* Y aquí el canto sí trabaja: la placa saca solo 1,45-1,72:1 contra los
-     estratos oscuros, que para un bloque macizo se ve pero se ve poco. El filete
-     le pone un límite inequívoco sin subir la placa —subirla le quitaría
-     contraste a su tinta y la acercaría al amarillo del botón—. */
-  --placa-canto: #7a5439;
-
-  --fondo: #100e0b;
-  --superficie: #1c1713;
-  --superficie-alta: #282119;
-  --borde: #3a312a;
-  --borde-control: #916343;
-  --junta: #2f2823;
-  --canto-luz: #4a4038;
-
-  --texto: #f6efe6;
-
-  /* En oscuro la escala se invierte: lo denso es lo luminoso. Mismo hue 55°. */
-  --tinta-t1: #d7a583;
-  --tinta-t2: #b38363;
-  --tinta-t3: #916343;
-
-  --tinta-plena: #efd9c4;
-  --tinta-apoyo: #b0a092;
-
-  --peligro: var(--tg-theme-destructive-text-color, #f2837a);
+:root {
+  --success-tint: color-mix(in srgb, var(--success) 12%, var(--card));
+  --warning-tint: color-mix(in srgb, var(--warning) 14%, var(--card));
+  --destructive-tint: color-mix(in srgb, var(--destructive) 11%, var(--card));
+  --info-tint: color-mix(in srgb, var(--info) 8%, var(--card));
+  --brand-soft: color-mix(in srgb, var(--brand) 20%, var(--card));
 }
+
+/* ──────────────────────────────── BASE ──────────────────────────────── */
 
 html,
 body {
@@ -271,17 +480,11 @@ body {
 /*
  * El recorte horizontal va SOLO en `html`, y no en los dos.
  *
- * `overflow-x: hidden` convierte al elemento en contenedor de scroll —recortar
- * en un eje obliga al navegador a hacer desplazable el otro—. Puesto en `html`
- * **y** en `body` a la vez, el que scrollea de verdad es `html` y `body` se
+ * `overflow-x: hidden` convierte al elemento en contenedor de scroll. Puesto en
+ * `html` **y** en `body` a la vez, el que scrollea de verdad es `html` y `body`
  * queda como un contenedor de scroll que no scrollea nunca; sus descendientes
  * `sticky` no tienen entonces nada a lo que agarrarse y se van con la página.
- * La cabecera de la portada no se quedaba fija por esto: el CSS estaba bien, lo
- * que no podía era aplicarse.
- *
- * Medido en el navegador con las siete combinaciones —`clip` incluido— y solo
- * falla esa. Con el recorte únicamente en `html` se conserva igual —el scroll
- * horizontal sigue sin existir— y la cabecera se queda.
+ * La cabecera de la portada no se quedaba fija por esto.
  */
 html {
   overflow-x: hidden;
@@ -292,51 +495,35 @@ body {
    * UNA sola pila, con Archivo DELANTE y el árabe detrás.
    *
    * El emparejamiento de fuentes en CSS es POR GLIFO: el navegador recorre la
-   * pila para cada carácter y se queda con la primera cara que lo tenga. Archivo
-   * no trae árabe, así que las letras árabes caen solas a Noto sin que haga
-   * falta una regla por idioma —y quien lee en español nunca dispara su
-   * descarga, porque nunca aparece un glifo que la necesite—.
+   * pila para cada carácter y se queda con la primera cara que lo tenga.
+   * Archivo no trae árabe, así que las letras árabes caen solas a Noto sin que
+   * haga falta una regla por idioma.
    */
   font-family: var(--fuente), var(--fuente-arabe), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* La Mini App ocupa el alto estable, no el visual: con el teclado abierto
-     el viewport se reajusta y usar 100vh dejaría contenido bajo el teclado. */
+  -moz-osx-font-smoothing: grayscale;
+  /* La Mini App ocupa el alto estable, no el visual: con el teclado abierto el
+     viewport se reajusta y usar 100vh dejaría contenido bajo el teclado. */
   min-height: var(--tg-viewport-stable-height, 100vh);
 }
 
-/*
- * NO hay regla `:lang(ar)`, y quitarla fue arreglar un defecto.
- *
- * La había, y ponía `var(--fuente-arabe)` DELANTE de Archivo. Parece lo obvio
- * —«en árabe, la cara árabe»— y es justo lo contrario de cómo funciona el
- * emparejamiento por glifo: `next/font` emite para Noto Sans Arabic también sus
- * subconjuntos LATINOS (u+00?? y u+0100-02ba, comprobado en el CSS del build)
- * aunque solo se le pida `subsets:["arabic"]`. Con la cara árabe primero, en la
- * versión RTL cada correo, cada wallet, cada fecha y **todos los importes** se
- * pintaban con Noto y no con Archivo.
- *
- * O sea que el árabe perdía exactamente el `tnum` de Archivo que es el
- * argumento entero para no traer una segunda cara de cifras, y encima se veía de
- * otra tipografía que el resto del producto. Se confirmó preguntándole al
- * navegador qué cara estaba usando de verdad (`CSS.getPlatformFontsForNode`),
- * no leyendo la hoja.
- *
- * Con la pila única de `body` el orden es el correcto y la regla sobra.
- */
+p {
+  text-wrap: pretty;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
 
 /*
  * Cifras: la MISMA cara, en tabular.
  *
- * Aquí vivía Martian Mono. Se retiró después de poner el espécimen en pantalla
- * y mirarlo: al ser monoespaciada, la coma de un importe ocupa una casilla
- * entera, así que «8,88 $» se pintaba con un hueco a cada lado de la coma. En
- * una aplicación cuyo contenido principal son importes, eso es el peor sitio
- * posible para una mono, y es lo que el usuario llamó «aberrante».
- *
- * No hacía falta ninguna mono: **Archivo ya trae `tnum`** —verificado en el
- * propio fichero de la fuente—, que es lo único que se necesitaba de ella, o sea
- * que una columna de importes no baile al cambiar de dígito. La segunda familia
- * estaba pagando el primer pintado para dar peor algo que la primera ya tenía.
+ * Aquí vivió Martian Mono. Se retiró al poner el espécimen en pantalla: al ser
+ * monoespaciada, la coma de un importe ocupa una casilla entera, así que
+ * «8,88 $» se pintaba con un hueco a cada lado de la coma. **Archivo ya trae
+ * `tnum`**, que es lo único que hacía falta.
  */
 .cifra {
   font-variant-numeric: tabular-nums;
@@ -344,98 +531,91 @@ body {
 }
 
 /*
- * La clase `.rotulo` SE HA IDO, y su desaparición es parte del arreglo.
+ * LA CIFRA PROTAGONISTA, en Archivo Black.
  *
- * Declaraba Archivo a wdth 115, MAYÚSCULAS y 0,16em de tracking, y se aplicaba
- * junto a `text-rotulo` en 27 sitios. Cada etiqueta de la aplicación era un
- * cartel de señalización, y todas juntas eran el «efecto estarcido» que se leía
- * como una maqueta de periódico.
- *
- * Ahora el escalón `text-rotulo` de Tailwind lleva ya su tamaño y su peso, en
- * caja baja, así que no hace falta una segunda clase encima. La jerarquía la
- * hace el PESO: es más barato, no grita, y sobrevive a la traducción —unas
- * versalitas tracadas en árabe no significan nada, porque el árabe no tiene
- * caja—.
+ * Es el extremo pesado de la MISMA familia, así que no mete una voz ajena: la
+ * cifra que abre una pantalla pesa más que todo lo demás sin cambiar de casa.
+ * Es lo que faltaba para que la portada tuviera un protagonista en vez de una
+ * lista de datos del mismo tamaño.
  */
+.display {
+  font-family: var(--fuente-display), var(--fuente), system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
 
 /*
- * Los marcadores de posición, en NUESTRO gris cálido.
+ * Los marcadores de posición, en NUESTRO gris.
  *
  * Cinco de los seis campos de la aplicación no declaraban color de placeholder,
- * así que caían al `#9CA3AF` del Preflight de Tailwind: un gris AZULADO, y
- * ocupando el elemento más visible de cada pantalla de formulario. Es
- * literalmente la queja que se repitió tres veces —«todo en blancos y grises»—
- * sobreviviendo en el único sitio donde nadie fue a mirarla.
- *
- * Va en una regla global y no clase a clase a propósito: el defecto no fue que
- * alguien eligiera mal el color, fue que había que acordarse de elegirlo. Así el
- * próximo campo lo hereda sin que nadie tenga que saberlo.
+ * así que caían al `#9CA3AF` del Preflight de Tailwind, ocupando el elemento
+ * más visible de cada pantalla de formulario.
  *
  * El selector lleva `input`/`textarea` para IGUALAR la especificidad del
- * Preflight, que declara `input::placeholder, textarea::placeholder`. Con un
- * `::placeholder` a secas la regla se escribe, se sirve y no se aplica: pierde
- * por especificidad aunque vaya después. Se comprobó en captura, que es la única
- * forma de haberlo visto.
- *
- * `opacity: 1` porque Firefox aplica una propia a los placeholders y, sin esto,
- * el color medido no es el que se pinta.
+ * Preflight. Con un `::placeholder` a secas la regla se escribe, se sirve y no
+ * se aplica. `opacity: 1` porque Firefox aplica una propia.
  */
 input::placeholder,
 textarea::placeholder {
-  color: var(--tinta-apoyo);
+  color: var(--text-tertiary);
   opacity: 1;
 }
 
-/* Foco visible de verdad: es el suelo de calidad, no un extra. Va del color de
-   la tinta y no del campo: un anillo amarillo sobre la propia placa no se vería. */
+/* Foco visible de verdad: es el suelo de calidad, no un extra. Sin
+   `border-radius` propio: el anillo sigue la forma del objeto que rodea, que
+   ahora es lo que dice si se pulsa o se lee. */
 :focus-visible {
-  outline: 2px solid var(--tinta-plena);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
-  /* Sin `border-radius` propio: el anillo sigue la forma del objeto que rodea,
-     que ahora es lo que dice si se pulsa o se lee. Forzarlo a un valor único
-     volvía a poner esquinas duras alrededor de una píldora. */
 }
 
 /* ──────────────────────────────── LA PLACA ────────────────────────────────
  *
- * La firma de la aplicación: una banda de espresso a sangre que abre cada
- * pantalla llevando **la respuesta**, no el nombre. Sustituye al raíl de 44 px
- * que ocupaba el borde izquierdo de todas las pantallas: aquel gastaba el 11 %
- * del ancho de un móvil en identidad, esta gasta alto —que en un móvil es lo que
- * sobra— y encima lleva un dato.
+ * La firma de la aplicación: una banda a sangre que abre cada pantalla llevando
+ * **la respuesta**, no el nombre.
  *
- * **Era amarilla y ese era el defecto.** Placa y botón compartían `#F9D027`, así
- * que lo que informa y lo que se pulsa tenían una sola apariencia. En espresso
- * son dos objetos que no se pueden confundir ni de lejos, y la jerarquía se lee
- * sin leer nada: lo más oscuro informa, lo más brillante se pulsa.
+ * Ahora es casi negra y va en DEGRADADO con una malla de amarillo diluido
+ * encima. Un plano macizo de un solo valor es lo que la hacía parecer un
+ * rectángulo de relleno; con la malla tiene profundidad y con el arco tiene
+ * marca. Es el sitio donde el color de esta aplicación tiene permiso para
+ * extenderse.
  *
- * ── Y AHORA SE QUEDA ──
- *
- * La placa lleva la respuesta de la pantalla y se iba con el scroll justo cuando
- * el agente empezaba a leer los datos que la explican: miraba el reparto por
- * tier sin la cifra que reparte. Ahora es `sticky` y al bajar **se compacta**:
- * la cifra grande se encoge y se apaga, y en su sitio queda una línea con el
- * mismo número. No desaparece nada; cambia de tamaño lo que ya estaba.
- *
- * Eso es continuidad espacial, no decoración, y es la razón por la que se salta
- * la regla de «solo se anima lo que mide». Está escrito también en el bloque del
- * movimiento, más abajo.
- *
- * **La sombra solo existe cuando hay algo debajo.** Una sombra permanente es
- * decoración; una que aparece en cuanto el contenido pasa por detrás dice algo
- * cierto —«esto está por encima de aquello»— y es lo que da la profundidad que
- * la aplicación no tenía. La pinta un pseudoelemento en vez de `box-shadow`
- * sobre la propia placa: así se desvanece con una `opacity`, que es gratis, en
- * vez de transicionar una sombra, que no lo es.
+ * `overflow: hidden` + `isolation: isolate` para que el arco del pseudoelemento
+ * se recorte contra la placa y no se cuele por encima del contenido.
  */
 .placa {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--placa);
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--placa);
+  background-image: var(--mesh-plate), var(--gradient-plate);
   color: var(--placa-tinta);
   border-bottom: 1px solid var(--placa-canto);
-  transition: padding-block var(--t-entrada) var(--curva-mover);
+  transition:
+    padding-block var(--t-entrada) var(--curva-mover),
+    box-shadow var(--t-entrada) var(--curva);
+}
+
+/*
+ * El arco de marca: geometría del isotipo, girada y recortada.
+ *
+ * No se inventa una forma, reusa la que ya existe. Es lo que hace que decore
+ * SIN parecer una decoración importada de otro sitio.
+ */
+.placa::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline-end: -10%;
+  top: -46%;
+  width: 40%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 12px solid var(--campo);
+  opacity: 0.2;
+  pointer-events: none;
 }
 
 /*
@@ -445,25 +625,19 @@ textarea::placeholder {
  * aunque el dibujo mida menos, así que hay que compensar con más recorte de
  * relleno y el resultado es una cifra pequeña flotando en un hueco de su tamaño
  * original. Y la cifra es justo lo que este gesto existe para conservar.
- *
- * `padding-block` sí toca maquetación, y es deliberado: no se anima con el
- * scroll sino UNA vez, al cruzar el umbral. Son dos transiciones por sesión de
- * lectura, no sesenta por segundo. La regla de «solo transform y opacity» habla
- * de lo que se anima continuamente.
  */
 .placa[data-compacta="si"] {
   padding-block: 0.7rem;
+  box-shadow: var(--shadow-sticky);
 }
 
 /*
- * La sombra solo existe cuando hay algo debajo.
+ * La sombra de la placa solo existe cuando hay algo debajo.
  *
  * Una sombra permanente es decoración; una que aparece en cuanto el contenido
- * pasa por detrás dice algo cierto —«esto está por encima de aquello»— y es de
- * donde sale la profundidad que a la aplicación le faltaba. La pinta un
- * pseudoelemento en vez de un `box-shadow` sobre la placa: así aparece con una
- * `opacity`, que la GPU resuelve sola, en vez de transicionar una sombra, que
- * se repinta.
+ * pasa por detrás dice algo cierto —«esto está por encima de aquello»—. El
+ * degradado del pseudoelemento se suma a `--shadow-sticky` para que el borde
+ * del contenido que pasa por debajo no se recorte en seco.
  */
 .placa::after {
   content: "";
@@ -507,129 +681,296 @@ textarea::placeholder {
 
 /* ═══════════════ LA FORMA DISTINGUE ACCIÓN DE ESTADO ═══════════════
  *
- * Esta es la corrección central de esta pasada, y viene de un círculo rojo:
- * el usuario rodeó en /pro la etiqueta amarilla «Nunca llegó a tener PRO» pegada
- * al botón amarillo «DAR UN AÑO DE PRO». Dos bloques del mismo color, del mismo
- * ancho y del mismo radio, uno encima del otro.
+ * Viene de un círculo rojo: el usuario rodeó en /pro la etiqueta amarilla
+ * «Nunca llegó a tener PRO» pegada al botón amarillo «DAR UN AÑO DE PRO». Dos
+ * bloques del mismo color, del mismo ancho y del mismo radio, uno encima del
+ * otro.
  *
  * El diagnóstico no es que hubiera demasiado amarillo: es que **la etiqueta
- * tenía forma de botón**. Se distinguían solo por el texto, y eso obliga a leer
- * para saber qué se puede pulsar.
- *
- * A partir de aquí la forma es semántica:
+ * tenía forma de botón**.
  *
  *     .chapa    rectángulo de esquina blanda, macizo, ancho completo  → SE PULSA
- *     .pildora  cápsula compacta, con filete, al ancho de su texto    → SE LEE
- *
- * Y la regla se sostiene sin color: aunque los dos fueran amarillos, una cápsula
- * de 26 px pegada al texto no se confunde con un bloque de 50 px de alto a
- * sangre. Que además solo la acción lleve campo es la segunda barrera, no la
- * primera.
+ *     .pildora  cápsula compacta, al ancho de su texto                → SE LEE
  */
 
 /*
  * LA CHAPA: la acción. El único objeto amarillo de la aplicación.
  *
- * El canto no es un adorno. Sobre papel claro el campo da 1,49:1 contra el
- * fondo, así que un botón macizo sin borde no tiene un límite perceptible; el
- * filete de oro oscuro le da 3,18:1, que es lo que WCAG 1.4.11 pide para el
- * contorno de un control. En oscuro no hace falta —el campo saca 12,73:1— pero
- * se conserva porque ahí actúa de bisel y no molesta.
+ * El canto no es un adorno: sobre papel claro el campo da 1,49:1 contra el
+ * fondo, así que un botón macizo sin borde no tiene un límite perceptible. La
+ * sombra va TEÑIDA de oro —un objeto amarillo con sombra gris se ve despegado
+ * del color que proyecta— y es lo que lo levanta del papel.
  */
 .chapa {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 50px;
+  min-height: var(--alto-chapa);
   padding-inline: 1rem;
   background: var(--campo);
   color: var(--campo-tinta);
   border: 1px solid var(--campo-canto);
   border-radius: var(--radio-control);
+  box-shadow: var(--shadow-brand);
+  font-weight: 600;
+  transition:
+    transform var(--t-toque) var(--curva),
+    box-shadow var(--t-toque) var(--curva);
+}
+
+.chapa:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+  box-shadow: var(--shadow-button);
+}
+
+/*
+ * Deshabilitado: pierde el CAMPO, no la opacidad.
+ *
+ * Estaba como `disabled:opacity-40`, que deja una chapa lavada del mismo color
+ * y sigue pareciendo pulsable. Si no está amarillo, no se puede pulsar: esa es
+ * toda la regla, y funciona sin depender del color porque también desaparece el
+ * relleno.
+ */
+.chapa:disabled {
+  background: var(--superficie-alta);
+  color: var(--text-disabled);
+  border-color: var(--borde);
+  box-shadow: none;
+}
+
+/* La chapa HUECA y la chapa de TINTA: las dos acciones que no son la principal.
+   Nunca amarillas —el amarillo es una por pantalla— pero con la misma forma,
+   porque las tres se pulsan. */
+.chapa-hueca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 46px;
+  padding-inline: 1rem;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-control);
+  background: var(--card);
+  color: inherit;
+  box-shadow: var(--shadow-button);
+  font-weight: 500;
+}
+
+.chapa-tinta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 46px;
+  padding-inline: 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radio-control);
+  background: var(--tinta-plena);
+  color: var(--fondo);
+  box-shadow: var(--shadow-button);
   font-weight: 600;
 }
 
 /*
- * Deshabilitado: pierde el campo, no la opacidad.
+ * LA PÍLDORA: el estado. Vuelve, y esta vez con una regla que la sostiene.
  *
- * Estaba como `disabled:opacity-40` sobre el botón lleno, que deja una chapa
- * lavada del mismo color y sigue pareciendo pulsable. Si no está amarillo, no
- * se puede pulsar: esa es toda la regla, y funciona sin depender del color
- * porque también desaparece el relleno.
+ * Se retiró en su día porque «una lista de cápsulas perfiladas con su iconito
+ * es LA firma del panel de control genérico». Sigue siendo verdad, y por eso
+ * vuelve con la restricción que faltaba: **una píldora se LEE y nunca se
+ * pulsa**, va al ancho de su texto y sobre un tinte calculado. Así no puede
+ * confundirse con un bloque de 50 px a sangre aunque los dos fueran del mismo
+ * color, que es exactamente el defecto que la hizo desaparecer.
  */
-.chapa:disabled {
+.pildora {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radio-pildora);
   background: var(--superficie-alta);
   color: var(--tinta-apoyo);
-  border-color: var(--borde);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
-/*
- * `.pildora` SE HA IDO, y su retirada es una corrección, no un ahorro.
+.pildora-marca {
+  background: var(--campo);
+  color: var(--campo-tinta);
+}
+
+.pildora-exito {
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.pildora-aviso {
+  background: var(--warning-tint);
+  color: var(--warning);
+}
+
+.pildora-peligro {
+  background: var(--destructive-tint);
+  color: var(--peligro);
+}
+
+/* ──────────────────────────────── LA TARJETA ────────────────────────────────
  *
- * Existió media hora para separar el estado del botón, y resolvió eso trayendo
- * otra cosa: una lista de cápsulas perfiladas con su iconito es LA firma del
- * panel de control genérico. Está en todas las plantillas, así que no dice nada
- * de este producto —«gritan mucho IA», y es verdad—.
+ * Lo que se levanta por encima del papel.
  *
- * El estado es ahora una línea de texto con su icono delante (`Marca` en
- * `components/Pantalla.tsx`). La fila ya está delimitada por su lista; meterle
- * una cápsula dentro era envolver dos palabras en una caja para no añadir nada.
+ * Antes no existía: la regla era «una banda con márgenes es una tarjeta, y una
+ * tarjeta no es un estrato», y llevada al final dejaba páginas planas sin un
+ * solo objeto con relieve. Es la mitad de «lo veo muy soso».
+ *
+ * Conviven con una regla que las separa: **una tarjeta nunca contiene bandas**.
+ * La banda es el estrato de la página; la tarjeta es un objeto dentro de un
+ * estrato.
  */
+.tarjeta {
+  position: relative;
+  background: var(--card);
+  color: var(--card-foreground);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--shadow-card);
+  padding: var(--card-padding);
+}
+
+/* En oscuro la sombra es `none`, así que lo que separa la tarjeta del papel es
+   el canto. Sin esto, en oscuro la tarjeta desaparece. */
+:root[data-luz="oscuro"] .tarjeta {
+  border: 1px solid var(--borde);
+}
+
+.tarjeta-borde {
+  background: var(--card);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  padding: var(--card-padding);
+}
+
+.tarjeta-pulsable {
+  transition:
+    box-shadow var(--t-toque) var(--curva),
+    transform var(--t-toque) var(--curva);
+}
+
+.tarjeta-pulsable:active {
+  transform: scale(0.985);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ──────────────────────────── LOS MOTIVOS ────────────────────────────
+ *
+ * Campos de malla y arcos, derivados de la geometría del isotipo. Van DETRÁS de
+ * una cifra o dentro de una placa, con un trabajo concreto, y nunca cubren una
+ * página entera.
+ *
+ * `isolation: isolate` + `z-index: -1` en el pseudoelemento: el motivo se queda
+ * por debajo del contenido sin sacarlo de su contexto de apilamiento.
+ */
+.campo-malla {
+  position: relative;
+  isolation: isolate;
+}
+
+.campo-malla::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--mesh-brand);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.campo-malla-neutro::before {
+  background-image: var(--mesh-neutral);
+}
+
+.motivo-arcos {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.motivo-arcos::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline-end: -14%;
+  top: -34%;
+  width: 42%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 13px solid var(--campo);
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.motivo-arcos::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline-end: 26%;
+  bottom: -30%;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 9px solid var(--campo);
+  opacity: 0.11;
+  pointer-events: none;
+}
 
 /* ══════════════════════════════ EL MOVIMIENTO ══════════════════════════════
  *
- * Una sola gramática, y formal: **nada rebota, nada gira, nada se escala más de
- * un 3 %, y ningún color se anima.** Todo sale de tres curvas y tres duraciones
- * declaradas aquí; una cuarta curva escrita a mano en un componente es un
- * defecto, no una variante.
+ * Una sola gramática, y formal: **nada rebota salvo lo que confirma, nada gira,
+ * nada se escala más de un 3 %, y ningún color se anima.** Todo sale de las
+ * curvas y duraciones declaradas aquí; una curva escrita a mano en un
+ * componente es un defecto, no una variante.
  *
- * La regla que decide QUÉ se mueve: se anima lo que MIDE algo. Una barra que
- * crece explica su escala mientras crece; una cifra que sube dice de dónde
+ * La regla que decide QUÉ se mueve: **se anima lo que MIDE algo.** Una barra
+ * que crece explica su escala mientras crece; una cifra que sube dice de dónde
  * viene; una mecha que se dibuja de izquierda a derecha es literalmente una
- * lectura tomándose. Lo que no mide nada —el texto, los iconos, los rótulos— no
- * se mueve, y por eso lo que sí se mueve significa.
+ * lectura tomándose.
  *
- * A eso se le añade UNA excepción, y está razonada donde vive: la cabecera que
- * se compacta al bajar (`.placa`, más arriba). No decora: mantiene la cifra en
- * pantalla mientras se leen los datos que la explican, que es continuidad
- * espacial y no adorno. Antes aquí ponía que «nada anima en scroll salvo el
- * Testigo»; se dice ahora como es, porque un comentario que defiende lo
- * contrario de lo que ejecuta el código es peor que no tenerlo.
+ * A eso se le añaden DOS excepciones, las dos razonadas donde viven:
+ *   · la cabecera que se compacta al bajar (continuidad espacial, no adorno);
+ *   · el acuse de un código correcto (`confirmar`), que es la única vez que
+ *     algo rebota — y rebota porque un acierto irreversible merece que el
+ *     cuerpo se entere antes que la cabeza.
  *
- * **Solo se animan `transform` y `opacity`.** Cualquier otra propiedad —`width`,
- * `height`, `top`— obliga al navegador a rehacer la maquetación y el pintado en
- * cada fotograma. La Cinta, la Escalera y el progreso del bono son ocho barras
- * en la misma pantalla: con `width` eran ocho recálculos por fotograma.
+ * **Solo se animan `transform` y `opacity`.** Cualquier otra propiedad obliga
+ * al navegador a rehacer la maquetación y el pintado en cada fotograma.
  */
 :root {
+  --duration-fast: 120ms;
+  --duration-normal: 240ms;
+  --duration-moderate: 320ms;
+  --duration-slow: 520ms;
+
   /*
-   * TRES curvas, y la diferencia importa.
-   *
    * `--curva` es un ease-out FUERTE: sale disparada y frena al llegar. Es la de
-   * las cosas que aparecen y desaparecen, y es el reglaje por defecto —a 200 ms
-   * se percibe más rápida que un ease-in de la misma duración, porque el
-   * movimiento está donde el ojo ya está mirando—. La anterior
-   * (`.2,.8,.2,1`) apenas se distinguía de la `ease` del navegador.
+   * las cosas que aparecen y desaparecen.
    *
    * `--curva-mover` es un ease-in-out fuerte: acelera y frena. Solo para lo que
    * se DESPLAZA por la pantalla sin entrar ni salir.
    *
-   * `--curva-dibujo` es LINEAL, y es la de las cosas que MIDEN. Aquí había un
-   * `cubic-bezier(0.4, 0.05, 0.25, 1)`, que es un ease-in: arranca lento justo
-   * en el instante en que se está mirando. Se puso para arreglar un problema
-   * real —con la curva de entrada, un barrido de 520 ms iba por el 26 % a los
-   * 33 ms, medido en el navegador, y la medida terminaba antes de poder verse
-   * tomar— pero la respuesta correcta a «esto tiene que ir a ritmo constante»
-   * es la curva constante, no la inversa. Un instrumento barre a velocidad
-   * fija.
+   * `--curva-dibujo` es LINEAL, y es la de las cosas que MIDEN. Un instrumento
+   * barre a velocidad fija.
+   *
+   * `--curva-muelle` sobrepasa y vuelve. Es nueva y tiene UN solo uso: el acuse
+   * de un código verificado. Si aparece en un segundo sitio, es decoración.
    */
   --curva: cubic-bezier(0.23, 1, 0.32, 1);
   --curva-mover: cubic-bezier(0.77, 0, 0.175, 1);
   --curva-dibujo: linear;
-  --t-toque: 140ms;
-  --t-entrada: 240ms;
-  --t-dibujo: 520ms;
+  --curva-muelle: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --t-toque: var(--duration-fast);
+  --t-entrada: var(--duration-normal);
+  --t-dibujo: var(--duration-slow);
 }
 
 /*
@@ -637,8 +978,7 @@ textarea::placeholder {
  *
  * El ancho se fija de una vez —así el hueco de 2 px entre segmentos de la Cinta
  * está en su sitio desde el primer fotograma en vez de deslizarse— y lo que se
- * anima es la escala horizontal desde el inicio lógico. El remate sigue recto:
- * el radio lo pone el raíl que la recorta, no la barra.
+ * anima es la escala horizontal desde el inicio lógico.
  */
 .barra-dato {
   transform-origin: left;
@@ -652,11 +992,9 @@ textarea::placeholder {
 /*
  * EL BARRIDO: un instrumento tomando una medida.
  *
- * Los datos seriados —la Mecha y el Testigo— se descubren de izquierda a derecha
- * con una máscara, no apareciendo de golpe. Es UN elemento y UNA propiedad
- * compuesta, así que sesenta muescas cuestan lo mismo que una: la alternativa
- * —un retardo por marca— habría puesto un estilo en línea en cada una de las
- * trescientas que puede haber en `/pro`.
+ * Los datos seriados se descubren de izquierda a derecha con una máscara, no
+ * apareciendo de golpe. Es UN elemento y UNA propiedad compuesta, así que
+ * sesenta muescas cuestan lo mismo que una.
  *
  * `inset` lógico invertido en árabe: en RTL el tiempo avanza al revés, y una
  * medida que se dibuja hacia el lado contrario al que se lee no se lee.
@@ -688,18 +1026,13 @@ textarea::placeholder {
 }
 
 /*
- * El toque. Un hundimiento del 3 % y un velo de superficie: lo justo para que el
- * dedo tenga acuse de recibo en una pantalla sin puntero.
+ * El toque. Un hundimiento del 3 % y un velo de superficie: lo justo para que
+ * el dedo tenga acuse de recibo en una pantalla sin puntero.
  *
  * Era del 1 %, y el 1 % no se ve: a 390 px de ancho son menos de cuatro píxeles
- * repartidos entre los dos lados de un botón, por debajo del umbral en el que
- * el ojo distingue un cambio de tamaño. Un acuse de recibo que no se percibe no
- * acusa nada. El 3 % es el reglaje habitual y sigue siendo discreto.
- *
- * `:active` y no `:hover`: aquí no hay ratón, y una interfaz que solo responde
- * al puntero no responde nunca. Si algún día entra un `:hover` con movimiento,
- * va detrás de `@media (hover: hover) and (pointer: fine)` — en táctil, tocar
- * dispara un `hover` falso y el elemento se queda encendido después del toque.
+ * repartidos entre los dos lados de un botón. `:active` y no `:hover`: aquí no
+ * hay ratón, y en táctil tocar dispara un `hover` falso que deja el elemento
+ * encendido después del toque.
  */
 .pulsable {
   transition:
@@ -712,115 +1045,52 @@ textarea::placeholder {
   background-color: var(--superficie-alta);
 }
 
-/*
- * Con movimiento reducido no se apaga la interfaz: se quita el DESPLAZAMIENTO.
- *
- * Movimiento reducido no significa cero movimiento: significa menos y más
- * suave. Lo que molesta a quien lo activa es que las cosas se muevan por la
- * pantalla, no que un color cambie. Así que se anulan las animaciones de
- * entrada y el hundimiento del toque —que son traslación y escala— y se
- * conservan a su duración normal la opacidad y el color, que son los que
- * explican un cambio de estado.
- *
- * Las barras y las mechas aterrizan en su fotograma final igual: `both` en
- * `.barrido` lo garantiza y `.barra-dato` recibe su escala final de una vez. La
- * medida sigue ahí; lo único que se pierde es el viaje.
- *
- * Antes esto era un `*` con `!important` que ponía TODA animación a 1 ms y toda
- * transición a 100 ms, incluidas las que solo cambian de color. Eso no es
- * suavizar: es apagar.
- */
-@media (prefers-reduced-motion: reduce) {
-  .banda,
-  .barrido {
-    animation: none;
-  }
-
-  .barra-dato {
-    transition: none;
-  }
-
-  .pulsable:active {
-    transform: none;
-  }
-
-  .placa {
-    transition-property: box-shadow;
-  }
-}
-
-
 /* ─────────────────────────── Estratos de página ───────────────────────────
  *
- * La respuesta a «no lo dejes todo blanco» no es pintar el fondo de un color:
- * es que la página deje de ser una sola superficie. Cada sección es una banda
- * a sangre con su propio tono, separada de la siguiente por una junta de 1 px,
- * igual que las capas de un testigo.
+ * Cada sección es una banda a sangre con su propio tono, separada de la
+ * siguiente por una junta de 1 px.
  *
- * Los tres estratos son papel cálido en claro y marrón-negro en oscuro, con la
- * misma temperatura que el espresso de la placa. **Ya no se derivan del fondo
- * del cliente**: derivarlos era lo que producía el verde oliva en oscuro, y de
- * paso hacía que `test/contraste.test.ts` midiera unos literales mientras la
- * pantalla pintaba otra cosa.
- *
- * Las bandas son fondo de contenido, así que el test mide la rampa TAMBIÉN
- * contra ellas. No es teórico: es lo que ha cazado dos veces un escalón por
- * debajo del suelo antes de que llegara a pantalla.
+ * Los estratos son SUTILES ahora, y es deliberado: la jerarquía la hace la
+ * tarjeta con su sombra. Antes tenían que gritar porque no había ningún objeto
+ * con relieve en toda la aplicación.
  */
 .banda {
   position: relative;
-  /* A sangre: cruzan el ancho completo aunque el contenido respete el margen.
-     Una banda con márgenes es una tarjeta, y una tarjeta no es un estrato. */
+  /* A sangre: cruzan el ancho completo aunque el contenido respete el margen. */
   margin-inline: calc(var(--margen-pantalla) * -1);
   padding-inline: var(--margen-pantalla);
+  animation: depositar var(--t-entrada) var(--curva) both;
 }
 
 /*
  * Junta oscura arriba y canto claro justo debajo: dos píxeles que le dan
- * ESPESOR al estrato.
- *
- * Con la junta sola, dos bandas contiguas eran dos rectángulos de color
- * distinto pegados, que es exactamente la planitud de la que se venía. Un canto
- * iluminado bajo la junta es lo que hace un borde real —la sombra propia y la
- * luz rasante que tendría un escalón—, y cuesta un `inset` sin repintar nada.
- *
- * Va en `box-shadow` y no en un segundo borde para no tocar la caja: un
- * `border-top` más movería el contenido de todas las bandas 1 px hacia abajo.
+ * ESPESOR al estrato. Va en `box-shadow` y no en un segundo borde para no tocar
+ * la caja: un `border-top` más movería el contenido 1 px hacia abajo.
  */
 .banda + .banda {
   border-top: 1px solid var(--junta);
   box-shadow: inset 0 1px 0 var(--canto-luz);
 }
 
-.banda-0 { background: var(--fondo); }
-.banda-1 { background: var(--superficie); }
-.banda-2 { background: var(--superficie-alta); }
-
-/*
- * NO hay grano de `feTurbulence` en ninguna parte, y es una decisión medida:
- * a pleno sol modula por debajo del umbral de percepción —invisible justo en
- * el escenario para el que se pedía—, sobre negro es estridente, y a pantalla
- * completa repinta en cada scroll en los WebView de Android que ya obligaron
- * al `@supports` de más arriba. El tartamudeo al hacer scroll es lo único que
- * de verdad se lee como barato en un móvil. Y «ponle grano» es hoy LA
- * respuesta por defecto a «que no parezca IA», lo que la convierte en señal.
- */
+.banda-0 {
+  background: var(--fondo);
+}
+.banda-1 {
+  background: var(--superficie);
+}
+.banda-2 {
+  background: var(--superficie-alta);
+}
 
 /*
  * El único momento con permiso para llamar la atención: la carga.
  *
  * La placa entra primero y las bandas se depositan detrás, escalonadas de 40 en
  * 40 ms. Un momento orquestado aterriza mejor que efectos sueltos por toda la
- * interfaz, y cuenta la metáfora en lugar de decorarla.
+ * interfaz.
  *
  * Vertical y nunca horizontal: el gesto de retroceso de Telegram es horizontal
  * y una entrada lateral compite con él.
- *
- * **El retardo ya no va por `nth-child`.** Estaba escrito a mano hasta el quinto
- * hijo, así que añadir una banda —que es exactamente lo que hizo el bono por
- * hitos, y lo que vuelve a pasar con el ritmo del mes— la dejaba sin retardo:
- * entraba a la vez que la primera y rompía la secuencia justo por el final.
- * Ahora lo pone `Banda` con su prop `orden`, que no se puede quedar corto.
  */
 @keyframes depositar {
   from {
@@ -833,29 +1103,20 @@ textarea::placeholder {
   }
 }
 
-.banda {
-  animation: depositar var(--t-entrada) var(--curva) both;
-}
-
 /*
  * EL MEDIDOR: la espera, dicha con movimiento.
  *
- * `Cargando` era una línea de texto y nada más. Con la red de un móvil en la
- * calle —que es donde se usa esto— una pantalla en la que pone «Cargando datos»
+ * Con la red de un móvil en la calle, una pantalla donde pone «Cargando datos»
  * y no se mueve nada durante seis segundos es indistinguible de una pantalla
  * colgada, y lo que hace el agente entonces es cerrar y volver a abrir.
  *
- * Es la única animación de la aplicación que **no mide un dato**, y entra por
- * la puerta de al lado: mide que el proceso sigue vivo, que es justamente la
- * pregunta que se hace quien está esperando. No finge contenido —eso sería un
- * esqueleto, y la regla de la casa los rechaza porque prometen una forma que
- * luego no llega—: es un instrumento barriendo, el mismo gesto que el `barrido`
- * de la Mecha y el Testigo.
+ * Es la única animación que **no mide un dato**: mide que el proceso sigue
+ * vivo, que es justamente la pregunta de quien espera. No finge contenido —eso
+ * sería un esqueleto, y la regla de la casa los rechaza porque prometen una
+ * forma que luego no llega—.
  *
  * Barre en 1,4 s y no en los 520 ms del dibujo: a esa velocidad, repetida en
- * bucle, parpadea. Y con `--curva-mover` —acelera y frena— en vez de lineal,
- * porque aquí el recorrido no es una medida a ritmo constante sino un ir y
- * venir.
+ * bucle, parpadea.
  */
 @keyframes medir {
   from {
@@ -864,24 +1125,6 @@ textarea::placeholder {
   to {
     transform: translateX(400%);
   }
-}
-
-.medidor {
-  overflow: hidden;
-  border-radius: var(--radio-marca);
-  background: var(--borde);
-}
-
-.medidor > span {
-  display: block;
-  width: 25%;
-  height: 100%;
-  background: var(--tinta-t2);
-  animation: medir 1400ms var(--curva-mover) infinite;
-}
-
-[dir="rtl"] .medidor > span {
-  animation-name: medir-rtl;
 }
 
 @keyframes medir-rtl {
@@ -893,24 +1136,24 @@ textarea::placeholder {
   }
 }
 
-/*
- * Con movimiento reducido, el medidor no se apaga: cambia de canal.
- *
- * Apagarlo devolvería exactamente el problema que vino a resolver —una pantalla
- * quieta que no se distingue de una colgada— y encima solo para quien ya tiene
- * motivos para necesitar más señales, no menos. Se queda el segmento quieto y
- * lo que late es la opacidad, que es lo que esta hoja conserva en todas partes
- * bajo esta preferencia: lo que molesta es el desplazamiento, no el color.
- */
-@media (prefers-reduced-motion: reduce) {
-  .medidor > span {
-    width: 100%;
-    animation: latir 1600ms ease-in-out infinite;
-  }
+.medidor {
+  overflow: hidden;
+  border-radius: var(--radio-marca);
+  background: var(--superficie-alta);
+}
 
-  [dir="rtl"] .medidor > span {
-    animation-name: latir;
-  }
+.medidor > span {
+  display: block;
+  width: 25%;
+  height: 100%;
+  /* Amarillo: es lo único que se mueve en la pantalla, así que es lo único que
+     puede llevar el color de la marca sin competir con nada. */
+  background: var(--campo);
+  animation: medir 1400ms var(--curva-mover) infinite;
+}
+
+[dir="rtl"] .medidor > span {
+  animation-name: medir-rtl;
 }
 
 @keyframes latir {
@@ -921,4 +1164,246 @@ textarea::placeholder {
   50% {
     opacity: 1;
   }
+}
+
+/* ─────────────────────── EL ACUSE DE UN CÓDIGO ───────────────────────
+ *
+ * Las tres animaciones del paso del OTP. Están aquí y no en el componente
+ * porque son gramática y no adorno: `confirmar` es la única de la casa que
+ * sobrepasa, y tenerla escrita junto a las demás es lo que impide que aparezca
+ * una segunda.
+ */
+
+/* El código entra completo: el campo acaba de llenarse y hay que decirlo antes
+   de que el dedo salga de la pantalla. Sobrepasa un 4 % y vuelve. */
+@keyframes confirmar {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.confirmar {
+  animation: confirmar var(--duration-moderate) var(--curva-muelle) both;
+}
+
+/* El código NO vale: el campo se sacude. Es el gesto universal del «no», y es
+   horizontal —el único movimiento horizontal con permiso— porque el eje dice
+   «esto no avanza». */
+@keyframes negar {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.negar {
+  animation: negar var(--duration-moderate) var(--curva) both;
+}
+
+/* Una casilla del código se acaba de llenar. Es la más pequeña de la casa
+   —180 ms y un 12 %— y es la que hace que teclear se sienta. */
+@keyframes acuse-casilla {
+  from {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.12);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* ─────────────────────── LAS CASILLAS DEL CÓDIGO ───────────────────────
+ *
+ * Ver la nota larga en `components/CampoCodigo.tsx`: el input va encima,
+ * transparente y sin cursor, y lo que se ve son estas casillas. Una sola
+ * geometría, así que el dígito no puede desalinearse de su hueco.
+ *
+ * `aspect-ratio` en vez de una altura fija: seis casillas repartiéndose el
+ * ancho de un móvil de 360 px salen a ~48 px, y en uno de 430 a ~58; atarlas a
+ * una altura fija las deja cuadradas en un teléfono y apaisadas en otro.
+ */
+.casilla-codigo {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 4;
+  max-height: 62px;
+  /*
+   * `--borde-control` y no `--input`.
+   *
+   * Las rayas de la versión anterior iban de `--borde`: **1,31:1 contra el
+   * fondo del campo**, o sea invisibles. La retícula que justificaba todo el
+   * diseño —«da la lectura de seis huecos»— no se leía: el agente veía un
+   * rectángulo vacío. `--input` (#c9c9ce) tampoco llega: 1,65:1.
+   *
+   * Una casilla vacía es el contorno de un control, así que le toca el 3:1 de
+   * WCAG 1.4.11 igual que a cualquier otro campo. Este da 4,38:1 y por fin hay
+   * seis huecos que se ven antes de escribir nada.
+   */
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-control);
+  background: var(--input-background);
+  color: var(--texto);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    border-color var(--t-toque) var(--curva),
+    background-color var(--t-toque) var(--curva),
+    box-shadow var(--t-toque) var(--curva);
+}
+
+/* Llena: sube el canto y se tiñe apenas. El relleno NO es amarillo — el
+   amarillo es la acción, y un código escrito no es una acción — pero el canto
+   sí sube a tinta, que es lo que dice «esto ya está puesto». */
+.casilla-codigo[data-lleno="si"] {
+  border-color: var(--tinta-plena);
+  background: var(--superficie);
+}
+
+/* Activa: el anillo de marca. Es la única casilla amarilla de la pantalla y
+   dura lo que dura el cursor encima, así que no compite con el botón. */
+.casilla-codigo[data-activa="si"] {
+  border-color: var(--campo-canto);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.casilla-codigo[data-estado="error"] {
+  border-color: var(--peligro);
+}
+
+.casilla-codigo[data-estado="exito"][data-lleno="si"] {
+  border-color: var(--success);
+}
+
+/*
+ * El cursor, dibujado por nosotros.
+ *
+ * El del navegador está en el punto de inserción del texto invisible, que con
+ * el input centrado no coincide con la casilla que toca. Este está donde va a
+ * aparecer el carácter siguiente, que es la única posición que significa algo.
+ */
+.cursor-codigo {
+  position: absolute;
+  width: 2px;
+  height: 45%;
+  border-radius: 1px;
+  background: var(--tinta-plena);
+  animation: parpadeo 1100ms steps(1, end) infinite;
+}
+
+@keyframes parpadeo {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* El texto del input es transparente; sin esto, seleccionarlo pinta una barra
+   azul del sistema por encima de las casillas. */
+.campo-codigo-entrada::selection {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* El cursor se queda quieto y visible: su trabajo es decir DÓNDE, no
+     parpadear. Es lo único de esta hoja que se apaga del todo. */
+  .cursor-codigo {
+    animation: none;
+  }
+
+  .casilla-codigo {
+    animation: none !important;
+  }
+}
+
+/* ─────────────────────── MOVIMIENTO REDUCIDO ───────────────────────
+ *
+ * No se apaga la interfaz: se quita el DESPLAZAMIENTO.
+ *
+ * Movimiento reducido no significa cero movimiento: significa menos y más
+ * suave. Lo que molesta a quien lo activa es que las cosas se muevan por la
+ * pantalla, no que un color cambie. Así que se anulan las animaciones de
+ * entrada y el hundimiento del toque —que son traslación y escala— y se
+ * conservan a su duración normal la opacidad y el color.
+ *
+ * Antes esto era un `*` con `!important` que ponía TODA animación a 1 ms.
+ * Eso no es suavizar: es apagar.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .banda,
+  .barrido,
+  .confirmar,
+  .negar {
+    animation: none;
+  }
+
+  .barra-dato {
+    transition: none;
+  }
+
+  .pulsable:active,
+  .tarjeta-pulsable:active,
+  .chapa:active:not(:disabled) {
+    transform: none;
+  }
+
+  .placa {
+    transition-property: box-shadow;
+  }
+
+  /*
+   * El medidor no se apaga: cambia de canal.
+   *
+   * Apagarlo devolvería el problema que vino a resolver —una pantalla quieta
+   * que no se distingue de una colgada— y encima solo para quien ya tiene
+   * motivos para necesitar más señales, no menos.
+   */
+  .medidor > span {
+    width: 100%;
+    animation: latir 1600ms ease-in-out infinite;
+  }
+
+  [dir="rtl"] .medidor > span {
+    animation-name: latir;
+  }
+}
+
+/* ─────────────────────── Utilidades de tinta ───────────────────────
+ * Las mismas que declara el sistema de diseño, para que una pieza copiada de
+ * allí se lea igual aquí. */
+.texto-apoyo {
+  color: var(--tinta-apoyo);
+}
+.texto-tenue {
+  color: var(--text-tertiary);
+}
+.texto-marca {
+  color: var(--campo);
 }

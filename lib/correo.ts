@@ -37,12 +37,24 @@ import { esRtl, IDIOMA_POR_DEFECTO, type Idioma } from "./idiomas.ts";
 
 const global_ = globalThis as unknown as { transporte?: Transporter; marca?: Buffer };
 
-/** Los colores de la casa, los mismos que `--campo` y `--placa` en `globals.css`. */
-const CAMPO = "#f9d027";
-const CAMPO_TINTA = "#1a1206";
-const TEXTO = "#1f1710";
-const TEXTO_APOYO = "#6e5b4a";
-const BORDE = "#eadfc6";
+/**
+ * Los colores de la casa, resueltos.
+ *
+ * Es la única duplicación deliberada del sistema visual, y la impone el medio:
+ * Gmail descarta las hojas de estilo y Outlook renderiza con el motor de Word,
+ * así que aquí no hay `var(--campo)` que valga. Cada uno lleva al lado el token
+ * del que sale, que es lo que ata este fichero a `app/(miniapp)/globals.css`
+ * cuando la paleta se mueve — como acaba de pasar: estos cinco eran el espresso
+ * y el papel crema de la versión anterior.
+ */
+const CAMPO = "#f9d027"; // --campo · --brand
+const CAMPO_TINTA = "#1a1206"; // --campo-tinta · --brand-foreground
+const CAMPO_CANTO = "#a8850b"; // --campo-canto · --brand-edge
+const TEXTO = "#17171a"; // --texto · --neutral-900
+const TEXTO_APOYO = "#5f5f67"; // --tinta-apoyo · --neutral-600
+const BORDE = "#e1e1e4"; // --borde · --neutral-200
+const PAPEL = "#f5f5f6"; // --superficie-alta · --neutral-50
+const TARJETA = "#ffffff"; // --card
 
 /**
  * Una variable del SMTP, recortada.
@@ -207,54 +219,91 @@ export async function enviarOtp(params: {
    * de Word y descarta `max-width` en un `div`. `dir` en la raíz para que el
    * árabe se lea desde la derecha, incluida la posición de la marca.
    *
-   * El código va en su propia caja sobre el campo de marca: es lo único que hay
-   * que copiar del mensaje, y separarlo del texto lo hace localizable de un
-   * vistazo entre las notificaciones de una bandeja llena.
+   * ══ CÓMO SE COPIA EL CÓDIGO ══
+   *
+   * No hay botón de copiar, y no es un olvido: **un correo no ejecuta
+   * JavaScript**. Ni Gmail, ni Apple Mail, ni Outlook, ni AMP for Email dan
+   * acceso al portapapeles. Cualquier cosa con forma de botón que pusiéramos
+   * aquí sería un botón que no hace nada, que es peor que no tenerlo.
+   *
+   * Lo que sí se puede hacer es que el gesto que YA existe —mantener pulsado—
+   * seleccione exactamente el código y nada más. Tres cosas lo consiguen, y las
+   * tres están abajo:
+   *
+   *  1. **El código va SOLO en su celda**, sin una palabra pegada. La selección
+   *     por defecto de un pulsado largo es por palabra, así que un código sin
+   *     vecinos se selecciona entero al primer intento en cualquier cliente,
+   *     incluidos los que descartan todo el CSS.
+   *  2. **`user-select: all`** donde se respeta (Apple Mail, Gmail web): un
+   *     toque selecciona el bloque completo en vez de una palabra.
+   *  3. **La caja es grande** —22 px de relleno— porque el objetivo del pulsado
+   *     largo es la caja, no los seis dígitos.
+   *
+   * La otra mitad del gesto vive en la aplicación: el paso del OTP tiene un
+   * botón «Pegar» que lee el portapapeles de una vez (`app/(miniapp)/alta`).
+   * Entre los dos, traer el código del correo son dos toques.
+   *
+   * Y sigue estando en el ASUNTO, que es lo más rápido de todo: se lee desde la
+   * notificación sin abrir nada.
    */
-  const html = `<div dir="${rtl ? "rtl" : "ltr"}" style="background:#ffffff;padding:24px 0">
+  const html = `<div dir="${rtl ? "rtl" : "ltr"}" style="background:${PAPEL};padding:32px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
     <tr><td align="center">
+      <!-- La TARJETA. Es el objeto que el sistema visual levanta del papel; en
+           correo la sombra no es fiable, así que lo que la separa es el filete
+           de 1 px, que sí entiende todo el mundo. -->
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="440"
-             style="width:440px;max-width:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:${TEXTO}">
-        <tr>
-          <td align="${inicio}" style="padding:0 0 20px">
-            ${
-              logotipo
-                ? `<img src="cid:${CID_MARCA}" width="56" height="56" alt="Sophon"
-                     style="display:block;border:0;border-radius:13px">`
-                : ""
-            }
-          </td>
-        </tr>
-        <tr>
-          <td align="${inicio}" style="padding:0 0 12px;font-size:15px;line-height:22px">
-            ${t.correoOtpTuCodigo}
-          </td>
-        </tr>
-        <tr>
-          <td align="${inicio}" style="padding:0 0 16px">
-            <!-- El código va en LTR siempre, también en árabe: una secuencia de
-                 seis dígitos que se teclea de izquierda a derecha no se
-                 reordena, y el algoritmo bidi la dejaría igual pero el separador
-                 de la caja no. -->
-            <div dir="ltr" style="background:${CAMPO};color:${CAMPO_TINTA};border-radius:12px;
-                        padding:16px 20px;font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
-                        font-size:32px;font-weight:700;letter-spacing:.18em;text-align:center">
-              ${codigo}
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td align="${inicio}" style="padding:0 0 22px;font-size:13px;line-height:20px;color:${TEXTO_APOYO}">
-            ${t.correoOtpCaduca(minutosValidez)}
-          </td>
-        </tr>
-        <tr>
-          <td align="${inicio}" style="border-top:1px solid ${BORDE};padding:16px 0 0;
-                     font-size:13px;line-height:20px;color:${TEXTO_APOYO}">
-            ${t.correoOtpNoPedido}
-          </td>
-        </tr>
+             style="width:440px;max-width:100%;background:${TARJETA};border:1px solid ${BORDE};border-radius:16px;color:${TEXTO}">
+        <tr><td style="padding:28px 28px 26px">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td align="${inicio}" style="padding:0 0 22px">
+                ${
+                  logotipo
+                    ? `<img src="cid:${CID_MARCA}" width="52" height="52" alt="Sophon"
+                         style="display:block;border:0;border-radius:12px">`
+                    : `<span style="font-size:17px;font-weight:700;letter-spacing:-.01em">Sophon Promoters</span>`
+                }
+              </td>
+            </tr>
+            <tr>
+              <td align="${inicio}" style="padding:0 0 14px;font-size:15px;line-height:22px;color:${TEXTO_APOYO}">
+                ${t.correoOtpTuCodigo}
+              </td>
+            </tr>
+            <tr>
+              <td align="${inicio}" style="padding:0 0 10px">
+                <!-- El código va en LTR siempre, también en árabe: una secuencia
+                     de seis dígitos que se teclea de izquierda a derecha no se
+                     reordena, y el algoritmo bidi la dejaría igual pero la caja
+                     no.
+
+                     El text-indent iguala al letter-spacing y NO sobra: el
+                     espacio entre letras se añade DETRÁS de cada carácter,
+                     incluido el último, así que un texto centrado con tracking
+                     queda descentrado media unidad hacia la izquierda. Es el
+                     mismo defecto que tenía el campo del OTP en la aplicación,
+                     y se arregla igual. -->
+                <div dir="ltr" style="background:${CAMPO};background-image:linear-gradient(135deg,#fbda4e 0%,#f9d027 52%,#e5bc10 100%);color:${CAMPO_TINTA};border:1px solid ${CAMPO_CANTO};border-radius:14px;padding:22px 16px;font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:34px;font-weight:700;letter-spacing:.18em;text-indent:.18em;text-align:center;-webkit-user-select:all;-moz-user-select:all;-ms-user-select:all;user-select:all">${codigo}</div>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:0 0 20px;font-size:13px;line-height:19px;color:${TEXTO_APOYO}">
+                ${t.correoOtpTocaParaCopiar}
+              </td>
+            </tr>
+            <tr>
+              <td align="${inicio}" style="padding:0 0 20px;font-size:14px;line-height:21px;color:${TEXTO_APOYO}">
+                ${t.correoOtpCaduca(minutosValidez)}
+              </td>
+            </tr>
+            <tr>
+              <td align="${inicio}" style="border-top:1px solid ${BORDE};padding:18px 0 0;font-size:13px;line-height:20px;color:${TEXTO_APOYO}">
+                ${t.correoOtpNoPedido}
+              </td>
+            </tr>
+          </table>
+        </td></tr>
       </table>
     </td></tr>
   </table>
