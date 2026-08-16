@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { SOLO_DEVENGO } from "@/lib/devengo/saldos";
 import {
   CAMPOS_FILA_VISIBLES,
   dinero,
@@ -50,7 +51,11 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     // Lo que gana el agente, por día.
     db.asientoComision.groupBy({
       by: ["fechaDevengo"],
-      where: { agenteId, estado: { not: "ANULADO" }, fechaDevengo: { gte: desde } },
+      // `SOLO_DEVENGO` y no `estado != ANULADO` a secas: sin él, el asiento
+      // negativo del retiro entra como ganancia del día en que se pidió, así que
+      // la portada pintaba una barra HACIA ABAJO —«ese día perdiste 30 $»— y la
+      // cifra del mes salía mermada por todo lo que el agente hubiera cobrado.
+      where: { agenteId, ...SOLO_DEVENGO, fechaDevengo: { gte: desde } },
       _sum: { importeMicros: true },
     }),
     // El desglose por tier viene de las filas de SUS webmasters.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { SOLO_DEVENGO } from "@/lib/devengo/saldos";
 import { CAMPOS_FILA_VISIBLES, dinero, esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
 import { estaCerrado } from "@/lib/devengo/motor";
 import { hoyContable } from "@/lib/sync/registros";
@@ -37,9 +38,13 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   const [asientos, filas] = await Promise.all([
     db.asientoComision.groupBy({
       by: ["fechaDevengo"],
+      // Mismo motivo que en el resumen: lo que cuelga de una solicitud de retiro
+      // no es devengo. Sin esto, el Testigo dibujaba el día del retiro como un
+      // día en negativo y el total de la página no cuadraba con la suma de sus
+      // días.
       where: {
         agenteId,
-        estado: { not: "ANULADO" },
+        ...SOLO_DEVENGO,
         ...(filtroFecha ? { fechaDevengo: filtroFecha } : {}),
       },
       _sum: { importeMicros: true },

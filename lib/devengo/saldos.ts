@@ -64,6 +64,32 @@ export interface Saldos {
 }
 
 /**
+ * LO QUE ES DEVENGO Y LO QUE NO, en un solo sitio.
+ *
+ * Un asiento que cuelga de una solicitud de retiro —el negativo que la crea y el
+ * positivo que la compensa cuando se rechaza— **no es trabajo devengado**: es
+ * dinero moviéndose de sitio. Todo lo demás sí lo es, incluidos los ajustes
+ * manuales de verdad, que no llevan retiro.
+ *
+ * Vive aquí y se exporta porque el mismo error se cometió TRES veces en tres
+ * ficheros distintos, y las tres con el mismo síntoma: sumar el libro entero y
+ * llamarlo «lo que has ganado».
+ *
+ *   · `saldos()` restaba el retiro dos veces y hacía bajar lo devengado al cobrar.
+ *   · `/api/agente/resumen` pintaba el día en que pides un retiro como un día en
+ *     que PERDISTE dinero, con su barra hacia abajo en la portada.
+ *   · `/api/agente/historico` hacía lo mismo con el Testigo y con el total.
+ *
+ * Un `where` compartido es lo que impide que haya una cuarta. Si aparece una
+ * consulta nueva sobre el libro, la pregunta es siempre la misma: ¿esto es «qué
+ * he ganado» —y entonces lleva esto— o «cuánto tengo», que es la suma entera?
+ */
+export const SOLO_DEVENGO = {
+  estado: { not: "ANULADO" },
+  retiroId: null,
+} as const;
+
+/**
  * La aritmética, separada de la consulta para poder probarla.
  *
  * `saldos` necesita base de datos, así que su comportamiento solo se comprobaba
@@ -118,7 +144,7 @@ export async function saldos(agenteId: string): Promise<Saldos> {
     // lo compensa cuando se rechaza.
     db.asientoComision.groupBy({
       by: ["estado"],
-      where: { agenteId, estado: { not: "ANULADO" }, retiroId: null },
+      where: { agenteId, ...SOLO_DEVENGO },
       _sum: { importeMicros: true },
     }),
     // Y aquí TODO lo consolidado, retiros incluidos: esto es el disponible.
