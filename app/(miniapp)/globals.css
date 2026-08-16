@@ -769,7 +769,20 @@ textarea::placeholder {
  */
 .chapa:disabled {
   background: var(--superficie-alta);
-  color: var(--text-disabled);
+  /*
+   * La tinta es la de APOYO, no la de deshabilitado.
+   *
+   * WCAG exime del contraste a los controles deshabilitados, y con eso bastaría
+   * si «deshabilitado» fuera lo único que pinta esta regla. No lo es:
+   * `BotonPrincipalAccion` pone `disabled={!activo || cargando}`, así que el
+   * botón CARGANDO cae aquí también — y ahí el agente está mirando la pantalla,
+   * esperando, con el rótulo a 2,76:1 sobre papel y 2,59:1 sobre noche.
+   *
+   * El apoyo da 5,81:1 y 6,16:1. Y no hace que parezca pulsable, porque lo que
+   * dice que no se puede pulsar es que HA PERDIDO EL CAMPO: esa es la regla de
+   * la casa —si no está amarillo, no se pulsa— y no depende del color del texto.
+   */
+  color: var(--tinta-apoyo);
   border-color: var(--borde);
   box-shadow: none;
 }
