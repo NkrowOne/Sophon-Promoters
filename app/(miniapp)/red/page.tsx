@@ -7,6 +7,7 @@ import { Malla, DIAS_APAGADO, type WebmasterMalla } from "@/components/Malla";
 import { Banda, Cargando, FalloDeCarga, Marca, Pantalla, Vacio } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
+import { useRecurso } from "@/lib/api/recurso";
 
 interface Respuesta {
   webmasters: WebmasterMalla[];
@@ -24,18 +25,10 @@ export default function Red() {
   const router = useRouter();
   const { haptica } = useTelegram();
   const t = useCadenas();
-  const [datos, setDatos] = useState<Respuesta | null>(null);
-  const [error, setError] = useState<ErrorApi | null>(null);
-
-  const cargar = useCallback(() => {
-    setError(null);
-    api
-      .get<Respuesta>("/api/agente/red")
-      .then(setDatos)
-      .catch((e) => setError(aErrorApi(e)));
-  }, []);
-
-  useEffect(cargar, [cargar]);
+  // Igual que la portada: lo último que se supo se pinta en el primer
+  // fotograma al volver, en vez de reconstruir la pantalla desde cero. Ver
+  // `lib/api/recurso.ts`.
+  const { datos, error, recargar: cargar } = useRecurso<Respuesta>("/api/agente/red");
 
   const abrir = useCallback(
     (id: string) => {

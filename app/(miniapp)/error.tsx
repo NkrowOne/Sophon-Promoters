@@ -51,6 +51,9 @@ export default function ErrorMiniApp({
         >
           {t.reintentar}
         </button>
+        {/* Aquí SÍ va un ancla: esta es la frontera de error, y una recarga
+            completa es justo lo que hace falta para salir de un árbol que ha
+            reventado. Una navegación de cliente conservaría el estado roto. */}
         <a
           href="/"
           className="flex min-h-12 flex-1 items-center justify-center rounded-control border border-borde-control text-cuerpo font-medium"
