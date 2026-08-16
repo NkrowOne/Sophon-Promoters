@@ -84,6 +84,16 @@ function AltaPasos() {
   const [enviado, setEnviado] = useState(false);
   const campoOtp = useRef<HTMLInputElement>(null);
   const campoCodigo = useRef<HTMLInputElement>(null);
+  /*
+   * El último código que se llegó a enviar a verificar.
+   *
+   * Lo comparte `verificar` —que lo LIMPIA al fallar— con el efecto de
+   * verificación automática, que lo usa para no reenviar dos veces el mismo
+   * valor. Va declarado aquí arriba, con los demás refs, y no junto al efecto:
+   * lo leen dos cosas y esconderlo al lado de una de ellas hace pensar que es
+   * suya.
+   */
+  const yaIntentado = useRef<string | null>(null);
 
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
   /*
@@ -184,6 +194,19 @@ function AltaPasos() {
       setError(aErrorApi(e));
       setOtp("");
       /*
+       * Y se OLVIDA el intento, que es lo que permite reintentar el mismo.
+       *
+       * `yaIntentado` guarda el ultimo codigo enviado para que el efecto de
+       * verificacion automatica no se dispare dos veces con el mismo valor. Sin
+       * limpiarlo aqui, el agente que se equivoca de digito, lo corrige y vuelve
+       * a escribir EL MISMO codigo —porque el fallo estaba en otra parte: el
+       * codigo caducado, el reenvio que trajo otro— completaba las seis casillas
+       * y no pasaba nada. La pantalla se quedaba quieta con el codigo puesto.
+       *
+       * Se limpia solo en el fallo: tras un acierto no hay a donde volver.
+       */
+      yaIntentado.current = null;
+      /*
        * El foco VUELVE al campo.
        *
        * Vaciarlo sin devolver el foco cerraba el teclado, así que el reintento
@@ -204,9 +227,10 @@ function AltaPasos() {
    *
    * `yaIntentado` evita el bucle. Sin él, un código incorrecto se vacía, se
    * vuelve a completar con el mismo valor —el usuario reintenta— y se reenvía
-   * en cuanto coincide, para siempre.
+   * en cuanto coincide, para siempre. Se declara arriba, con los refs, y
+   * `verificar` lo limpia al fallar para que reintentar el MISMO código vuelva
+   * a valer.
    */
-  const yaIntentado = useRef<string | null>(null);
   useEffect(() => {
     if (!otpCompleto || enviando) return;
     if (yaIntentado.current === otp) return;
@@ -247,7 +271,19 @@ function AltaPasos() {
       const bruto = e.target.value;
       const utilesAntes = normalizarCodigo(bruto.slice(0, e.target.selectionStart ?? bruto.length))
         .length;
-      const formateado = formatearCodigo(bruto);
+      /*
+       * Se RECORTA a la longitud de un código.
+       *
+       * `formatearCodigo` agrupa lo que le den, así que sin esto el campo
+       * aceptaba treinta caracteres y los enseñaba en seis grupos. El botón no
+       * se habilitaba —pide exactamente `LONGITUD_CODIGO`— pero eso deja al
+       * agente mirando un campo lleno y un botón apagado sin nada que le diga
+       * cuál de las dos cosas está mal.
+       *
+       * El recorte va sobre lo NORMALIZADO y antes de formatear: cortar el texto
+       * ya agrupado se llevaría por delante un guion y descuadraría el resto.
+       */
+      const formateado = formatearCodigo(normalizarCodigo(bruto).slice(0, LONGITUD_CODIGO));
       if (error) setError(null);
       setCodigo(formateado);
 
@@ -335,7 +371,15 @@ function AltaPasos() {
                 casillas={DIGITOS_OTP}
                 modo="numerico"
                 autoComplete="one-time-code"
-                estado={error ? "error" : otpCompleto ? "exito" : "normal"}
+                /*
+                  Sin estado de «éxito»: verde es «el servidor lo ha dado por
+                  bueno», y aquí lo único que se sabe es que hay seis dígitos.
+                  Se pintaba en el instante entre completar y recibir respuesta,
+                  o sea que celebraba justo antes de poder fallar. Lo que acusa
+                  que el código está completo es la animación `confirmar`, que
+                  no promete nada.
+                */
+                estado={error ? "error" : "normal"}
                 etiquetadoPor="rotulo-otp"
               />
             </div>
@@ -347,8 +391,13 @@ function AltaPasos() {
             Montarlo empujaba hacia abajo las dos salidas de la pantalla justo en
             el momento en que el agente va a tocar una de ellas, que es la forma
             más fácil de que toque la que no era.
+
+            Los 64 px son MEDIDOS, no estimados: el aviso de esta pantalla ocupa
+            62 px con una línea y 64 con su línea de apoyo —los dos casos que
+            devuelve `/api/auth/otp`—, así que con este hueco no se mueve nada en
+            ninguno de los dos. Estaba en 44 y se quedaba corto por 18.
           */}
-          <div className="mt-5" style={{ minHeight: 44 }}>
+          <div className="mt-5" style={{ minHeight: 64 }}>
             {error && <Aviso error={error} />}
           </div>
         </Banda>

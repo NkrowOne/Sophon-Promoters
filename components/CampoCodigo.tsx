@@ -145,7 +145,32 @@ export function CampoCodigo({
         ref={entrada}
         value={valor}
         onChange={(e) => onCambio(limpiar(e.target.value))}
-        onFocus={() => setEnfocado(true)}
+        /*
+         * El punto de inserción va SIEMPRE al final.
+         *
+         * El input es transparente y ocupa las seis casillas, así que tocar
+         * sobre la tercera colocaba el cursor entre el segundo y el tercer
+         * carácter del texto invisible: la tecla siguiente se metía EN MEDIO del
+         * código y el dibujo de las casillas —que lee la cadena de izquierda a
+         * derecha— enseñaba otra cosa distinta de lo que se acababa de pulsar.
+         *
+         * Un código no se edita por el medio: se escribe, se borra y se vuelve a
+         * escribir. Fijar el cursor al final es lo que hace que las seis
+         * casillas se comporten como lo que aparentan.
+         *
+         * Va en `onSelect` además de en `onFocus` porque el toque coloca el
+         * cursor DESPUÉS de enfocar, y también cubre el arrastre de selección.
+         */
+        onSelect={(e) => {
+          const c = e.currentTarget;
+          const fin = c.value.length;
+          if (c.selectionStart !== fin || c.selectionEnd !== fin) c.setSelectionRange(fin, fin);
+        }}
+        onFocus={(e) => {
+          setEnfocado(true);
+          const fin = e.currentTarget.value.length;
+          e.currentTarget.setSelectionRange(fin, fin);
+        }}
         onBlur={() => setEnfocado(false)}
         inputMode={modo === "numerico" ? "numeric" : "text"}
         autoComplete={autoComplete}
@@ -183,7 +208,22 @@ export function CampoCodigo({
         `confirmar` sobre el contenedor y no sobre cada casilla: lo que se
         completa es el código, no un dígito.
       */}
+      {/*
+        `dir="ltr"` FIJO, también en árabe.
+
+        Las casillas son una fila `flex`, y en un documento RTL una fila flex se
+        pinta de derecha a izquierda: la casilla 1 —la que se llena primero—
+        aparecía en el extremo derecho mientras el input, que no se voltea
+        porque su contenido son cifras, seguía leyendo de izquierda a derecha.
+        El dígito recién escrito se encendía en la punta contraria.
+
+        Es la misma regla que ya aplica el correo del código: una secuencia de
+        seis dígitos que se teclea de izquierda a derecha no se reordena. El
+        algoritmo bidi deja las cifras en su sitio; lo que hay que sujetar es la
+        CAJA.
+      */}
       <div
+        dir="ltr"
         aria-hidden
         className={`flex items-stretch gap-1.5 ${completo ? "confirmar" : ""} ${
           estado === "error" ? "negar" : ""

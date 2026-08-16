@@ -819,19 +819,42 @@ textarea::placeholder {
   color: var(--campo-tinta);
 }
 
+/*
+ * LA TINTA DE LA PÍLDORA SE INCLINA HACIA LA TINTA DE LA PÁGINA.
+ *
+ * Sin esa inclinación, las tres se quedaban por debajo del umbral de texto en
+ * tema claro —4,27:1 el éxito, 4,08:1 el aviso, 4,42:1 el peligro— y ninguna
+ * puerta lo veía: `contraste.test.ts` mide tokens sobre fondos declarados, y el
+ * fondo de una píldora no es un token, es un `color-mix` que se resuelve en el
+ * navegador. Un rótulo de 13 px con peso 600 no es texto grande, así que le toca
+ * el 4,5:1 entero.
+ *
+ * El 15 % hacia `--foreground` lo arregla en las DOS polaridades por
+ * construcción, y esa es la razón de hacerlo así y no escribiendo tres colores
+ * nuevos: sobre papel la tinta de página es casi negra y la mezcla OSCURECE;
+ * sobre noche es casi blanca y ACLARA. En los dos casos se aleja del fondo.
+ *
+ * Y hay un tercer motivo, que es el que decide: `--destructive` no es nuestro
+ * —lo pone el cliente de Telegram con `destructive_text_color` para que el error
+ * se vea del rojo que ese usuario reconoce— así que su valor no se conoce al
+ * escribir esto. Una regla que mejora el contraste sea cual sea el color de
+ * partida es la única que puede cubrirlo.
+ *
+ * Peor caso medido con los valores propios: 4,99:1.
+ */
 .pildora-exito {
   background: var(--success-tint);
-  color: var(--success);
+  color: color-mix(in srgb, var(--success) 85%, var(--foreground));
 }
 
 .pildora-aviso {
   background: var(--warning-tint);
-  color: var(--warning);
+  color: color-mix(in srgb, var(--warning) 85%, var(--foreground));
 }
 
 .pildora-peligro {
   background: var(--destructive-tint);
-  color: var(--peligro);
+  color: color-mix(in srgb, var(--peligro) 85%, var(--foreground));
 }
 
 /* ──────────────────────────────── LA TARJETA ────────────────────────────────
@@ -1301,11 +1324,23 @@ textarea::placeholder {
   background: var(--superficie);
 }
 
-/* Activa: el anillo de marca. Es la única casilla amarilla de la pantalla y
-   dura lo que dura el cursor encima, así que no compite con el botón. */
+/*
+ * Activa: el anillo de marca. Es la única casilla amarilla de la pantalla y dura
+ * lo que dura el cursor encima, así que no compite con el botón.
+ *
+ * El anillo iba de `--brand-soft` —el amarillo mezclado al 20 % con la tarjeta—
+ * y eso da **1,09:1 sobre papel blanco**: un anillo que no se ve. Como el input
+ * ya no dibuja el suyo (ver más abajo), este ES el indicador de foco del campo,
+ * y WCAG 2.4.11 le pide 3:1 contra lo que tiene al lado.
+ *
+ * El oro oscuro del canto da 3,49:1 y es el mismo color que el borde de la
+ * casilla, así que el anillo se lee como un engrosamiento del borde y no como
+ * un segundo elemento. Es además el amarillo que esta hoja ya usa para
+ * delimitar lo que se puede usar.
+ */
 .casilla-codigo[data-activa="si"] {
   border-color: var(--campo-canto);
-  box-shadow: 0 0 0 3px var(--brand-soft);
+  box-shadow: 0 0 0 2px var(--campo-canto);
 }
 
 .casilla-codigo[data-estado="error"] {
