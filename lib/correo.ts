@@ -181,23 +181,26 @@ async function marca(): Promise<Buffer | null> {
 const CID_MARCA = "marca@sophon-promoters";
 
 /**
- * Envía el código de verificación.
+ * La PLANTILLA, separada del envío.
  *
- * El texto dice la caducidad y qué hacer si no lo pidió el destinatario: sin
- * ese contexto, un código suelto no se distingue de un intento de suplantación
- * y el agente no tiene forma de reconocerlo.
+ * Se ha sacado de `enviarOtp` para que se pueda mirar sin un servidor de correo
+ * delante: `scripts/vista-correo.mjs` la pinta a un fichero y `test/correo.test.ts`
+ * la comprueba. Un correo que solo se ve mandándolo es un correo que no se
+ * revisa nunca — y este es el camino crítico de acceso al producto.
+ *
+ * `marcaIncrustada` dice si hay logotipo que referenciar por `cid:`. Va como
+ * parámetro y no se lee aquí dentro porque la plantilla no debe tocar el disco:
+ * es lo que la hace pura y comprobable.
  */
-export async function enviarOtp(params: {
-  email: string;
+export function plantillaOtp(params: {
   codigo: string;
   minutosValidez: number;
-  /** El del agente. Sale del `language_code` firmado en el `initData`. */
   idioma?: Idioma;
-}): Promise<void> {
-  const { email, codigo, minutosValidez } = params;
+  marcaIncrustada: boolean;
+}): { html: string; texto: string; asunto: string } {
+  const { codigo, minutosValidez, marcaIncrustada: logotipo } = params;
   const idioma = params.idioma ?? IDIOMA_POR_DEFECTO;
   const t = cadenas(idioma);
-  const remitente = process.env["SMTP_REMITENTE"] ?? "Sophon Promoters <no-reply@localhost>";
   const rtl = esRtl(idioma);
   const inicio = rtl ? "right" : "left";
 
@@ -209,8 +212,6 @@ export async function enviarOtp(params: {
     "",
     t.correoOtpNoPedido,
   ].join("\n");
-
-  const logotipo = await marca();
 
   /*
    * Maquetación de correo, no de página.
@@ -309,10 +310,38 @@ export async function enviarOtp(params: {
   </table>
 </div>`;
 
+  return { html, texto, asunto: t.correoOtpAsunto(codigo) };
+}
+
+/**
+ * Envía el código de verificación.
+ *
+ * El texto dice la caducidad y qué hacer si no lo pidió el destinatario: sin
+ * ese contexto, un código suelto no se distingue de un intento de suplantación
+ * y el agente no tiene forma de reconocerlo.
+ */
+export async function enviarOtp(params: {
+  email: string;
+  codigo: string;
+  minutosValidez: number;
+  /** El del agente. Sale del `language_code` firmado en el `initData`. */
+  idioma?: Idioma;
+}): Promise<void> {
+  const { email, codigo, minutosValidez, idioma } = params;
+  const remitente = process.env["SMTP_REMITENTE"] ?? "Sophon Promoters <no-reply@localhost>";
+
+  const logotipo = await marca();
+  const { html, texto, asunto } = plantillaOtp({
+    codigo,
+    minutosValidez,
+    idioma,
+    marcaIncrustada: logotipo !== null,
+  });
+
   await transporte().sendMail({
     from: remitente,
     to: email,
-    subject: t.correoOtpAsunto(codigo),
+    subject: asunto,
     text: texto,
     html,
     ...(logotipo
