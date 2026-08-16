@@ -1349,6 +1349,25 @@ textarea::placeholder {
   background: transparent;
 }
 
+/*
+ * El input NO dibuja el anillo de foco general. La casilla activa YA lo es.
+ *
+ * El input ocupa toda la caja de las seis casillas, así que el
+ * `:focus-visible` de la hoja —2 px con 2 px de separación— le pintaba
+ * alrededor un rectángulo redondeado que envolvía el grupo entero: una caja
+ * alrededor de seis cajas, y encima al mismo tiempo que la casilla activa
+ * encendía su propio anillo de marca. Dos indicadores de foco para un solo
+ * foco, y el más gordo señalando lo que no hay que mirar.
+ *
+ * Quitarlo no deja el campo sin indicador —que sería cambiar un defecto por
+ * uno peor—: la casilla activa lleva borde de marca y un anillo de 3 px, que se
+ * ve más y además dice DÓNDE va a caer el carácter siguiente, que es lo que un
+ * anillo alrededor del grupo no puede decir.
+ */
+.campo-codigo-entrada:focus-visible {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* El cursor se queda quieto y visible: su trabajo es decir DÓNDE, no
      parpadear. Es lo único de esta hoja que se apaga del todo. */
