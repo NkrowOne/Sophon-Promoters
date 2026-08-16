@@ -62,13 +62,17 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     : null;
 
   let veredicto: string;
+  // Con cuál de las dos formas del resumen ha cuadrado la firma. Ver
+  // `CANDIDATOS` en `lib/auth/telegram.ts`: hasta que se sepa qué mandan los
+  // clientes de verdad, esto es el dato que lo decide.
+  let variante: string | null = null;
   if (!token) {
     veredicto = "el servidor no tiene TELEGRAM_BOT_TOKEN";
   } else if (!initData) {
     veredicto = "la petición no lleva la cabecera x-telegram-init-data";
   } else {
     try {
-      validarInitData(initData, token);
+      variante = validarInitData(initData, token).variante;
       veredicto = "ok";
     } catch (e) {
       veredicto = e instanceof Error ? e.message : "motivo desconocido";
@@ -78,6 +82,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   return NextResponse.json(
     {
       veredicto,
+      variante,
       cabecera: { presente: initData !== null, longitud: initData?.length ?? 0, campos },
       bot: { id: idBot(), pega: pegaDelToken() },
       reloj: {

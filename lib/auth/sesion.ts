@@ -161,13 +161,15 @@ export async function revocarSesiones(agenteId: string): Promise<void> {
 const ultimoAviso = new Map<string, number>();
 const CADA_MS = 60_000;
 
-function avisar(motivo: string): void {
+function anotar(mensaje: string): void {
   const ahora = Date.now();
-  const previo = ultimoAviso.get(motivo) ?? 0;
+  const previo = ultimoAviso.get(mensaje) ?? 0;
   if (ahora - previo < CADA_MS) return;
-  ultimoAviso.set(motivo, ahora);
-  console.warn(`[auth] initData rechazado: ${motivo}`);
+  ultimoAviso.set(mensaje, ahora);
+  console.warn(`[auth] ${mensaje}`);
 }
+
+const avisar = (motivo: string): void => anotar(`initData rechazado: ${motivo}`);
 
 /**
  * Verifica el `initData` de la petición y devuelve el usuario de Telegram.
@@ -207,7 +209,18 @@ export function telegramDeLaPeticion(peticion: Request): UsuarioTelegram | null 
     return null;
   }
   try {
-    return validarInitData(initData, token).usuario;
+    const r = validarInitData(initData, token);
+    /*
+     * Se anota UNA VEZ con cuál de las dos formas del resumen ha cuadrado.
+     *
+     * `lib/auth/telegram.ts` acepta las dos —incluyendo `signature` en el HMAC y
+     * excluyéndola— porque no se puede saber cuál manda cada cliente sin un
+     * token y un cliente de verdad. Esta línea es la que lo averigua: cuando
+     * lleve tiempo diciendo siempre lo mismo, se podrá quitar la otra con un
+     * dato delante en vez de con una suposición.
+     */
+    anotar(`firma verificada (${r.variante})`);
+    return r.usuario;
   } catch (e) {
     avisar(e instanceof Error ? e.message : "motivo desconocido");
     return null;

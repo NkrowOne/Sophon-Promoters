@@ -33,6 +33,7 @@ import { api } from "@/lib/api/cliente";
 
 interface Diagnostico {
   veredicto: string;
+  variante: string | null;
   cabecera: { presente: boolean; longitud: number; campos: string[] };
   bot: { id: string | null; pega: string | null };
   reloj: { servidor: string; initData: string | null; desfaseSegundos: number | null };
@@ -80,6 +81,7 @@ export default function DiagnosticoPagina() {
         ) : (
           <>
             <Dato que="Veredicto" vale={servidor.veredicto} />
+            {servidor.variante && <Dato que="Forma del resumen" vale={servidor.variante} />}
             <Dato que="Bot configurado" vale={servidor.bot.id ?? "sin forma reconocible"} />
             <Dato que="Cabecera recibida" vale={`${servidor.cabecera.longitud} caracteres`} />
             <Dato que="Campos" vale={servidor.cabecera.campos.join(", ") || "—"} />
