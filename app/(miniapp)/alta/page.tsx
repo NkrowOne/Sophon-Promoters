@@ -78,6 +78,19 @@ function AltaPasos() {
   const [otp, setOtp] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<ErrorApi | null>(null);
+  /*
+   * DE QUÉ es el error, que no es lo mismo que si lo hay.
+   *
+   * Las dos llamadas de esta pantalla escriben en `error`: la que pide el
+   * código y la que lo verifica. El campo se pintaba de rojo y se sacudía con
+   * las dos, así que un fallo de red al pulsar «Reenviar código» acusaba al
+   * código que el agente tenía escrito —o al campo vacío, si acababa de
+   * reenviar— de estar mal. El aviso decía una cosa y el campo otra.
+   *
+   * Solo «codigo» tiñe el campo. El de envío se lee en el aviso, que es donde
+   * está su explicación.
+   */
+  const [origenError, setOrigenError] = useState<"codigo" | "envio" | null>(null);
   const [espera, setEspera] = useState(0);
   // Solo se puede estar en el paso del OTP si el servidor llegó a mandarlo.
   // Sin esto, `?paso=otp` escrito a mano pediría un código que no existe.
@@ -132,6 +145,7 @@ function AltaPasos() {
     if (!credencialesListas || enviando) return;
     setEnviando(true);
     setError(null);
+    setOrigenError(null);
     try {
       await api.post("/api/auth/codigo", { codigo: codigoLimpio, email: email.trim() });
       haptica("exito");
@@ -146,6 +160,7 @@ function AltaPasos() {
     } catch (e) {
       haptica("error");
       setError(aErrorApi(e));
+      setOrigenError("envio");
       /*
        * Si YA se mandó un código antes, el paso del OTP sigue siendo un destino
        * válido aunque este envío falle — y hay que poder llegar.
@@ -167,6 +182,7 @@ function AltaPasos() {
     if (otp.length !== DIGITOS_OTP || enviando) return;
     setEnviando(true);
     setError(null);
+    setOrigenError(null);
     try {
       await api.post("/api/auth/otp", { codigo: codigoLimpio, email: email.trim(), otp });
       haptica("exito");
@@ -192,6 +208,7 @@ function AltaPasos() {
     } catch (e) {
       haptica("error");
       setError(aErrorApi(e));
+      setOrigenError("codigo");
       setOtp("");
       /*
        * Y se OLVIDA el intento, que es lo que permite reintentar el mismo.
@@ -313,6 +330,7 @@ function AltaPasos() {
       }
       haptica("seleccion");
       setError(null);
+      setOrigenError(null);
       setOtp(digitos);
       campoOtp.current?.focus();
     } catch {
@@ -365,7 +383,10 @@ function AltaPasos() {
                 campoRef={campoOtp}
                 valor={otp}
                 onCambio={(v) => {
-                  if (error) setError(null);
+                  if (error) {
+                    setError(null);
+                    setOrigenError(null);
+                  }
                   setOtp(v);
                 }}
                 casillas={DIGITOS_OTP}
@@ -379,7 +400,7 @@ function AltaPasos() {
                   que el código está completo es la animación `confirmar`, que
                   no promete nada.
                 */
-                estado={error ? "error" : "normal"}
+                estado={origenError === "codigo" ? "error" : "normal"}
                 etiquetadoPor="rotulo-otp"
               />
             </div>
@@ -421,6 +442,7 @@ function AltaPasos() {
               type="button"
               onClick={() => {
                 setError(null);
+                setOrigenError(null);
                 router.back();
               }}
               className="inline-flex min-h-11 items-center text-apoyo text-texto-apoyo underline underline-offset-4"

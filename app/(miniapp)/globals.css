@@ -542,6 +542,21 @@ h3 {
   font-family: var(--fuente-display), var(--fuente), system-ui, sans-serif;
   font-weight: 900;
   letter-spacing: -0.03em;
+  /*
+   * SIN negrita sintética, y esto no es un detalle.
+   *
+   * Archivo Black tiene un solo corte y `next/font` lo declara con
+   * `font-weight: 400` —comprobado en el CSS compilado—. Al pedirle 900, el
+   * algoritmo de emparejamiento elige ese único corte y encima le aplica
+   * negrita SINTÉTICA: el navegador engorda a mano una cara que ya es la más
+   * pesada de la familia, y el resultado es una cifra emborronada con los
+   * contraformas cerradas. Justo en el elemento que preside la pantalla.
+   *
+   * Se pide 900 igualmente, y no 400, porque la pila cae a Archivo variable si
+   * la cara negra no llega: ahí 900 SÍ existe de verdad y es lo que se quiere.
+   * Lo que sobra es que se invente el peso cuando no lo encuentra.
+   */
+  font-synthesis-weight: none;
 }
 
 /*
@@ -557,7 +572,17 @@ h3 {
  */
 input::placeholder,
 textarea::placeholder {
-  color: var(--text-tertiary);
+  /*
+   * `--text-secondary` y no `--text-tertiary`.
+   *
+   * Un marcador de posición es TEXTO —dice qué forma tiene lo que hay que
+   * escribir— así que le toca 4,5:1, y el terciario se queda en 4,38:1 sobre
+   * papel blanco y en 4,02:1 sobre el estrato más oscuro. El secundario da
+   * 5,81:1 en el peor caso y sigue leyéndose como marcador y no como valor,
+   * porque lo que lo distingue de un valor escrito no es el color sino que
+   * desaparece al teclear.
+   */
+  color: var(--text-secondary);
   opacity: 1;
 }
 
@@ -632,28 +657,20 @@ textarea::placeholder {
 }
 
 /*
- * La sombra de la placa solo existe cuando hay algo debajo.
+ * La sombra de la placa solo existe cuando hay algo debajo, y la pinta
+ * `--shadow-sticky` en la regla de arriba.
  *
- * Una sombra permanente es decoración; una que aparece en cuanto el contenido
- * pasa por detrás dice algo cierto —«esto está por encima de aquello»—. El
- * degradado del pseudoelemento se suma a `--shadow-sticky` para que el borde
- * del contenido que pasa por debajo no se recorte en seco.
+ * Aquí había ADEMÁS un `::after` con un degradado a `top: 100%`, heredado de
+ * cuando la placa no tenía sombra propia. Ya no puede funcionar: la placa
+ * necesita `overflow: hidden` para recortar el arco de marca, y ese recorte se
+ * come entero un pseudoelemento que empieza justo donde la placa termina. O
+ * sea que se declaraba, se servía, se transicionaba y no se pintaba un solo
+ * píxel.
+ *
+ * Quitarlo no pierde nada —`--shadow-sticky` hace ese trabajo y se ve— y evita
+ * la trampa de siempre: un efecto escrito en la hoja hace creer que la
+ * profundidad está resuelta cuando lo que se ve viene de otro sitio.
  */
-.placa::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: 100%;
-  height: 14px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--t-entrada) var(--curva);
-  background: linear-gradient(to bottom, rgb(0 0 0 / 20%), rgb(0 0 0 / 0%));
-}
-
-.placa[data-compacta="si"]::after {
-  opacity: 1;
-}
 
 /*
  * La línea de apoyo se pliega.

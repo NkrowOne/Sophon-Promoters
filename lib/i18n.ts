@@ -107,6 +107,12 @@ export const es = {
   reenviarEn: (segundos: number) => `Reenviar en ${segundos} s`,
   reenviarElCodigo: "Reenviar código",
   pegarCodigo: "Pegar",
+  /* Las lee un lector de pantalla desde la region viva del campo del codigo.
+     Estaban interpoladas en espanol dentro del componente, asi que un agente
+     arabe oia «3 de 6» en castellano en el unico punto del que depende poder
+     entrar. */
+  codigoProgreso: (puestos: number, total: number) => `${puestos} de ${total}`,
+  codigoCompleto: "Código completo",
 
   // ── Inicio ────────────────────────────────────────────────────────────────
   devengadoTreintaDias: "Ganado · 30 días",
@@ -547,6 +553,8 @@ const en: Cadenas = {
   reenviarEn: (segundos: number) => `Resend in ${segundos}s`,
   reenviarElCodigo: "Resend code",
   pegarCodigo: "Paste",
+  codigoProgreso: (puestos: number, total: number) => `${puestos} of ${total}`,
+  codigoCompleto: "Code complete",
 
   devengadoTreintaDias: "Earned · 30 days",
   registrosYWebmasters: (registros: number, webmasters: number) =>
@@ -889,6 +897,8 @@ const it: Cadenas = {
   reenviarEn: (segundos: number) => `Rinvia tra ${segundos} s`,
   reenviarElCodigo: "Rinvia codice",
   pegarCodigo: "Incolla",
+  codigoProgreso: (puestos: number, total: number) => `${puestos} di ${total}`,
+  codigoCompleto: "Codice completo",
 
   devengadoTreintaDias: "Guadagnato · 30 giorni",
   registrosYWebmasters: (registros: number, webmasters: number) =>
@@ -1239,6 +1249,8 @@ const pt: Cadenas = {
   reenviarEn: (segundos: number) => `Reenviar em ${segundos} s`,
   reenviarElCodigo: "Reenviar código",
   pegarCodigo: "Colar",
+  codigoProgreso: (puestos: number, total: number) => `${puestos} de ${total}`,
+  codigoCompleto: "Código completo",
 
   devengadoTreintaDias: "Ganho · 30 dias",
   registrosYWebmasters: (registros: number, webmasters: number) =>
@@ -1600,6 +1612,8 @@ const ar: Cadenas = {
   reenviarEn: (segundos: number) => `إعادة الإرسال بعد ${segundos} ث`,
   reenviarElCodigo: "إعادة إرسال الرمز",
   pegarCodigo: "لصق",
+  codigoProgreso: (puestos: number, total: number) => `${puestos} من ${total}`,
+  codigoCompleto: "الرمز مكتمل",
 
   devengadoTreintaDias: "المكتسب · 30 يومًا",
   registrosYWebmasters: (registros: number, webmasters: number) =>

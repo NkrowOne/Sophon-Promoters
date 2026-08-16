@@ -336,8 +336,18 @@ export function BotonPrincipalAccion({
   // pueda estar tapado por el teclado.
   if (webApp && !botonTapado) return null;
 
+  // El margen sale de la VARIABLE, no de `-mx-4`/`px-4`. Esta barra sangra a los
+  // lados restando el margen de pantalla y devolviéndolo como relleno; con los
+  // literales de 16 px quedó desalineada de las bandas el día que el margen
+  // subió a 18, y su raya superior sobresalía 2 px por cada lado.
   return (
-    <div className="sticky bottom-0 z-10 -mx-4 border-t border-junta bg-fondo px-4 pb-[env(safe-area-inset-bottom)] pt-3">
+    <div
+      className="sticky bottom-0 z-10 border-t border-junta bg-fondo pb-[env(safe-area-inset-bottom)] pt-3"
+      style={{
+        marginInline: "calc(var(--margen-pantalla) * -1)",
+        paddingInline: "var(--margen-pantalla)",
+      }}
+    >
       {/*
         Chapa: campo amarillo macizo con tinta oscura, 52 px de alto.
 

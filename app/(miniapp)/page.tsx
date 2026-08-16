@@ -151,8 +151,11 @@ export default function Inicio() {
   if (error && error.estado === 401) {
     // Sin sesión no hay nada que enseñar: se manda al alta en vez de mostrar
     // una pantalla vacía que no explica por qué está vacía.
+    // El margen sale de la VARIABLE y no de `px-4`: al subir el margen de
+    // pantalla de 16 a 18 px, aquel literal se quedó atrás y esta pantalla
+    // sangraba 2 px distintos de todas las demás.
     return (
-      <main className="min-h-dvh px-4 pt-10">
+      <main className="min-h-dvh pt-10" style={{ paddingInline: "var(--margen-pantalla)" }}>
         <Vacio
           titulo={t.sinVinculo}
           apoyo={t.pideCodigo}

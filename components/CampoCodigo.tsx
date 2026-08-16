@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
+import { useCadenas } from "./TelegramProvider";
+
 /**
  * El campo de un CÓDIGO: casillas de verdad, y un solo `<input>` debajo.
  *
@@ -86,6 +88,7 @@ export function CampoCodigo({
   descritoPor?: string;
   campoRef?: React.RefObject<HTMLInputElement | null>;
 }) {
+  const t = useCadenas();
   const propio = useRef<HTMLInputElement>(null);
   const entrada = campoRef ?? propio;
   const [enfocado, setEnfocado] = useState(false);
@@ -231,7 +234,21 @@ export function CampoCodigo({
       >
         {Array.from({ length: casillas }, (_, i) => {
           const lleno = i < valor.length;
-          const puntero = enfocado && i === activa && !completo;
+          /*
+           * La casilla activa se marca TAMBIÉN con el código completo.
+           *
+           * Antes se apagaba —`&& !completo`— y con ello desaparecía el único
+           * indicador de foco que tiene el campo, porque el input ya no dibuja
+           * el suyo: seis casillas llenas, el foco dentro, y nada en pantalla
+           * diciendo dónde está. El momento en que eso pasa es justo mientras se
+           * verifica, o sea con el agente mirando.
+           *
+           * El CURSOR sí se apaga, y esa es la diferencia: el anillo dice «el
+           * foco está aquí» y sigue siendo cierto; el cursor dice «el siguiente
+           * carácter cae aquí» y con seis de seis ya no cabe ninguno.
+           */
+          const activaAqui = enfocado && i === activa;
+          const puntero = activaAqui && !completo;
           const separa = separadorCada && i > 0 && i % separadorCada === 0;
           return (
             <div key={i} className="flex flex-1 items-stretch gap-1.5">
@@ -244,7 +261,7 @@ export function CampoCodigo({
               <span
                 className="casilla-codigo cifra"
                 data-lleno={lleno ? "si" : "no"}
-                data-activa={puntero ? "si" : "no"}
+                data-activa={activaAqui ? "si" : "no"}
                 data-estado={estado}
                 style={reciente === i ? { animation: "acuse-casilla 180ms var(--curva) both" } : undefined}
               >
@@ -263,8 +280,15 @@ export function CampoCodigo({
         región viva que se desmonta deja de anunciar. Esta se queda siempre
         montada y solo cambia de texto, que es como funciona `aria-live`.
       */}
+      {/*
+        Va TRADUCIDO. Estaba interpolado en español dentro de este componente,
+        así que un agente árabe o italiano oía «3 de 6» en castellano — y esto
+        se lee justo en el punto del que depende poder entrar. El resto de la
+        pantalla lleva años saliendo del catálogo; esta línea se coló por ser
+        invisible.
+      */}
       <span id={reaccionId} className="sr-only" aria-live="polite">
-        {completo ? `Código completo, ${casillas} de ${casillas}` : `${valor.length} de ${casillas}`}
+        {completo ? t.codigoCompleto : t.codigoProgreso(valor.length, casillas)}
       </span>
     </div>
   );
