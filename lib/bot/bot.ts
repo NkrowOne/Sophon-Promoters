@@ -6,8 +6,10 @@ import { formatearCodigo, generarCodigoActivacion, leerWallet, normalizarEmail }
 import { enviarOtp, probarSmtp } from "../correo.ts";
 import { formatearMicros } from "../devengo/dinero.ts";
 import { cadenas, type Cadenas } from "../i18n.ts";
-import { idiomaDesdeTelegram } from "../idiomas.ts";
+import { idiomaDesdeTelegram, idiomaGuardado } from "../idiomas.ts";
 import { esOperador } from "../operador.ts";
+import { hoyContable } from "../sync/registros.ts";
+import { altaDeWebmaster } from "../webmaster/alta.ts";
 import { tokenBot } from "./token.ts";
 
 /**
@@ -99,7 +101,23 @@ const SECCIONES = [
  * con veinte webmasters eso deja de ser un lujo. Deja de ser un destino de menú
  * y pasa a ser un atajo, que es distinto de desaparecer.
  */
-const ATAJOS = [{ ruta: "/pro", etiqueta: (t: Cadenas) => t.colaRenovaciones }] as const;
+const ATAJOS = [
+  { ruta: "/pro", etiqueta: (t: Cadenas) => t.colaRenovaciones },
+  /*
+   * Los precios entran por comando y NO por el teclado del menú.
+   *
+   * El teclado son cuatro botones en el orden de la jornada del agente —captar,
+   * su equipo, su dinero, su histórico— y esta pantalla no es un paso de esa
+   * jornada: es una tabla que se abre cuando hay alguien delante a quien
+   * enseñársela. Meterla ahí la pondría a competir a diario con lo que sí se
+   * mira a diario.
+   *
+   * Por comando y en `/ayuda` sí, que es donde se busca algo que se usa a
+   * ratos. Y su sitio de verdad es la fila del menú de la portada, que está
+   * pegada al resto de la aplicación.
+   */
+  { ruta: "/precios", etiqueta: (t: Cadenas) => t.preciosDelPrograma },
+] as const;
 
 /** Todo lo que tiene comando propio: el menú más los atajos. */
 const CON_COMANDO = [...SECCIONES, ...ATAJOS];
@@ -115,6 +133,43 @@ const CON_COMANDO = [...SECCIONES, ...ATAJOS];
  */
 function idiomaDe(ctx: Context): Cadenas {
   return cadenas(idiomaDesdeTelegram(ctx.from?.language_code));
+}
+
+/**
+ * El correo que acompaña a `/activar`.
+ *
+ * Es el MISMO patrón que la pantalla de alta (`app/(miniapp)/alta/page.tsx`) y
+ * no el de Zod: lo único que tiene que hacer es descartar lo que evidentemente
+ * no es una dirección antes de gastar una reserva y dos llamadas a Sophon. La
+ * validación de verdad la hace Sophon al vincular, que es quien sabe si esa
+ * cuenta existe.
+ */
+const PATRON_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Abre una pantalla de la Mini App con su botón.
+ *
+ * Era el cuerpo del bucle que registra un comando por sección. Sale de ahí
+ * porque `/activar` tiene ahora manejador propio —el del atajo con correo— y su
+ * rama sin correo tiene que hacer exactamente esto: si se copiara, el día que
+ * cambie la forma del botón habría una sección comportándose distinto.
+ */
+async function abrirSeccion(
+  ctx: Context,
+  seccion: { ruta: string; etiqueta: (t: Cadenas) => string },
+  t: Cadenas,
+): Promise<void> {
+  const url = urlMiniApp();
+  if (!url) {
+    await ctx.reply(t.botSinPublicar);
+    return;
+  }
+  const etiqueta = seccion.etiqueta(t);
+  const destino = `${url}${seccion.ruta}`;
+  const teclado = destino.startsWith("https://")
+    ? new InlineKeyboard().webApp(etiqueta, destino)
+    : undefined;
+  await ctx.reply(teclado ? etiqueta : `${etiqueta}\n${destino}`, { reply_markup: teclado });
 }
 
 /**
@@ -265,6 +320,119 @@ function registrar(b: Bot): void {
     });
   });
 
+  /*
+   * ── EL ALTA SIN ABRIR NADA: `/activar correo@ejemplo.com` ──
+   *
+   * Dar de alta era: abrir la Mini App, esperar a que cargue, tocar el campo,
+   * teclear el correo, tocar el botón. Cinco pasos y un arranque en frío para
+   * escribir una dirección que el agente casi siempre tiene delante, en el chat,
+   * en el mensaje que acaba de recibir del webmaster. Ahora se pega detrás del
+   * comando y ya está.
+   *
+   * **Sin correo detrás, el comando hace lo de siempre**: abrir la pantalla. Es
+   * la mitad que hace que esto sea un atajo y no una sustitución —quien no sepa
+   * la sintaxis escribe `/activar` como hasta ahora y no se topa con un error—.
+   *
+   * Va registrado ANTES del bucle de secciones a propósito: en grammy gana el
+   * primer manejador que no llama a `next`, así que este intercepta `/activar` y
+   * el bucle se queda con las otras tres rutas. Por eso la rama sin correo llama
+   * a `abrirSeccion`, que es literalmente el cuerpo del bucle: sin eso, quitar
+   * el atajo dejaría el comando muerto.
+   *
+   * El alta la hace `altaDeWebmaster`, el MISMO cuerpo que usa la Mini App. No
+   * hay aquí ni una regla de negocio: si mañana cambia el orden de reserva o la
+   * tabla de rechazos, cambia para las dos puertas a la vez.
+   */
+  b.command("activar", async (ctx) => {
+    const t = idiomaDe(ctx);
+    const escrito = ctx.match?.trim() ?? "";
+    const seccion = CON_COMANDO.find((s) => s.ruta === "/activar")!;
+
+    if (!escrito) {
+      await abrirSeccion(ctx, seccion, t);
+      return;
+    }
+
+    const id = ctx.from?.id;
+    const agente = id
+      ? await db.agente.findUnique({
+          where: { telegramId: BigInt(id) },
+          select: { id: true, estado: true, idioma: true },
+        })
+      : null;
+
+    // El Operador no es un agente y no tiene equipo: sin esto recibiría «date de
+    // alta primero», que es la aplicación pidiéndole a su dueño que se registre
+    // en su propio producto.
+    if (!agente) {
+      await ctx.reply(esOperador(id) ? "El alta de webmasters es de los agentes." : t.botSinCuenta);
+      return;
+    }
+    if (agente.estado === "SUSPENDIDO") {
+      await ctx.reply(t.botSuspendido);
+      return;
+    }
+
+    // Se valida ANTES de tocar nada. Un correo mal escrito que llegue al módulo
+    // gasta una reserva en la base de datos y una llamada a Sophon para acabar
+    // en el mismo sitio, y de paso deja un `IntentoVinculacion` fallido que no
+    // dice nada de Sophon: dice que alguien puso una coma.
+    if (!PATRON_CORREO.test(escrito)) {
+      await ctx.reply(`${t.errFormatoCorreo}\n${t.botActivarComoSeUsa}`);
+      return;
+    }
+
+    /*
+     * Dos llamadas a Sophon —vincular y conceder el año— pueden tardar varios
+     * segundos, y un chat que no acusa recibo se lee como que el comando se ha
+     * perdido: el agente lo repite, y repetir un alta es lo único que aquí no
+     * conviene. `typing` lo acusa SIN dejar un mensaje que luego sobre.
+     */
+    await ctx.replyWithChatAction("typing").catch(() => {});
+
+    /*
+     * El idioma sale de la COLUMNA, no del `language_code` de este update.
+     *
+     * Es el mismo criterio que usa el panel al avisar de un pago: lo que se
+     * escribe aquí lo puede volver a leer el agente desde otro cliente, y el año
+     * de PRO se concede con este idioma —`concederAnio` lo usa para sus propios
+     * mensajes—. Tomarlo del update haría que el mismo agente recibiera el
+     * resultado en un idioma y el aviso del PRO en otro.
+     */
+    const suyo = cadenas(idiomaGuardado(agente.idioma));
+
+    /*
+     * La clave de idempotencia sale del correo y del día, no de un aleatorio.
+     *
+     * `claveIdempotencia` ya mezcla agente y correo; lo que aporta este tercer
+     * trozo es que dos `/activar` seguidos con el mismo correo —el agente que no
+     * ve respuesta y lo repite— no concedan dos años. La Mini App manda un
+     * identificador propio porque tiene dónde guardarlo entre reintentos; un
+     * chat no, así que el día hace ese papel.
+     */
+    const resultado = await altaDeWebmaster({
+      agenteId: agente.id,
+      idioma: idiomaGuardado(agente.idioma),
+      email: escrito,
+      idempotencia: `bot-${hoyContable()}`,
+    });
+
+    if (!resultado.ok) {
+      await ctx.reply(`${suyo[resultado.claveError]}\n${suyo[resultado.claveApoyo]}`);
+      return;
+    }
+
+    // El alta está hecha aunque el PRO no haya entrado, y se dice: fingir que
+    // todo fue bien deja al agente sin saber que tiene que reintentar el año
+    // desde la ficha.
+    await ctx.reply(
+      resultado.pro.concedido
+        ? suyo.botActivado(escapar(resultado.email))
+        : `${suyo.botActivadoSinPro(escapar(resultado.email))}\n${suyo.botActivadoSinProApoyo}`,
+      { parse_mode: "HTML" },
+    );
+  });
+
   // Un comando por sección además del teclado: en Telegram mucha gente escribe
   // el comando antes de buscar el botón, y un menú que solo existe como teclado
   // se pierde en cuanto el chat avanza tres mensajes.
@@ -272,22 +440,13 @@ function registrar(b: Bot): void {
   // Se recorre `CON_COMANDO` y no `SECCIONES` para que `/pro` siga respondiendo
   // aunque ya no salga en el teclado. Antes esta lista era la misma que la del
   // menú, así que sacar una ruta del menú le habría borrado el comando de paso.
+  //
+  // `/activar` ya está registrado arriba con su atajo, y su rama sin correo
+  // llama a este mismo `abrirSeccion`.
   for (const seccion of CON_COMANDO) {
+    if (seccion.ruta === "/activar") continue;
     b.command(seccion.ruta.slice(1), async (ctx) => {
-      const url = urlMiniApp();
-      const t = idiomaDe(ctx);
-      if (!url) {
-        await ctx.reply(t.botSinPublicar);
-        return;
-      }
-      const etiqueta = seccion.etiqueta(t);
-      const destino = `${url}${seccion.ruta}`;
-      const teclado = destino.startsWith("https://")
-        ? new InlineKeyboard().webApp(etiqueta, destino)
-        : undefined;
-      await ctx.reply(teclado ? etiqueta : `${etiqueta}\n${destino}`, {
-        reply_markup: teclado,
-      });
+      await abrirSeccion(ctx, seccion, idiomaDe(ctx));
     });
   }
 
@@ -404,6 +563,11 @@ function registrar(b: Bot): void {
           // el teclado. Un comando que existe y no se lista es un comando que
           // nadie usa.
           ...CON_COMANDO.map((s) => `/${s.ruta.slice(1)} — ${s.etiqueta(t).toLowerCase()}`),
+          // El atajo va junto a la lista y no en un párrafo aparte: un comando
+          // que admite argumento es una variante del comando, igual que lo son
+          // las tres líneas de `/codigo` en la ayuda del Operador. Escondido en
+          // otro sitio, nadie sabría que existe.
+          t.botActivarAtajo,
           "",
           t.botOStart,
         ].join("\n"),

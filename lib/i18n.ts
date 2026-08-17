@@ -92,6 +92,42 @@ export const es = {
   verMiRed: "Ver mi equipo",
   verSuFicha: "Ver su perfil",
   volverAlInicio: "Volver al inicio",
+
+  /* ── La tabla de precios del programa ───────────────────────────────────
+   *
+   * Es la pantalla que el agente abre DELANTE de otra persona: se la enseña al
+   * webmaster al que está captando para decirle qué va a cobrar. Por eso el
+   * lenguaje habla del webmaster en tercera persona —«lo que cobra»— y no del
+   * agente: aquí el agente no es el sujeto, es quien lo está contando.
+   *
+   * Ninguna de estas cadenas nombra el precio global ni el reparto: el
+   * descuento se aplica en `lib/precios/tabla.ts` y aquí ya solo llega el neto.
+   */
+  precios: "Precios",
+  preciosDelPrograma: "Precios del programa",
+  preciosParaEnsenar: "Enséñaselo a tus webmasters: es lo que van a cobrar ellos.",
+  loQueCobraTuWebmaster: "Lo que cobra tu webmaster",
+  porCadaCienUsuarios: "Por cada 100 usuarios registrados",
+  paisesDelTier: (n: number) => `${n} ${n === 1 ? "país" : "países"}`,
+  nivelDeLaCuenta: "Nivel de la cuenta",
+  losNiveles: "Los niveles",
+  nivelHaceFalta: (importe: string) => `desde ${importe}`,
+  // Encabeza la COLUMNA que lista todos los niveles, no el del agente: «Tu
+  // nivel» decía que esa columna era suya cuando lo que enseña es la escalera
+  // entera. El suyo se marca en su fila, que es donde se puede marcar.
+  nivel: "Nivel",
+  acumuladoEsteMes: "Acumulado este mes",
+  teFaltanParaElNivel: (importe: string, nivel: number) => `Te faltan ${importe} para LV${nivel}.`,
+  nivelMasAlto: "Estás en el nivel más alto.",
+  // El tercer estado, que se quedaba sin frase: el umbral ya está cubierto pero
+  // el nivel todavía no se aplica. Decir solo el acumulado justo el mes en que
+  // hay algo que contar era dejarse la buena noticia dentro.
+  nivelGanadoEntraElDiaUno: (nivel: number) => `Ya tienes LV${nivel}: entra el día 1.`,
+  comoSubeElNivel:
+    "El nivel sube cuando el pago acumulado del mes llega al mínimo del siguiente, y el precio nuevo entra el día 1 del mes siguiente.",
+  tuComisionNoDependeDelNivel: "Tu comisión no cambia con el nivel: cobras lo mismo en todos.",
+  sinPrecios: "Todavía no hay precios que enseñar.",
+  sinPreciosApoyo: "Sophon no ha devuelto la tabla. Vuelve a intentarlo en un momento.",
   activarElPrimero: "Activar el primero",
 
   // ── Estados vacíos: invitan a actuar, no se disculpan ──────────────────────
@@ -473,6 +509,21 @@ export const es = {
   botOStart: "O /start para el menú completo.",
   botComandoDesconocido: "No conozco ese comando. Prueba /ayuda.",
   botUsaStart: "Usa /start para abrir la aplicación.",
+  /* ── El atajo del alta ──────────────────────────────────────────────────
+   *
+   * `/activar` es el nombre del comando y NO se traduce: es la ruta de la Mini
+   * App, y un `/attiva` italiano obligaría al bot a conocer cinco alfabetos
+   * para hacer lo mismo. Lo que sí se traduce es la explicación, que es lo que
+   * el agente necesita leer en el suyo.
+   */
+  botActivarAtajo: "/activar correo@ejemplo.com — dar de alta sin abrir la aplicación",
+  botActivarComoSeUsa: "Escribe el correo detrás del comando: /activar correo@ejemplo.com",
+  botSinCuenta: "Todavía no tienes cuenta de agente. Escribe /start para darte de alta.",
+  botActivado: (email: string) => `${email} ya está en tu equipo, con un año de PRO.`,
+  // El alta está hecha aunque el año no haya entrado, y se dicen las dos cosas:
+  // fingir que todo fue bien deja al agente sin saber que tiene algo que hacer.
+  botActivadoSinPro: (email: string) => `${email} ya está en tu equipo.`,
+  botActivadoSinProApoyo: "El año de PRO no ha entrado. Reinténtalo desde su perfil.",
 
   // Avisos que salen del panel hacia el agente.
   botRetiroPagado: (importe: string) => `Has cobrado ${importe}.`,
@@ -558,6 +609,26 @@ const en: Cadenas = {
   verMiRed: "View my team",
   verSuFicha: "View their details",
   volverAlInicio: "Back to home",
+  precios: "Prices",
+  preciosDelPrograma: "Programme prices",
+  preciosParaEnsenar: "Show it to your webmasters: this is what they will be paid.",
+  loQueCobraTuWebmaster: "What your webmaster is paid",
+  porCadaCienUsuarios: "Per 100 registered users",
+  paisesDelTier: (n: number) => `${n} ${n === 1 ? "country" : "countries"}`,
+  nivelDeLaCuenta: "Account level",
+  losNiveles: "The levels",
+  nivelHaceFalta: (importe: string) => `from ${importe}`,
+  nivel: "Level",
+  acumuladoEsteMes: "Accrued this month",
+  teFaltanParaElNivel: (importe: string, nivel: number) => `${importe} to go for LV${nivel}.`,
+  nivelMasAlto: "You are on the highest level.",
+  nivelGanadoEntraElDiaUno: (nivel: number) => `LV${nivel} is yours: it starts on the 1st.`,
+  comoSubeElNivel:
+    "The level goes up when the month's accrued payment reaches the next minimum, and the new price starts on the 1st of the following month.",
+  tuComisionNoDependeDelNivel:
+    "Your commission does not change with the level: you are paid the same on all of them.",
+  sinPrecios: "There are no prices to show yet.",
+  sinPreciosApoyo: "Sophon has not returned the table. Try again in a moment.",
   activarElPrimero: "Activate your first one",
 
   sinWebmasters: "You have not activated any webmaster yet.",
@@ -855,6 +926,12 @@ const en: Cadenas = {
   botOStart: "Or /start for the full menu.",
   botComandoDesconocido: "I do not know that command. Try /ayuda.",
   botUsaStart: "Use /start to open the app.",
+  botActivarAtajo: "/activar email@example.com — sign someone up without opening the app",
+  botActivarComoSeUsa: "Type the email after the command: /activar email@example.com",
+  botSinCuenta: "You do not have an agent account yet. Type /start to sign up.",
+  botActivado: (email: string) => `${email} is now on your team, with a year of PRO.`,
+  botActivadoSinPro: (email: string) => `${email} is now on your team.`,
+  botActivadoSinProApoyo: "The year of PRO did not go through. Retry it from their profile.",
 
   botRetiroPagado: (importe: string) => `You have been paid ${importe}.`,
   botRedTitulo: "Your team needs a call",
@@ -908,6 +985,26 @@ const it: Cadenas = {
   verMiRed: "Vedi il mio team",
   verSuFicha: "Vedi il suo profilo",
   volverAlInicio: "Torna all'inizio",
+  precios: "Prezzi",
+  preciosDelPrograma: "Prezzi del programma",
+  preciosParaEnsenar: "Mostralo ai tuoi webmaster: è quello che prenderanno loro.",
+  loQueCobraTuWebmaster: "Quanto prende il tuo webmaster",
+  porCadaCienUsuarios: "Ogni 100 utenti registrati",
+  paisesDelTier: (n: number) => `${n} ${n === 1 ? "paese" : "paesi"}`,
+  nivelDeLaCuenta: "Livello dell\'account",
+  losNiveles: "I livelli",
+  nivelHaceFalta: (importe: string) => `da ${importe}`,
+  nivel: "Livello",
+  acumuladoEsteMes: "Accumulato questo mese",
+  teFaltanParaElNivel: (importe: string, nivel: number) => `Ti mancano ${importe} per LV${nivel}.`,
+  nivelMasAlto: "Sei al livello più alto.",
+  nivelGanadoEntraElDiaUno: (nivel: number) => `Hai già LV${nivel}: entra il 1\u00ba.`,
+  comoSubeElNivel:
+    "Il livello sale quando il pagamento accumulato del mese arriva al minimo del successivo, e il prezzo nuovo entra il 1\u00ba del mese dopo.",
+  tuComisionNoDependeDelNivel:
+    "La tua commissione non cambia con il livello: prendi lo stesso in tutti.",
+  sinPrecios: "Non ci sono ancora prezzi da mostrare.",
+  sinPreciosApoyo: "Sophon non ha restituito la tabella. Riprova tra un momento.",
   activarElPrimero: "Attiva il primo",
 
   sinWebmasters: "Non hai ancora attivato nessun webmaster.",
@@ -1209,6 +1306,12 @@ const it: Cadenas = {
   botOStart: "Oppure /start per il menu completo.",
   botComandoDesconocido: "Non conosco questo comando. Prova /ayuda.",
   botUsaStart: "Usa /start per aprire l'applicazione.",
+  botActivarAtajo: "/activar email@esempio.com — registrare senza aprire l'applicazione",
+  botActivarComoSeUsa: "Scrivi l'email dopo il comando: /activar email@esempio.com",
+  botSinCuenta: "Non hai ancora un account da agente. Scrivi /start per registrarti.",
+  botActivado: (email: string) => `${email} è ora nel tuo team, con un anno di PRO.`,
+  botActivadoSinPro: (email: string) => `${email} è ora nel tuo team.`,
+  botActivadoSinProApoyo: "L'anno di PRO non è entrato. Riprova dal suo profilo.",
 
   botRetiroPagado: (importe: string) => `Hai incassato ${importe}.`,
   botRedTitulo: "Il tuo team ha bisogno di una chiamata",
@@ -1269,6 +1372,25 @@ const pt: Cadenas = {
   verMiRed: "Ver a minha equipa",
   verSuFicha: "Ver o perfil dele",
   volverAlInicio: "Voltar ao início",
+  precios: "Preços",
+  preciosDelPrograma: "Preços do programa",
+  preciosParaEnsenar: "Mostra-o aos teus webmasters: é o que eles vão receber.",
+  loQueCobraTuWebmaster: "O que recebe o teu webmaster",
+  porCadaCienUsuarios: "Por cada 100 utilizadores registados",
+  paisesDelTier: (n: number) => `${n} ${n === 1 ? "país" : "países"}`,
+  nivelDeLaCuenta: "Nível da conta",
+  losNiveles: "Os níveis",
+  nivelHaceFalta: (importe: string) => `a partir de ${importe}`,
+  nivel: "Nível",
+  acumuladoEsteMes: "Acumulado este mês",
+  teFaltanParaElNivel: (importe: string, nivel: number) => `Faltam-te ${importe} para LV${nivel}.`,
+  nivelMasAlto: "Estás no nível mais alto.",
+  nivelGanadoEntraElDiaUno: (nivel: number) => `Já tens LV${nivel}: entra no dia 1.`,
+  comoSubeElNivel:
+    "O nível sobe quando o pagamento acumulado do mês chega ao mínimo do seguinte, e o preço novo entra no dia 1 do mês a seguir.",
+  tuComisionNoDependeDelNivel: "A tua comissão não muda com o nível: recebes o mesmo em todos.",
+  sinPrecios: "Ainda não há preços para mostrar.",
+  sinPreciosApoyo: "A Sophon não devolveu a tabela. Tenta outra vez daqui a pouco.",
   activarElPrimero: "Ativar o primeiro",
 
   sinWebmasters: "Ainda não ativaste nenhum webmaster.",
@@ -1569,6 +1691,12 @@ const pt: Cadenas = {
   botOStart: "Ou /start para o menu completo.",
   botComandoDesconocido: "Não conheço esse comando. Experimenta /ayuda.",
   botUsaStart: "Usa /start para abrir a aplicação.",
+  botActivarAtajo: "/activar email@exemplo.com — registar sem abrir a aplicação",
+  botActivarComoSeUsa: "Escreve o email a seguir ao comando: /activar email@exemplo.com",
+  botSinCuenta: "Ainda não tens conta de agente. Escreve /start para te registares.",
+  botActivado: (email: string) => `${email} já está na tua equipa, com um ano de PRO.`,
+  botActivadoSinPro: (email: string) => `${email} já está na tua equipa.`,
+  botActivadoSinProApoyo: "O ano de PRO não entrou. Tenta outra vez a partir do perfil dele.",
 
   botRetiroPagado: (importe: string) => `Recebeste ${importe}.`,
   botRedTitulo: "A tua equipa precisa de uma chamada",
@@ -1639,6 +1767,25 @@ const ar: Cadenas = {
   verMiRed: "عرض فريقي",
   verSuFicha: "عرض ملفه",
   volverAlInicio: "العودة إلى الرئيسية",
+  precios: "الأسعار",
+  preciosDelPrograma: "أسعار البرنامج",
+  preciosParaEnsenar: "اعرضها على الـ webmasters: هذا ما سيتقاضونه.",
+  loQueCobraTuWebmaster: "ما يتقاضاه الـ webmaster",
+  porCadaCienUsuarios: "لكل 100 مستخدم مسجَّل",
+  paisesDelTier: (n: number) => `${n} ${n === 1 ? "بلد" : "بلدًا"}`,
+  nivelDeLaCuenta: "مستوى الحساب",
+  losNiveles: "المستويات",
+  nivelHaceFalta: (importe: string) => `ابتداءً من ${importe}`,
+  nivel: "المستوى",
+  acumuladoEsteMes: "المتراكم هذا الشهر",
+  teFaltanParaElNivel: (importe: string, nivel: number) => `يتبقى ${importe} للوصول إلى LV${nivel}.`,
+  nivelMasAlto: "أنت في أعلى مستوى.",
+  nivelGanadoEntraElDiaUno: (nivel: number) => `لديك LV${nivel} بالفعل: يبدأ في اليوم الأول.`,
+  comoSubeElNivel:
+    "يرتفع المستوى عندما يبلغ المدفوع المتراكم في الشهر الحد الأدنى للمستوى التالي، ويبدأ السعر الجديد في اليوم الأول من الشهر التالي.",
+  tuComisionNoDependeDelNivel: "عمولتك لا تتغير بالمستوى: تتقاضى المبلغ نفسه في كل المستويات.",
+  sinPrecios: "لا توجد أسعار لعرضها بعد.",
+  sinPreciosApoyo: "لم تُرجع Sophon الجدول. أعد المحاولة بعد قليل.",
   activarElPrimero: "فعّل أول واحد",
 
   sinWebmasters: "لم تفعّل أي webmaster بعد.",
@@ -1934,6 +2081,12 @@ const ar: Cadenas = {
   botOStart: "أو /start للقائمة الكاملة.",
   botComandoDesconocido: "لا أعرف هذا الأمر. جرّب /ayuda.",
   botUsaStart: "استخدم /start لفتح التطبيق.",
+  botActivarAtajo: "/activar email@example.com — التسجيل من دون فتح التطبيق",
+  botActivarComoSeUsa: "اكتب البريد بعد الأمر: /activar email@example.com",
+  botSinCuenta: "ليس لديك حساب وكيل بعد. اكتب /start للتسجيل.",
+  botActivado: (email: string) => `${email} صار الآن في فريقك، مع سنة PRO.`,
+  botActivadoSinPro: (email: string) => `${email} صار الآن في فريقك.`,
+  botActivadoSinProApoyo: "سنة PRO لم تُسجَّل. أعد المحاولة من ملفه.",
 
   botRetiroPagado: (importe: string) => `لقد استلمت ${importe}.`,
   botRedTitulo: "فريقك يحتاج مكالمة",
