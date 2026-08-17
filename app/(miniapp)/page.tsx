@@ -408,7 +408,7 @@ function Bienvenida({ etiquetas: t }: { etiquetas: Cadenas }) {
           no la del control. El tope de 20 rem impide que en pantalla ancha se
           convierta en una barra de lado a lado. */}
       <Link href="/alta" className="chapa pulsable mt-8 w-full max-w-[20rem] text-cuerpo">
-        {t.vincularCuenta}
+        {t.acceder}
       </Link>
     </main>
   );
