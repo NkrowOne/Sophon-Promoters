@@ -79,10 +79,10 @@ export interface FilaTier {
 export interface RequisitoDeNivel {
   nivel: number;
   /**
-   * Lo que tienen que llevar pagado los usuarios captados en el mes para
-   * alcanzar este nivel, en micros. Mide su COMPRA de PRO, no la recompensa
-   * que cobra la cuenta: son dos cifras de dinero y confundirlas hace que los
-   * umbrales parezcan inalcanzables. Ver `lib/sophon/tipos.ts`.
+   * Lo que los usuarios tienen que llevar pagado al webmaster en el mes para
+   * alcanzar este nivel, en micros. Mide la COMPRA de PRO de esos usuarios, no
+   * la recompensa que cobra la cuenta: son dos cifras de dinero y confundirlas
+   * hace que los umbrales parezcan inalcanzables. Ver `lib/sophon/tipos.ts`.
    */
   minimoMicros: string;
 }

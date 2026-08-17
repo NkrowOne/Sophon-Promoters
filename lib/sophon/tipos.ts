@@ -98,7 +98,7 @@ export interface ResumenRegistros {
   countRegister: number;
   partnerLevel: number;
   /**
-   * Lo que llevan pagado este mes los usuarios captados, en dólares.
+   * Lo que los usuarios llevan pagado este mes en la plataforma, en dólares.
    *
    * Es la cifra que se compara con `minMonthlyInvitedUsersPaid` para saber a
    * qué nivel se llega. Mide COMPRA de los usuarios —el PRO que contratan—, no
@@ -141,8 +141,10 @@ export interface RequisitoNivel {
   /**
    * Umbral del nivel: un IMPORTE, no un recuento.
    *
-   * Y lo que mide ese importe es **lo que pagan los usuarios captados** en el
-   * mes —sus suscripciones PRO—, no la recompensa que se cobra por ellos. Las
+   * Y lo que mide ese importe es **lo que los usuarios le pagan al webmaster**
+   * en el mes —sus suscripciones PRO—, no la recompensa que se cobra por ellos.
+   * El sentido del pago importa: es dinero que ENTRA por el webmaster, no
+   * dinero que él desembolse. Las
    * dos cosas son dinero y se parecen en la respuesta, así que confundirlas es
    * fácil: la primera vez se leyó como «lo ganado», y entonces los umbrales
    * ($100, $1000, $3000…) parecen inalcanzables cuando en realidad se llega a
