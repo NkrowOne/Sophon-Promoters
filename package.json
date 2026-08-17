@@ -2,6 +2,7 @@
   "name": "sophon-promoters",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Mini App de Telegram para que los agentes comerciales gestionen webmasters de Sophon y sus comisiones.",
   "engines": {
     "node": ">=20"

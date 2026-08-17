@@ -154,6 +154,19 @@ npm run typecheck
 > calidad aquí es TypeScript en modo estricto —con `noUncheckedIndexedAccess`—
 > y las pruebas; un guion que finge comprobar es peor que no tenerlo.
 
+> El `package.json` declara `"type": "module"`, y no es decoración. Todo lo que
+> aquí se ejecuta con Node —las pruebas, la semilla, los guiones de
+> diagnóstico— son módulos ES, pero sin esa línea Node no lo sabe: intenta
+> leerlos como CommonJS, falla, **los vuelve a analizar** y avisa por consola
+> en cada arranque del contenedor (`MODULE_TYPELESS_PACKAGE_JSON`). O sea que
+> el aviso venía con un doble análisis de verdad detrás. Declarado el tipo, ni
+> aviso ni trabajo repetido.
+>
+> Next lo tiene previsto: escribe `{"type": "commonjs"}` dentro de `.next` y
+> genera un `server.js` en ESM, así que la salida autocontenida arranca igual.
+> Lo que sí importa: cualquier `.js` que se añada al repositorio será un módulo
+> ES. Si alguno tuviera que ser CommonJS, la extensión es `.cjs`.
+
 Y las que necesitan credenciales de verdad:
 
 ```bash
