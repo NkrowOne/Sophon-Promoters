@@ -773,6 +773,66 @@ textarea::placeholder {
   opacity: 0;
 }
 
+/*
+ * ═══════════════ EL DESPLIEGUE ═══════════════
+ *
+ * Un bloque que no estaba y aparece haciéndose sitio. Ahora mismo tiene UN uso:
+ * el campo del código de activación en la pantalla de entrada, que solo se
+ * enseña cuando el servidor contesta que ese correo todavía no tiene cuenta.
+ *
+ * Es el momento animado de esa pantalla, y tiene un trabajo concreto: decir que
+ * **ha pasado algo y hace falta una cosa más**. Sin él, la respuesta del
+ * servidor se manifiesta como un campo que estaba y ya no, o que no estaba y de
+ * pronto está, y el agente no sabe si se lo ha perdido antes.
+ *
+ * Mismo mecanismo que `.placa-apoyo` —`grid-template-rows: 0fr → 1fr`— y por lo
+ * mismo: no hay que adivinar ninguna altura, así que funciona igual cuando el
+ * texto de dentro ocupa dos líneas en árabe o en alemán, en vez de recortarlo.
+ * Un `max-height` a ojo, que es lo que se suele poner, o corta o deja un hueco.
+ *
+ * Son DOS tiempos, no uno: primero se hace el sitio, y el contenido entra
+ * después con `--t-toque` de retraso. Los dos a la vez producen ese efecto de
+ * papel arrugado en que el texto se estira mientras la caja crece; escalonados,
+ * se lee como un cajón que se abre y algo que se posa dentro.
+ */
+.desplegable {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--t-entrada) var(--curva-mover);
+}
+
+.desplegable > * {
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity var(--t-entrada) var(--curva),
+    transform var(--t-entrada) var(--curva);
+}
+
+.desplegable[data-abierto="si"] {
+  grid-template-rows: 1fr;
+}
+
+.desplegable[data-abierto="si"] > * {
+  opacity: 1;
+  transform: none;
+  transition-delay: var(--t-toque);
+}
+
+/*
+ * Con movimiento reducido se queda el sitio y se va el desplazamiento, que es
+ * la política de toda esta hoja. El alto SÍ sigue animándose: no es adorno, es
+ * la única señal de que la pantalla ha cambiado de forma, y quitarla dejaría un
+ * campo apareciendo de golpe bajo el dedo.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .desplegable > * {
+    transform: none;
+    transition-property: opacity;
+  }
+}
+
 /* ═══════════════ LA FORMA DISTINGUE ACCIÓN DE ESTADO ═══════════════
  *
  * Viene de un círculo rojo: el usuario rodeó en /pro la etiqueta amarilla

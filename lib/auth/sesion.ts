@@ -1,11 +1,24 @@
 /**
  * Sesiones de agente.
  *
- * El requisito es que el agente **no vuelva a entrar nunca**: la sesión dura 180
- * días y se renueva sola con el uso. Eso obliga a poder cortarla al instante si
- * un agente se va o su cuenta se compromete, y por eso existe la **época**: un
- * contador en el agente que se copia en cada sesión emitida. Incrementarlo
- * invalida todas sus sesiones de golpe, sin recorrer ni borrar filas.
+ * El requisito es que el agente **no vuelva a entrar nunca**: la sesión dura lo
+ * máximo que admite un navegador y se renueva sola con el uso. Eso obliga a
+ * poder cortarla al instante si un agente se va o su cuenta se compromete, y por
+ * eso existe la **época**: un contador en el agente que se copia en cada sesión
+ * emitida. Incrementarlo invalida todas sus sesiones de golpe, sin recorrer ni
+ * borrar filas.
+ *
+ * ── LAS DOS CADUCIDADES, QUE NO ERAN LA MISMA ──
+ *
+ * Hay dos relojes y solo se estaba tocando uno. La fila `SesionAgente` se
+ * renovaba al usarla, pero **la cookie del navegador no**: se emitía con
+ * `maxAge` una vez, al entrar, y a partir de ahí contaba sola. O sea que un
+ * agente que entraba a diario perdía igualmente la sesión el día del tope,
+ * porque el navegador borraba la cookie con la fila todavía viva al otro lado.
+ *
+ * Ahora deslizan los dos: `sesionActual()` reescribe la cookie cada vez que la
+ * valida y renueva la fila cuando le queda poco. Mientras el agente use la app,
+ * la sesión no caduca.
  */
 
 import { cookies } from "next/headers";
@@ -14,12 +27,28 @@ import { db } from "../db.ts";
 import { tokenBot } from "../bot/token.ts";
 import { generarTokenSesion, hashToken } from "../cripto.ts";
 import { idiomaGuardado, type Idioma } from "../idiomas.ts";
+import { DIAS_SESION, NOMBRE_COOKIE, opcionesCookie } from "./cookie.ts";
 import { validarInitData, type UsuarioTelegram } from "./telegram.ts";
 
-export const NOMBRE_COOKIE = "sp_sesion";
-export const DIAS_SESION = 180;
-/** Con menos de esto por delante, la sesión se renueva al usarla. */
-const DIAS_RENOVACION = 30;
+/*
+ * Reexportado, y ADEMÁS importado arriba.
+ *
+ * Un `export { X } from "./y.ts"` reenvía el símbolo pero no lo declara en este
+ * módulo: las funciones de este fichero seguirían sin ver `DIAS_SESION`. Con el
+ * import explícito arriba, se ve aquí y sale por la puerta para los ~10 sitios
+ * de llamada que lo piden de este módulo desde siempre.
+ */
+export { DIAS_SESION, NOMBRE_COOKIE, opcionesCookie };
+
+/**
+ * Con menos de esto por delante, la fila se renueva al usarla.
+ *
+ * A 100 días sobre 400, un agente activo toca la base de datos por este motivo
+ * como mucho tres veces al año. Escribir en cada petición sería el otro
+ * extremo: una escritura por carga de pantalla para mover una fecha que a nadie
+ * le importa al minuto.
+ */
+const DIAS_RENOVACION = 100;
 
 export interface AgenteSesion {
   agenteId: string;
@@ -115,7 +144,7 @@ export async function sesionActual(): Promise<AgenteSesion | "SUSPENDIDO" | null
   if (sesion.epocaSesion !== sesion.agente.epocaSesion) return null;
   if (sesion.agente.estado !== "ACTIVO") return "SUSPENDIDO";
 
-  // Renovación deslizante: se toca la fila solo cuando queda poco, para no
+  // Renovación deslizante de la FILA: se toca solo cuando queda poco, para no
   // escribir en base de datos en cada petición.
   const quedaPoco =
     sesion.expiraEn.getTime() - Date.now() < DIAS_RENOVACION * 86_400_000;
@@ -127,6 +156,38 @@ export async function sesionActual(): Promise<AgenteSesion | "SUSPENDIDO" | null
         ultimoUsoEn: new Date(),
       },
     });
+  }
+
+  /*
+   * Y renovación deslizante de la COOKIE, que es el reloj que nadie tocaba.
+   *
+   * La cookie se emitía una sola vez, al entrar, y a partir de ahí el navegador
+   * contaba solo: el día del tope la borraba, entrara el agente a diario o una
+   * vez al año. O sea que la fila seguía viva al otro lado mientras el agente
+   * aparecía desconectado, y desde fuera parecía una caducidad legítima.
+   *
+   * Se reescribe SIEMPRE, no solo cuando queda poco, porque no se puede saber
+   * cuándo queda poco: una cookie viaja sin su fecha de caducidad. Cuesta una
+   * cabecera de unos 200 bytes en las respuestas de la API.
+   *
+   * ── POR QUÉ AQUÍ Y NO EN UN `middleware.ts` ──
+   *
+   * Porque el middleware corre en Edge, y en cuanto existe uno, Next compila
+   * también `instrumentation.ts` para Edge —donde arranca el bot, o sea Prisma,
+   * o sea `node:crypto`— y el build se cae. El guardia de runtime que ya hay
+   * dentro no lo evita: webpack compila los módulos de un `import()` al
+   * analizar el fichero, antes de poder descartar la rama muerta.
+   *
+   * Y no hace falta: esta función solo se llama desde manejadores de ruta
+   * —`exigirAgente` y `/api/auth/sesion`—, y ahí `cookies()` sí es escribible.
+   * El `try` es por si algún día se llama al renderizar un componente de
+   * servidor, donde Next prohíbe escribir cookies: no poder alargar la sesión
+   * no es motivo para tumbar la petición que se estaba sirviendo.
+   */
+  try {
+    almacen.set(NOMBRE_COOKIE, token, opcionesCookie());
+  } catch {
+    // Contexto de solo lectura. La sesión sigue siendo válida.
   }
 
   return {
@@ -227,14 +288,3 @@ export function telegramDeLaPeticion(peticion: Request): UsuarioTelegram | null 
   }
 }
 
-export function opcionesCookie() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    // La Mini App se sirve dentro de un iframe de Telegram: con `lax` la cookie
-    // no viajaría y el agente parecería desconectado en cada carga.
-    sameSite: "none" as const,
-    path: "/",
-    maxAge: DIAS_SESION * 86_400,
-  };
-}

@@ -13,21 +13,38 @@ import { ErrorApi, aErrorApi, api } from "@/lib/api/cliente";
 import { LONGITUD_CODIGO, formatearCodigo, normalizarCodigo } from "@/lib/codigo";
 
 /**
- * Alta del agente: código → correo → OTP.
+ * Entrada del agente: correo → (código de activación) → OTP.
  *
- * Es la primera pantalla que ve un agente nuevo y todavía no tiene datos.
+ * ── POR QUÉ EL CORREO VA SOLO Y PRIMERO ──
  *
- * **Por qué el código y el correo van juntos y el OTP aparte.** La disciplina de
- * la app es un campo por pantalla, pero el servidor canjea el código y manda el
- * OTP en la misma llamada: separarlos haría que el agente escribiera su correo
- * para enterarse después de que el código no valía. El OTP sí va aparte porque
- * llega por otro canal y hay una espera en medio.
+ * Antes esta pantalla pedía el código de activación y el correo a la vez, y eso
+ * daba por hecho que todo el que llega es nuevo. La mayoría no lo es: es un
+ * agente que ya está dado de alta y ha perdido la sesión —móvil nuevo, Telegram
+ * reinstalado, la app cerrada demasiado tiempo—. A ese le estábamos pidiendo un
+ * papel que ya gastó, y como los códigos son de un solo uso, la única salida
+ * era escribir al Operador para que le diera otro. Por volver a abrir la app.
  *
- * **El paso vive en la URL** (`?paso=otp`). Estaba en estado de componente, así
- * que el botón «atrás» nativo de Telegram salía de la pantalla y se llevaba el
- * código y el correo ya escritos. Ahora atrás retrocede un paso y los conserva.
+ * Ahora la pantalla pregunta lo único que el agente siempre tiene: **su
+ * correo**. El servidor mira si ese correo ya tiene cuenta y hay dos finales:
  *
- * ── LOS DEFECTOS QUE ARREGLA ESTA PASADA ──
+ *   ya la tiene  → se le manda el código de verificación y a la siguiente
+ *                  pantalla. No hay código de activación de por medio.
+ *   no la tiene  → se despliega el campo del código de activación, porque
+ *                  entonces sí es un alta.
+ *
+ * El campo se DESPLIEGA en vez de estar puesto desde el principio: enseñarlo a
+ * todo el mundo vuelve a poner el papel delante del 90 % que no lo necesita, y
+ * hacerlo aparecer de golpe no dice que la pantalla haya cambiado por algo. La
+ * animación —`.desplegable`, en `globals.css`— es el único momento animado de
+ * la pantalla y su trabajo es ese: hace falta una cosa más.
+ *
+ * ── EL PASO VIVE EN LA URL ──
+ *
+ * (`?paso=otp`). Estaba en estado de componente, así que el botón «atrás»
+ * nativo de Telegram salía de la pantalla y se llevaba el correo ya escrito.
+ * Ahora atrás retrocede un paso y lo conserva.
+ *
+ * ── LOS DEFECTOS QUE ARREGLÓ LA PASADA ANTERIOR, Y QUE SIGUEN CERRADOS ──
  *
  * 1. **La retícula del OTP no cuadraba con los dígitos.** Seis rayas repartidas
  *    a lo ancho bajo un texto centrado son dos geometrías distintas: el dígito
@@ -36,10 +53,8 @@ import { LONGITUD_CODIGO, formatearCodigo, normalizarCodigo } from "@/lib/codigo
  *
  * 2. **El placeholder del código enseñaba una forma que no existe.** Ponía
  *    `XXXX-XXXX` —grupos de cuatro— y los códigos que emite el bot son de diez
- *    caracteres en grupos de CINCO (`formatearCodigo`, `lib/cripto.ts`). El
- *    agente comparaba lo que había escrito con una plantilla equivocada. Ahora
- *    el campo se formatea SOLO mientras se escribe, con los mismos grupos que
- *    el código que le pasaron, así que no hay nada que comparar.
+ *    caracteres en grupos de CINCO. Ahora el campo se formatea solo mientras se
+ *    escribe, con los mismos grupos, así que no hay nada que comparar.
  *
  * 3. **Al fallar la verificación se perdía el foco.** `setOtp("")` vaciaba el
  *    campo y el teclado se cerraba, así que reintentar costaba un toque extra
@@ -57,6 +72,14 @@ import { LONGITUD_CODIGO, formatearCodigo, normalizarCodigo } from "@/lib/codigo
 
 const SEGUNDOS_REENVIO = 60;
 const DIGITOS_OTP = 6;
+
+/** Lo que contesta `/api/auth/codigo`. `paso` es lo que decide la pantalla. */
+interface RespuestaCodigo {
+  ok: true;
+  paso: "codigo" | "otp";
+  registrado?: boolean;
+  minutosValidez?: number;
+}
 
 export default function Alta() {
   // `useSearchParams` obliga a un límite de suspensión en el prerenderizado.
@@ -95,6 +118,24 @@ function AltaPasos() {
   // Solo se puede estar en el paso del OTP si el servidor llegó a mandarlo.
   // Sin esto, `?paso=otp` escrito a mano pediría un código que no existe.
   const [enviado, setEnviado] = useState(false);
+  /*
+   * El correo del que el servidor YA ha dicho que no tiene cuenta.
+   *
+   * Se guarda el correo, no un booleano, y esa es la diferencia entre estar en
+   * lo cierto y parecerlo. Con un `necesitaCodigo: boolean`, el agente que
+   * escribe un correo desconocido, ve desplegarse el campo y entonces se da
+   * cuenta de que se ha equivocado de dirección, seguiría con el código exigido
+   * para un correo sobre el que nadie ha preguntado nada — y ese correo puede
+   * ser justo el suyo, el que sí tiene cuenta.
+   *
+   * Guardando cuál era, la exigencia se cae sola en cuanto el correo cambia y el
+   * botón vuelve a decir «Continuar». El campo desplegado NO se recoge: plegarlo
+   * a la primera tecla de una corrección es un salto en mitad de escribir, y
+   * dejarlo abierto no cuesta nada porque lo que manda es lo que vaya escrito
+   * cuando se pulse.
+   */
+  const [correoSondeado, setCorreoSondeado] = useState<string | null>(null);
+  const [desplegado, setDesplegado] = useState(false);
   const campoOtp = useRef<HTMLInputElement>(null);
   const campoCodigo = useRef<HTMLInputElement>(null);
   /*
@@ -108,7 +149,8 @@ function AltaPasos() {
    */
   const yaIntentado = useRef<string | null>(null);
 
-  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const emailLimpio = email.trim();
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailLimpio);
   /*
    * Se mide lo NORMALIZADO, no lo que se ve: `MR7MD-APD6R` son diez, no once.
    *
@@ -119,7 +161,10 @@ function AltaPasos() {
    * cuando está INCOMPLETO—. El agente concluye que le han dado un código malo.
    */
   const codigoLimpio = normalizarCodigo(codigo);
-  const credencialesListas = codigoLimpio.length === LONGITUD_CODIGO && emailValido;
+  const codigoCompleto = codigoLimpio.length === LONGITUD_CODIGO;
+  /** Exigido solo para el correo del que consta que no tiene cuenta. */
+  const exigeCodigo = correoSondeado !== null && correoSondeado === emailLimpio.toLowerCase();
+  const listoParaEnviar = emailValido && (!exigeCodigo || codigoCompleto);
   const paso = parametros.get("paso") === "otp" && enviado ? "otp" : "credenciales";
   const otpCompleto = otp.length === DIGITOS_OTP;
 
@@ -142,12 +187,35 @@ function AltaPasos() {
   }, [paso]);
 
   const pedirOtp = useCallback(async () => {
-    if (!credencialesListas || enviando) return;
+    if (!listoParaEnviar || enviando) return;
     setEnviando(true);
     setError(null);
     setOrigenError(null);
     try {
-      await api.post("/api/auth/codigo", { codigo: codigoLimpio, email: email.trim() });
+      /*
+       * El código se manda solo si está COMPLETO, y no según si el campo está
+       * a la vista. Un código a medias mandado «porque el campo está abierto»
+       * vuelve como «el código no vale», que acusa al papel de estar mal cuando
+       * lo que pasa es que faltan letras. Y el servidor lo ignora de todas
+       * formas cuando el correo ya tiene cuenta.
+       */
+      const r = await api.post<RespuestaCodigo>("/api/auth/codigo", {
+        email: emailLimpio,
+        ...(codigoCompleto ? { codigo: codigoLimpio } : {}),
+      });
+
+      // Correo sin cuenta: no se ha mandado nada, hace falta el código.
+      if (r.paso === "codigo") {
+        haptica("toque");
+        setCorreoSondeado(emailLimpio.toLowerCase());
+        setDesplegado(true);
+        setEnviando(false);
+        // Tras la apertura del pliegue: enfocarlo mientras la fila todavía mide
+        // cero deja el teclado apuntando a un campo que aún no se ve.
+        setTimeout(() => campoCodigo.current?.focus(), 240);
+        return;
+      }
+
       haptica("exito");
       setEnviado(true);
       setEspera(SEGUNDOS_REENVIO);
@@ -176,7 +244,17 @@ function AltaPasos() {
     } finally {
       setEnviando(false);
     }
-  }, [codigoLimpio, email, credencialesListas, enviando, enviado, haptica, paso, router]);
+  }, [
+    codigoCompleto,
+    codigoLimpio,
+    emailLimpio,
+    listoParaEnviar,
+    enviando,
+    enviado,
+    haptica,
+    paso,
+    router,
+  ]);
 
   const verificar = useCallback(async () => {
     if (otp.length !== DIGITOS_OTP || enviando) return;
@@ -184,7 +262,13 @@ function AltaPasos() {
     setError(null);
     setOrigenError(null);
     try {
-      await api.post("/api/auth/otp", { codigo: codigoLimpio, email: email.trim(), otp });
+      // Mismo criterio que arriba: el código solo viaja si está entero. Quien
+      // vuelve a entrar no tiene ninguno y el servidor no se lo pide.
+      await api.post("/api/auth/otp", {
+        email: emailLimpio,
+        otp,
+        ...(codigoCompleto ? { codigo: codigoLimpio } : {}),
+      });
       haptica("exito");
       // Reemplazo, no empuje: volver atrás al alta ya completada no lleva a
       // ningún sitio útil.
@@ -233,7 +317,7 @@ function AltaPasos() {
       setTimeout(() => campoOtp.current?.focus(), 0);
       setEnviando(false);
     }
-  }, [otp, codigoLimpio, email, enviando, haptica, router]);
+  }, [otp, codigoCompleto, codigoLimpio, emailLimpio, enviando, haptica, router]);
 
   /*
    * Verificación automática al completar los seis dígitos.
@@ -255,19 +339,6 @@ function AltaPasos() {
     void verificar();
   }, [otp, otpCompleto, enviando, verificar]);
 
-  /*
-   * Traer el código del portapapeles.
-   *
-   * Es la mitad de la app de un gesto que empieza en el correo, donde el código
-   * va en un bloque preparado para seleccionarlo de un toque. Un correo NO puede
-   * llevar un botón que copie —no ejecuta JavaScript, ni siquiera con AMP—, así
-   * que el botón vive en el único sitio donde puede existir.
-   *
-   * `readText` pide permiso en unos navegadores y no existe en otros; si falla,
-   * el campo se queda como estaba y solo recibe el foco. No se enseña error: un
-   * atajo que no está disponible no es un fallo, y un aviso ahí diría que algo
-   * se ha roto cuando lo único que pasa es que hay que teclear.
-   */
   /*
    * El código, formateado mientras se escribe y CON EL CURSOR EN SU SITIO.
    *
@@ -320,6 +391,19 @@ function AltaPasos() {
     [error],
   );
 
+  /*
+   * Traer el código del portapapeles.
+   *
+   * Es la mitad de la app de un gesto que empieza en el correo, donde el código
+   * va en un bloque preparado para seleccionarlo de un toque. Un correo NO puede
+   * llevar un botón que copie —no ejecuta JavaScript, ni siquiera con AMP—, así
+   * que el botón vive en el único sitio donde puede existir.
+   *
+   * `readText` pide permiso en unos navegadores y no existe en otros; si falla,
+   * el campo se queda como estaba y solo recibe el foco. No se enseña error: un
+   * atajo que no está disponible no es un fallo, y un aviso ahí diría que algo
+   * se ha roto cuando lo único que pasa es que hay que teclear.
+   */
   const pegar = useCallback(async () => {
     try {
       const texto = await navigator.clipboard.readText();
@@ -342,7 +426,7 @@ function AltaPasos() {
     return (
       <Pantalla titulo={t.confirmaQueEresTu}>
         <Banda orden={0} tono={0} className="pb-6">
-          <p className="text-apoyo text-texto-apoyo">{t.otpEnviado(email.trim())}</p>
+          <p className="text-apoyo text-texto-apoyo">{t.otpEnviado(emailLimpio)}</p>
 
           {/*
             La tarjeta con el campo.
@@ -480,54 +564,12 @@ function AltaPasos() {
   return (
     // `marca`: el isotipo sobre el título. Es la única pantalla de la Mini App
     // que lo lleva; el porqué está en la prop, en `Pantalla`.
-    <Pantalla titulo={t.vinculaTuCuenta} marca>
+    <Pantalla titulo={t.entrarEnTuCuenta} marca>
       <Banda orden={0} tono={0} className="pb-6">
-        <p className="text-apoyo text-texto-apoyo">{t.introduceCodigoYCorreo}</p>
+        <p className="text-apoyo text-texto-apoyo">{t.introduceTuCorreo}</p>
 
         <div className="tarjeta campo-malla mt-6">
           <div>
-            <label htmlFor="codigo" className="text-rotulo block text-texto-apoyo">
-              {t.codigoDeActivacion}
-            </label>
-            {/*
-              Se formatea SOLO mientras se escribe.
-
-              El placeholder decía `XXXX-XXXX` —grupos de cuatro— y los códigos
-              que emite el bot son de diez caracteres en grupos de CINCO
-              (`formatearCodigo`, `lib/cripto.ts`). O sea que el campo enseñaba
-              una plantilla que ningún código real cumple, y el agente que
-              comparaba lo escrito con lo que le habían pasado veía dos cosas
-              distintas sin saber cuál estaba mal.
-
-              Formatearlo, en vez de solo corregir el placeholder, resuelve
-              además el caso de quien pega `mr7md-apd6r` de un chat: entra en
-              minúsculas y sale canónico.
-
-              El alfabeto de los códigos no tiene O, I, L, 0 ni 1
-              (`ALFABETO_CODIGO`), así que no hay ambigüedad que deshacer: lo que
-              no es del alfabeto, sobra.
-            */}
-            <input
-              id="codigo"
-              ref={campoCodigo}
-              value={codigo}
-              onChange={alCambiarCodigo}
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              inputMode="text"
-              maxLength={39}
-              placeholder="XXXXX-XXXXX"
-              className="campo-texto cifra mt-2 tracking-[0.14em]"
-            />
-            {/* La ayuda no repite el rótulo: bajo «CÓDIGO DE ACTIVACIÓN», una
-                línea que dice «escribe el código de activación» ocupa sitio para
-                no añadir nada. Solo se dice lo que el rótulo no puede: de dónde
-                sale. */}
-            <p className="mt-2 text-apoyo text-texto-apoyo">{t.teLoDaElOperador}</p>
-          </div>
-
-          <div className="mt-6">
             <label htmlFor="email" className="text-rotulo block text-texto-apoyo">
               {t.tuCorreo}
             </label>
@@ -548,6 +590,80 @@ function AltaPasos() {
             />
             <p className="mt-2 text-apoyo text-texto-apoyo">{t.seraTuIdentificador}</p>
           </div>
+
+          {/*
+            El código de activación, plegado hasta que el servidor dice que hace
+            falta.
+
+            El pliegue es un `grid-template-rows: 0fr → 1fr` (`.desplegable`, en
+            `globals.css`): no hay que adivinar ninguna altura, así que el bloque
+            entra entero cuando el texto de dentro ocupa dos líneas en árabe.
+
+            `aria-hidden` mientras está cerrado, y los campos `disabled`: un
+            `overflow: hidden` esconde a la vista pero NO al lector de pantalla
+            ni al tabulador. Sin esto, quien navega con teclado tabula hacia un
+            campo invisible de altura cero y el foco desaparece de la pantalla.
+          */}
+          <div className="desplegable" data-abierto={desplegado ? "si" : "no"}>
+            <div>
+              <div className="pt-6" aria-hidden={!desplegado}>
+                {/*
+                  La línea que explica POR QUÉ ha aparecido esto. Sin ella el
+                  campo sale de la nada y parece que estaba desde el principio y
+                  no se había visto.
+
+                  Va con una regla encima porque separa dos cosas distintas
+                  —quién eres / de dónde vienes— dentro de una misma tarjeta, y
+                  con la regla se lee como un bloque nuevo en vez de como un
+                  tercer campo del mismo formulario.
+                */}
+                <div className="border-t border-[color:var(--campo-canto-suave)] pt-5">
+                  <p className="text-apoyo font-medium">{t.correoSinCuenta}</p>
+                  <p className="mt-1 text-apoyo text-texto-apoyo">{t.correoSinCuentaApoyo}</p>
+                </div>
+
+                <label htmlFor="codigo" className="text-rotulo mt-5 block text-texto-apoyo">
+                  {t.codigoDeActivacion}
+                </label>
+                {/*
+                  Se formatea SOLO mientras se escribe.
+
+                  El placeholder decía `XXXX-XXXX` —grupos de cuatro— y los
+                  códigos que emite el bot son de diez caracteres en grupos de
+                  CINCO (`formatearCodigo`, `lib/codigo.ts`). O sea que el campo
+                  enseñaba una plantilla que ningún código real cumple.
+
+                  Formatearlo, en vez de solo corregir el placeholder, resuelve
+                  además el caso de quien pega `mr7md-apd6r` de un chat: entra en
+                  minúsculas y sale canónico.
+
+                  El alfabeto de los códigos no tiene O, I, L, 0 ni 1
+                  (`ALFABETO_CODIGO`), así que no hay ambigüedad que deshacer: lo
+                  que no es del alfabeto, sobra.
+                */}
+                <input
+                  id="codigo"
+                  ref={campoCodigo}
+                  value={codigo}
+                  onChange={alCambiarCodigo}
+                  disabled={!desplegado}
+                  tabIndex={desplegado ? undefined : -1}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  inputMode="text"
+                  maxLength={39}
+                  placeholder="XXXXX-XXXXX"
+                  className="campo-texto cifra mt-2 tracking-[0.14em]"
+                />
+                {/* La ayuda no repite el rótulo: bajo «CÓDIGO DE ACTIVACIÓN»,
+                    una línea que dice «escribe el código de activación» ocupa
+                    sitio para no añadir nada. Solo se dice lo que el rótulo no
+                    puede: de dónde sale. */}
+                <p className="mt-2 text-apoyo text-texto-apoyo">{t.teLoDaElOperador}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Mismo hueco reservado que en el paso del OTP, y por lo mismo: justo
@@ -557,10 +673,18 @@ function AltaPasos() {
         </div>
       </Banda>
 
+      {/*
+        El botón dice lo que va a pasar, y eso cambia con el paso.
+
+        «Continuar» mientras solo hay un correo: no se sabe todavía si habrá
+        correo que mandar o un código que pedir, y prometer «Enviar código»
+        para acabar desplegando un campo es prometer de más. En cuanto consta
+        que ese correo es un alta, pasa a «Enviar código», que ya es exacto.
+      */}
       <BotonPrincipalAccion
-        texto={t.enviarmeElCodigo}
+        texto={exigeCodigo ? t.enviarmeElCodigo : t.continuar}
         onClick={pedirOtp}
-        activo={credencialesListas}
+        activo={listoParaEnviar}
         cargando={enviando}
       />
     </Pantalla>

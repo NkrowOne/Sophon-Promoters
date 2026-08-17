@@ -259,6 +259,12 @@ model CodigoOtp {
 
   @@index([emailNormalizado, proposito, consumidoEn])
   @@index([expiraEn])
+  /// El techo de envíos por cuenta de Telegram (`/api/auth/codigo`) cuenta
+  /// filas por `telegramId` dentro de una ventana de minutos. Sin este índice
+  /// esa cuenta recorre la tabla entera, y la tabla crece con cada intento de
+  /// entrada de todos los agentes: el freno contra el abuso sería justo lo que
+  /// más costaría servir cuando alguien abusara.
+  @@index([telegramId, creadoEn])
 }
 
 // ─────────────────────── Webmasters y su atribución ───────────────────────
