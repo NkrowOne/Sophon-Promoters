@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { db } from "@/lib/db";
+import { db, esChoqueDeSolicitudViva } from "@/lib/db";
 import { claveIdempotencia, guardarWallet, leerWallet, mascaraWallet } from "@/lib/cripto";
 import { cadenas } from "@/lib/i18n";
 import { dinero, esRespuesta, exigirAgente, saldos } from "@/lib/api/agente";
@@ -138,8 +138,23 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       });
       if (repetida) throw new Error(`REPETIDA:${repetida.id}`);
 
-      // Una sola viva por agente. Se comprueba dentro de la transacción para
-      // que dos peticiones simultáneas no pasen las dos.
+      /*
+       * Una sola viva por agente. Esta lectura es la CORTESÍA, no la garantía.
+       *
+       * Aquí ponía «se comprueba dentro de la transacción para que dos
+       * peticiones simultáneas no pasen las dos», y eso no es lo que hace una
+       * transacción. Las de Prisma sobre PostgreSQL corren en READ COMMITTED, y
+       * ahí un SELECT no bloquea el INSERT de otra: dos toques simultáneos
+       * ejecutan este `findFirst` antes de que ninguno confirme, los dos ven
+       * `null`, y los dos crean su solicitud del mismo saldo. El Operador se
+       * encuentra dos en el panel y las aprueba a mano sin ver que son la misma.
+       *
+       * La garantía la da ahora el índice único parcial
+       * `SolicitudRetiro_una_viva_por_agente` (migración 20260817090000). Esto
+       * se queda porque es lo que permite devolver el 409 CON EL IMPORTE de la
+       * que ya hay, que es lo que el agente necesita leer; el índice solo sabe
+       * decir que no.
+       */
       const pendiente = await tx.solicitudRetiro.findFirst({
         where: { agenteId, estado: { in: ["SOLICITADO", "APROBADO"] } },
         select: { importeMicros: true },
@@ -185,6 +200,29 @@ export async function POST(peticion: Request): Promise<NextResponse> {
       const importe = formatearMicros(BigInt(motivo.split(":")[1] ?? "0"), 2, idioma);
       return NextResponse.json(
         { error: t.errRetiroYaHayUna(importe), apoyo: t.errRetiroYaHayUnaApoyo },
+        { status: 409 },
+      );
+    }
+    /*
+     * El índice único parcial ha parado la carrera que el `findFirst` no puede
+     * ver: entre la lectura de arriba y este INSERT, otra petición del mismo
+     * agente creó su solicitud y confirmó.
+     *
+     * Se contesta lo MISMO que en el caso amable, porque para el agente es lo
+     * mismo: ya hay una en curso. Se relee para poder decir su importe; si no se
+     * encuentra —se resolvió en el mismo instante— se cae al mensaje sin cifra
+     * en vez de inventarse una.
+     */
+    if (esChoqueDeSolicitudViva(e)) {
+      const viva = await db.solicitudRetiro.findFirst({
+        where: { agenteId, estado: { in: ["SOLICITADO", "APROBADO"] } },
+        select: { importeMicros: true },
+      });
+      return NextResponse.json(
+        {
+          error: t.errRetiroYaHayUna(formatearMicros(viva?.importeMicros ?? 0n, 2, idioma)),
+          apoyo: t.errRetiroYaHayUnaApoyo,
+        },
         { status: 409 },
       );
     }

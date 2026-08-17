@@ -129,3 +129,30 @@ export async function conCerrojo<T>(
     `;
   }
 }
+
+/**
+ * ¿Este error es el índice único parcial diciendo «ya hay una viva»?
+ *
+ * Prisma emite `P2002` para cualquier violación de unicidad, así que se mira
+ * además el nombre del índice: en esta tabla también es único
+ * `claveIdempotencia`, y ese caso ya lo resuelve la lectura de `REPETIDA` antes
+ * de llegar aquí. Confundirlos convertiría un reenvío idempotente —que debe
+ * contestar «ok, ya estaba»— en un 409 de «ya tienes una en curso».
+ *
+ * Se comprueba por forma y no con `instanceof PrismaClientKnownRequestError`
+ * para no importar el cliente de Prisma solo por un tipo.
+ *
+ * Vive aquí y no en la ruta por lo mismo que `saldos` no vive en
+ * `lib/api/agente.ts`: la ruta importa `next/server`, y `next` no publica mapa
+ * de `exports`, así que Node no lo resuelve fuera del empaquetador y el test
+ * no podía ni importar el fichero. Interpretar un error de Prisma es además
+ * asunto de quien tiene el cliente de Prisma.
+ */
+export function esChoqueDeSolicitudViva(e: unknown): boolean {
+  if (typeof e !== "object" || e === null) return false;
+  const { code, meta } = e as { code?: unknown; meta?: { target?: unknown } };
+  if (code !== "P2002") return false;
+  const objetivo = meta?.target;
+  const texto = Array.isArray(objetivo) ? objetivo.join(",") : String(objetivo ?? "");
+  return texto.includes("una_viva_por_agente");
+}

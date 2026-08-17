@@ -1,0 +1,35 @@
+-- «Una sola solicitud de retiro viva por agente» pasa a ser una regla de la BASE
+-- DE DATOS, que es el único sitio donde se puede sostener.
+--
+-- Estaba escrita como una lectura dentro de una transacción:
+--
+--     const pendiente = await tx.solicitudRetiro.findFirst({
+--       where: { agenteId, estado: { in: ["SOLICITADO", "APROBADO"] } },
+--     });
+--     if (pendiente) throw new Error(...)
+--
+-- con el comentario «se comprueba dentro de la transacción para que dos
+-- peticiones simultáneas no pasen las dos». Eso no es lo que hace una
+-- transacción. Las transacciones interactivas de Prisma sobre PostgreSQL corren
+-- en READ COMMITTED, y en ese nivel un SELECT no bloquea el INSERT de otra
+-- transacción: las dos ejecutan el `findFirst` antes de que ninguna confirme,
+-- las dos ven `null`, y las dos crean su solicitud.
+--
+-- El resultado es dinero: dos solicitudes vivas del mismo saldo, que el Operador
+-- aprueba a mano en el panel sin ninguna señal de que son la misma. Y la clave
+-- de idempotencia no lo frena, porque la genera el cliente por INTENCIÓN
+-- (`nuevaIdempotencia()` en la pantalla de cartera): dos toques rápidos son dos
+-- intenciones distintas con dos claves distintas.
+--
+-- Un índice único PARCIAL es lo que expresa la regla exactamente: a lo sumo una
+-- fila por agente entre las vivas, y ninguna restricción sobre las resueltas
+-- —un agente cobra muchas veces a lo largo de su vida—.
+--
+-- ⚠️ Prisma NO sabe expresar índices parciales en el `schema.prisma`, así que
+-- este índice vive SOLO aquí. `prisma migrate deploy` —lo que corre en
+-- producción— lo aplica y lo respeta. `prisma migrate dev` compara el esquema
+-- con la base y puede proponer BORRARLO: si alguna vez lo propone, la respuesta
+-- es que no. Hay una nota en `schema.prisma`, sobre el modelo, que lo dice.
+CREATE UNIQUE INDEX "SolicitudRetiro_una_viva_por_agente"
+    ON "SolicitudRetiro" ("agenteId")
+    WHERE "estado" IN ('SOLICITADO', 'APROBADO');

@@ -554,6 +554,21 @@ model ConcesionPro {
   @@index([webmasterId])
 }
 
+/// ⚠️ ESTE MODELO TIENE UN ÍNDICE QUE NO SE VE AQUÍ.
+///
+/// `SolicitudRetiro_una_viva_por_agente` es un índice único PARCIAL —a lo sumo
+/// una solicitud por agente entre las que están vivas (SOLICITADO o APROBADO), y
+/// sin restricción sobre las resueltas— y Prisma no sabe expresar índices
+/// parciales, así que vive solo en la migración
+/// `20260817090000_una_solicitud_viva_por_agente`.
+///
+/// Es lo ÚNICO que sostiene «una sola solicitud viva por agente». Antes la regla
+/// era un `findFirst` dentro de una transacción, y en READ COMMITTED —el nivel
+/// por defecto de las transacciones de Prisma— eso no bloquea nada: dos toques
+/// simultáneos creaban dos solicitudes del mismo saldo y el Operador las
+/// aprobaba a mano sin ver que eran la misma.
+///
+/// Si `prisma migrate dev` propone borrarlo alguna vez, la respuesta es que no.
 model SolicitudRetiro {
   id String @id @default(cuid())
 
