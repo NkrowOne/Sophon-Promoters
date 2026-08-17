@@ -367,7 +367,10 @@ function registrar(b: Bot): void {
     const destino = ctx.match?.trim();
     const r = await probarSmtp();
     if (!r.ok) {
-      await ctx.reply(`No entra:\n\n${r.detalle}`);
+      // No es solo «no entra»: `probarSmtp` da también por malo un
+      // SMTP_REMITENTE sin dirección dentro, que autentica bien y luego hace
+      // rebotar el envío con un 530 que habla del buzón y no de la variable.
+      await ctx.reply(`No se puede mandar:\n\n${r.detalle}`);
       return;
     }
 

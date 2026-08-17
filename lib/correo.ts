@@ -19,6 +19,11 @@
  *  3. **Se maqueta como se maquetan los correos**, no como una página. Estilos
  *     en línea y tablas: Gmail descarta las hojas de estilo, y los clientes de
  *     escritorio no entienden flex ni grid.
+ *  4. **El remitente se analiza aquí, no se le pasa entero a nodemailer.**
+ *     Cuando la cadena no se entiende, nodemailer no protesta: deja la
+ *     dirección vacía y manda el sobre con el remitente nulo (`MAIL FROM:<>`),
+ *     que el servidor rechaza con un 530 que habla del buzón y no de la
+ *     variable. Ver `analizarRemitente`.
  *
  * Se ha ido `enviarAvisoRetiro`. Estaba escrita, en español, sin plantilla…
  * **y no la llamaba nadie**: el aviso de que un retiro cambia de estado sale por
@@ -81,6 +86,110 @@ export function ajustesSmtp(): { host?: string; puerto: number; usuario?: string
   };
 }
 
+/** El nombre que se enseña cuando `SMTP_REMITENTE` no trae uno propio. */
+const NOMBRE_REMITENTE = "Sophon Promoters";
+
+/**
+ * Una dirección que vale como remitente de SOBRE (el `MAIL FROM` del protocolo).
+ *
+ * No pretende validar el RFC entero —eso no lo hace bien nadie—, solo separar
+ * «esto es una dirección» de «esto es un nombre suelto», que es lo único que
+ * hay que decidir aquí.
+ */
+function esDireccion(v: string): boolean {
+  return /^[^\s@<>,;:"]+@[^\s@<>,;:"]+\.[^\s@<>,;:"]+$/.test(v);
+}
+
+/**
+ * Quita un par de comillas que envuelva TODO el valor.
+ *
+ * Existe por un error que este mismo repositorio invitaba a cometer: el
+ * `.env.example` traía la línea con comillas —`SMTP_REMITENTE="Sophon Promoters
+ * <no-reply@ejemplo.com>"`— porque en un fichero `.env` las comillas son del
+ * formato y el intérprete se las come. En el panel de despliegue NO hay
+ * intérprete: lo que se pega es el valor, comillas incluidas. Y entonces el
+ * analizador de direcciones lee las comillas como parte del nombre y deja el
+ * remitente en `Sophon Promoters < >`, con los dos ángulos vacíos a la vista.
+ */
+function sinComillasExteriores(v: string): string {
+  const m = /^(["'])([\s\S]*)\1$/.exec(v.trim());
+  return m ? m[2]!.trim() : v.trim();
+}
+
+/**
+ * El remitente, resuelto a nombre y dirección POR SEPARADO.
+ *
+ * ══ POR QUÉ NO SE LE PASA LA CADENA A NODEMAILER ══
+ *
+ * Porque cuando no la entiende no se queja: se queda con lo que ha sacado y
+ * manda igual. Un `SMTP_REMITENTE` sin dirección dentro de los ángulos —o sin
+ * ángulos siquiera— le deja la dirección VACÍA, y con la dirección vacía el
+ * sobre sale como `MAIL FROM:<>`, que es el «remitente nulo» reservado a los
+ * rebotes automáticos. Ningún servidor autenticado deja mandar así, y el error
+ * que devuelve no habla de la variable:
+ *
+ *     530 5.7.1 You (buzón@dominio) are not authorized to send mail
+ *     as the null sender (<>)
+ *
+ * Se lee como un problema de permisos del buzón y no lo es. De ahí que aquí se
+ * analice a mano, se avise por su nombre y se caiga a `SMTP_USER`: el buzón que
+ * acaba de autenticarse siempre puede mandar en su propio nombre, así que un
+ * error de formato en una variable de adorno no puede dejar sin entrar a nadie.
+ *
+ * Devuelve el motivo en vez de lanzarlo cuando no hay nada utilizable: quien
+ * llama decide si eso es un diagnóstico que enseñar o un envío que abortar.
+ */
+export function analizarRemitente(
+  bruto: string | undefined,
+  usuario: string | undefined,
+): { nombre: string; direccion: string; aviso?: string } | { motivo: string } {
+  const v = sinComillasExteriores(bruto ?? "");
+
+  let nombre = "";
+  let direccion = "";
+  const conAngulos = /^([\s\S]*)<([^<>]*)>$/.exec(v);
+  if (conAngulos) {
+    nombre = sinComillasExteriores(conAngulos[1]!);
+    direccion = conAngulos[2]!.trim();
+  } else if (esDireccion(v)) {
+    direccion = v;
+  } else {
+    nombre = v;
+  }
+
+  if (!esDireccion(direccion)) {
+    const malo = v.length > 0;
+    if (!usuario || !esDireccion(usuario)) {
+      return {
+        motivo: malo
+          ? `SMTP_REMITENTE no lleva ninguna dirección dentro: «${v}». Tiene que ser ` +
+            `Nombre <buzon@dominio.com>, SIN comillas alrededor. Y SMTP_USER tampoco ` +
+            `sirve de respaldo porque no es una dirección entera.`
+          : "No hay remitente: pon SMTP_REMITENTE (Nombre <buzon@dominio.com>) o SMTP_USER.",
+      };
+    }
+    return {
+      nombre: nombre || NOMBRE_REMITENTE,
+      direccion: usuario,
+      ...(malo
+        ? {
+            aviso:
+              `SMTP_REMITENTE no lleva ninguna dirección dentro («${v}»), así que se ` +
+              `manda desde SMTP_USER (${usuario}). Escríbelo como ` +
+              `Nombre <buzon@dominio.com>, SIN comillas alrededor.`,
+          }
+        : {}),
+    };
+  }
+
+  return { nombre: nombre || NOMBRE_REMITENTE, direccion };
+}
+
+/** El remitente del entorno. Igual que `analizarRemitente`, ya con las variables puestas. */
+export function remitenteSmtp(): { nombre: string; direccion: string; aviso?: string } | { motivo: string } {
+  return analizarRemitente(ajuste("SMTP_REMITENTE"), ajuste("SMTP_USER"));
+}
+
 function transporte(): Transporter {
   if (global_.transporte) return global_.transporte;
 
@@ -122,9 +231,23 @@ export async function probarSmtp(): Promise<{ ok: boolean; detalle: string }> {
   const { host, puerto, usuario } = ajustesSmtp();
   if (!host) return { ok: false, detalle: "falta SMTP_HOST" };
   const donde = `${host}:${puerto}${usuario ? ` como ${usuario}` : " sin usuario"}`;
+
+  /*
+   * El remitente se enseña AQUÍ, en la prueba que no manda nada.
+   *
+   * `verify()` hace el AUTH y calla sobre el remitente, así que un
+   * `SMTP_REMITENTE` mal escrito pasa esta prueba y revienta en el envío de
+   * verdad —o sea, sobre un agente que está intentando darse de alta— con un
+   * 530 que habla del buzón y no de la variable. Que salga en el diagnóstico
+   * cuesta una línea y es donde se mira.
+   */
+  const r = remitenteSmtp();
+  const remite =
+    "motivo" in r ? `\n⚠ ${r.motivo}` : `\nremitente: ${r.nombre} <${r.direccion}>${r.aviso ? `\n⚠ ${r.aviso}` : ""}`;
+
   try {
     await transporte().verify();
-    return { ok: true, detalle: `entra en ${donde}` };
+    return { ok: !("motivo" in r), detalle: `entra en ${donde}${remite}` };
   } catch (e) {
     const codigo = (e as { responseCode?: number }).responseCode;
     const mensaje = e instanceof Error ? e.message : String(e);
@@ -328,7 +451,20 @@ export async function enviarOtp(params: {
   idioma?: Idioma;
 }): Promise<void> {
   const { email, codigo, minutosValidez, idioma } = params;
-  const remitente = process.env["SMTP_REMITENTE"] ?? "Sophon Promoters <no-reply@localhost>";
+
+  /*
+   * El remitente, resuelto y comprobado ANTES de abrir la conexión.
+   *
+   * Antes había aquí un respaldo silencioso —`Sophon Promoters
+   * <no-reply@localhost>`— que era peor que no tenerlo: `localhost` no es un
+   * dominio del que nadie pueda mandar, así que servía únicamente para que el
+   * fallo llegara disfrazado de rechazo del servidor. El fallo correcto es
+   * decir qué variable está mal, y decirlo antes de gastar una conexión.
+   */
+  const r = remitenteSmtp();
+  if ("motivo" in r) throw new Error(r.motivo);
+  if (r.aviso) console.warn(`[correo] ${r.aviso}`);
+  const remitente = { name: r.nombre, address: r.direccion };
 
   const logotipo = await marca();
   const { html, texto, asunto } = plantillaOtp({
