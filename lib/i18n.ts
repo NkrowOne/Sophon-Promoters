@@ -116,18 +116,9 @@ export const es = {
   // nivel» decía que esa columna era suya cuando lo que enseña es la escalera
   // entera. El suyo se marca en su fila, que es donde se puede marcar.
   nivel: "Nivel",
-  /* Dice QUÉ se acumula, y esa precisión no es cosmética: «Acumulado este mes»
-     a secas se lee como «lo que llevas ganado», y entonces un umbral de 15.000 $
-     parece inalcanzable. Lo que cuenta para el nivel es lo que COMPRAN los
-     usuarios captados —su PRO—, que es una cifra mucho mayor que la recompensa.
-     Con el rótulo equivocado, la escalera entera parecía de adorno. */
-  acumuladoEsteMes: "Pagado por los usuarios este mes",
-  teFaltanParaElNivel: (importe: string, nivel: number) => `Te faltan ${importe} para LV${nivel}.`,
-  nivelMasAlto: "Estás en el nivel más alto.",
   // El tercer estado, que se quedaba sin frase: el umbral ya está cubierto pero
   // el nivel todavía no se aplica. Decir solo el acumulado justo el mes en que
   // hay algo que contar era dejarse la buena noticia dentro.
-  nivelGanadoEntraElDiaUno: (nivel: number) => `Ya tienes LV${nivel}: entra el día 1.`,
   comoSubeElNivel:
     "El nivel sube con lo que pagan los usuarios captados —su PRO—, no con lo que se gana de recompensa. Cuando el mes llega al mínimo del nivel siguiente, el precio nuevo entra el día 1 del mes de después.",
   tuComisionNoDependeDelNivel: "Tu comisión no cambia con el nivel: cobras lo mismo en todos.",
@@ -624,10 +615,6 @@ const en: Cadenas = {
   losNiveles: "The levels",
   nivelHaceFalta: (importe: string) => `from ${importe}`,
   nivel: "Level",
-  acumuladoEsteMes: "Paid by users this month",
-  teFaltanParaElNivel: (importe: string, nivel: number) => `${importe} to go for LV${nivel}.`,
-  nivelMasAlto: "You are on the highest level.",
-  nivelGanadoEntraElDiaUno: (nivel: number) => `LV${nivel} is yours: it starts on the 1st.`,
   comoSubeElNivel:
     "The level goes up with what the users you bring in pay for their PRO, not with the reward you earn. Once the month reaches the next level's minimum, the new price starts on the 1st of the month after.",
   tuComisionNoDependeDelNivel:
@@ -1000,10 +987,6 @@ const it: Cadenas = {
   losNiveles: "I livelli",
   nivelHaceFalta: (importe: string) => `da ${importe}`,
   nivel: "Livello",
-  acumuladoEsteMes: "Pagato dagli utenti questo mese",
-  teFaltanParaElNivel: (importe: string, nivel: number) => `Ti mancano ${importe} per LV${nivel}.`,
-  nivelMasAlto: "Sei al livello più alto.",
-  nivelGanadoEntraElDiaUno: (nivel: number) => `Hai già LV${nivel}: entra il 1\u00ba.`,
   comoSubeElNivel:
     "Il livello sale con quello che pagano gli utenti portati per il loro PRO, non con la ricompensa che si guadagna. Quando il mese arriva al minimo del livello successivo, il prezzo nuovo entra il 1\u00ba del mese dopo.",
   tuComisionNoDependeDelNivel:
@@ -1387,10 +1370,6 @@ const pt: Cadenas = {
   losNiveles: "Os níveis",
   nivelHaceFalta: (importe: string) => `a partir de ${importe}`,
   nivel: "Nível",
-  acumuladoEsteMes: "Pago pelos utilizadores este mês",
-  teFaltanParaElNivel: (importe: string, nivel: number) => `Faltam-te ${importe} para LV${nivel}.`,
-  nivelMasAlto: "Estás no nível mais alto.",
-  nivelGanadoEntraElDiaUno: (nivel: number) => `Já tens LV${nivel}: entra no dia 1.`,
   comoSubeElNivel:
     "O nível sobe com o que pagam os utilizadores angariados pelo PRO deles, não com a recompensa que se ganha. Quando o mês chega ao mínimo do nível seguinte, o preço novo entra no dia 1 do mês a seguir.",
   tuComisionNoDependeDelNivel: "A tua comissão não muda com o nível: recebes o mesmo em todos.",
@@ -1782,10 +1761,6 @@ const ar: Cadenas = {
   losNiveles: "المستويات",
   nivelHaceFalta: (importe: string) => `ابتداءً من ${importe}`,
   nivel: "المستوى",
-  acumuladoEsteMes: "ما دفعه المستخدمون هذا الشهر",
-  teFaltanParaElNivel: (importe: string, nivel: number) => `يتبقى ${importe} للوصول إلى LV${nivel}.`,
-  nivelMasAlto: "أنت في أعلى مستوى.",
-  nivelGanadoEntraElDiaUno: (nivel: number) => `لديك LV${nivel} بالفعل: يبدأ في اليوم الأول.`,
   comoSubeElNivel:
     "يرتفع المستوى بما يدفعه المستخدمون الذين تجلبهم مقابل اشتراك PRO، لا بالمكافأة التي تُحصَّل. وعندما يبلغ الشهر الحد الأدنى للمستوى التالي، يبدأ السعر الجديد في اليوم الأول من الشهر الذي يليه.",
   tuComisionNoDependeDelNivel: "عمولتك لا تتغير بالمستوى: تتقاضى المبلغ نفسه في كل المستويات.",

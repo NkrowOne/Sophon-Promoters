@@ -41,9 +41,16 @@ import type { Cadenas } from "@/lib/i18n";
  *
  * ── LO QUE NO SE ENSEÑA ──
  *
- * El precio global y el reparto del Operador. La resta se hace en el servidor
+ * El precio global y el reparto del Operador: la resta se hace en el servidor
  * (`lib/precios/tabla.ts`) y aquí llega solo el neto, así que no hay forma de
  * deducirlo ni equivocándose al pintar.
+ *
+ * Y tampoco **cuánto llevan pagado los usuarios este mes**. Estuvo aquí, con su
+ * «te faltan X para LV5», y se ha retirado: esa cifra es de la cuenta maestra
+ * —el volumen de todos los agentes juntos— así que cada agente estaba leyendo
+ * el tamaño del negocio de arriba. No se sustituye por la suya porque no existe
+ * una suya: el nivel es de la cuenta entera. Lo que queda es la escalera con
+ * sus umbrales, que es lo verdadero y lo único que hace falta para contarla.
  */
 
 interface Importe {
@@ -63,9 +70,6 @@ interface Respuesta {
   niveles: number[];
   tiers: FilaTier[];
   requisitos: { nivel: number; minimo: Importe }[];
-  /** `null` cuando la cuenta ya está en el nivel más alto. */
-  siguiente: { nivel: number; faltan: Importe } | null;
-  acumulado: Importe;
 }
 
 export default function Precios() {
@@ -99,9 +103,7 @@ export default function Precios() {
     );
   }
 
-  // La resta y su formato vienen hechos del servidor: ver la ruta. Aquí solo se
-  // decide cuál de las tres frases toca.
-  const { nivelActual, niveles, tiers, requisitos, siguiente, acumulado } = datos;
+  const { nivelActual, niveles, tiers, requisitos } = datos;
 
   return (
     <Pantalla titulo={t.preciosDelPrograma}>
@@ -212,24 +214,7 @@ export default function Precios() {
           </table>
         </div>
 
-        {/* Dónde está la cuenta dentro de esa escalera. Va DEBAJO de la tabla:
-            primero cuál es el juego, después dónde estás, que es el mismo orden
-            que sigue la banda del bono en la portada. */}
-        <p className="mt-4 text-apoyo text-texto-apoyo tabular-nums">
-          {t.acumuladoEsteMes}: <span className="cifra text-texto">{acumulado.texto}</span>
-          {/* Tres estados y no dos: sin siguiente nivel, con siguiente por
-              alcanzar, y con el umbral ya cubierto —que no es lo mismo que estar
-              arriba del todo: el nivel está ganado y entra el día 1—. Ese
-              tercero se quedaba sin frase y la línea terminaba en el acumulado,
-              justo el mes en que hay algo que celebrar. */}
-          {siguiente === null
-            ? ` · ${t.nivelMasAlto}`
-            : BigInt(siguiente.faltan.micros) > 0n
-              ? ` · ${t.teFaltanParaElNivel(siguiente.faltan.texto, siguiente.nivel)}`
-              : ` · ${t.nivelGanadoEntraElDiaUno(siguiente.nivel)}`}
-        </p>
-
-        <p className="mt-3 text-apoyo text-texto-apoyo">{t.comoSubeElNivel}</p>
+        <p className="mt-4 text-apoyo text-texto-apoyo">{t.comoSubeElNivel}</p>
         {/* La línea que evita el malentendido caro: un agente que lea esta
             pantalla puede concluir que cobra menos por estar en un nivel bajo, y
             no es así. Se dice aquí, pegada a la escalera que lo sugiere. */}
