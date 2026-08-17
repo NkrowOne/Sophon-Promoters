@@ -410,7 +410,7 @@ export function FalloDeCarga({
       <Vacio
         titulo={t.sesionCaducada}
         apoyo={t.sesionCaducadaApoyo}
-        accion={{ texto: t.vincularCuenta, href: "/alta", icono: "activar" }}
+        accion={{ texto: t.acceder, href: "/alta", icono: "activar" }}
       />
     );
   }

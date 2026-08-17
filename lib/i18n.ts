@@ -72,7 +72,19 @@ export const es = {
   // ── Acciones ──────────────────────────────────────────────────────────────
   activarWebmaster: "Activar webmaster",
   solicitarRetiro: "Retirar",
-  vincularCuenta: "Entrar con mi correo",
+  /*
+   * La chapa de la bienvenida y la de la sesión caducada.
+   *
+   * Decía «Entrar con mi correo», que es el MÉTODO y no la acción: en la
+   * bienvenida la línea de apoyo ya termina con «entra con tu correo», así que
+   * el botón repetía la frase que tenía tres renglones encima. Un botón dice lo
+   * que pasa al pulsarlo, y con la menor cantidad de palabras que lo diga.
+   *
+   * Se separa de `entrar`, que rotula el botón principal de Telegram al VERIFICAR
+   * el código —ese ya está dentro del alta y termina el trámite—. Aquí se está
+   * fuera y lo que se hace es acceder.
+   */
+  acceder: "Acceder",
   reintentar: "Reintentar",
   activar: "Activar",
   entrar: "Entrar",
@@ -538,7 +550,7 @@ const en: Cadenas = {
 
   activarWebmaster: "Activate webmaster",
   solicitarRetiro: "Withdraw",
-  vincularCuenta: "Sign in with my email",
+  acceder: "Sign in",
   reintentar: "Try again",
   activar: "Activate",
   entrar: "Sign in",
@@ -888,7 +900,7 @@ const it: Cadenas = {
 
   activarWebmaster: "Attiva webmaster",
   solicitarRetiro: "Preleva",
-  vincularCuenta: "Entra con la mia email",
+  acceder: "Accedi",
   reintentar: "Riprova",
   activar: "Attiva",
   entrar: "Entra",
@@ -1246,7 +1258,10 @@ const pt: Cadenas = {
 
   activarWebmaster: "Ativar webmaster",
   solicitarRetiro: "Levantar",
-  vincularCuenta: "Entrar com o meu email",
+  // «Aceder» es el verbo, pero el rótulo que usan de verdad las aplicaciones
+  // portuguesas para esto es «Iniciar sessão». Se prefiere lo que el agente ya
+  // ha visto cien veces a la traducción literal del español.
+  acceder: "Iniciar sessão",
   reintentar: "Tentar de novo",
   activar: "Ativar",
   entrar: "Entrar",
@@ -1616,7 +1631,7 @@ const ar: Cadenas = {
 
   activarWebmaster: "تفعيل مشرف موقع",
   solicitarRetiro: "سحب",
-  vincularCuenta: "الدخول ببريدي",
+  acceder: "تسجيل الدخول",
   reintentar: "أعد المحاولة",
   activar: "تفعيل",
   entrar: "دخول",
