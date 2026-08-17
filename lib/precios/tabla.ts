@@ -38,7 +38,6 @@
 
 import { microsDesdeCadena, type Micros } from "../devengo/dinero.ts";
 import { clienteSophon } from "../sophon/instancia.ts";
-import { NivelAfiliado } from "../sophon/tipos.ts";
 
 /**
  * Lo que se descuenta del precio global por cada usuario, en micros.
@@ -89,8 +88,6 @@ export interface RequisitoDeNivel {
 }
 
 export interface TablaPrecios {
-  /** El nivel en el que está la cuenta ahora mismo. */
-  nivelActual: number;
   /** Todos los niveles que existen, ordenados. */
   niveles: number[];
   tiers: FilaTier[];
@@ -100,17 +97,21 @@ export interface TablaPrecios {
 /*
  * ── LO QUE ESTA TABLA NO TRAE, Y NO ES UN OLVIDO ──
  *
- * `monthlyInvitedUsersPaid` —lo que llevan pagado este mes los usuarios
- * captados— estuvo aquí y se ha retirado. Es una cifra de la CUENTA MAESTRA, o
- * sea del Operador: el volumen de compra de todos sus agentes juntos. Servida a
- * cada agente le contaba el tamaño del negocio de arriba, que es exactamente lo
- * que la regla dura de `lib/i18n.ts` prohíbe.
+ * **Nada de `brief/register`.** Ese endpoint da dos cosas de la CUENTA MAESTRA
+ * —el nivel en el que está y lo que llevan pagado este mes sus usuarios— y las
+ * dos han salido de aquí, en este orden:
  *
- * Y sin ella se cae también el «te faltan X para LV5», que es su resta. No se
- * sustituye por la cifra del agente porque no existe: el nivel es de la cuenta
- * entera, así que ningún agente tiene un «lo que llevo» que comparar con el
- * umbral. Lo que queda es la escalera con sus umbrales, que es la información
- * verdadera y la única que el agente necesita para contarla.
+ *  · El acumulado, porque es el volumen de compra de todos los agentes juntos:
+ *    servido en la pantalla de cada uno le contaba el tamaño del negocio de
+ *    arriba, que es lo que la regla dura de `lib/i18n.ts` prohíbe.
+ *  · El nivel, porque **no hay un nivel que afirmar**. El de la cuenta maestra
+ *    no es el de ningún webmaster, y cada webmaster llega al suyo con los pagos
+ *    de los usuarios que trae él. Pintar «LV4» arriba decía que ese es el nivel
+ *    de quien mira, y no lo es de nadie.
+ *
+ * Así que esta tabla es exactamente lo que Sophon publica de sus tarifas: qué
+ * paga cada nivel en cada tier y qué hace falta para alcanzarlo. Quién está en
+ * cuál no sale de aquí, y de paso la pantalla se ahorra una llamada.
  */
 
 /**
@@ -149,25 +150,14 @@ export function precioDelWebmaster(unitPrice: string): Micros | null {
   return neto * USUARIOS_POR_BLOQUE;
 }
 
-/**
- * La tabla entera, lista para pintar.
- *
- * Las dos llamadas van EN PARALELO: son independientes y encadenarlas sumaba
- * dos viajes a Sophon al tiempo de la primera carga de una pantalla que el
- * agente abre delante de otra persona.
- */
+/** La tabla entera, lista para pintar. */
 export async function tablaDePrecios(): Promise<TablaPrecios> {
   const ahora = Date.now();
   if (memo && memo.expira > ahora) return memo.valor;
 
-  const cliente = clienteSophon();
-  const [tarifas, resumen] = await Promise.all([
-    cliente.tarifas(),
-    // `Total` y no `Webmaster`: de este resumen se usa SOLO `partnerLevel`, que
-    // es de la cuenta y no de un reparto concreto. Nada más de esta respuesta
-    // sale de este módulo — ver la nota de arriba.
-    cliente.resumenRegistros(NivelAfiliado.Total),
-  ]);
+  // Una sola llamada. Eran dos —`region/reward` y `brief/register`— y la segunda
+  // se ha caído entera con el nivel de la cuenta: ver la nota de arriba.
+  const tarifas = await clienteSophon().tarifas();
 
   const niveles = new Set<number>();
   const tiers: FilaTier[] = [];
@@ -193,7 +183,6 @@ export async function tablaDePrecios(): Promise<TablaPrecios> {
   }
 
   const valor: TablaPrecios = {
-    nivelActual: resumen.partnerLevel,
     niveles: [...niveles].sort((a, b) => a - b),
     // Por tier y no por precio: el orden de Sophon es el suyo, y T1 antes que T3
     // es el orden en que el agente los va a nombrar.

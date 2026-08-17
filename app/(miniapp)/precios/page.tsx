@@ -1,8 +1,10 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
 import { Icono } from "@/components/Icono";
 import { Banda, Cargando, FalloDeCarga, Pantalla, Vacio } from "@/components/Pantalla";
-import { useCadenas } from "@/components/TelegramProvider";
+import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { useRecurso } from "@/lib/api/recurso";
 import type { Cadenas } from "@/lib/i18n";
 
@@ -74,6 +76,27 @@ interface Respuesta {
 
 export default function Precios() {
   const t = useCadenas();
+  const { haptica } = useTelegram();
+  /*
+   * El nivel que se está mirando. `null` = ninguno, y ese es el estado inicial.
+   *
+   * No arranca en el nivel de la cuenta —ni en LV0— a propósito: cualquier
+   * valor de partida es la pantalla afirmando un nivel, y el de la cuenta
+   * maestra no es el de ningún webmaster. Vacío no miente, y de paso obliga a la
+   * tarjeta a explicar cómo se llena.
+   */
+  const [elegido, setElegido] = useState<number | null>(null);
+
+  const elegir = useCallback(
+    (nivel: number) => {
+      haptica("seleccion");
+      // Volver a tocar el mismo lo deselecciona. Sin esto no habría forma de
+      // regresar a «ningún nivel» sin recargar, y ese estado es el que enseña la
+      // tabla entera sin que ninguna fila tire de la vista.
+      setElegido((actual) => (actual === nivel ? null : nivel));
+    },
+    [haptica],
+  );
   // Igual que el resto de pantallas: lo último que se supo se pinta en el
   // primer fotograma al volver. Aquí importa más que en ninguna, porque volver
   // atrás y adelante es lo que hace el agente mientras lo enseña.
@@ -103,7 +126,7 @@ export default function Precios() {
     );
   }
 
-  const { nivelActual, niveles, tiers, requisitos } = datos;
+  const { niveles, tiers, requisitos } = datos;
 
   return (
     <Pantalla titulo={t.preciosDelPrograma}>
@@ -111,26 +134,33 @@ export default function Precios() {
         <p className="text-apoyo text-texto-apoyo">{t.preciosParaEnsenar}</p>
 
         {/*
-          LA RESPUESTA: lo que se cobra hoy, en los tres tiers.
+          LA TARJETA: los tres tiers, sus países, y el precio del nivel ELEGIDO.
 
           Es el único objeto con relieve de la pantalla y el único que lleva la
           malla de marca por detrás, igual que la tarjeta del bono en la portada
           y la del código en el alta: el color se extiende donde está la
           respuesta, y en ningún otro sitio.
+
+          Aquí había una píldora con «LV4» —el nivel de la cuenta maestra— y los
+          precios de ese nivel. Se ha ido con él: ese nivel no es el de ningún
+          webmaster, así que la tarjeta estaba afirmando de quien mira algo que
+          no era verdad de nadie. Ahora **no hay nivel por defecto**: la columna
+          de precios nace vacía y se llena al elegir uno abajo.
         */}
         <div className="tarjeta campo-malla mt-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-rotulo text-texto-apoyo">{t.loQueCobraTuWebmaster}</p>
-            {/* Píldora y no chapa: dice un ESTADO —en qué nivel está la cuenta—
-                y no se pulsa. La forma es lo que los separa, y esa distinción es
-                la corrección central del sistema de formas de la casa. */}
-            <span className="pildora shrink-0">LV{nivelActual}</span>
-          </div>
-          <p className="mt-1 text-apoyo text-texto-apoyo">{t.porCadaCienUsuarios}</p>
+          <p className="text-rotulo text-texto-apoyo">{t.loQueCobraTuWebmaster}</p>
+          {/* La línea de debajo cambia de trabajo según haya nivel elegido o no.
+              Sin elegir, su sitio es lo único que puede decir cómo se llena la
+              columna vacía: un control que no anuncia que se puede tocar no
+              existe. Con nivel elegido vuelve a ser la unidad de la cifra, que
+              es lo que hay que leer al lado del importe. */}
+          <p className="mt-1 text-apoyo text-texto-apoyo">
+            {elegido === null ? t.tocaUnNivel : t.porCadaCienUsuarios}
+          </p>
 
           <ul className="mt-4 divide-y divide-junta" role="list">
             {tiers.map((fila) => (
-              <FilaDePrecio key={fila.tier} fila={fila} nivel={nivelActual} etiquetas={t} />
+              <FilaDePrecio key={fila.tier} fila={fila} nivel={elegido} etiquetas={t} />
             ))}
           </ul>
         </div>
@@ -171,36 +201,61 @@ export default function Precios() {
             </thead>
             <tbody className="divide-y divide-junta">
               {niveles.map((nivel) => {
-                const esElActual = nivel === nivelActual;
+                const esElElegido = nivel === elegido;
                 const requisito = requisitos.find((r) => r.nivel === nivel);
                 return (
                   <tr
                     key={nivel}
-                    /* El nivel actual se marca por PESO y por tinta, no por
+                    /* El nivel elegido se marca por PESO y por tinta, no por
                        color: es el mismo criterio que los escalones del bono en
                        la portada, y es lo único que se distingue en escala de
-                       grises y con cualquier tema raro del cliente. El amarillo
-                       no entra porque una fila de una tabla no se pulsa. */
-                    className={esElActual ? "font-semibold text-texto" : "text-texto-apoyo"}
-                    aria-current={esElActual ? "true" : undefined}
+                       grises y con cualquier tema raro del cliente.
+
+                       Y NADA está marcado hasta que alguien elige: la tabla
+                       nace entera en tinta de apoyo. Marcar una fila por defecto
+                       sería volver a afirmar un nivel, que es justo lo que se ha
+                       quitado de arriba. */
+                    className={esElElegido ? "font-semibold text-texto" : "text-texto-apoyo"}
+                    aria-current={esElElegido ? "true" : undefined}
                   >
                     {/* `font-[inherit]`: un `th` nace en negrita por defecto, y
-                        aquí quien decide el peso es la FILA —el nivel actual va
-                        en semibold y el resto en normal—. Sin esto, la columna
-                        de niveles salía toda en negrita y la marca del nivel
-                        actual dejaba de distinguirse justo en su propia celda. */}
-                    <th scope="row" className="py-2.5 pe-3 text-start font-[inherit]">
-                      <span className="block">LV{nivel}</span>
-                      {/* El umbral, debajo y pequeño: es la condición de esa
-                          fila, no una cuarta cifra que comparar con las otras
-                          tres. Puesto en su propia columna, la tabla pasaba de
-                          cuatro columnas a cinco y en un móvil de 390 px las de
-                          dinero se partían en dos líneas. */}
-                      {requisito && (
-                        <span className="block text-rotulo font-normal opacity-70">
-                          {t.nivelHaceFalta(requisito.minimo.texto)}
-                        </span>
-                      )}
+                        aquí quien decide el peso es la FILA. Sin esto, la
+                        columna de niveles salía toda en negrita y la marca del
+                        elegido dejaba de distinguirse justo en su propia celda. */}
+                    <th scope="row" className="p-0 text-start font-[inherit]">
+                      {/*
+                        Un BOTÓN de verdad dentro de la celda, y no un `onClick`
+                        sobre la fila.
+
+                        Una `<tr>` con manejador no es alcanzable con el
+                        tabulador, no se activa con Enter y no se anuncia como
+                        algo que se pueda pulsar: quien navegue con teclado o
+                        con lector de pantalla se encontraría una tabla con una
+                        interacción invisible. El botón lo trae todo hecho, y
+                        `aria-pressed` dice además cuál está elegido.
+
+                        Ocupa la celda entera (`w-full`, relleno propio) para
+                        que el objetivo táctil sea la fila y no el texto: son
+                        44 px largos de alto con el umbral debajo.
+                      */}
+                      <button
+                        type="button"
+                        onClick={() => elegir(nivel)}
+                        aria-pressed={esElElegido}
+                        className="pulsable w-full rounded-control py-2.5 pe-3 text-start"
+                      >
+                        <span className="block">LV{nivel}</span>
+                        {/* El umbral, debajo y pequeño: es la condición de esa
+                            fila, no una cuarta cifra que comparar con las otras
+                            tres. Puesto en su propia columna, la tabla pasaba de
+                            cuatro columnas a cinco y en un móvil de 390 px las de
+                            dinero se partían en dos líneas. */}
+                        {requisito && (
+                          <span className="block text-rotulo font-normal opacity-70">
+                            {t.nivelHaceFalta(requisito.minimo.texto)}
+                          </span>
+                        )}
+                      </button>
                     </th>
                     {tiers.map((fila) => (
                       <td key={fila.tier} className="py-2.5 ps-3 text-end">
@@ -248,10 +303,11 @@ function FilaDePrecio({
   etiquetas: t,
 }: {
   fila: FilaTier;
-  nivel: number;
+  /** `null` mientras no se haya elegido ninguno: entonces no hay precio que dar. */
+  nivel: number | null;
   etiquetas: Cadenas;
 }) {
-  const precio = fila.porNivel[String(nivel)];
+  const precio = nivel === null ? undefined : fila.porNivel[String(nivel)];
 
   return (
     <li>
