@@ -110,7 +110,10 @@ export const es = {
   porCadaCienUsuarios: "Por cada 100 usuarios registrados",
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "país" : "países"}`,
   nivelDeLaCuenta: "Nivel de la cuenta",
-  losNiveles: "Los niveles",
+  losNiveles: "Sistema de niveles",
+  // Se toca un nivel para verlo arriba. La línea es corta y va donde falta el
+  // precio: un control que no dice que se puede tocar no existe.
+  tocaUnNivel: "Toca un nivel para ver sus precios.",
   nivelHaceFalta: (importe: string) => `desde ${importe}`,
   // Encabeza la COLUMNA que lista todos los niveles, no el del agente: «Tu
   // nivel» decía que esa columna era suya cuando lo que enseña es la escalera
@@ -120,7 +123,7 @@ export const es = {
   // el nivel todavía no se aplica. Decir solo el acumulado justo el mes en que
   // hay algo que contar era dejarse la buena noticia dentro.
   comoSubeElNivel:
-    "El nivel sube con lo que pagan los usuarios captados —su PRO—, no con lo que se gana de recompensa. Cuando el mes llega al mínimo del nivel siguiente, el precio nuevo entra el día 1 del mes de después.",
+    "El nivel se alcanza con los pagos totales de tus webmasters en la plataforma. Cuantos más usuarios PRO consiga, mayor será la suma y su nivel aumentará en base a los hitos.",
   tuComisionNoDependeDelNivel: "Tu comisión no cambia con el nivel: cobras lo mismo en todos.",
   sinPrecios: "Todavía no hay precios que enseñar.",
   sinPreciosApoyo: "Sophon no ha devuelto la tabla. Vuelve a intentarlo en un momento.",
@@ -612,11 +615,12 @@ const en: Cadenas = {
   porCadaCienUsuarios: "Per 100 registered users",
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "country" : "countries"}`,
   nivelDeLaCuenta: "Account level",
-  losNiveles: "The levels",
+  losNiveles: "Level system",
+  tocaUnNivel: "Tap a level to see its prices.",
   nivelHaceFalta: (importe: string) => `from ${importe}`,
   nivel: "Level",
   comoSubeElNivel:
-    "The level goes up with what the users you bring in pay for their PRO, not with the reward you earn. Once the month reaches the next level's minimum, the new price starts on the 1st of the month after.",
+    "The level is reached with the total payments your webmasters make on the platform. The more PRO users they get, the higher the sum, and their level rises with the milestones.",
   tuComisionNoDependeDelNivel:
     "Your commission does not change with the level: you are paid the same on all of them.",
   sinPrecios: "There are no prices to show yet.",
@@ -984,11 +988,12 @@ const it: Cadenas = {
   porCadaCienUsuarios: "Ogni 100 utenti registrati",
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "paese" : "paesi"}`,
   nivelDeLaCuenta: "Livello dell\'account",
-  losNiveles: "I livelli",
+  losNiveles: "Sistema di livelli",
+  tocaUnNivel: "Tocca un livello per vederne i prezzi.",
   nivelHaceFalta: (importe: string) => `da ${importe}`,
   nivel: "Livello",
   comoSubeElNivel:
-    "Il livello sale con quello che pagano gli utenti portati per il loro PRO, non con la ricompensa che si guadagna. Quando il mese arriva al minimo del livello successivo, il prezzo nuovo entra il 1\u00ba del mese dopo.",
+    "Il livello si raggiunge con i pagamenti totali dei tuoi webmaster sulla piattaforma. Pi\u00f9 utenti PRO ottiene, pi\u00f9 alta \u00e8 la somma, e il suo livello sale in base ai traguardi.",
   tuComisionNoDependeDelNivel:
     "La tua commissione non cambia con il livello: prendi lo stesso in tutti.",
   sinPrecios: "Non ci sono ancora prezzi da mostrare.",
@@ -1367,11 +1372,12 @@ const pt: Cadenas = {
   porCadaCienUsuarios: "Por cada 100 utilizadores registados",
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "país" : "países"}`,
   nivelDeLaCuenta: "Nível da conta",
-  losNiveles: "Os níveis",
+  losNiveles: "Sistema de níveis",
+  tocaUnNivel: "Toca num nível para veres os preços dele.",
   nivelHaceFalta: (importe: string) => `a partir de ${importe}`,
   nivel: "Nível",
   comoSubeElNivel:
-    "O nível sobe com o que pagam os utilizadores angariados pelo PRO deles, não com a recompensa que se ganha. Quando o mês chega ao mínimo do nível seguinte, o preço novo entra no dia 1 do mês a seguir.",
+    "O nível alcança-se com os pagamentos totais dos teus webmasters na plataforma. Quantos mais utilizadores PRO conseguir, maior é a soma, e o nível dele sobe com base nas metas.",
   tuComisionNoDependeDelNivel: "A tua comissão não muda com o nível: recebes o mesmo em todos.",
   sinPrecios: "Ainda não há preços para mostrar.",
   sinPreciosApoyo: "A Sophon não devolveu a tabela. Tenta outra vez daqui a pouco.",
@@ -1758,11 +1764,12 @@ const ar: Cadenas = {
   porCadaCienUsuarios: "لكل 100 مستخدم مسجَّل",
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "بلد" : "بلدًا"}`,
   nivelDeLaCuenta: "مستوى الحساب",
-  losNiveles: "المستويات",
+  losNiveles: "نظام المستويات",
+  tocaUnNivel: "اضغط على مستوى لعرض أسعاره.",
   nivelHaceFalta: (importe: string) => `ابتداءً من ${importe}`,
   nivel: "المستوى",
   comoSubeElNivel:
-    "يرتفع المستوى بما يدفعه المستخدمون الذين تجلبهم مقابل اشتراك PRO، لا بالمكافأة التي تُحصَّل. وعندما يبلغ الشهر الحد الأدنى للمستوى التالي، يبدأ السعر الجديد في اليوم الأول من الشهر الذي يليه.",
+    "يُبلَغ المستوى بإجمالي مدفوعات الـ webmasters على المنصة. وكلما حصل على مستخدمي PRO أكثر، ارتفع المجموع وارتفع مستواه بحسب الحدود.",
   tuComisionNoDependeDelNivel: "عمولتك لا تتغير بالمستوى: تتقاضى المبلغ نفسه في كل المستويات.",
   sinPrecios: "لا توجد أسعار لعرضها بعد.",
   sinPreciosApoyo: "لم تُرجع Sophon الجدول. أعد المحاولة بعد قليل.",

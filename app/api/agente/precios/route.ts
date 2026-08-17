@@ -51,7 +51,6 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   }
 
   return NextResponse.json({
-    nivelActual: tabla.nivelActual,
     niveles: tabla.niveles,
     tiers: tabla.tiers.map((fila) => ({
       tier: fila.tier,
