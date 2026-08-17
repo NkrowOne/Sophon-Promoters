@@ -97,6 +97,13 @@ export interface ResumenRegistros {
   /** Aquí sí llega como número, no como cadena. */
   countRegister: number;
   partnerLevel: number;
+  /**
+   * Lo que llevan pagado este mes los usuarios captados, en dólares.
+   *
+   * Es la cifra que se compara con `minMonthlyInvitedUsersPaid` para saber a
+   * qué nivel se llega. Mide COMPRA de los usuarios —el PRO que contratan—, no
+   * la recompensa que la cuenta cobra por ellos.
+   */
   monthlyInvitedUsersPaid: string;
 }
 
@@ -131,7 +138,19 @@ export interface PrecioRegion {
 
 export interface RequisitoNivel {
   partnerLevel: number;
-  /** Importe de pago mensual acumulado, NO un número de usuarios. */
+  /**
+   * Umbral del nivel: un IMPORTE, no un recuento.
+   *
+   * Y lo que mide ese importe es **lo que pagan los usuarios captados** en el
+   * mes —sus suscripciones PRO—, no la recompensa que se cobra por ellos. Las
+   * dos cosas son dinero y se parecen en la respuesta, así que confundirlas es
+   * fácil: la primera vez se leyó como «lo ganado», y entonces los umbrales
+   * ($100, $1000, $3000…) parecen inalcanzables cuando en realidad se llega a
+   * ellos con el volumen de compra de los usuarios, que es mucho mayor.
+   *
+   * Dicho al revés, y así es como lo cuenta el agente: se sube de nivel
+   * trayendo usuarios que compran PRO.
+   */
   minMonthlyInvitedUsersPaid: string;
 }
 
