@@ -88,7 +88,22 @@ export const es = {
   sinIngresos: "Tu equipo aún no ha traído registros.",
   sinIngresosApoyo: "Aparecerán aquí en cuanto alguien se registre desde sus enlaces.",
   sinMovimientos: "Todavía no has solicitado ningún retiro.",
-  sinVinculo: "Aquí no hay sesión abierta.",
+
+  /* ── La bienvenida ──────────────────────────────────────────────────────────
+   *
+   * Es lo PRIMERO que ve alguien que abre la Mini App sin sesión, así que es la
+   * pantalla que presenta el producto. Decía «Aquí no hay sesión abierta»:
+   * describía el estado del servidor —un 401— en vez de recibir a quien llega, y
+   * un mensaje de sistema como primera frase de un producto lo hace parecer
+   * roto antes de haberlo usado.
+   *
+   * Sigue las cinco reglas de arriba: recibe con verbo conjugado, sin
+   * exclamaciones y sin celebrar nada. Y la línea de apoyo dice de qué va esto
+   * —equipo, registros, saldo—, que es lo que el título no puede decir.
+   */
+  bienvenida: "Te damos la bienvenida a Sophon Promoters",
+  bienvenidaApoyo:
+    "Tu equipo, tus registros y tu saldo, en un solo sitio. Entra con tu correo para verlo.",
 
   // ── Alta del agente ───────────────────────────────────────────────────────
   entrarEnTuCuenta: "Entrar",
@@ -101,7 +116,6 @@ export const es = {
   correoSinCuentaApoyo: "Añade el código de activación para darte de alta.",
   enviarmeElCodigo: "Enviar código",
   confirmaQueEresTu: "Verificar correo",
-  pideCodigo: "Entra con tu correo.",
   otpEnviado: (email: string) =>
     `Código enviado a ${email}. Caduca en 10 minutos.`,
   codigoDeVerificacion: "Código de verificación",
@@ -539,7 +553,10 @@ const en: Cadenas = {
   sinIngresos: "Your team has not brought any signups yet.",
   sinIngresosApoyo: "They will show up here as soon as someone signs up through their links.",
   sinMovimientos: "You have not requested any payout yet.",
-  sinVinculo: "There is no session open here.",
+
+  bienvenida: "Welcome to Sophon Promoters",
+  bienvenidaApoyo:
+    "Your team, your signups and your balance, all in one place. Sign in with your email to see it.",
 
   entrarEnTuCuenta: "Sign in",
   introduceTuCorreo: "Enter your email. If you already have an account, we send you the verification code.",
@@ -551,7 +568,6 @@ const en: Cadenas = {
   correoSinCuentaApoyo: "Add the activation code to sign up.",
   enviarmeElCodigo: "Send code",
   confirmaQueEresTu: "Verify email",
-  pideCodigo: "Sign in with your email.",
   otpEnviado: (email: string) =>
     `Code sent to ${email}. It expires in 10 minutes.`,
   codigoDeVerificacion: "Verification code",
@@ -887,7 +903,10 @@ const it: Cadenas = {
   sinIngresos: "Il tuo team non ha ancora portato iscrizioni.",
   sinIngresosApoyo: "Compariranno qui appena qualcuno si iscrive dai suoi link.",
   sinMovimientos: "Non hai ancora richiesto nessun prelievo.",
-  sinVinculo: "Qui non c'è nessuna sessione aperta.",
+
+  bienvenida: "Ti diamo il benvenuto in Sophon Promoters",
+  bienvenidaApoyo:
+    "Il tuo team, le tue iscrizioni e il tuo saldo in un unico posto. Entra con la tua email per vederli.",
 
   entrarEnTuCuenta: "Entra",
   introduceTuCorreo: "Scrivi la tua email. Se hai già un account, ti mandiamo il codice di verifica.",
@@ -899,7 +918,6 @@ const it: Cadenas = {
   correoSinCuentaApoyo: "Aggiungi il codice di attivazione per registrarti.",
   enviarmeElCodigo: "Invia codice",
   confirmaQueEresTu: "Verifica email",
-  pideCodigo: "Entra con la tua email.",
   otpEnviado: (email: string) =>
     `Codice inviato a ${email}. Scade tra 10 minuti.`,
   codigoDeVerificacion: "Codice di verifica",
@@ -1243,7 +1261,10 @@ const pt: Cadenas = {
   sinIngresos: "A tua equipa ainda não trouxe registos.",
   sinIngresosApoyo: "Vão aparecer aqui assim que alguém se registar pelos links dele.",
   sinMovimientos: "Ainda não pediste nenhum levantamento.",
-  sinVinculo: "Aqui não há nenhuma sessão aberta.",
+
+  bienvenida: "Damos-te as boas-vindas à Sophon Promoters",
+  bienvenidaApoyo:
+    "A tua equipa, os teus registos e o teu saldo num só sítio. Entra com o teu email para veres.",
 
   entrarEnTuCuenta: "Entrar",
   introduceTuCorreo: "Escreve o teu email. Se já tens conta, mandamos-te o código de verificação.",
@@ -1255,7 +1276,6 @@ const pt: Cadenas = {
   correoSinCuentaApoyo: "Junta o código de ativação para te registares.",
   enviarmeElCodigo: "Enviar código",
   confirmaQueEresTu: "Verificar email",
-  pideCodigo: "Entra com o teu email.",
   otpEnviado: (email: string) =>
     `Código enviado para ${email}. Expira dentro de 10 minutos.`,
   codigoDeVerificacion: "Código de verificação",
@@ -1611,7 +1631,9 @@ const ar: Cadenas = {
   sinIngresos: "فريقك لم يجلب تسجيلات بعد.",
   sinIngresosApoyo: "ستظهر هنا فور أن يسجّل أحدهم عبر روابطه.",
   sinMovimientos: "لم تطلب أي سحب بعد.",
-  sinVinculo: "لا توجد جلسة مفتوحة هنا.",
+
+  bienvenida: "مرحبًا بك في Sophon Promoters",
+  bienvenidaApoyo: "فريقك وتسجيلاتك ورصيدك في مكان واحد. ادخل ببريدك الإلكتروني لتراها.",
 
   entrarEnTuCuenta: "الدخول",
   introduceTuCorreo: "اكتب بريدك الإلكتروني. إن كان لديك حساب بالفعل، نرسل لك رمز التحقق.",
@@ -1623,7 +1645,6 @@ const ar: Cadenas = {
   correoSinCuentaApoyo: "أضف رمز التفعيل للتسجيل.",
   enviarmeElCodigo: "إرسال الرمز",
   confirmaQueEresTu: "تأكيد البريد",
-  pideCodigo: "ادخل ببريدك الإلكتروني.",
   otpEnviado: (email: string) => `أُرسل الرمز إلى ${email}. تنتهي صلاحيته بعد 10 دقائق.`,
   codigoDeVerificacion: "رمز التحقق",
   cambiarElCorreo: "تغيير البريد",
