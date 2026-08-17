@@ -79,7 +79,12 @@ export interface FilaTier {
 
 export interface RequisitoDeNivel {
   nivel: number;
-  /** Pago mensual acumulado que hay que alcanzar, en micros. */
+  /**
+   * Lo que tienen que llevar pagado los usuarios captados en el mes para
+   * alcanzar este nivel, en micros. Mide su COMPRA de PRO, no la recompensa
+   * que cobra la cuenta: son dos cifras de dinero y confundirlas hace que los
+   * umbrales parezcan inalcanzables. Ver `lib/sophon/tipos.ts`.
+   */
   minimoMicros: string;
 }
 
@@ -90,7 +95,7 @@ export interface TablaPrecios {
   niveles: number[];
   tiers: FilaTier[];
   requisitos: RequisitoDeNivel[];
-  /** Pago mensual acumulado que lleva la cuenta, en micros. */
+  /** Lo que llevan pagado este mes los usuarios captados, en micros. */
   acumuladoMicros: string;
 }
 
