@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { plantillaOtp } from "../lib/correo.ts";
+import { analizarRemitente, plantillaOtp } from "../lib/correo.ts";
 import { IDIOMAS } from "../lib/idiomas.ts";
 
 /**
@@ -132,5 +132,55 @@ describe("el correo del código", () => {
     for (const viejo of ["#1f1710", "#6e5b4a", "#eadfc6", "#482304"]) {
       assert.ok(!html.includes(viejo), `sigue el color de la paleta anterior: ${viejo}`);
     }
+  });
+});
+
+/**
+ * El REMITENTE, que es la mitad del correo que no se ve hasta que rebota.
+ *
+ * Este bloque existe por un fallo real y de los caros: el valor llevaba las
+ * comillas del `.env.example` pegadas, el analizador las leyó como nombre, la
+ * dirección se quedó vacía y el sobre salió con el remitente nulo. El servidor
+ * contestó `530 ... not authorized to send mail as the null sender (<>)`, que
+ * se lee como un permiso del buzón y no lo es. Los agentes veían llegar correos
+ * de «Sophon Promoters < >» hasta que dejaron de llegar.
+ */
+describe("el remitente del correo", () => {
+  const USUARIO = "sophonpromoters@nkrow.com";
+
+  it("acepta la forma buena", () => {
+    const r = analizarRemitente("Sophon Promoters <no-reply@nkrow.com>", USUARIO);
+    assert.deepEqual(r, { nombre: "Sophon Promoters", direccion: "no-reply@nkrow.com" });
+  });
+
+  it("sobrevive a las comillas del panel de despliegue, que es EL fallo", () => {
+    // Copiado tal cual de `.env.example`, comillas incluidas. Sin esto el nombre
+    // sale como «Sophon Promoters < >» y la dirección, vacía.
+    const r = analizarRemitente('"Sophon Promoters <no-reply@nkrow.com>"', USUARIO);
+    assert.deepEqual(r, { nombre: "Sophon Promoters", direccion: "no-reply@nkrow.com" });
+  });
+
+  it("NUNCA devuelve una dirección vacía: eso es el remitente nulo del 530", () => {
+    // Las cuatro formas que dejaban la dirección en blanco.
+    for (const malo of ["Sophon Promoters", "Sophon Promoters <>", '"Sophon Promoters"', "  "]) {
+      const r = analizarRemitente(malo, USUARIO);
+      assert.ok(!("motivo" in r), `${malo}: debería caer a SMTP_USER`);
+      assert.equal(r.direccion, USUARIO);
+    }
+  });
+
+  it("avisa cuando cae a SMTP_USER, para que el fallo no se quede callado", () => {
+    const r = analizarRemitente("Sophon Promoters <>", USUARIO);
+    assert.ok(!("motivo" in r) && r.aviso, "un respaldo silencioso es un fallo que nadie arregla");
+  });
+
+  it("da el motivo cuando no hay NADA utilizable, en vez de mandar un sobre nulo", () => {
+    const r = analizarRemitente("Sophon Promoters", undefined);
+    assert.ok("motivo" in r && r.motivo.includes("SMTP_REMITENTE"));
+  });
+
+  it("vale también una dirección suelta, sin nombre ni ángulos", () => {
+    const r = analizarRemitente("no-reply@nkrow.com", USUARIO);
+    assert.deepEqual(r, { nombre: "Sophon Promoters", direccion: "no-reply@nkrow.com" });
   });
 });
