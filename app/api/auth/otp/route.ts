@@ -42,7 +42,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
    * Se resuelve aquí arriba, antes que nada, porque los errores de esta ruta
    * también lo necesitan y en este punto todavía no hay agente ni sesión de la
    * que sacarlo. Sin initData válido no hay ni `language_code` y se cae al
-   * idioma por defecto.
+   * idioma de respaldo, que es el inglés (`lib/idiomas.ts`).
    */
   const idioma = idiomaDesdeTelegram(usuario?.language_code);
   const t = cadenas(idioma);

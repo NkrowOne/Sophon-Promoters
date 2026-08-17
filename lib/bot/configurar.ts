@@ -17,7 +17,7 @@
  */
 
 import { cadenas, type Cadenas } from "../i18n.ts";
-import { IDIOMAS } from "../idiomas.ts";
+import { IDIOMAS, IDIOMA_DE_RESPALDO } from "../idiomas.ts";
 import { idOperador } from "../operador.ts";
 import { secretoWebhook } from "../secretos.ts";
 import { tokenBot } from "./token.ts";
@@ -149,14 +149,20 @@ export async function configurarBot(): Promise<ResultadoConfiguracion> {
 
   /*
    * Telegram elige la lista de comandos por el `language_code` del cliente y cae
-   * a la que no lleva idioma cuando ninguna encaja, así que el español se
-   * registra DOS veces: una sin `language_code`, como respaldo universal, y otra
-   * como `es`.
+   * a la que no lleva idioma cuando ninguna encaja, así que el idioma de
+   * respaldo se registra DOS veces: una sin `language_code`, como respaldo
+   * universal, y otra con el suyo.
+   *
+   * Va atado a `IDIOMA_DE_RESPALDO` y no escrito a mano. Estaba como
+   * `idioma === "es"`, así que el día que el respaldo pasó al inglés el menú del
+   * bot se habría quedado en español para un francés mientras la Mini App le
+   * hablaba en inglés: la misma pregunta contestada de dos maneras según por
+   * dónde entrase.
    */
   for (const idioma of IDIOMAS) {
     const t = cadenas(idioma);
     const commands = COMANDOS.map((c) => ({ command: c.command, description: c.descripcion(t) }));
-    if (idioma === "es") {
+    if (idioma === IDIOMA_DE_RESPALDO) {
       await llamar(token, "setMyCommands", { commands, scope: { type: "all_private_chats" } });
     }
     await llamar(token, "setMyCommands", {

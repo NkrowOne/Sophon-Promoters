@@ -148,9 +148,15 @@ model Agente {
   /// La Mini App no lo necesita —lo saca de `initDataUnsafe` en cada carga—,
   /// pero el bot sí: cuando el Operador resuelve un retiro no hay ninguna
   /// actualización de Telegram de la que leer `language_code`, así que sin esta
-  /// columna el aviso de «te hemos pagado» saldría en español para todo el
-  /// mundo. Se escribe al vincular la cuenta y se refresca en cada `/start`.
-  idioma String @default("es")
+  /// columna el aviso de «te hemos pagado» saldría en un solo idioma para todo
+  /// el mundo. Se escribe al vincular la cuenta y se refresca en cada `/start`.
+  ///
+  /// El valor por defecto es el idioma de respaldo de `lib/idiomas.ts`, y tiene
+  /// que seguir siéndolo: dos sitios contestando distinto a «¿en qué idioma le
+  /// hablo a quien no ha dicho el suyo?» es un sitio donde uno se queda viejo.
+  /// Apenas se usa —el alta siempre escribe el idioma real—, y precisamente por
+  /// eso una discrepancia aquí tardaría años en verse.
+  idioma String @default("en")
 
   /// Invalidación instantánea de todas las sesiones: basta con incrementarlo.
   epocaSesion Int @default(0)

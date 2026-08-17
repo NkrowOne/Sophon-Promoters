@@ -1,0 +1,16 @@
+-- El idioma de quien no ha dicho el suyo pasa a ser el inglés.
+--
+-- `Agente.idioma` guarda el idioma en el que se le habla desde el SERVIDOR —el
+-- aviso de «te hemos pagado» sale de ahí, porque en ese momento no hay ninguna
+-- actualización de Telegram de la que leer `language_code`—. Su valor por
+-- defecto era `es`, la misma decisión que `lib/idiomas.ts` toma en código, y
+-- tiene que seguir diciendo lo mismo que él: dos sitios contestando distinto a
+-- «¿en qué idioma le hablo a quien no ha dicho el suyo?» es un sitio donde uno
+-- se queda viejo.
+--
+-- NO se tocan las filas existentes, y es deliberado. Cada agente dado de alta
+-- tiene ahí su idioma REAL —el alta lo escribe siempre, y cada `/start` lo
+-- refresca—, así que un `UPDATE` masivo no corregiría un respaldo: le cambiaría
+-- el idioma a gente que sí lo había dicho. El `es` que haya en una fila es un
+-- agente que habla español.
+ALTER TABLE "Agente" ALTER COLUMN "idioma" SET DEFAULT 'en';
