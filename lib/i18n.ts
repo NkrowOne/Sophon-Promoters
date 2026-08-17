@@ -111,9 +111,15 @@ export const es = {
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "país" : "países"}`,
   nivelDeLaCuenta: "Nivel de la cuenta",
   losNiveles: "Sistema de niveles",
-  // Se toca un nivel para verlo arriba. La línea es corta y va donde falta el
-  // precio: un control que no dice que se puede tocar no existe.
-  tocaUnNivel: "Toca un nivel para ver sus precios.",
+  // Un control que no anuncia que se puede tocar no existe. Va bajo el rótulo
+  // de la tabla —donde está el control— y nombra dónde aparece el resultado,
+  // que queda fuera de la vista al pie de una tabla de siete filas.
+  tocaUnNivel: "Toca un nivel para ver sus precios arriba.",
+  nivelInicial: "Nivel inicial",
+  // El cierre del cómputo y su entrada en vigor, que es lo que el agente tiene
+  // que saber decir: no basta con alcanzar el hito, hay que esperar al día 1.
+  cuandoSeAplicaElNivel:
+    "El cómputo se cierra el último día de cada mes, y el nivel que resulte rige desde el primer día del mes siguiente.",
   nivelHaceFalta: (importe: string) => `desde ${importe}`,
   // Encabeza la COLUMNA que lista todos los niveles, no el del agente: «Tu
   // nivel» decía que esa columna era suya cuando lo que enseña es la escalera
@@ -616,7 +622,10 @@ const en: Cadenas = {
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "country" : "countries"}`,
   nivelDeLaCuenta: "Account level",
   losNiveles: "Level system",
-  tocaUnNivel: "Tap a level to see its prices.",
+  tocaUnNivel: "Tap a level to see its prices above.",
+  nivelInicial: "Starting level",
+  cuandoSeAplicaElNivel:
+    "The count closes on the last day of each month, and the resulting level applies from the first day of the month after.",
   nivelHaceFalta: (importe: string) => `from ${importe}`,
   nivel: "Level",
   comoSubeElNivel:
@@ -989,7 +998,10 @@ const it: Cadenas = {
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "paese" : "paesi"}`,
   nivelDeLaCuenta: "Livello dell\'account",
   losNiveles: "Sistema di livelli",
-  tocaUnNivel: "Tocca un livello per vederne i prezzi.",
+  tocaUnNivel: "Tocca un livello per vederne i prezzi qui sopra.",
+  nivelInicial: "Livello iniziale",
+  cuandoSeAplicaElNivel:
+    "Il calcolo si chiude l'ultimo giorno di ogni mese, e il livello che ne risulta vale dal primo giorno del mese successivo.",
   nivelHaceFalta: (importe: string) => `da ${importe}`,
   nivel: "Livello",
   comoSubeElNivel:
@@ -1373,7 +1385,10 @@ const pt: Cadenas = {
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "país" : "países"}`,
   nivelDeLaCuenta: "Nível da conta",
   losNiveles: "Sistema de níveis",
-  tocaUnNivel: "Toca num nível para veres os preços dele.",
+  tocaUnNivel: "Toca num nível para veres os preços dele acima.",
+  nivelInicial: "Nível inicial",
+  cuandoSeAplicaElNivel:
+    "O cômputo fecha no último dia de cada mês, e o nível que resultar vigora a partir do primeiro dia do mês seguinte.",
   nivelHaceFalta: (importe: string) => `a partir de ${importe}`,
   nivel: "Nível",
   comoSubeElNivel:
@@ -1765,7 +1780,10 @@ const ar: Cadenas = {
   paisesDelTier: (n: number) => `${n} ${n === 1 ? "بلد" : "بلدًا"}`,
   nivelDeLaCuenta: "مستوى الحساب",
   losNiveles: "نظام المستويات",
-  tocaUnNivel: "اضغط على مستوى لعرض أسعاره.",
+  tocaUnNivel: "اضغط على مستوى لعرض أسعاره في الأعلى.",
+  nivelInicial: "المستوى المبدئي",
+  cuandoSeAplicaElNivel:
+    "يُغلق الحساب في آخر يوم من كل شهر، ويسري المستوى الناتج ابتداءً من اليوم الأول من الشهر التالي.",
   nivelHaceFalta: (importe: string) => `ابتداءً من ${importe}`,
   nivel: "المستوى",
   comoSubeElNivel:

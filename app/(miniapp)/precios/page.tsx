@@ -30,13 +30,16 @@ import type { Cadenas } from "@/lib/i18n";
  *    «lo que cobras». Aquí el agente no es el sujeto: es quien lo está
  *    contando. Su comisión va en su saldo y no se mezcla con esto.
  *
- * ── LA JERARQUÍA ──
+ * ── LA JERARQUÍA, Y EL NIVEL QUE LA GOBIERNA ──
  *
- * Sin placa, y por el mismo motivo que `/red`: la respuesta de esta pantalla no
- * es una cifra que quepa en una cabecera, es una tabla. Lo que hace de
- * veredicto es la tarjeta de arriba —los tres precios del nivel en el que está
- * la cuenta HOY—, que es lo que el agente lee en voz alta. La escalera entera
- * viene después y contesta otra pregunta: «¿y esto puede subir?».
+ * Todo lo que se pinta depende de UN nivel, así que ese nivel preside: va en la
+ * placa, y su rótulo es además el título de la pantalla. Debajo, la tarjeta con
+ * los tres precios de ese nivel —lo que el agente lee en voz alta— y después la
+ * escalera entera, que contesta otra pregunta: «¿y esto puede subir?».
+ *
+ * La escalera no solo se lee: **se toca**. Elegir una fila cambia el nivel de la
+ * placa y los precios de la tarjeta, que es como se enseña «si llegas aquí,
+ * cobrarías esto». Al entrar manda el primer peldaño, el de quien empieza hoy.
  *
  * Un objeto con relieve y ni uno más, el de la respuesta. La escalera va de
  * tabla sobre la banda: siete filas de datos no son siete objetos levantados.
@@ -47,12 +50,12 @@ import type { Cadenas } from "@/lib/i18n";
  * (`lib/precios/tabla.ts`) y aquí llega solo el neto, así que no hay forma de
  * deducirlo ni equivocándose al pintar.
  *
- * Y tampoco **cuánto llevan pagado los usuarios este mes**. Estuvo aquí, con su
- * «te faltan X para LV5», y se ha retirado: esa cifra es de la cuenta maestra
- * —el volumen de todos los agentes juntos— así que cada agente estaba leyendo
- * el tamaño del negocio de arriba. No se sustituye por la suya porque no existe
- * una suya: el nivel es de la cuenta entera. Lo que queda es la escalera con
- * sus umbrales, que es lo verdadero y lo único que hace falta para contarla.
+ * Y nada de la CUENTA MAESTRA. Estuvieron aquí su volumen de compra del mes
+ * —«te faltan X para LV5»— y su nivel, con una píldora «LV4» arriba, y los dos
+ * se han ido: el primero contaba a cada agente el tamaño del negocio de arriba,
+ * y el segundo afirmaba de quien mira un nivel que no es el de ningún
+ * webmaster. El nivel de la placa no dice en cuál ESTÁ nadie: dice cuál se está
+ * mirando.
  */
 
 interface Importe {
@@ -68,7 +71,6 @@ interface FilaTier {
 }
 
 interface Respuesta {
-  nivelActual: number;
   niveles: number[];
   tiers: FilaTier[];
   requisitos: { nivel: number; minimo: Importe }[];
@@ -78,22 +80,24 @@ export default function Precios() {
   const t = useCadenas();
   const { haptica } = useTelegram();
   /*
-   * El nivel que se está mirando. `null` = ninguno, y ese es el estado inicial.
+   * El nivel ELEGIDO A MANO, o `null` si todavía no se ha tocado ninguno.
    *
-   * No arranca en el nivel de la cuenta —ni en LV0— a propósito: cualquier
-   * valor de partida es la pantalla afirmando un nivel, y el de la cuenta
-   * maestra no es el de ningún webmaster. Vacío no miente, y de paso obliga a la
-   * tarjeta a explicar cómo se llena.
+   * `null` no significa «sin nivel»: significa «sin elegir», y entonces se
+   * enseña el primero de la escalera. Se guarda así, y no con el nivel ya
+   * dentro, porque el estado se declara antes de que la respuesta llegue: con
+   * un valor inicial habría que corregirlo en un efecto en cuanto se supiera
+   * cuál es el primero de verdad, y esa corrección es un repintado y un
+   * fotograma con el nivel equivocado.
    */
   const [elegido, setElegido] = useState<number | null>(null);
 
   const elegir = useCallback(
     (nivel: number) => {
       haptica("seleccion");
-      // Volver a tocar el mismo lo deselecciona. Sin esto no habría forma de
-      // regresar a «ningún nivel» sin recargar, y ese estado es el que enseña la
-      // tabla entera sin que ninguna fila tire de la vista.
-      setElegido((actual) => (actual === nivel ? null : nivel));
+      // Sin alternar: tocar el elegido NO lo suelta. Al arrancar en el primer
+      // nivel siempre hay uno puesto, así que «ninguno» dejaría la placa sin
+      // cifra y la tarjeta sin precios — un estado que ya no significa nada.
+      setElegido(nivel);
     },
     [haptica],
   );
@@ -128,8 +132,47 @@ export default function Precios() {
 
   const { niveles, tiers, requisitos } = datos;
 
+  /*
+   * El nivel que se está enseñando: el elegido a mano, o el PRIMERO de la
+   * escalera mientras no se haya tocado ninguno.
+   *
+   * El primero y no un cero escrito a mano: los niveles salen de Sophon, y si
+   * algún día su escalera empezara en otro sitio, un `0` fijo pediría precios
+   * de un nivel que no existe y la tarjeta se llenaría de guiones.
+   */
+  const nivelVisto = elegido ?? niveles[0] ?? 0;
+  const esElInicial = nivelVisto === niveles[0];
+  const requisitoVisto = requisitos.find((r) => r.nivel === nivelVisto);
+
   return (
-    <Pantalla titulo={t.preciosDelPrograma}>
+    <Pantalla
+      /*
+       * LA PLACA: el nivel que gobierna todo lo que hay debajo.
+       *
+       * Su rótulo es el `h1` de la pantalla —así lo define `Placa`—, de modo que
+       * nombrar la pantalla y presentar la cifra son la misma pieza. Por eso el
+       * rótulo sigue siendo «Precios del programa» y no «Nivel»: lo que esto es
+       * sigue siendo una tabla de precios; el nivel es la llave para leerla.
+       *
+       * La cifra es el nivel y no un importe, y es la primera placa de la
+       * aplicación que no lleva dinero. Cabe: la placa presenta LA RESPUESTA de
+       * su pantalla, y aquí la respuesta a «¿cuánto cobra?» empieza por «¿en qué
+       * nivel?». Los tres importes vienen justo debajo, en la tarjeta.
+       *
+       * El apoyo cambia con el nivel: en el primero dice que es el de partida
+       * —que es lo que hay que contarle a alguien que empieza— y en los demás,
+       * lo que hace falta para llegar.
+       */
+      placa={{
+        rotulo: t.preciosDelPrograma,
+        valor: <span className="text-cifra-mayor tabular-nums">LV{nivelVisto}</span>,
+        apoyo: esElInicial
+          ? t.nivelInicial
+          : requisitoVisto
+            ? t.nivelHaceFalta(requisitoVisto.minimo.texto)
+            : undefined,
+      }}
+    >
       <Banda orden={0} tono={0} className="pb-6">
         <p className="text-apoyo text-texto-apoyo">{t.preciosParaEnsenar}</p>
 
@@ -144,23 +187,16 @@ export default function Precios() {
           Aquí había una píldora con «LV4» —el nivel de la cuenta maestra— y los
           precios de ese nivel. Se ha ido con él: ese nivel no es el de ningún
           webmaster, así que la tarjeta estaba afirmando de quien mira algo que
-          no era verdad de nadie. Ahora **no hay nivel por defecto**: la columna
-          de precios nace vacía y se llena al elegir uno abajo.
+          no era verdad de nadie. El nivel que manda ahora es el de la placa, y
+          arranca en el primero de la escalera: el de quien empieza hoy.
         */}
         <div className="tarjeta campo-malla mt-5">
           <p className="text-rotulo text-texto-apoyo">{t.loQueCobraTuWebmaster}</p>
-          {/* La línea de debajo cambia de trabajo según haya nivel elegido o no.
-              Sin elegir, su sitio es lo único que puede decir cómo se llena la
-              columna vacía: un control que no anuncia que se puede tocar no
-              existe. Con nivel elegido vuelve a ser la unidad de la cifra, que
-              es lo que hay que leer al lado del importe. */}
-          <p className="mt-1 text-apoyo text-texto-apoyo">
-            {elegido === null ? t.tocaUnNivel : t.porCadaCienUsuarios}
-          </p>
+          <p className="mt-1 text-apoyo text-texto-apoyo">{t.porCadaCienUsuarios}</p>
 
           <ul className="mt-4 divide-y divide-junta" role="list">
             {tiers.map((fila) => (
-              <FilaDePrecio key={fila.tier} fila={fila} nivel={elegido} etiquetas={t} />
+              <FilaDePrecio key={fila.tier} fila={fila} nivel={nivelVisto} etiquetas={t} />
             ))}
           </ul>
         </div>
@@ -171,6 +207,10 @@ export default function Precios() {
           dentro de la tarjeta. */}
       <Banda orden={1} tono={1} etiqueta={t.losNiveles} className="py-6">
         <p className="text-rotulo text-texto-apoyo">{t.losNiveles}</p>
+        {/* Va aquí, pegada al control, y no al pie: el resultado de tocar sale
+            en la placa, que con siete filas de tabla por medio queda fuera de la
+            vista. Si no dice dónde mirar, el toque parece no hacer nada. */}
+        <p className="mt-1 text-apoyo text-texto-apoyo">{t.tocaUnNivel}</p>
 
         {/*
           Una TABLA de verdad, no una retícula de divs.
@@ -201,7 +241,7 @@ export default function Precios() {
             </thead>
             <tbody className="divide-y divide-junta">
               {niveles.map((nivel) => {
-                const esElElegido = nivel === elegido;
+                const esElElegido = nivel === nivelVisto;
                 const requisito = requisitos.find((r) => r.nivel === nivel);
                 return (
                   <tr
@@ -211,10 +251,11 @@ export default function Precios() {
                        la portada, y es lo único que se distingue en escala de
                        grises y con cualquier tema raro del cliente.
 
-                       Y NADA está marcado hasta que alguien elige: la tabla
-                       nace entera en tinta de apoyo. Marcar una fila por defecto
-                       sería volver a afirmar un nivel, que es justo lo que se ha
-                       quitado de arriba. */
+                       Lo marcado es lo que se está VIENDO, que al entrar es el
+                       primer nivel. No se afirma nada de quien mira —eso era la
+                       píldora «LV4» que se quitó—: se dice qué fila corresponde
+                       a los precios de arriba, que es lo que ata las dos mitades
+                       de la pantalla. */
                     className={esElElegido ? "font-semibold text-texto" : "text-texto-apoyo"}
                     aria-current={esElElegido ? "true" : undefined}
                   >
@@ -270,6 +311,12 @@ export default function Precios() {
         </div>
 
         <p className="mt-4 text-apoyo text-texto-apoyo">{t.comoSubeElNivel}</p>
+        {/* Cuándo se cierra la cuenta y desde cuándo rige. Va en su propio
+            párrafo y detrás: primero de dónde sale el nivel, después cuándo
+            entra. Juntos en uno, la fecha se pierde dentro de la explicación, y
+            es justo la mitad que el agente tiene que saber decir —alcanzar el
+            hito no es cobrarlo ya—. */}
+        <p className="mt-2 text-apoyo text-texto-apoyo">{t.cuandoSeAplicaElNivel}</p>
         {/* La línea que evita el malentendido caro: un agente que lea esta
             pantalla puede concluir que cobra menos por estar en un nivel bajo, y
             no es así. Se dice aquí, pegada a la escalera que lo sugiere. */}
