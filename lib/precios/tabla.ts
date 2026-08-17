@@ -95,9 +95,23 @@ export interface TablaPrecios {
   niveles: number[];
   tiers: FilaTier[];
   requisitos: RequisitoDeNivel[];
-  /** Lo que llevan pagado este mes los usuarios captados, en micros. */
-  acumuladoMicros: string;
 }
+
+/*
+ * ── LO QUE ESTA TABLA NO TRAE, Y NO ES UN OLVIDO ──
+ *
+ * `monthlyInvitedUsersPaid` —lo que llevan pagado este mes los usuarios
+ * captados— estuvo aquí y se ha retirado. Es una cifra de la CUENTA MAESTRA, o
+ * sea del Operador: el volumen de compra de todos sus agentes juntos. Servida a
+ * cada agente le contaba el tamaño del negocio de arriba, que es exactamente lo
+ * que la regla dura de `lib/i18n.ts` prohíbe.
+ *
+ * Y sin ella se cae también el «te faltan X para LV5», que es su resta. No se
+ * sustituye por la cifra del agente porque no existe: el nivel es de la cuenta
+ * entera, así que ningún agente tiene un «lo que llevo» que comparar con el
+ * umbral. Lo que queda es la escalera con sus umbrales, que es la información
+ * verdadera y la única que el agente necesita para contarla.
+ */
 
 /**
  * Caché en proceso.
@@ -149,8 +163,9 @@ export async function tablaDePrecios(): Promise<TablaPrecios> {
   const cliente = clienteSophon();
   const [tarifas, resumen] = await Promise.all([
     cliente.tarifas(),
-    // `Total` y no `Webmaster`: de este resumen solo se usan el nivel y el
-    // acumulado, que son de la CUENTA y no de un reparto concreto.
+    // `Total` y no `Webmaster`: de este resumen se usa SOLO `partnerLevel`, que
+    // es de la cuenta y no de un reparto concreto. Nada más de esta respuesta
+    // sale de este módulo — ver la nota de arriba.
     cliente.resumenRegistros(NivelAfiliado.Total),
   ]);
 
@@ -189,7 +204,6 @@ export async function tablaDePrecios(): Promise<TablaPrecios> {
         minimoMicros: microsDesdeCadena(r.minMonthlyInvitedUsersPaid).toString(),
       }))
       .sort((a, b) => a.nivel - b.nivel),
-    acumuladoMicros: microsDesdeCadena(resumen.monthlyInvitedUsersPaid).toString(),
   };
 
   memo = { valor, expira: ahora + MINUTOS_CACHE * 60_000 };
