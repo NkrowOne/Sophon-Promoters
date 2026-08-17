@@ -339,6 +339,16 @@ export default function Inicio() {
               bot y desde la ficha. */}
           <ul className="mt-3 divide-y divide-junta" role="list">
             <Fila href="/red" icono="red" etiqueta={t.red} dato={datos ? String(datos.webmasters) : null} />
+            {/* Los precios van SIN dato a la derecha, y es lo correcto: las
+                otras tres filas llevan una cifra que cambia —cuántos, cuánto—
+                y esta lleva a una tabla que es la misma para todo el mundo.
+                Ponerle un número inventado —«3 tiers»— sería llenar la columna
+                por simetría.
+
+                Y va la tercera, entre el equipo y el dinero: se abre mientras
+                se capta, que es justo lo que hay entre tener equipo y cobrar
+                por él. */}
+            <Fila href="/precios" icono="pro" etiqueta={t.precios} />
             <Fila href="/historico" icono="historico" etiqueta={t.historico} />
             <Fila
               href="/cartera"
