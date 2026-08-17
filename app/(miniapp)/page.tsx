@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Icono, type NombreIcono } from "@/components/Icono";
+import { Isotipo } from "@/components/Isotipo";
 import { Aviso, Banda, Cargando, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
@@ -148,22 +149,9 @@ export default function Inicio() {
     };
   }, [dias]);
 
-  if (error && error.estado === 401) {
-    // Sin sesión no hay nada que enseñar: se manda al alta en vez de mostrar
-    // una pantalla vacía que no explica por qué está vacía.
-    // El margen sale de la VARIABLE y no de `px-4`: al subir el margen de
-    // pantalla de 16 a 18 px, aquel literal se quedó atrás y esta pantalla
-    // sangraba 2 px distintos de todas las demás.
-    return (
-      <main className="min-h-dvh pt-10" style={{ paddingInline: "var(--margen-pantalla)" }}>
-        <Vacio
-          titulo={t.sinVinculo}
-          apoyo={t.pideCodigo}
-          accion={{ texto: t.vincularCuenta, href: "/alta" }}
-        />
-      </main>
-    );
-  }
+  // Sin sesión no hay datos que enseñar: la portada cede el sitio a la pantalla
+  // de bienvenida, que es la que presenta el producto.
+  if (error && error.estado === 401) return <Bienvenida etiquetas={t} />;
 
   const cartera = datos?.cartera;
 
@@ -361,6 +349,67 @@ export default function Inicio() {
           </ul>
         </Banda>
       </div>
+    </main>
+  );
+}
+
+/**
+ * La bienvenida: lo primero que ve quien abre la Mini App sin sesión.
+ *
+ * Era un estado vacío del montón —«Aquí no hay sesión abierta», alineado arriba
+ * a la izquierda, con dos tercios de pantalla en negro debajo—. Decía el estado
+ * del servidor, no lo que es esto, y una primera frase que describe un 401 hace
+ * parecer roto un producto que funciona.
+ *
+ * Tres decisiones, y las tres son de sistema y no de gusto:
+ *
+ *  · **La marca preside.** Es la SEGUNDA pantalla que puede llevar isotipo —la
+ *    otra es `/alta`— y por el mismo motivo escrito en la prop `marca` de
+ *    `Pantalla`: el agente todavía no sabe dónde está. Va a 104 px porque aquí
+ *    identifica sola, sin título de pantalla que la acompañe; en `/alta` va a 64
+ *    porque encabeza un formulario.
+ *  · **Centrada y a media altura.** Es la única pantalla de la aplicación que se
+ *    centra, y puede serlo porque es la única sin datos: no hay ninguna columna
+ *    de cifras con la que alinearse. En cuanto hay datos manda el borde de
+ *    inicio, que es de donde arranca la lectura.
+ *  · **Una sola chapa**, la de siempre. El isotipo va en tinta y no en amarillo:
+ *    el amarillo es la acción y ya tiene dueño tres renglones más abajo.
+ *
+ * No anima nada. La entrada escalonada de las bandas mide la profundidad de una
+ * pila de estratos, y aquí hay un bloque suelto: escalonarlo sería usar la
+ * gramática de otra cosa.
+ */
+function Bienvenida({ etiquetas: t }: { etiquetas: Cadenas }) {
+  return (
+    <main
+      className="flex min-h-dvh flex-col items-center justify-center pb-16 text-center"
+      /* El margen sale de la VARIABLE y no de `px-4`: al subir el margen de
+         pantalla de 16 a 18 px, aquel literal se quedó atrás y esta pantalla
+         sangraba 2 px distintos de todas las demás. */
+      style={{ paddingInline: "var(--margen-pantalla)" }}
+    >
+      {/* Con `titulo`, así que la marca ES la identificación y un lector de
+          pantalla la lee. Muda —como en el resto de la aplicación— solo cuando
+          va acompañada del nombre escrito, y aquí no lo está. */}
+      <Isotipo ancho={104} titulo="Sophon" className="text-texto" />
+
+      {/* `h1` y no `p`: esta pantalla no tiene otra cabecera, y una pantalla sin
+          encabezado de nivel 1 deja al lector de pantalla sin punto de entrada. */}
+      <h1 className="mt-7 text-titulo">{t.bienvenida}</h1>
+
+      {/* `max-w-[34ch]`: sin tope, en una tablet la línea de apoyo se estira a
+          todo el ancho y centrada se vuelve ilegible —el ojo pierde el comienzo
+          del renglón siguiente—. En un móvil no cambia nada. */}
+      <p className="mt-2.5 max-w-[34ch] text-cuerpo text-texto-apoyo">{t.bienvenidaApoyo}</p>
+
+      {/* La chapa es de ancho completo por definición, y en una columna centrada
+          un hijo de flex se encoge a su contenido: sin `w-full` saldría un botón
+          del ancho de su texto, que es la forma de la píldora —lo que se LEE— y
+          no la del control. El tope de 20 rem impide que en pantalla ancha se
+          convierta en una barra de lado a lado. */}
+      <Link href="/alta" className="chapa pulsable mt-8 w-full max-w-[20rem] text-cuerpo">
+        {t.vincularCuenta}
+      </Link>
     </main>
   );
 }
