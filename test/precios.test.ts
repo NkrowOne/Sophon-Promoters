@@ -6,6 +6,7 @@ import {
   DESCUENTO_POR_USUARIO_MICROS,
   USUARIOS_POR_BLOQUE,
   precioDelWebmaster,
+  PORCENTAJE_WEBMASTER_BPS,
 } from "../lib/precios/tabla.ts";
 import { formatearMicros, microsDesdeCadena } from "../lib/devengo/dinero.ts";
 
@@ -95,4 +96,38 @@ test("el reparto del Operador no está representado en ninguna parte", () => {
   const ruta = readFileSync(new URL("../app/api/agente/precios/route.ts", import.meta.url), "utf8");
   assert.doesNotMatch(ruta, /unitPrice/);
   assert.doesNotMatch(ruta, /\bglobal:/);
+});
+
+test("el 35 % del webmaster está escrito a mano, y por eso queda fijado aquí", () => {
+  /*
+   * Los tiers los publica Sophon y se leen en vivo. Este porcentaje NO: no sale
+   * en ninguna respuesta suya, así que vive como constante y la única forma de
+   * que no se quede viejo en silencio es que cambiarlo rompa una prueba.
+   *
+   * Comprobado contra el programa de socios el 17-08-2026: el webmaster se
+   * lleva el 35 % de lo que sus usuarios pagan por el PRO.
+   */
+  assert.equal(PORCENTAJE_WEBMASTER_BPS, 3_500);
+});
+
+test("el porcentaje del agente NO está escrito a mano: sale de la tarifa en vigor", () => {
+  /*
+   * Es con lo que se le paga de verdad —`TarifaVersion.cpsBps`, que usa el motor
+   * de devengo— y el Operador lo cambia desde el panel. Escribirlo también en el
+   * módulo de precios lo dejaría mintiendo el día que lo cambiara, y mintiendo
+   * justo en la cifra que el agente cobra.
+   */
+  const fuente = readFileSync(new URL("../lib/precios/tabla.ts", import.meta.url), "utf8");
+  /*
+   * Se mira el CÓDIGO, no la prosa. El módulo nombra `cpsBps` en un comentario
+   * —justo para explicar que el porcentaje del agente no vive aquí—, y una
+   * prueba que casca con su propia documentación enseña a borrar la
+   * documentación. Lo que no puede existir es la constante ni la lectura de la
+   * tarifa.
+   */
+  assert.doesNotMatch(fuente, /export const PORCENTAJE_AGENTE/);
+  assert.doesNotMatch(fuente, /^\s*(import|const|let).*(cpsBps|tarifaVigente)/m);
+
+  const ruta = readFileSync(new URL("../app/api/agente/precios/route.ts", import.meta.url), "utf8");
+  assert.match(ruta, /tarifaVigente\(\)/, "el porcentaje del agente ya no sale de la tarifa");
 });

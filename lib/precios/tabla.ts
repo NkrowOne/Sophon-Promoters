@@ -52,6 +52,29 @@ export const DESCUENTO_POR_USUARIO_MICROS: Micros = 60_000n;
 export const USUARIOS_POR_BLOQUE = 100n;
 
 /**
+ * Lo que se lleva el webmaster de lo que sus usuarios pagan por el PRO.
+ *
+ * ── ESTO ES OTRA COSA QUE LA TABLA DE ARRIBA, Y CONVIENE NO MEZCLARLAS ──
+ *
+ * La tabla de tiers paga por REGISTRO: tantos dólares por cada 100 usuarios
+ * que se den de alta, valga lo que valga después. Esto paga por COMPRA: un
+ * porcentaje de lo que esos usuarios gasten en su PRO. Son dos ingresos
+ * distintos que conviven, y el webmaster cobra los dos.
+ *
+ * Va escrito aquí y no leído de Sophon porque **Sophon no lo publica en
+ * ninguna respuesta**: `region/reward` da los precios por registro y nada del
+ * reparto de las compras. Es un número del programa, como los tiers, y cuando
+ * cambie hay que cambiarlo aquí — por eso lleva su fecha de comprobación en la
+ * prueba que lo fija.
+ *
+ * El del AGENTE no está aquí a propósito: ese sí lo tenemos, en
+ * `TarifaVersion.cpsBps`, que es con lo que se le paga de verdad. Escribirlo
+ * también aquí sería un segundo sitio donde quedarse viejo, y el sitio que se
+ * quedaría viejo es el que el agente lee.
+ */
+export const PORCENTAJE_WEBMASTER_BPS = 3_500;
+
+/**
  * Tope de cordura del precio por usuario.
  *
  * Sophon devuelve el precio POR USUARIO (`0.3`), y la tabla del programa de
