@@ -50,7 +50,7 @@
 // sin ella, y el resolvedor de módulos de Node —que no reescribe rutas como
 // hace el empaquetador— no lo encontraba. La prueba de extremo a extremo se
 // caía aquí en cuanto el barrido de avisos empezó a necesitar los catálogos.
-import { IDIOMA_POR_DEFECTO, type Idioma } from "./idiomas.ts";
+import { IDIOMA_DE_RESPALDO, type Idioma } from "./idiomas.ts";
 
 export const es = {
   // ── Navegación y rótulos ──────────────────────────────────────────────────
@@ -1976,6 +1976,6 @@ const ar: Cadenas = {
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };
 
-export function cadenas(idioma: Idioma = IDIOMA_POR_DEFECTO): Cadenas {
+export function cadenas(idioma: Idioma = IDIOMA_DE_RESPALDO): Cadenas {
   return catalogos[idioma];
 }

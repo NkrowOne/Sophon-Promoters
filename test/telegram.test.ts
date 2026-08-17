@@ -6,8 +6,14 @@ import {
   ErrorInitData,
   esRtl,
   idiomaDesdeTelegram,
+  IDIOMA_DE_RESPALDO,
+  IDIOMA_DEL_OPERADOR,
   validarInitData,
 } from "../lib/auth/telegram.ts";
+// `idiomaGuardado` no se reexporta desde `auth/telegram.ts`: lo usa el servidor
+// para leer la columna, no para validar nada de Telegram.
+import { idiomaGuardado } from "../lib/idiomas.ts";
+import { formatearMicros } from "../lib/devengo/dinero.ts";
 
 const TOKEN_BOT = "123456:PRUEBA-no-es-un-token-real";
 const AHORA_MS = Date.UTC(2026, 6, 25, 12, 0, 0);
@@ -149,13 +155,49 @@ test("un espacio de verdad sigue leyéndose como espacio", () => {
   assert.equal(r.usuario.first_name, "Ana Mari");
 });
 
-test("elige idioma entre los cinco soportados y cae a español", () => {
+test("elige idioma entre los cinco soportados y cae al inglés", () => {
   assert.equal(idiomaDesdeTelegram("es-ES"), "es");
   assert.equal(idiomaDesdeTelegram("ar"), "ar");
   assert.equal(idiomaDesdeTelegram("pt-BR"), "pt");
   assert.equal(idiomaDesdeTelegram("it"), "it");
-  assert.equal(idiomaDesdeTelegram("ja"), "es");
-  assert.equal(idiomaDesdeTelegram(null), "es");
+
+  // Los dos casos del respaldo, y son distintos: uno es un idioma que no
+  // tenemos y el otro es un cliente que no dice ninguno.
+  assert.equal(idiomaDesdeTelegram("ja"), "en");
+  assert.equal(idiomaDesdeTelegram(null), "en");
+  assert.equal(idiomaDesdeTelegram(undefined), "en");
+  assert.equal(idiomaDesdeTelegram(""), "en");
+});
+
+test("lo guardado en Agente.idioma cae al mismo respaldo que el language_code", () => {
+  // La columna es TEXT: puede traer una fila anterior a la migración, un idioma
+  // retirado o algo puesto a mano. Cae al respaldo del AGENTE —a quien se le va
+  // a escribir— y no al del Operador.
+  assert.equal(idiomaGuardado("pt"), "pt");
+  assert.equal(idiomaGuardado("fr"), IDIOMA_DE_RESPALDO);
+  assert.equal(idiomaGuardado(null), IDIOMA_DE_RESPALDO);
+  assert.equal(idiomaGuardado(""), IDIOMA_DE_RESPALDO);
+  assert.equal(IDIOMA_DE_RESPALDO, "en");
+});
+
+test("el respaldo del agente y el del Operador no son la misma cosa", () => {
+  /*
+   * Eran una sola constante, y mientras las dos respuestas fueron «español» la
+   * mezcla no se notaba. Al pasar el respaldo del agente al inglés, un único
+   * nombre habría arrastrado con él al panel del Operador —que no se traduce— y
+   * su dinero habría pasado a «55,842.05 $» sin que nadie lo pidiera.
+   *
+   * Esta prueba es lo que impide que alguien las vuelva a fundir «porque son lo
+   * mismo»: no lo son, y aquí está escrito por qué.
+   */
+  assert.equal(IDIOMA_DE_RESPALDO, "en");
+  assert.equal(IDIOMA_DEL_OPERADOR, "es");
+  assert.notEqual(IDIOMA_DE_RESPALDO, IDIOMA_DEL_OPERADOR);
+
+  // El panel llama a `formatearMicros` sin idioma en unos treinta y cinco
+  // sitios. Su valor por defecto tiene que seguir siendo el del Operador.
+  assert.equal(formatearMicros(55_842_050_000n), formatearMicros(55_842_050_000n, 2, "es"));
+  assert.equal(formatearMicros(55_842_050_000n), "55.842,05 $");
 });
 
 test("solo el árabe invierte el layout", () => {

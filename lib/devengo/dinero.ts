@@ -11,7 +11,7 @@
  * el redondeo se comería la señal antes de poder repartirla.
  */
 
-import { IDIOMA_POR_DEFECTO, LOCALES, type Idioma } from "../idiomas.ts";
+import { IDIOMA_DEL_OPERADOR, LOCALES, type Idioma } from "../idiomas.ts";
 
 /** Micros de dólar que forman una unidad. */
 export const MICROS_POR_DOLAR = 1_000_000n;
@@ -123,11 +123,16 @@ function separadoresDe(idioma: Idioma): { grupo: string; decimal: string } {
  * el cron —unos treinta y cinco sitios de llamada— no se traducen: es la
  * decisión escrita en `lib/i18n.ts`, y ahí el español es la respuesta correcta,
  * no una omisión.
+ *
+ * Por eso el respaldo es el del OPERADOR y no el del agente. Son dos constantes
+ * distintas desde que el agente sin idioma conocido pasó a leer en inglés: con
+ * una sola, este valor por defecto habría arrastrado el dinero del panel a
+ * «55,842.05 $» sin que nadie lo pidiera. Ver `lib/idiomas.ts`.
  */
 export function formatearMicros(
   micros: Micros,
   decimales: 2 | 4 = 2,
-  idioma: Idioma = IDIOMA_POR_DEFECTO,
+  idioma: Idioma = IDIOMA_DEL_OPERADOR,
 ): string {
   const negativo = micros < 0n;
   const magnitud = negativo ? -micros : micros;

@@ -55,8 +55,8 @@ export async function exigirAgente(
    * no hay sesión de la que sacarlo. Sale del `language_code` del `initData`,
    * que Telegram firma junto al usuario, así que es tan de fiar como el `id`.
    * Sin initData válido no queda ni eso y `idiomaDesdeTelegram` cae al idioma
-   * por defecto: es preferible a que un agente que acaba de perder la sesión
-   * lea en español por qué la ha perdido.
+   * de respaldo —el inglés—: es preferible a que un agente que acaba de perder
+   * la sesión lea en un idioma que no habla por qué la ha perdido.
    */
   const t = cadenas(idiomaDesdeTelegram(usuario?.language_code));
   if (!usuario) {

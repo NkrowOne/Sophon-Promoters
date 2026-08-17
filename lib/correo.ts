@@ -33,7 +33,7 @@ import { join } from "node:path";
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { cadenas } from "./i18n.ts";
-import { esRtl, IDIOMA_POR_DEFECTO, type Idioma } from "./idiomas.ts";
+import { esRtl, IDIOMA_DE_RESPALDO, type Idioma } from "./idiomas.ts";
 
 const global_ = globalThis as unknown as { transporte?: Transporter; marca?: Buffer };
 
@@ -199,7 +199,7 @@ export function plantillaOtp(params: {
   marcaIncrustada: boolean;
 }): { html: string; texto: string; asunto: string } {
   const { codigo, minutosValidez, marcaIncrustada: logotipo } = params;
-  const idioma = params.idioma ?? IDIOMA_POR_DEFECTO;
+  const idioma = params.idioma ?? IDIOMA_DE_RESPALDO;
   const t = cadenas(idioma);
   const rtl = esRtl(idioma);
   const inicio = rtl ? "right" : "left";

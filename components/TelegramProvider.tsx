@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { cadenas, type Cadenas } from "@/lib/i18n";
-import { esRtl, idiomaDesdeTelegram, IDIOMA_POR_DEFECTO, type Idioma } from "@/lib/idiomas";
+import { esRtl, idiomaDesdeTelegram, IDIOMA_DE_RESPALDO, type Idioma } from "@/lib/idiomas";
 
 /**
  * Puente con el cliente de Telegram.
@@ -100,8 +100,8 @@ const ContextoTelegram = createContext<Contexto>({
   oscuro: false,
   botonTapado: false,
   haptica: () => {},
-  idioma: IDIOMA_POR_DEFECTO,
-  t: cadenas(IDIOMA_POR_DEFECTO),
+  idioma: IDIOMA_DE_RESPALDO,
+  t: cadenas(IDIOMA_DE_RESPALDO),
 });
 
 export function useTelegram(): Contexto {
@@ -130,7 +130,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const [listo, setListo] = useState(false);
   const [oscuro, setOscuro] = useState(false);
   const [botonTapado, setBotonTapado] = useState(false);
-  const [idioma, setIdioma] = useState<Idioma>(IDIOMA_POR_DEFECTO);
+  const [idioma, setIdioma] = useState<Idioma>(IDIOMA_DE_RESPALDO);
 
   const aplicarTema = useCallback((app: WebApp) => {
     const esOscuro = app.colorScheme === "dark";

@@ -213,7 +213,8 @@ export function validarInitData(
 export {
   IDIOMAS,
   IDIOMAS_RTL,
-  IDIOMA_POR_DEFECTO,
+  IDIOMA_DE_RESPALDO,
+  IDIOMA_DEL_OPERADOR,
   esRtl,
   idiomaDesdeTelegram,
   type Idioma,
