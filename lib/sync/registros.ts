@@ -309,6 +309,10 @@ async function procesarFila(params: {
       previo,
       devengaDesde: wm.devengaDesde ? isoFecha(wm.devengaDesde) : null,
       fechaAjuste: hoy,
+      // El MISMO booleano con el que se escribe `estado` doce líneas más abajo.
+      // Si los dos dejaran de coincidir volvería el desfase entre un reverso y
+      // el asiento que corrige, que es por donde salía el dinero.
+      diaCerrado: cerrado,
     });
 
     for (const a of planificados) {

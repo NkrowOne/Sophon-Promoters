@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { describe, it, test } from "node:test";
 import assert from "node:assert/strict";
 
 import { bpsDesdePorcentaje, microsDesdeCadena, sumar } from "../lib/devengo/dinero.ts";
@@ -49,6 +49,10 @@ function ctx(sobre: Partial<ContextoDevengo> = {}): ContextoDevengo {
     previo: CERO,
     devengaDesde: null,
     fechaAjuste: "2026-07-25",
+    // Por defecto el día sigue ABIERTO, que es el caso normal del barrido: la
+    // ventana son siete días y la enorme mayoría de las filas que lee están
+    // dentro de ella.
+    diaCerrado: false,
     ...sobre,
   };
 }
@@ -98,7 +102,7 @@ test("una revisión al alza devenga solo la diferencia", () => {
   assert.equal(asientos[0]?.importeMicros, microsDesdeCadena("0.09")); // 3 × 0,03
 });
 
-test("REGRESIÓN: una revisión a la baja genera reverso con la fecha del ajuste", () => {
+test("REGRESIÓN: una revisión a la baja genera reverso", () => {
   const previo: AsentadoPrevio = {
     cpaMicros: microsDesdeCadena("0.27"),
     cpsMicros: microsDesdeCadena("0.4995"),
@@ -109,11 +113,19 @@ test("REGRESIÓN: una revisión a la baja genera reverso con la fecha del ajuste
   assert.equal(asientos.length, 1);
   assert.equal(asientos[0]?.tipo, TipoAsiento.AJUSTE_REVERSO);
   assert.equal(asientos[0]?.importeMicros, -microsDesdeCadena("0.15")); // −5 × 0,03
-  assert.equal(
-    asientos[0]?.fechaDevengo,
-    "2026-07-25",
-    "el reverso se fecha el día del ajuste, nunca el del hecho original",
-  );
+
+  /*
+   * Este test EXIGÍA que el reverso se fechara siempre el día del ajuste, y esa
+   * línea es la que hacía que el defecto pareciera una decisión.
+   *
+   * Sobre un día todavía ABIERTO —que es este caso y el 90 % de los que ve el
+   * barrido— fecharlo hoy lo hace consolidar días después que el asiento que
+   * corrige, y en esa ventana el agente puede retirar dinero ya revertido. La
+   * regla correcta está en el bloque de abajo: el reverso viaja con su hecho
+   * mientras el día siga abierto, y solo lleva la fecha del ajuste cuando el día
+   * ya estaba cerrado, que es de donde venía el argumento original.
+   */
+  assert.equal(asientos[0]?.fechaDevengo, "2026-07-24");
 });
 
 test("un reembolso revierte la parte de CPS", () => {
@@ -281,4 +293,75 @@ test("REGRESIÓN: el día que sale de la ventana queda cerrado, no en tierra de 
       `con ventana de ${dias} días, el borde tiene que quedar cerrado`,
     );
   }
+});
+
+/**
+ * Un negativo no puede consolidar más tarde que el positivo que cancela.
+ *
+ * Es el defecto que la auditoría con flota encontró por tres caminos distintos,
+ * y por el que salía dinero de verdad. El reverso llevaba SIEMPRE la fecha del
+ * ajuste, así que sobre un día todavía abierto consolidaba días después que el
+ * asiento que corrige, y en esa ventana el agente veía —y podía retirar— dinero
+ * que Sophon ya se había llevado.
+ */
+describe("la fecha de un reverso decide cuándo consolida", () => {
+  const CON_CPA = { cpaMicros: microsDesdeCadena("0.36"), cpsMicros: 0n, secuencia: 1 };
+
+  it("con el día ABIERTO, el reverso viaja con su hecho y consolida a la vez", () => {
+    // El día 24 sigue dentro de la ventana; el barrido corre el 27.
+    const asientos = planificarAsientos(
+      ctx({
+        fila: filaReal({ countRegister: 0, paymentAmountMicros: 0n }),
+        previo: CON_CPA,
+        fechaAjuste: "2026-07-27",
+        diaCerrado: false,
+      }),
+    );
+
+    const reverso = asientos.find((a) => a.tipo === "AJUSTE_REVERSO");
+    assert.ok(reverso, "una revisión a la baja tiene que emitir reverso");
+    assert.equal(
+      reverso.fechaDevengo,
+      "2026-07-24",
+      "con el día abierto el reverso lleva la fecha del HECHO, o consolida más tarde que su positivo",
+    );
+    // Y por tanto consolidan el mismo día: es toda la propiedad que hace falta.
+    assert.equal(
+      estaCerrado(reverso.fechaDevengo, "2026-07-31"),
+      estaCerrado("2026-07-24", "2026-07-31"),
+      "el reverso y su positivo tienen que cerrar a la vez",
+    );
+  });
+
+  it("con el día ya CERRADO, el reverso lleva la fecha del ajuste y no reescribe el pasado", () => {
+    /*
+     * Aquí `fechaAjuste` vuelve a ser lo correcto, y por su motivo original: un
+     * mes que alguien ya leyó no se reescribe. Y no abre ningún desfase, porque
+     * sobre un día cerrado el reverso nace ya CONSOLIDADO.
+     */
+    const asientos = planificarAsientos(
+      ctx({
+        fila: filaReal({ countRegister: 0, paymentAmountMicros: 0n }),
+        previo: CON_CPA,
+        fechaAjuste: "2026-08-05",
+        diaCerrado: true,
+      }),
+    );
+
+    const reverso = asientos.find((a) => a.tipo === "AJUSTE_REVERSO");
+    assert.ok(reverso);
+    assert.equal(reverso.fechaDevengo, "2026-08-05");
+  });
+
+  it("los asientos POSITIVOS siguen llevando siempre la fecha del hecho", () => {
+    // El cambio no puede haber tocado el camino normal.
+    for (const diaCerrado of [false, true]) {
+      const asientos = planificarAsientos(ctx({ previo: CERO, diaCerrado }));
+      assert.ok(asientos.length > 0);
+      for (const a of asientos) {
+        assert.notEqual(a.tipo, "AJUSTE_REVERSO");
+        assert.equal(a.fechaDevengo, "2026-07-24", `positivo mal fechado con diaCerrado=${diaCerrado}`);
+      }
+    }
+  });
 });

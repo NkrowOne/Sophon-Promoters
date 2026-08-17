@@ -99,6 +99,17 @@ export interface ContextoDevengo {
   devengaDesde: string | null;
   /** Fecha en la que se registra un reverso (hoy), no la del hecho revisado. */
   fechaAjuste: string;
+  /**
+   * ¿El día de la fila salió ya de la ventana de revisión?
+   *
+   * Decide **con qué fecha se asienta un reverso**, y de eso depende cuándo
+   * consolida. Ver la nota larga en `planificarAsientos`.
+   *
+   * Lo calcula quien llama —`estaCerrado(fila.fecha, hoy)`— porque es el mismo
+   * booleano con el que escribe el `estado` del asiento, y tienen que ser el
+   * mismo o vuelve a abrirse el desfase que esto cierra.
+   */
+  diaCerrado: boolean;
 }
 
 /** Lo que gana el Operador por esa fila, antes de pagar al agente. */
@@ -128,8 +139,41 @@ export function objetivoDevengo(
  * el barrido pasa cada 30 minutos sobre una ventana de varios días y la enorme
  * mayoría de las filas no ha cambiado.
  */
+/*
+ * CON QUÉ FECHA SE ASIENTA UN REVERSO, que decide cuándo consolida.
+ *
+ * Un reverso llevaba SIEMPRE `fechaAjuste` (hoy), con un motivo bueno: el pasado
+ * consolidado no se toca, así que corregir un día ya cerrado se anota con la
+ * fecha de la corrección y no reescribe un mes que alguien ya leyó.
+ *
+ * Pero cuando el día revisado sigue ABIERTO eso abría un agujero por el que sale
+ * dinero de verdad. Los dos asientos se consolidan por su `fechaDevengo` a los
+ * siete días, y con fechas distintas consolidan en momentos distintos:
+ *
+ *   día D      +6,00 $ de CPA, fechaDevengo = D   → consolida el D+7
+ *   día D+3    Sophon revisa a la baja
+ *              −6,00 $ de reverso, fechaDevengo = D+3 → consolida el D+10
+ *
+ * Entre el D+7 y el D+10 el positivo ya cuenta como disponible y el negativo
+ * todavía no. El agente ve 6,00 $ que Sophon ya se ha llevado, y puede pedirlos:
+ * la ruta de retiro solo mira el disponible, el Operador paga en cripto, y
+ * cuando el reverso consolida la cuenta se va a −6,00 $ que `componerSaldos`
+ * aplana a cero. La deuda desaparece de la pantalla y el dinero no vuelve.
+ *
+ * Con revisiones a la baja rutinarias y una red grande, eso no es un caso raro:
+ * es un goteo permanente que nadie ve porque en pantalla siempre pone 0,00 $.
+ *
+ * La regla que lo cierra: **un negativo no puede consolidar más tarde que el
+ * positivo que cancela.** Si el día sigue abierto, el reverso se fecha en el día
+ * del hecho y consolida con él, en el mismo instante. Si el día ya estaba
+ * cerrado, `fechaAjuste` vuelve a ser lo correcto —y además ahí el reverso nace
+ * ya CONSOLIDADO, así que no hay desfase que abrir—.
+ */
 export function planificarAsientos(ctx: ContextoDevengo): AsientoPlanificado[] {
-  const { fila, tarifa, previo, devengaDesde, fechaAjuste } = ctx;
+  const { fila, tarifa, previo, devengaDesde, fechaAjuste, diaCerrado } = ctx;
+
+  // Ver la nota de arriba: con el día abierto, el reverso viaja con su hecho.
+  const fechaReverso = diaCerrado ? fechaAjuste : fila.fecha;
 
   // Fuera de la ventana de atribución no se devenga nada. Si ya hubiera algo
   // asentado (una asignación corregida a posteriori), se revierte entero.
@@ -165,8 +209,7 @@ export function planificarAsientos(ctx: ContextoDevengo): AsientoPlanificado[] {
       baseRegistros: fila.countRegister,
       baseMicros: null,
       tarifaId: tarifa.id,
-      // La fecha del ajuste, no la del hecho: el pasado consolidado no se toca.
-      fechaDevengo: fechaAjuste,
+      fechaDevengo: fechaReverso,
       claveIdempotencia: clave("REV_CPA"),
       nota: `Revisión de registros del ${fila.fecha}`,
     });
@@ -190,7 +233,7 @@ export function planificarAsientos(ctx: ContextoDevengo): AsientoPlanificado[] {
       baseRegistros: fila.countPayingUsers,
       baseMicros: fila.paymentAmountMicros,
       tarifaId: tarifa.id,
-      fechaDevengo: fechaAjuste,
+      fechaDevengo: fechaReverso,
       claveIdempotencia: clave("REV_CPS"),
       nota: `Revisión de pagos del ${fila.fecha}`,
     });
