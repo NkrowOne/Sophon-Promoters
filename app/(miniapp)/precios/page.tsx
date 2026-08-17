@@ -72,6 +72,8 @@ interface FilaTier {
 
 interface Respuesta {
   niveles: number[];
+  /** Porcentajes ya formateados. `agente` es `null` si no hay tarifa en vigor. */
+  reparto: { webmaster: string; agente: string | null };
   tiers: FilaTier[];
   requisitos: { nivel: number; minimo: Importe }[];
 }
@@ -130,7 +132,7 @@ export default function Precios() {
     );
   }
 
-  const { niveles, tiers, requisitos } = datos;
+  const { niveles, tiers, requisitos, reparto } = datos;
 
   /*
    * El nivel que se está enseñando: el elegido a mano, o el PRIMERO de la
@@ -200,6 +202,28 @@ export default function Precios() {
             ))}
           </ul>
         </div>
+
+        {/*
+          EL OTRO INGRESO, y va FUERA de la tarjeta a propósito.
+
+          La tarjeta contesta «cuánto por cada 100 registros». Esto contesta otra
+          cosa: qué porcentaje se lleva de lo que esos usuarios gasten después en
+          su PRO. Son dos ingresos que conviven —se cobran los dos— y meterlos en
+          la misma caja hace pensar que uno sustituye al otro.
+
+          La parte del agente va en su propia frase y detrás. Es la única línea
+          de la pantalla que habla de lo que cobra ÉL, y el resto está escrito
+          desde el punto de vista del webmaster; mezclarlas en una sola frase
+          —«él el 35 % y tú el 5 %»— convierte la pantalla que se enseña en una
+          pantalla que hay que tapar a medias.
+        */}
+        <p className="mt-5 text-apoyo text-texto-apoyo">
+          {t.repartoDeLasCompras(reparto.webmaster)}
+          {/* Sin tarifa configurada no hay porcentaje que dar, y no se inventa
+              un cero: «cobras el 0 %» no es lo mismo que «esto aún no está
+              puesto», y el agente no puede distinguirlos desde aquí. */}
+          {reparto.agente !== null && ` ${t.repartoDelAgente(reparto.agente)}`}
+        </p>
       </Banda>
 
       {/* La escalera entera. Contesta «¿y esto puede subir?», que es otra

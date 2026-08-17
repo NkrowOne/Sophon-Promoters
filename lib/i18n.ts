@@ -129,7 +129,14 @@ export const es = {
   // el nivel todavía no se aplica. Decir solo el acumulado justo el mes en que
   // hay algo que contar era dejarse la buena noticia dentro.
   comoSubeElNivel:
-    "El nivel se alcanza con el pago total de los usuarios a tu webmaster en la plataforma. Cuantos más usuarios PRO consiga, mayor será la suma y su nivel aumentará en base a los hitos.",
+    "El nivel se alcanza con el total que los usuarios pagan por su PRO en la plataforma: esos pagos son los que cuentan como hitos para tu webmaster. Cuantos más usuarios PRO consiga, mayor será la suma y antes subirá de nivel.",
+  /* El OTRO ingreso, y va aparte del precio por registro a propósito: la tabla
+     de arriba paga por cada usuario que se da de alta, valga lo que valga
+     después; esto paga un porcentaje de lo que esos usuarios gastan. Contarlos
+     juntos hace pensar que uno sustituye al otro, y se cobran los dos. */
+  repartoDeLasCompras: (webmaster: string) =>
+    `Además, tu webmaster se lleva el ${webmaster} de lo que sus usuarios paguen por el PRO.`,
+  repartoDelAgente: (agente: string) => `Tu parte de esas compras es el ${agente}.`,
   tuComisionNoDependeDelNivel: "Tu comisión no cambia con el nivel: cobras lo mismo en todos.",
   sinPrecios: "Todavía no hay precios que enseñar.",
   sinPreciosApoyo: "Sophon no ha devuelto la tabla. Vuelve a intentarlo en un momento.",
@@ -629,7 +636,10 @@ const en: Cadenas = {
   nivelHaceFalta: (importe: string) => `from ${importe}`,
   nivel: "Level",
   comoSubeElNivel:
-    "The level is reached with the total the users pay your webmaster on the platform. The more PRO users they get, the higher the sum, and their level rises with the milestones.",
+    "The level is reached with the total the users pay for their PRO on the platform: those payments are what count as milestones for your webmaster. The more PRO users they get, the higher the sum, and the sooner they move up.",
+  repartoDeLasCompras: (webmaster: string) =>
+    `On top of that, your webmaster takes ${webmaster} of whatever their users pay for PRO.`,
+  repartoDelAgente: (agente: string) => `Your share of those purchases is ${agente}.`,
   tuComisionNoDependeDelNivel:
     "Your commission does not change with the level: you are paid the same on all of them.",
   sinPrecios: "There are no prices to show yet.",
@@ -1005,7 +1015,10 @@ const it: Cadenas = {
   nivelHaceFalta: (importe: string) => `da ${importe}`,
   nivel: "Livello",
   comoSubeElNivel:
-    "Il livello si raggiunge con il totale che gli utenti pagano al tuo webmaster sulla piattaforma. Pi\u00f9 utenti PRO ottiene, pi\u00f9 alta \u00e8 la somma, e il suo livello sale in base ai traguardi.",
+    "Il livello si raggiunge con il totale che gli utenti pagano per il loro PRO sulla piattaforma: sono quei pagamenti a contare come traguardi per il tuo webmaster. Più utenti PRO ottiene, più alta è la somma, e prima sale di livello.",
+  repartoDeLasCompras: (webmaster: string) =>
+    `In più, il tuo webmaster prende il ${webmaster} di quello che i suoi utenti pagano per il PRO.`,
+  repartoDelAgente: (agente: string) => `La tua parte di quegli acquisti è il ${agente}.`,
   tuComisionNoDependeDelNivel:
     "La tua commissione non cambia con il livello: prendi lo stesso in tutti.",
   sinPrecios: "Non ci sono ancora prezzi da mostrare.",
@@ -1392,7 +1405,10 @@ const pt: Cadenas = {
   nivelHaceFalta: (importe: string) => `a partir de ${importe}`,
   nivel: "Nível",
   comoSubeElNivel:
-    "O nível alcança-se com o total que os utilizadores pagam ao teu webmaster na plataforma. Quantos mais utilizadores PRO conseguir, maior é a soma, e o nível dele sobe com base nas metas.",
+    "O nível alcança-se com o total que os utilizadores pagam pelo PRO deles na plataforma: são esses pagamentos que contam como metas para o teu webmaster. Quantos mais utilizadores PRO conseguir, maior é a soma, e mais depressa sobe de nível.",
+  repartoDeLasCompras: (webmaster: string) =>
+    `Além disso, o teu webmaster fica com ${webmaster} do que os utilizadores dele pagarem pelo PRO.`,
+  repartoDelAgente: (agente: string) => `A tua parte dessas compras é ${agente}.`,
   tuComisionNoDependeDelNivel: "A tua comissão não muda com o nível: recebes o mesmo em todos.",
   sinPrecios: "Ainda não há preços para mostrar.",
   sinPreciosApoyo: "A Sophon não devolveu a tabela. Tenta outra vez daqui a pouco.",
@@ -1787,7 +1803,10 @@ const ar: Cadenas = {
   nivelHaceFalta: (importe: string) => `ابتداءً من ${importe}`,
   nivel: "المستوى",
   comoSubeElNivel:
-    "يُبلَغ المستوى بإجمالي ما يدفعه المستخدمون إلى الـ webmaster على المنصة. وكلما حصل على مستخدمي PRO أكثر، ارتفع المجموع وارتفع مستواه بحسب الحدود.",
+    "يُبلَغ المستوى بإجمالي ما يدفعه المستخدمون مقابل اشتراك PRO على المنصة: هذه المدفوعات هي التي تُحتسب حدودًا للـ webmaster. وكلما حصل على مستخدمي PRO أكثر، ارتفع المجموع وصعد مستواه أسرع.",
+  repartoDeLasCompras: (webmaster: string) =>
+    `كما يحصل الـ webmaster على ${webmaster} مما يدفعه مستخدموه مقابل PRO.`,
+  repartoDelAgente: (agente: string) => `حصتك من تلك المشتريات هي ${agente}.`,
   tuComisionNoDependeDelNivel: "عمولتك لا تتغير بالمستوى: تتقاضى المبلغ نفسه في كل المستويات.",
   sinPrecios: "لا توجد أسعار لعرضها بعد.",
   sinPreciosApoyo: "لم تُرجع Sophon الجدول. أعد المحاولة بعد قليل.",

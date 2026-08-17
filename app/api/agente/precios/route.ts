@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 import { esRespuesta, exigirAgente } from "@/lib/api/agente";
 import { cadenas } from "@/lib/i18n";
+import { LOCALES } from "@/lib/idiomas";
 import { formatearMicros } from "@/lib/devengo/dinero";
-import { tablaDePrecios } from "@/lib/precios/tabla";
+import { PORCENTAJE_WEBMASTER_BPS, tablaDePrecios } from "@/lib/precios/tabla";
+import { tarifaVigente } from "@/lib/sync/registros";
 
 /**
  * La tabla de precios del programa, para el agente.
@@ -50,8 +52,31 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     );
   }
 
+  /*
+   * El reparto de lo que los usuarios pagan por su PRO.
+   *
+   * El del webmaster es un número del programa y vive en `lib/precios/tabla.ts`.
+   * El del agente sale de `TarifaVersion.cpsBps`, que es **con lo que se le paga
+   * de verdad**: escribirlo a mano aquí lo dejaría mintiendo el día que el
+   * Operador lo cambie desde el panel, y mintiendo justo en su propia comisión.
+   *
+   * Sin tarifa configurada no se inventa un porcentaje: se calla el del agente y
+   * la pantalla enseña solo el del webmaster. Un cero ahí se leería como «no
+   * cobras nada por las compras», que es distinto de «esto aún no está puesto».
+   */
+  const tarifa = await tarifaVigente();
+  const porcentaje = (bps: number) =>
+    new Intl.NumberFormat(LOCALES[idioma], {
+      style: "percent",
+      maximumFractionDigits: 2,
+    }).format(bps / 10_000);
+
   return NextResponse.json({
     niveles: tabla.niveles,
+    reparto: {
+      webmaster: porcentaje(PORCENTAJE_WEBMASTER_BPS),
+      agente: tarifa ? porcentaje(Number(tarifa.cpsBps)) : null,
+    },
     tiers: tabla.tiers.map((fila) => ({
       tier: fila.tier,
       paises: fila.paises,
