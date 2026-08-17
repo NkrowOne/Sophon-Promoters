@@ -126,12 +126,65 @@ describe("el correo del código", () => {
      * `#6e5b4a` sobre papel crema.
      */
     const { html } = plantillaOtp({ codigo: CODIGO, minutosValidez: 10, marcaIncrustada: true });
-    for (const color of ["#f9d027", "#1a1206", "#17171a", "#5f5f67", "#e1e1e4"]) {
+    for (const color of ["#f9d027", "#17171a", "#5f5f67", "#e1e1e4"]) {
       assert.ok(html.includes(color), `falta el literal ${color}`);
     }
     for (const viejo of ["#1f1710", "#6e5b4a", "#eadfc6", "#482304"]) {
       assert.ok(!html.includes(viejo), `sigue el color de la paleta anterior: ${viejo}`);
     }
+  });
+
+  /**
+   * El código, legible TAMBIÉN con el tema oscuro de Gmail.
+   *
+   * La caja llevaba un degradado y el código salía blanco sobre amarillo:
+   * ilegible, y en el único punto del que depende poder entrar. El tema oscuro
+   * de Gmail invierte fondo y texto EN PAREJA cuando los dos están declarados
+   * en el mismo elemento, y un `background-image` no lo sabe invertir: dejaba
+   * el amarillo puesto y aclaraba el texto de encima.
+   *
+   * Este test no comprueba un gusto, comprueba esa mecánica: fondo plano y
+   * tinta declarada al lado.
+   */
+  it("la caja del código lleva fondo PLANO, que es lo que salva al tema oscuro de Gmail", () => {
+    const { html } = plantillaOtp({ codigo: CODIGO, minutosValidez: 10, marcaIncrustada: true });
+    assert.ok(!html.includes("linear-gradient"), "el degradado deja el código blanco sobre amarillo");
+    assert.ok(
+      html.includes(`background-color:#f9d027;color:#17171a`),
+      "fondo y tinta tienen que ir juntos en el mismo elemento para que se inviertan juntos",
+    );
+  });
+
+  describe("el pie legal", () => {
+    const PIE = ["New Sophon Technology Limited", "San Po Kong", "www.newsophon.com"];
+
+    it("va en las cinco lenguas, en el HTML y en el texto plano", () => {
+      for (const idioma of IDIOMAS) {
+        const { html, texto } = plantillaOtp({
+          codigo: CODIGO,
+          minutosValidez: 10,
+          idioma,
+          marcaIncrustada: true,
+        });
+        for (const dato of PIE) {
+          assert.ok(html.includes(dato), `${idioma}: falta «${dato}» en el HTML`);
+          assert.ok(texto.includes(dato), `${idioma}: falta «${dato}» en el texto plano`);
+        }
+      }
+    });
+
+    it("el enlace lleva su color puesto, o los clientes lo pintan de azul", () => {
+      // Sin `color` propio, Gmail y Apple Mail le ponen el azul del sistema y
+      // el pie legal pasa a ser lo más llamativo del correo.
+      const { html } = plantillaOtp({ codigo: CODIGO, minutosValidez: 10, marcaIncrustada: true });
+      assert.match(html, /<a dir="ltr" href="https:\/\/www\.newsophon\.com" style="color:#5f5f67/);
+    });
+
+    it("es más pequeño que el aviso de caducidad, que es lo que sí hay que leer", () => {
+      const { html } = plantillaOtp({ codigo: CODIGO, minutosValidez: 10, marcaIncrustada: true });
+      assert.ok(html.includes("font-size:11px"), "el pie tiene que ir a 11 px");
+      assert.ok(html.includes("font-size:14px"), "la caducidad se queda a 14 px");
+    });
   });
 });
 

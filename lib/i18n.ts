@@ -580,6 +580,10 @@ export const es = {
      va con `user-select: all` para que la seleccion salga entera al primer
      intento en vez de por caracteres. Esto lo dice. */
   correoOtpTocaParaCopiar: "Mantén pulsado el código para copiarlo.",
+  /* La única línea legal del correo, y va traducida porque es una frase, no un
+     dato: la razón social, la dirección y el dominio se escriben igual en las
+     cinco lenguas y por eso viven en `lib/correo.ts` y no aquí. */
+  correoPieMarca: "Sophon es una marca registrada de New Sophon Technology Limited.",
 } as const;
 
 /**
@@ -974,6 +978,7 @@ const en: Cadenas = {
   correoOtpNoPedido:
     "If you did not ask to sign in to Sophon Promoters, ignore this email: without the code nobody can get into your account.",
   correoOtpTocaParaCopiar: "Press and hold the code to copy it.",
+  correoPieMarca: "Sophon is a registered trademark of New Sophon Technology Limited.",
 };
 
 const it: Cadenas = {
@@ -1361,6 +1366,7 @@ const it: Cadenas = {
   correoOtpNoPedido:
     "Se non hai chiesto tu di entrare in Sophon Promoters, ignora questa email: senza il codice nessuno può entrare nel tuo account.",
   correoOtpTocaParaCopiar: "Tieni premuto il codice per copiarlo.",
+  correoPieMarca: "Sophon è un marchio registrato di New Sophon Technology Limited.",
 };
 
 const pt: Cadenas = {
@@ -1747,6 +1753,7 @@ const pt: Cadenas = {
   correoOtpNoPedido:
     "Se não pediste para entrar no Sophon Promoters, ignora este email: sem o código ninguém consegue aceder à tua conta.",
   correoOtpTocaParaCopiar: "Mantém o código premido para o copiares.",
+  correoPieMarca: "Sophon é uma marca registada da New Sophon Technology Limited.",
 };
 
 /**
@@ -2149,6 +2156,7 @@ const ar: Cadenas = {
   correoOtpNoPedido:
     "إذا لم تطلب الدخول إلى Sophon Promoters فتجاهل هذه الرسالة: من دون الرمز لا يمكن لأحد الدخول إلى حسابك.",
   correoOtpTocaParaCopiar: "اضغط مطولاً على الرمز لنسخه.",
+  correoPieMarca: "Sophon علامة تجارية مسجَّلة لشركة New Sophon Technology Limited.",
 };
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };
