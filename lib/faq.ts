@@ -58,6 +58,19 @@ export interface Pregunta {
   pregunta: string;
   /** Párrafos. Dos como mucho: esto se lee en un móvil y de pie. */
   respuesta: string[];
+  /**
+   * Una pieza de interfaz que se pinta DEBAJO de la respuesta.
+   *
+   * Es un marcador, no un componente: este módulo es texto y datos, y meterle
+   * JSX lo convertiría en cliente y en la práctica en otra pantalla. La página
+   * decide qué dibuja cada marcador; aquí solo se dice cuál corresponde.
+   *
+   * Tiene un único valor y es a propósito. Una respuesta que explica el bono
+   * mensual y no enseña dónde va el agente es la definición de una ayuda que se
+   * lee una vez: con el medidor delante, la misma pregunta contesta «qué es» y
+   * «cuánto llevas» a la vez, y esa segunda mitad cambia todos los días.
+   */
+  pieza?: "objetivosBono";
 }
 
 export interface SeccionFaq {
@@ -103,6 +116,7 @@ const es: Constructor = (d) => [
             : "Un importe adicional por el total de registros del equipo dentro del mes natural.",
           "El cómputo es agregado: suma los registros de todos los webmasters, no los de uno solo.",
         ],
+        pieza: "objetivosBono",
       },
       {
         pregunta: "¿Los niveles del bono son acumulables?",
@@ -313,6 +327,7 @@ const en: Constructor = (d) => [
             : "An additional amount for the team's total sign-ups within the calendar month.",
           "The count is aggregate: it adds up sign-ups across all webmasters, not those of a single one.",
         ],
+        pieza: "objetivosBono",
       },
       {
         pregunta: "Do bonus levels stack?",
@@ -523,6 +538,7 @@ const it: Constructor = (d) => [
             : "Un importo aggiuntivo sul totale delle registrazioni della squadra entro il mese solare.",
           "Il conteggio è aggregato: somma le registrazioni di tutti i webmaster, non quelle di uno solo.",
         ],
+        pieza: "objetivosBono",
       },
       {
         pregunta: "I livelli del bonus sono cumulabili?",
@@ -733,6 +749,7 @@ const pt: Constructor = (d) => [
             : "Um valor adicional pelo total de registos da equipa dentro do mês de calendário.",
           "A contagem é agregada: soma os registos de todos os webmasters, não os de um só.",
         ],
+        pieza: "objetivosBono",
       },
       {
         pregunta: "Os níveis do bónus são acumuláveis?",
@@ -943,6 +960,7 @@ const ar: Constructor = (d) => [
             : "مبلغ إضافي على إجمالي تسجيلات الفريق خلال الشهر الميلادي.",
           "الاحتساب تجميعي: يجمع تسجيلات جميع webmasters لا تسجيلات واحد منهم.",
         ],
+        pieza: "objetivosBono",
       },
       {
         pregunta: "هل مستويات المكافأة تراكمية؟",

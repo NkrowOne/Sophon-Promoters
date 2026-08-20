@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { dinero, esRespuesta, exigirAgente } from "@/lib/api/agente";
 import { LOCALES } from "@/lib/idiomas";
 import { minimoDeRetiroMicros } from "@/lib/devengo/minimo";
-import { escaleraVigente, tarifaVigente } from "@/lib/sync/registros";
+import { mesContable } from "@/lib/fechas";
+import { escaleraVigente, registrosDelMes, tarifaVigente } from "@/lib/sync/registros";
 
 /**
  * Lo que cobra EL AGENTE, en un solo sitio.
@@ -49,7 +50,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   if (esRespuesta(ctx)) return ctx;
   const { idioma } = ctx.sesion;
 
-  const [tarifa, escalones, minimo] = await Promise.all([
+  const [tarifa, escalones, minimo, registrosDelMesActual] = await Promise.all([
     tarifaVigente(),
     escaleraVigente(),
     // El mínimo va aquí y no en `/api/retiro` a secas porque la ayuda tiene que
@@ -57,6 +58,15 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     // entero, y porque escribir «20,00 $» en cinco catálogos lo dejaría
     // mintiendo el día que el Operador lo cambie.
     minimoDeRetiroMicros(),
+    /*
+     * Los registros del mes en curso, para que el medidor de objetivos de la
+     * ayuda enseñe el avance REAL del agente y no una escalera de museo.
+     *
+     * Es la misma cuenta que la portada, del mes natural, porque el bono se
+     * reinicia el día 1: mezclarla con la ventana móvil de 30 días que usa el
+     * resto del resumen pintaría dos avances distintos para un solo bono.
+     */
+    registrosDelMes(ctx.sesion.agenteId, mesContable()),
   ]);
 
   const porcentaje = (bps: number) =>
@@ -75,5 +85,6 @@ export async function GET(peticion: Request): Promise<NextResponse> {
     bonos: [...escalones]
       .sort((a, b) => a.usuarios - b.usuarios)
       .map((e) => ({ usuarios: e.usuarios, premio: dinero(e.recompensaMicros, idioma) })),
+    registrosDelMes: registrosDelMesActual,
   });
 }

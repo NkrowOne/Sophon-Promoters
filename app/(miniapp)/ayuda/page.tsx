@@ -1,6 +1,7 @@
 "use client";
 
 import { Icono } from "@/components/Icono";
+import { MedidorObjetivos } from "@/components/MedidorObjetivos";
 import { Banda, Pantalla } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import type { Comisiones } from "@/lib/api/comisiones";
@@ -92,7 +93,7 @@ export default function Ayuda() {
       <p className="mb-1 text-apoyo text-texto-apoyo">{t.ayudaApoyo}</p>
 
       {secciones.map((seccion, i) => (
-        <Seccion key={seccion.titulo} seccion={seccion} orden={i} />
+        <Seccion key={seccion.titulo} seccion={seccion} orden={i} datos={datos} />
       ))}
 
       {/*
@@ -121,7 +122,15 @@ export default function Ayuda() {
  * `aria-label`, un lector de pantalla puede saltar de sección en sección, que
  * es exactamente cómo se recorre un índice de veintitrés preguntas sin verlo.
  */
-function Seccion({ seccion, orden }: { seccion: SeccionFaq; orden: number }) {
+function Seccion({
+  seccion,
+  orden,
+  datos,
+}: {
+  seccion: SeccionFaq;
+  orden: number;
+  datos: Comisiones | null;
+}) {
   return (
     <Banda tono={(orden % 3) as 0 | 1 | 2} orden={orden} etiqueta={seccion.titulo} className="py-6">
       <h2 className="text-rotulo text-texto-apoyo">{seccion.titulo}</h2>
@@ -147,6 +156,32 @@ function Seccion({ seccion, orden }: { seccion: SeccionFaq; orden: number }) {
                   {parrafo}
                 </p>
               ))}
+              {/*
+                La pieza que pide la respuesta, cuando hay datos para dibujarla.
+
+                Una explicación del bono sin el avance del agente delante se lee
+                una vez y no se vuelve. Con el medidor debajo, la misma pregunta
+                contesta «qué es» y «cuánto llevo», y la segunda mitad cambia
+                todos los días — que es lo que hace que la ayuda se abra otra vez.
+
+                En COMPACTO: la portada ya lleva el recuento con su ritmo, su
+                proyección y la comparación con el mes pasado. Repetir aquí solo
+                una de esas cifras sería enseñar un trozo de esa frase fuera de
+                su sitio; lo que hace falta en la ayuda es la forma del juego.
+
+                Y solo si la escalera existe: sin bono configurado el texto de
+                arriba ya se redacta sin cifras, y un raíl vacío debajo diría que
+                hay una carrera que nadie ha empezado.
+              */}
+              {p.pieza === "objetivosBono" && datos && datos.bonos.length > 0 && (
+                <div className="mt-4">
+                  <MedidorObjetivos
+                    registros={datos.registrosDelMes}
+                    escalones={datos.bonos}
+                    compacto
+                  />
+                </div>
+              )}
             </div>
           </details>
         ))}

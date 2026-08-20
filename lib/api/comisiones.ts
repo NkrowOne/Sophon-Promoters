@@ -23,4 +23,6 @@ export interface Comisiones {
   minimoRetiro: Importe;
   /** La escalera del bono, de menor a mayor. Vacía si no hay ninguna configurada. */
   bonos: { usuarios: number; premio: Importe }[];
+  /** Registros del MES NATURAL en curso, que es la ventana con la que se paga el bono. */
+  registrosDelMes: number;
 }

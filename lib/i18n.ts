@@ -211,7 +211,6 @@ export const es = {
     } para ${premio}.`,
   bonoMaximoAlcanzado: "Nivel máximo del mes alcanzado.",
   bonoGanado: (importe: string) => `Acumulado ${importe}`,
-  escaleraDelBono: "Niveles del bono",
   /*
    * El bono no es acumulable: pasar de 20.000 a 30.000 no paga los 150 $ del
    * escalón alto, paga los 50 de diferencia. Enseñar el total hacía que el
@@ -626,6 +625,12 @@ export const es = {
   // solo kilobyte.
   paginaNoExiste: "La página no existe.",
   paginaNoExisteApoyo: "El enlace puede pertenecer a una versión anterior de la aplicación.",
+  // ── El medidor de objetivos del bono ──────────────────────────────────────
+  objetivosDelBono: "Objetivos del bono",
+  nivelesAlcanzados: (alcanzados: number, total: number) =>
+    `${alcanzados} de ${total} ${total === 1 ? "nivel" : "niveles"}`,
+  faltanRegistros: (n: number) =>
+    `${n.toLocaleString("es-ES")} ${n === 1 ? "registro" : "registros"} para el siguiente`,
 } as const;
 
 /**
@@ -734,7 +739,6 @@ const en: Cadenas = {
     } remaining for ${premio}.`,
   bonoMaximoAlcanzado: "Top level of the month reached.",
   bonoGanado: (importe: string) => `${importe} accrued`,
-  escaleraDelBono: "Bonus levels",
   bonoExtraSi: (umbral: number) =>
     `extra on reaching ${umbral.toLocaleString("en-US")} ${
       umbral === 1 ? "sign-up" : "sign-ups"
@@ -1039,6 +1043,11 @@ const en: Cadenas = {
   ayudaNoResueltaApoyo: "Write to us on the bot. The reply arrives through the same channel.",
   paginaNoExiste: "The page does not exist.",
   paginaNoExisteApoyo: "The link may belong to an earlier version of the application.",
+  objetivosDelBono: "Bonus targets",
+  nivelesAlcanzados: (alcanzados: number, total: number) =>
+    `${alcanzados} of ${total} ${total === 1 ? "level" : "levels"}`,
+  faltanRegistros: (n: number) =>
+    `${n.toLocaleString("en-US")} ${n === 1 ? "sign-up" : "sign-ups"} to the next one`,
 };
 
 const it: Cadenas = {
@@ -1130,7 +1139,6 @@ const it: Cadenas = {
     } per ${premio}.`,
   bonoMaximoAlcanzado: "Livello massimo del mese raggiunto.",
   bonoGanado: (importe: string) => `Maturato ${importe}`,
-  escaleraDelBono: "Livelli del bonus",
   bonoExtraSi: (umbral: number) =>
     `aggiuntivo al raggiungimento di ${umbral.toLocaleString("it-IT")} ${
       umbral === 1 ? "registrazione" : "registrazioni"
@@ -1437,6 +1445,11 @@ const it: Cadenas = {
   ayudaNoResueltaApoyo: "Scrivici sul bot. La risposta arriva dallo stesso canale.",
   paginaNoExiste: "La pagina non esiste.",
   paginaNoExisteApoyo: "Il link può appartenere a una versione precedente dell'applicazione.",
+  objetivosDelBono: "Obiettivi del bonus",
+  nivelesAlcanzados: (alcanzados: number, total: number) =>
+    `${alcanzados} di ${total} ${total === 1 ? "livello" : "livelli"}`,
+  faltanRegistros: (n: number) =>
+    `${n.toLocaleString("it-IT")} ${n === 1 ? "registrazione" : "registrazioni"} al successivo`,
 };
 
 const pt: Cadenas = {
@@ -1533,7 +1546,6 @@ const pt: Cadenas = {
     } para ${premio}.`,
   bonoMaximoAlcanzado: "Nível máximo do mês atingido.",
   bonoGanado: (importe: string) => `Acumulado ${importe}`,
-  escaleraDelBono: "Níveis do bónus",
   bonoExtraSi: (umbral: number) =>
     `adicional ao atingir ${umbral.toLocaleString("pt-PT")} ${
       umbral === 1 ? "registo" : "registos"
@@ -1836,6 +1848,11 @@ const pt: Cadenas = {
   ayudaNoResueltaApoyo: "Escreve-nos pelo bot. A resposta chega pelo mesmo canal.",
   paginaNoExiste: "A página não existe.",
   paginaNoExisteApoyo: "O link pode pertencer a uma versão anterior da aplicação.",
+  objetivosDelBono: "Objetivos do bónus",
+  nivelesAlcanzados: (alcanzados: number, total: number) =>
+    `${alcanzados} de ${total} ${total === 1 ? "nível" : "níveis"}`,
+  faltanRegistros: (n: number) =>
+    `${n.toLocaleString("pt-PT")} ${n === 1 ? "registo" : "registos"} para o seguinte`,
 };
 
 /**
@@ -1939,7 +1956,6 @@ const ar: Cadenas = {
     `${faltan.toLocaleString("ar")} تسجيل متبقٍ للوصول إلى ${premio}.`,
   bonoMaximoAlcanzado: "تم بلوغ أعلى مستوى في الشهر.",
   bonoGanado: (importe: string) => `المتراكم ${importe}`,
-  escaleraDelBono: "مستويات المكافأة",
   // Dual: تسجيل واحد / تسجيلان / تسجيلات. Es la misma concordancia triple que
   // `botRedIncidencias` hace con el verbo, aplicada aquí al sustantivo contado.
   bonoExtraSi: (umbral: number) =>
@@ -2233,6 +2249,11 @@ const ar: Cadenas = {
   ayudaNoResueltaApoyo: "راسلنا عبر البوت. وسيصلك الرد من القناة نفسها.",
   paginaNoExiste: "الصفحة غير موجودة.",
   paginaNoExisteApoyo: "قد يعود الرابط إلى إصدار سابق من التطبيق.",
+  objetivosDelBono: "أهداف المكافأة",
+  nivelesAlcanzados: (alcanzados: number, total: number) =>
+    `${alcanzados} من ${total} مستوى`,
+  faltanRegistros: (n: number) =>
+    `${n.toLocaleString("ar")} تسجيل حتى المستوى التالي`,
 };
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };
