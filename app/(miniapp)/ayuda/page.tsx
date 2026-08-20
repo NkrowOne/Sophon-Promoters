@@ -1,12 +1,14 @@
 "use client";
 
+import { useMemo, useState } from "react";
+
 import { Icono } from "@/components/Icono";
 import { MedidorObjetivos } from "@/components/MedidorObjetivos";
 import { Banda, Pantalla } from "@/components/Pantalla";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
 import type { Comisiones } from "@/lib/api/comisiones";
 import { useRecurso } from "@/lib/api/recurso";
-import { faq, type SeccionFaq } from "@/lib/faq";
+import { contarPreguntas, faq, filtrarFaq, type SeccionFaq } from "@/lib/faq";
 
 /**
  * La ayuda: las preguntas que hasta ahora se contestaban por Telegram.
@@ -14,97 +16,178 @@ import { faq, type SeccionFaq } from "@/lib/faq";
  * ── PARA QUÉ SE ABRE ──
  *
  * No para aprender la aplicación: para desatascarse. Se abre con una duda
- * concreta y con algo de prisa —«¿por qué mi disponible es menos que lo
- * ganado?», «¿cuánto tarda un cobro?»— y muchas veces con la otra pantalla a
- * medias. Eso decide la forma entera:
+ * concreta y con algo de prisa, y muchas veces con la otra pantalla a medias.
  *
- *  · **Todas las preguntas visibles de golpe, las respuestas plegadas.** Un
- *    índice de veintitantas líneas se recorre con el pulgar en dos segundos;
- *    veintitantas respuestas abiertas son ocho pantallas de scroll en las que
- *    hay que ir leyendo para encontrar la tuya.
- *  · **`<details>` nativo y no un acordeón con estado.** Abre y cierra sin
- *    JavaScript, lleva el foco de teclado puesto y el buscador del sistema
- *    encuentra el texto aunque esté cerrado. Esta es la pantalla que se abre
- *    cuando algo va mal, así que es la última que puede depender de que la
- *    hidratación haya terminado.
- *  · **Sin buscador.** Cinco secciones con nombre y veintitrés preguntas caben
- *    en un índice; un campo de búsqueda aquí sería una caja que hay que llenar
- *    para empezar a leer, y encima obligaría a resolver la búsqueda sin acentos
- *    en cinco lenguas incluida una que no se escribe con el mismo alfabeto.
+ * ── LO QUE ESTABA MAL, Y SE VEÍA EN UNA CAPTURA ──
  *
- * ── LAS CIFRAS SON LAS DE VERDAD ──
+ * Veintitrés preguntas en cinco secciones se leían apelmazadas: una sola
+ * textura gris de arriba abajo. El diagnóstico, mirando la pantalla con los
+ * ojos entrecerrados:
  *
- * Las respuestas que hablan de dinero —lo que se cobra por registro, el
- * porcentaje del PRO, el mínimo para pedir, el primer nivel del bono— no llevan
- * el número escrito en el texto: entran por `/api/agente/comisiones`, que los
- * lee de la tarifa y la escalera vigentes. Un FAQ que promete «0,03 $» tres
- * meses después de que la tarifa cambiara es peor que no tener FAQ.
+ *  · **Los encabezados de sección no encabezaban.** Iban en `text-rotulo`
+ *    atenuado —13 px— mientras las preguntas iban en cuerpo blanco de 16. O
+ *    sea que lo que estructura pesaba MENOS que lo estructurado, y las cinco
+ *    secciones no separaban nada.
+ *  · **Un solo intervalo, repetido.** Mismo relleno en las veintitrés filas.
+ *    Sin contraste entre lo apretado y lo suelto no hay ritmo, y sin ritmo una
+ *    lista larga es una textura.
+ *  · **Ninguna forma de saltar.** ~1.200 px de índice y solo el recorrido
+ *    lineal para atravesarlo.
  *
- * Y cada respuesta tiene su redacción sin cifra para cuando el dato todavía no
- * existe. Eso vive en `lib/faq.ts`, con el texto; aquí solo se pinta.
+ * ── LO QUE SE HACE ──
  *
- * ── LO QUE NO SE ENSEÑA ──
+ *  1. **Un buscador, y arriba del todo.** Aquí decía «sin buscador: cinco
+ *     secciones con nombre y veintitrés preguntas caben en un índice». Cabían,
+ *     pero recorrerlas cuesta cinco pantallas de pulgar con una duda concreta
+ *     en la cabeza. Filtra por pregunta Y por respuesta, porque nadie teclea
+ *     «¿Qué ocurre si la red es incorrecta?»: teclea «red» o «TRC20», y esas
+ *     palabras están en el cuerpo.
+ *  2. **Los encabezados pasan a título**, en tinta plena y con aire generoso
+ *     por encima. Más espacio arriba que abajo: un encabezado pertenece a lo
+ *     que abre, no a lo que cierra.
+ *  3. **Ritmo.** Las filas respiran (44 px de objetivo táctil holgado), la
+ *     separación entre secciones es cuatro veces la separación entre filas, y
+ *     la respuesta abre con su propio aire.
  *
- * La regla de siempre: ni el precio global, ni lo que cobra el webmaster, ni el
- * reparto de arriba. Esto contesta a «¿cuánto cobro yo?». Lo del webmaster está
- * en `/precios`, que es la pantalla que existe para enseñárselo a él.
+ * ── LO QUE NO CAMBIA ──
+ *
+ * El elemento `details` nativo: abre y cierra sin JavaScript, trae el foco de
+ * teclado puesto y el buscador del sistema encuentra el texto aunque esté
+ * cerrado. Es la pantalla que se abre cuando algo va mal, así que es la última
+ * que puede depender de la hidratación. El filtro sí necesita JavaScript, y por
+ * eso degrada bien: sin él, el campo no filtra y están las veintitrés.
+ *
+ * Y las cifras siguen sin bloquear la pantalla: el texto es local y entran si
+ * entran.
  */
 export default function Ayuda() {
   const t = useCadenas();
   const { idioma } = useTelegram();
-  /*
-   * ESTA PANTALLA NO SE BLOQUEA POR LA API, y es la única de la aplicación que
-   * puede permitírselo porque es la única cuyo contenido es LOCAL.
-   *
-   * Las demás gatean con `Cargando` y `FalloDeCarga`, y hacen bien: sin datos no
-   * tienen nada que enseñar. Aquí sí lo hay —veintitrés respuestas, en el
-   * paquete—, y encima esta es la pantalla que se abre justo cuando algo va
-   * mal. Un aviso de «no hemos podido cargar» tapando la ayuda el día que la red
-   * falla es el peor momento posible para quedarse sin ayuda.
-   *
-   * Así que las cifras son un ADORNO que llega si llega: cada respuesta que usa
-   * una tiene su redacción sin ella, escrita en `lib/faq.ts`.
-   */
   const { datos } = useRecurso<Comisiones>("/api/agente/comisiones");
+  const [busqueda, setBusqueda] = useState("");
 
   const primero = datos?.bonos[0];
-  const secciones = faq(idioma, {
-    cpa: datos?.cpa?.texto ?? null,
-    cps: datos?.cps ?? null,
-    minimo: datos?.minimoRetiro.texto ?? null,
-    primerNivel: primero
-      ? { usuarios: t.numero(primero.usuarios), premio: primero.premio.texto }
-      : null,
-  });
+  const secciones = useMemo(
+    () =>
+      faq(idioma, {
+        cpa: datos?.cpa?.texto ?? null,
+        cps: datos?.cps ?? null,
+        minimo: datos?.minimoRetiro.texto ?? null,
+        primerNivel: primero
+          ? { usuarios: t.numero(primero.usuarios), premio: primero.premio.texto }
+          : null,
+      }),
+    [idioma, datos, primero, t],
+  );
+
+  const filtradas = useMemo(() => filtrarFaq(secciones, busqueda), [secciones, busqueda]);
+  const total = contarPreguntas(secciones);
+  const encontradas = contarPreguntas(filtradas);
+  const buscando = busqueda.trim().length > 0;
 
   return (
     <Pantalla titulo={t.ayuda}>
-      {/*
-        Sin placa. La placa presenta LA RESPUESTA de su pantalla y aquí no hay
-        ninguna cifra que presida: lo que preside es una lista de preguntas.
-        Ponerle una banda de espresso con un recuento —«23 preguntas»— sería
-        titular con un dato que a nadie le hace falta.
-      */}
-      {/* Las bandas van como HERMANAS directas, sin envoltorio: la junta entre
-          estratos es `.banda + .banda`, un selector de hermano adyacente, y un
-          `div` en medio la desactiva entera. Ya pasó en `/red/[id]` y en
-          `/alta`, y se ve igual: cinco secciones sin una sola línea entre
-          ellas. El aire de arriba lo pone este párrafo. */}
-      <p className="mb-1 text-apoyo text-texto-apoyo">{t.ayudaApoyo}</p>
+      <p className="text-apoyo text-texto-apoyo">{t.ayudaApoyo}</p>
 
-      {secciones.map((seccion, i) => (
-        <Seccion key={seccion.titulo} seccion={seccion} orden={i} datos={datos} />
-      ))}
+      {/*
+        EL BUSCADOR, y pegajoso.
+
+        Suelto arriba serviría para la primera pantalla y para ninguna más: la
+        duda concreta aparece a mitad de recorrido, y entonces hay que subir
+        cinco pantallas para poder escribirla. Pegado, el atajo está donde se
+        necesita sin ocupar sitio permanente en la lectura.
+
+        `top: -1px` y no `0`: con el borde exacto, el redondeo del navegador
+        deja pasar una línea del contenido por encima del campo al desplazar.
+        Un píxel de solape lo cierra y no se ve.
+      */}
+      <div className="sticky top-[-1px] z-10 -mx-[var(--margen-pantalla)] mt-4 bg-fondo px-[var(--margen-pantalla)] pb-3 pt-3">
+        <div className="relative">
+          {/*
+            La lupa DENTRO del campo y no fuera: un icono al lado es un adorno;
+            dentro, es lo que dice para qué sirve la caja antes de leer el texto
+            de ayuda. `pointer-events-none` para que el toque siempre caiga en
+            el campo, incluso justo encima del dibujo.
+          */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 flex items-center text-texto-apoyo"
+            /* Propiedad lógica: en árabe la lupa se va sola al otro lado. */
+            style={{ insetInlineStart: "0.875rem" }}
+          >
+            <Icono nombre="buscar" tam={18} />
+          </span>
+          <input
+            type="search"
+            inputMode="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder={t.buscarEnLaAyuda}
+            aria-label={t.buscarEnLaAyuda}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            /* El hueco de la lupa y el del aspa los pone `.campo-busqueda`, en la
+               hoja: con utilidades no se aplicaban —`.campo-texto` declara
+               `padding` en atajo y esta hoja va detrás de Tailwind—, y el
+               marcador de posición se pintaba encima de la lupa. */
+            className="campo-texto campo-busqueda w-full text-cuerpo"
+          />
+          {buscando && (
+            /* La equis solo cuando hay algo que borrar. Objetivo de 44 px
+               aunque el aspa mida 16, que es la diferencia entre un control y
+               un dibujo que hay que acertar. */
+            <button
+              type="button"
+              onClick={() => setBusqueda("")}
+              aria-label={t.limpiarBusqueda}
+              className="absolute inset-y-0 my-auto flex h-11 w-11 items-center justify-center text-texto-apoyo"
+              style={{ insetInlineEnd: "0.25rem" }}
+            >
+              <Icono nombre="cerrar" tam={17} />
+            </button>
+          )}
+        </div>
+
+        {/* El recuento solo mientras se filtra. Fijo diría «23 de 23» en una
+            pantalla donde nadie ha preguntado cuántas hay. */}
+        {buscando && (
+          <p className="mt-2 text-apoyo text-texto-apoyo tabular-nums" aria-live="polite">
+            {t.preguntasEncontradas(encontradas, total)}
+          </p>
+        )}
+      </div>
+
+      {filtradas.length === 0 ? (
+        /* Sin resultados. Dice qué se buscó —para que se vea la errata— y
+           ofrece la salida, que es la misma con la que termina la página. */
+        <Banda tono={0} orden={0} etiqueta={t.sinResultados(busqueda.trim())} className="py-8">
+          <p className="text-cuerpo">{t.sinResultados(busqueda.trim())}</p>
+          <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.ayudaNoResueltaApoyo}</p>
+        </Banda>
+      ) : (
+        filtradas.map((seccion, i) => (
+          <Seccion key={seccion.titulo} seccion={seccion} orden={i} datos={datos} />
+        ))
+      )}
 
       {/*
         La salida. Un FAQ sin salida es un callejón: quien llega al final es
-        justo quien no ha encontrado lo suyo, y dejarle ahí con la última
-        respuesta de otra persona es la peor forma de terminar una ayuda.
+        justo quien no ha encontrado lo suyo. Se calla mientras se filtra —ahí
+        el estado vacío ya la ofrece— para no repetirla dos veces en la misma
+        pantalla.
       */}
-      <Banda tono={0} orden={secciones.length} etiqueta={t.ayudaNoResuelta} className="py-7">
-        <p className="text-cuerpo font-semibold">{t.ayudaNoResuelta}</p>
-        <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.ayudaNoResueltaApoyo}</p>
-      </Banda>
+      {!buscando && (
+        <Banda
+          tono={0}
+          orden={filtradas.length}
+          etiqueta={t.ayudaNoResuelta}
+          className="py-8"
+        >
+          <p className="text-cuerpo font-semibold">{t.ayudaNoResuelta}</p>
+          <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.ayudaNoResueltaApoyo}</p>
+        </Banda>
+      )}
     </Pantalla>
   );
 }
@@ -115,12 +198,14 @@ export default function Ayuda() {
  * Cada una es una BANDA y no una tarjeta. Cinco tarjetas iguales apiladas son
  * la forma por defecto de partir una pantalla y no significan nada aquí; los
  * estratos a sangre son la gramática que esta aplicación ya usa para decir
- * «esto es otro asunto», y alternar los tres tonos hace que se distingan sin
- * una sola línea de más.
+ * «esto es otro asunto», y alternar los tres tonos las distingue sin una sola
+ * línea de más.
  *
- * El rótulo NO es un `h2` decorativo: al ir dentro de una `section` con
- * `aria-label`, un lector de pantalla puede saltar de sección en sección, que
- * es exactamente cómo se recorre un índice de veintitrés preguntas sin verlo.
+ * El encabezado va en TÍTULO y en tinta plena. Iba en rótulo atenuado, o sea
+ * más pequeño y más apagado que las preguntas que ordena: lo que estructura
+ * pesaba menos que lo estructurado. Con `py-8` en la banda y `mb-1` bajo el
+ * título, el aire de encima cuadruplica al de debajo — un encabezado pertenece
+ * a lo que abre.
  */
 function Seccion({
   seccion,
@@ -132,8 +217,8 @@ function Seccion({
   datos: Comisiones | null;
 }) {
   return (
-    <Banda tono={(orden % 3) as 0 | 1 | 2} orden={orden} etiqueta={seccion.titulo} className="py-6">
-      <h2 className="text-rotulo text-texto-apoyo">{seccion.titulo}</h2>
+    <Banda tono={(orden % 3) as 0 | 1 | 2} orden={orden} etiqueta={seccion.titulo} className="py-8">
+      <h2 className="text-titulo">{seccion.titulo}</h2>
       {/* La junta separa preguntas dentro de una sección, igual que separa
           filas en el menú de la portada o cobros en el historial. Es la misma
           línea con el mismo significado: «esto de aquí es otra fila». */}
@@ -150,9 +235,9 @@ function Seccion({
                   queda flotando entre las dos y deja de señalar nada. */}
               <Icono nombre="desplegar" tam={20} className="chevron mt-0.5 text-texto-apoyo" />
             </summary>
-            <div className="respuesta pb-4">
+            <div className="respuesta pb-5">
               {p.respuesta.map((parrafo, i) => (
-                <p key={i} className={`text-apoyo text-texto-apoyo ${i > 0 ? "mt-2" : ""}`}>
+                <p key={i} className={`text-apoyo text-texto-apoyo ${i > 0 ? "mt-2.5" : ""}`}>
                   {parrafo}
                 </p>
               ))}
@@ -163,15 +248,6 @@ function Seccion({
                 una vez y no se vuelve. Con el medidor debajo, la misma pregunta
                 contesta «qué es» y «cuánto llevo», y la segunda mitad cambia
                 todos los días — que es lo que hace que la ayuda se abra otra vez.
-
-                En COMPACTO: la portada ya lleva el recuento con su ritmo, su
-                proyección y la comparación con el mes pasado. Repetir aquí solo
-                una de esas cifras sería enseñar un trozo de esa frase fuera de
-                su sitio; lo que hace falta en la ayuda es la forma del juego.
-
-                Y solo si la escalera existe: sin bono configurado el texto de
-                arriba ya se redacta sin cifras, y un raíl vacío debajo diría que
-                hay una carrera que nadie ha empezado.
               */}
               {p.pieza === "objetivosBono" && datos && datos.bonos.length > 0 && (
                 <div className="mt-4">

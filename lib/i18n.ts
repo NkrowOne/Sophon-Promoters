@@ -615,6 +615,12 @@ export const es = {
   ayudaApoyo: "Comisiones, activaciones, saldo y cobros.",
   ayudaNoResuelta: "¿No encuentras tu caso?",
   ayudaNoResueltaApoyo: "Escríbenos por el bot. La respuesta llegará por el mismo canal.",
+  // ── El buscador de la ayuda ───────────────────────────────────────────────
+  buscarEnLaAyuda: "Buscar en la ayuda",
+  limpiarBusqueda: "Borrar la búsqueda",
+  preguntasEncontradas: (encontradas: number, total: number) =>
+    `${encontradas} de ${total} ${total === 1 ? "pregunta" : "preguntas"}`,
+  sinResultados: (termino: string) => `Sin resultados para «${termino}».`,
   // ── La pantalla que no existe ─────────────────────────────────────────────
   //
   // Era la ÚNICA pantalla del agente escrita a mano y sin traducir: un agente
@@ -1041,6 +1047,11 @@ const en: Cadenas = {
   ayudaApoyo: "Commissions, activations, balance and payouts.",
   ayudaNoResuelta: "Not covered here?",
   ayudaNoResueltaApoyo: "Write to us on the bot. The reply arrives through the same channel.",
+  buscarEnLaAyuda: "Search the help",
+  limpiarBusqueda: "Clear the search",
+  preguntasEncontradas: (encontradas: number, total: number) =>
+    `${encontradas} of ${total} ${total === 1 ? "question" : "questions"}`,
+  sinResultados: (termino: string) => `No results for «${termino}».`,
   paginaNoExiste: "The page does not exist.",
   paginaNoExisteApoyo: "The link may belong to an earlier version of the application.",
   objetivosDelBono: "Bonus targets",
@@ -1443,6 +1454,11 @@ const it: Cadenas = {
   ayudaApoyo: "Commissioni, attivazioni, saldo e pagamenti.",
   ayudaNoResuelta: "Non trovi il tuo caso?",
   ayudaNoResueltaApoyo: "Scrivici sul bot. La risposta arriva dallo stesso canale.",
+  buscarEnLaAyuda: "Cerca nell'aiuto",
+  limpiarBusqueda: "Cancella la ricerca",
+  preguntasEncontradas: (encontradas: number, total: number) =>
+    `${encontradas} di ${total} ${total === 1 ? "domanda" : "domande"}`,
+  sinResultados: (termino: string) => `Nessun risultato per «${termino}».`,
   paginaNoExiste: "La pagina non esiste.",
   paginaNoExisteApoyo: "Il link può appartenere a una versione precedente dell'applicazione.",
   objetivosDelBono: "Obiettivi del bonus",
@@ -1846,6 +1862,11 @@ const pt: Cadenas = {
   ayudaApoyo: "Comissões, ativações, saldo e pagamentos.",
   ayudaNoResuelta: "Não encontras o teu caso?",
   ayudaNoResueltaApoyo: "Escreve-nos pelo bot. A resposta chega pelo mesmo canal.",
+  buscarEnLaAyuda: "Procurar na ajuda",
+  limpiarBusqueda: "Limpar a pesquisa",
+  preguntasEncontradas: (encontradas: number, total: number) =>
+    `${encontradas} de ${total} ${total === 1 ? "pergunta" : "perguntas"}`,
+  sinResultados: (termino: string) => `Sem resultados para «${termino}».`,
   paginaNoExiste: "A página não existe.",
   paginaNoExisteApoyo: "O link pode pertencer a uma versão anterior da aplicação.",
   objetivosDelBono: "Objetivos do bónus",
@@ -2247,6 +2268,11 @@ const ar: Cadenas = {
   ayudaApoyo: "العمولات والتفعيلات والرصيد والمدفوعات.",
   ayudaNoResuelta: "لم تجد حالتك؟",
   ayudaNoResueltaApoyo: "راسلنا عبر البوت. وسيصلك الرد من القناة نفسها.",
+  buscarEnLaAyuda: "ابحث في المساعدة",
+  limpiarBusqueda: "مسح البحث",
+  preguntasEncontradas: (encontradas: number, total: number) =>
+    `${encontradas} من ${total} سؤالًا`,
+  sinResultados: (termino: string) => `لا نتائج لـ «${termino}».`,
   paginaNoExiste: "الصفحة غير موجودة.",
   paginaNoExisteApoyo: "قد يعود الرابط إلى إصدار سابق من التطبيق.",
   objetivosDelBono: "أهداف المكافأة",
