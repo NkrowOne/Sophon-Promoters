@@ -1711,3 +1711,90 @@ textarea::placeholder {
 .texto-marca {
   color: var(--campo);
 }
+
+/* ─────────────────────── LA PREGUNTA DE LA AYUDA ───────────────────────
+ *
+ * Un `<details>` de verdad, no un acordeón hecho a mano con estado de React.
+ *
+ * Es la decisión que sostiene toda la pantalla de ayuda. El elemento nativo ya
+ * trae abrir y cerrar, el foco de teclado, `aria-expanded` implícito, y —lo que
+ * de verdad importa aquí— **funciona antes de que cargue el JavaScript**: la
+ * ayuda es la pantalla que se abre justo cuando algo va mal, y un acordeón que
+ * necesita hidratación para desplegarse es un acordeón que no se despliega el
+ * día que la red va lenta.
+ *
+ * El buscador del sistema también encuentra el texto de un `<details>` cerrado
+ * en los navegadores modernos; un `hidden` gobernado por estado, no.
+ */
+.pregunta > summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  /*
+   * El objetivo táctil llega a 44 px por el relleno y el interlineado, no por
+   * una altura escrita a mano: así sigue llegando cuando la pregunta ocupe dos
+   * líneas —que en árabe y en portugués pasa— en vez de recortarse.
+   */
+  padding-block: 0.875rem;
+  cursor: pointer;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * El triángulo propio de WebKit no se va con `list-style: none`.
+ *
+ * Y WebKit aquí no es un caso raro: la Mini App vive dentro del WebView de
+ * Telegram, que en iOS es Safari por obligación del sistema. Sin esta regla,
+ * medio parque de agentes ve el triángulo gris del navegador al lado del
+ * chevron de la casa.
+ */
+.pregunta > summary::-webkit-details-marker {
+  display: none;
+}
+
+/*
+ * El chevron gira 180°, y por eso apunta hacia ABAJO y no hacia un lado.
+ *
+ * Un chevron lateral obliga a girar en un sentido en español y en el contrario
+ * en árabe, porque el icono ya viene espejado. Uno vertical no tiene orilla:
+ * el mismo giro vale en las cinco lenguas y no hay una regla `[dir="rtl"]` que
+ * se quede sin actualizar el día que se toque esto.
+ */
+.pregunta > summary .chevron {
+  transition: transform var(--t-entrada) var(--curva-mover);
+}
+
+.pregunta[open] > summary .chevron {
+  transform: rotate(180deg);
+}
+
+/*
+ * La respuesta se DEPOSITA, con el mismo gesto que un estrato de página.
+ *
+ * No es una animación nueva: es `depositar`, la única entrada que tiene esta
+ * aplicación. Reusarla es lo que hace que abrir una pregunta se lea como parte
+ * del mismo sistema y no como un efecto traído de otro sitio.
+ *
+ * Va en `animation` y no en `transition` a propósito: el contenido de un
+ * `<details>` cerrado no está en el flujo, así que no hay estado inicial desde
+ * el que transicionar. Una animación se dispara al aparecer, que es justo el
+ * momento que hay que cubrir.
+ */
+.pregunta[open] .respuesta {
+  animation: depositar var(--t-entrada) var(--curva) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Misma regla que el resto de la hoja: se quita el desplazamiento, no la
+     interfaz. El chevron sigue girando —es el indicador de estado, y su giro
+     instantáneo no molesta a nadie—, y lo que se apaga es la entrada. */
+  .pregunta > summary .chevron {
+    transition: none;
+  }
+
+  .pregunta[open] .respuesta {
+    animation: none;
+  }
+}

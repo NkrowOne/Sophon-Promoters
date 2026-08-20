@@ -403,7 +403,6 @@ export const es = {
   sesionCaducadaApoyo: "Vuelve a entrar con tu correo. No pierdes nada de lo tuyo.",
   algoHaFallado: "No hemos podido completar la acción.",
   algoHaFalladoApoyo: "No hemos cambiado nada. Vuelve a intentarlo.",
-  comoCobras: "Cobras 0,03 $ por cada usuario que registre, sea cual sea su país.",
 
   /*
    * Errores de la API, uno por caso.
@@ -584,6 +583,45 @@ export const es = {
      dato: la razón social, la dirección y el dominio se escriben igual en las
      cinco lenguas y por eso viven en `lib/correo.ts` y no aquí. */
   correoPieMarca: "Sophon es una marca registrada de New Sophon Technology Limited.",
+
+  // ── Lo que cobra el AGENTE, dicho entero ──────────────────────────────────
+  //
+  // Sustituye a `comoCobras`, que prometía «0,03 $» escrito a mano en los cinco
+  // catálogos. Los 0,03 son la tarifa vigente, un valor que el Operador cambia
+  // desde su panel: la cifra entra ahora por parámetro desde
+  // `/api/agente/comisiones` y estas cadenas solo ponen la frase.
+  loQueCobrasTu: "Lo que cobras tú",
+  cobrasPorRegistro: (importe: string) =>
+    `${importe} por cada usuario que registre, sea cual sea su país.`,
+  cobrasPorPro: (porcentaje: string) =>
+    `${porcentaje} de lo que esos usuarios paguen por su PRO.`,
+  cobrasBonoMensual: "Y un bono al mes si toda tu red llega a un nivel de registros.",
+
+  // ── De dónde sale el saldo ────────────────────────────────────────────────
+  //
+  // La Escalera dice DÓNDE está el dinero; esto dice DE DÓNDE viene. Sin ello
+  // el bono desaparecía en cuanto se cobraba: entraba en el total y no había
+  // forma de volver a verlo.
+  deDondeSale: "De dónde sale",
+  porRegistros: "Registros",
+  porComprasPro: "Compras de PRO",
+  porBonos: "Bonos",
+  porAjustes: "Ajustes",
+  deDondeSaleApoyo: "Todo lo ganado desde que empezaste, por origen.",
+  bonosCobrados: "Bonos cobrados",
+  bonoNivelDe: (usuarios: number) =>
+    `Nivel de ${usuarios.toLocaleString("es-ES")} registros`,
+  bonoSinNivel: "Bono del mes",
+  todaviaEnRevision: "todavía en revisión",
+  sinBonos: "Todavía no has cobrado ningún bono.",
+  sinBonosApoyo:
+    "Se gana llegando a un nivel de registros dentro del mes. El contador empieza de cero el día 1.",
+
+  // ── Ayuda ─────────────────────────────────────────────────────────────────
+  ayuda: "Ayuda",
+  ayudaApoyo: "Cómo se gana, cómo se cobra y qué hacer cuando algo no sale.",
+  ayudaNoResuelta: "¿No está lo tuyo?",
+  ayudaNoResueltaApoyo: "Escríbelo por el bot. Te contestamos por el mismo sitio.",
 } as const;
 
 /**
@@ -842,7 +880,6 @@ const en: Cadenas = {
   sesionCaducadaApoyo: "Sign in again with your email. You lose nothing of yours.",
   algoHaFallado: "We could not complete the action.",
   algoHaFalladoApoyo: "We have not changed anything. Try again.",
-  comoCobras: "You earn $0.03 for every user they sign up, whatever their country.",
 
   errSinTelegram: "Telegram has not verified your access.",
   errSinTelegramApoyo: "Open the app from the bot.",
@@ -979,6 +1016,33 @@ const en: Cadenas = {
     "If you did not ask to sign in to Sophon Promoters, ignore this email: without the code nobody can get into your account.",
   correoOtpTocaParaCopiar: "Press and hold the code to copy it.",
   correoPieMarca: "Sophon is a registered trademark of New Sophon Technology Limited.",
+
+  loQueCobrasTu: "What you earn",
+  cobrasPorRegistro: (importe: string) =>
+    `${importe} for every user they sign up, whatever their country.`,
+  cobrasPorPro: (porcentaje: string) =>
+    `${porcentaje} of whatever those users pay for their PRO.`,
+  cobrasBonoMensual: "Plus a monthly bonus if your whole team hits a sign-up level.",
+
+  deDondeSale: "Where it comes from",
+  porRegistros: "Sign-ups",
+  porComprasPro: "PRO purchases",
+  porBonos: "Bonuses",
+  porAjustes: "Adjustments",
+  deDondeSaleApoyo: "Everything you have earned since you started, by source.",
+  bonosCobrados: "Bonuses earned",
+  bonoNivelDe: (usuarios: number) =>
+    `${usuarios.toLocaleString("en-US")} sign-up level`,
+  bonoSinNivel: "Monthly bonus",
+  todaviaEnRevision: "still under review",
+  sinBonos: "You have not earned a bonus yet.",
+  sinBonosApoyo:
+    "You win one by reaching a sign-up level within the month. The counter starts from zero on the 1st.",
+
+  ayuda: "Help",
+  ayudaApoyo: "How you earn, how you get paid, and what to do when something goes wrong.",
+  ayudaNoResuelta: "Not covered here?",
+  ayudaNoResueltaApoyo: "Write it on the bot. We answer through the same place.",
 };
 
 const it: Cadenas = {
@@ -1226,7 +1290,6 @@ const it: Cadenas = {
   sesionCaducadaApoyo: "Rientra con la tua email. Non perdi nulla di tuo.",
   algoHaFallado: "Non siamo riusciti a completare l'azione.",
   algoHaFalladoApoyo: "Non abbiamo cambiato nulla. Riprova.",
-  comoCobras: "Guadagni 0,03 $ per ogni utente che registra, qualunque sia il suo paese.",
 
   errSinTelegram: "Telegram non ha verificato il tuo accesso.",
   errSinTelegramApoyo: "Apri l'applicazione dal bot.",
@@ -1367,6 +1430,33 @@ const it: Cadenas = {
     "Se non hai chiesto tu di entrare in Sophon Promoters, ignora questa email: senza il codice nessuno può entrare nel tuo account.",
   correoOtpTocaParaCopiar: "Tieni premuto il codice per copiarlo.",
   correoPieMarca: "Sophon è un marchio registrato di New Sophon Technology Limited.",
+
+  loQueCobrasTu: "Quanto guadagni tu",
+  cobrasPorRegistro: (importe: string) =>
+    `${importe} per ogni utente che registra, qualunque sia il suo paese.`,
+  cobrasPorPro: (porcentaje: string) =>
+    `${porcentaje} di quello che quegli utenti pagano per il loro PRO.`,
+  cobrasBonoMensual: "E un bonus al mese se tutta la tua squadra arriva a un livello di registrazioni.",
+
+  deDondeSale: "Da dove arriva",
+  porRegistros: "Registrazioni",
+  porComprasPro: "Acquisti di PRO",
+  porBonos: "Bonus",
+  porAjustes: "Rettifiche",
+  deDondeSaleApoyo: "Tutto quello che hai guadagnato da quando hai iniziato, per origine.",
+  bonosCobrados: "Bonus incassati",
+  bonoNivelDe: (usuarios: number) =>
+    `Livello di ${usuarios.toLocaleString("it-IT")} registrazioni`,
+  bonoSinNivel: "Bonus del mese",
+  todaviaEnRevision: "ancora in verifica",
+  sinBonos: "Non hai ancora incassato nessun bonus.",
+  sinBonosApoyo:
+    "Si vince arrivando a un livello di registrazioni entro il mese. Il contatore riparte da zero il giorno 1.",
+
+  ayuda: "Aiuto",
+  ayudaApoyo: "Come si guadagna, come si incassa e cosa fare quando qualcosa non va.",
+  ayudaNoResuelta: "Non c'è il tuo caso?",
+  ayudaNoResueltaApoyo: "Scrivilo sul bot. Ti rispondiamo dallo stesso posto.",
 };
 
 const pt: Cadenas = {
@@ -1616,7 +1706,6 @@ const pt: Cadenas = {
   sesionCaducadaApoyo: "Volta a entrar com o teu email. Não perdes nada do que é teu.",
   algoHaFallado: "Não conseguimos concluir a ação.",
   algoHaFalladoApoyo: "Não alterámos nada. Tenta outra vez.",
-  comoCobras: "Ganhas 0,03 $ por cada utilizador que registe, seja qual for o país.",
 
   errSinTelegram: "O Telegram não verificou o teu acesso.",
   errSinTelegramApoyo: "Abre a aplicação a partir do bot.",
@@ -1754,6 +1843,33 @@ const pt: Cadenas = {
     "Se não pediste para entrar no Sophon Promoters, ignora este email: sem o código ninguém consegue aceder à tua conta.",
   correoOtpTocaParaCopiar: "Mantém o código premido para o copiares.",
   correoPieMarca: "Sophon é uma marca registada da New Sophon Technology Limited.",
+
+  loQueCobrasTu: "O que ganhas tu",
+  cobrasPorRegistro: (importe: string) =>
+    `${importe} por cada utilizador que registe, seja qual for o país.`,
+  cobrasPorPro: (porcentaje: string) =>
+    `${porcentaje} do que esses utilizadores pagarem pelo PRO.`,
+  cobrasBonoMensual: "E um bónus por mês se toda a tua equipa chegar a um nível de registos.",
+
+  deDondeSale: "De onde vem",
+  porRegistros: "Registos",
+  porComprasPro: "Compras de PRO",
+  porBonos: "Bónus",
+  porAjustes: "Acertos",
+  deDondeSaleApoyo: "Tudo o que ganhaste desde que começaste, por origem.",
+  bonosCobrados: "Bónus recebidos",
+  bonoNivelDe: (usuarios: number) =>
+    `Nível de ${usuarios.toLocaleString("pt-PT")} registos`,
+  bonoSinNivel: "Bónus do mês",
+  todaviaEnRevision: "ainda em revisão",
+  sinBonos: "Ainda não recebeste nenhum bónus.",
+  sinBonosApoyo:
+    "Ganha-se chegando a um nível de registos dentro do mês. O contador começa do zero no dia 1.",
+
+  ayuda: "Ajuda",
+  ayudaApoyo: "Como se ganha, como se recebe e o que fazer quando alguma coisa corre mal.",
+  ayudaNoResuelta: "Não está aqui o teu caso?",
+  ayudaNoResueltaApoyo: "Escreve pelo bot. Respondemos pelo mesmo sítio.",
 };
 
 /**
@@ -2010,7 +2126,6 @@ const ar: Cadenas = {
   sesionCaducadaApoyo: "ادخل من جديد ببريدك. لن تفقد شيئًا مما لك.",
   algoHaFallado: "لم نتمكن من إتمام الإجراء.",
   algoHaFalladoApoyo: "لم نغيّر شيئًا. أعد المحاولة.",
-  comoCobras: "تربح 0,03 $ عن كل مستخدم يسجّله، أيًا كان بلده.",
 
   errSinTelegram: "لم يتحقق Telegram من دخولك.",
   errSinTelegramApoyo: "افتح التطبيق من البوت.",
@@ -2157,6 +2272,33 @@ const ar: Cadenas = {
     "إذا لم تطلب الدخول إلى Sophon Promoters فتجاهل هذه الرسالة: من دون الرمز لا يمكن لأحد الدخول إلى حسابك.",
   correoOtpTocaParaCopiar: "اضغط مطولاً على الرمز لنسخه.",
   correoPieMarca: "Sophon علامة تجارية مسجَّلة لشركة New Sophon Technology Limited.",
+
+  loQueCobrasTu: "ما تربحه أنت",
+  cobrasPorRegistro: (importe: string) =>
+    `${importe} عن كل مستخدم يسجّله، أيًا كان بلده.`,
+  cobrasPorPro: (porcentaje: string) =>
+    `${porcentaje} مما يدفعه هؤلاء المستخدمون مقابل PRO.`,
+  cobrasBonoMensual: "ومكافأة شهرية إذا بلغ فريقك كله مستوى معيّنًا من التسجيلات.",
+
+  deDondeSale: "من أين يأتي",
+  porRegistros: "التسجيلات",
+  porComprasPro: "مشتريات PRO",
+  porBonos: "المكافآت",
+  porAjustes: "التسويات",
+  deDondeSaleApoyo: "كل ما كسبته منذ أن بدأت، حسب المصدر.",
+  bonosCobrados: "المكافآت المقبوضة",
+  bonoNivelDe: (usuarios: number) =>
+    `مستوى ${usuarios.toLocaleString("ar")} تسجيل`,
+  bonoSinNivel: "مكافأة الشهر",
+  todaviaEnRevision: "ما زالت قيد المراجعة",
+  sinBonos: "لم تقبض أي مكافأة بعد.",
+  sinBonosApoyo:
+    "تُكسب ببلوغ مستوى من التسجيلات خلال الشهر. ويبدأ العدّاد من الصفر في اليوم الأول.",
+
+  ayuda: "المساعدة",
+  ayudaApoyo: "كيف تربح، وكيف تقبض، وماذا تفعل حين لا يسير شيء على ما يرام.",
+  ayudaNoResuelta: "حالتك ليست هنا؟",
+  ayudaNoResueltaApoyo: "اكتبها في البوت. نردّ عليك من المكان نفسه.",
 };
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };

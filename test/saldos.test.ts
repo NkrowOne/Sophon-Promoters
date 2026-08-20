@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { componerSaldos } from "../lib/devengo/saldos.ts";
+import { agruparBonosPorMes, componerSaldos } from "../lib/devengo/saldos.ts";
 
 /**
  * El circuito del dinero, recorrido entero.
@@ -159,5 +159,78 @@ describe("los saldos de un agente", () => {
     });
     assert.equal(s.devengadoMicros, enorme);
     assert.equal(s.disponibleMicros, enorme);
+  });
+});
+
+/**
+ * LOS BONOS DEL MES, agrupados.
+ *
+ * Existe porque el bono era invisible en cuanto se cobraba: entraba en el total
+ * de lo ganado y no había ninguna pantalla que volviera a nombrarlo. Al sacarlo
+ * a la cartera aparece un problema propio de este tipo de asiento, y es el que
+ * se prueba aquí: **un mes puede llevar varios**.
+ *
+ * El bono no es acumulable, así que subir de nivel no emite la recompensa nueva
+ * entera sino la DIFERENCIA. Enseñar esos tramos sueltos haría leer dos bonos
+ * donde hubo uno, y el nivel del primer tramo etiquetando la suma haría leer un
+ * total pagado por un nivel que no lo pagó.
+ */
+describe("los bonos, agrupados por mes", () => {
+  const asiento = (
+    fechaDevengo: string,
+    importeMicros: bigint,
+    usuarios: number | null,
+    consolidado = true,
+  ) => ({ fechaDevengo, importeMicros, usuarios, consolidado });
+
+  it("suma los tramos del mismo mes y se queda con el NIVEL MÁS ALTO", () => {
+    // El caso real: cruza 10.000 y cobra 50; sube a 30.000 y cobra los 100 que
+    // faltan. El mes son 150 $ y los explica el nivel de 30.000, no el de 10.000.
+    const [mes] = agruparBonosPorMes([
+      asiento("2026-08-20", 100_000_000n, 30_000),
+      asiento("2026-08-09", 50_000_000n, 10_000),
+    ]);
+
+    assert.equal(mes!.mes, "2026-08");
+    assert.equal(mes!.importeMicros, 150_000_000n);
+    assert.equal(mes!.usuarios, 30_000);
+  });
+
+  it("un solo tramo aún revisable deja el mes entero sin confirmar", () => {
+    // El total que se enseña es la suma, así que darlo por cerrado mientras una
+    // parte puede moverse sería prometer una cifra que todavía no lo es.
+    const [mes] = agruparBonosPorMes([
+      asiento("2026-08-20", 100_000_000n, 30_000, false),
+      asiento("2026-08-09", 50_000_000n, 10_000, true),
+    ]);
+    assert.equal(mes!.consolidado, false);
+  });
+
+  it("meses distintos NO se mezclan, y conservan el orden en que llegan", () => {
+    const meses = agruparBonosPorMes([
+      asiento("2026-08-09", 50_000_000n, 10_000),
+      asiento("2026-07-28", 150_000_000n, 30_000),
+      asiento("2026-06-30", 50_000_000n, 10_000),
+    ]);
+    assert.deepEqual(
+      meses.map((m) => m.mes),
+      ["2026-08", "2026-07", "2026-06"],
+    );
+  });
+
+  it("un asiento sin nivel no borra el nivel que ya tenía el mes", () => {
+    // `bonoEscalonId` es opcional en el esquema: un ajuste hecho a mano puede
+    // llegar sin él. Que ese asiento deje el mes sin etiqueta sería perder el
+    // dato que sí existe.
+    const [mes] = agruparBonosPorMes([
+      asiento("2026-08-20", 10_000_000n, null),
+      asiento("2026-08-09", 50_000_000n, 10_000),
+    ]);
+    assert.equal(mes!.usuarios, 10_000);
+    assert.equal(mes!.importeMicros, 60_000_000n);
+  });
+
+  it("sin bonos no devuelve una fila vacía: devuelve nada", () => {
+    assert.deepEqual(agruparBonosPorMes([]), []);
   });
 });

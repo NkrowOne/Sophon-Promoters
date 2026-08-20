@@ -356,6 +356,11 @@ export default function Inicio() {
               etiqueta={t.cartera}
               dato={cartera ? cartera.disponible.texto : null}
             />
+            {/* La ayuda va la ÚLTIMA y sin dato, que es donde va la ayuda en
+                cualquier sitio: no se viene a ella, se acude. Delante de la
+                cartera habría empujado el dinero un renglón hacia abajo para
+                adelantar una pantalla que solo se abre cuando algo no cuadra. */}
+            <Fila href="/ayuda" icono="ayuda" etiqueta={t.ayuda} />
           </ul>
         </Banda>
       </div>

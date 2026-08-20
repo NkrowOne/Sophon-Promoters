@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Aviso, Banda, Marca, Pantalla } from "@/components/Pantalla";
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
+import type { Comisiones } from "@/lib/api/comisiones";
+import { useRecurso } from "@/lib/api/recurso";
 
 /**
  * Activar webmaster.
@@ -268,8 +270,8 @@ function ActivarPasos() {
 
         <Banda orden={1} tono={1} className="py-6">
           <p className="text-apoyo">{t.incluyeUnAnio}</p>
-          <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.comoCobras}</p>
-          <p className="mt-3 text-apoyo text-texto-apoyo">{t.altaNoSeDeshace}</p>
+          <LoQueCobras />
+          <p className="mt-4 text-apoyo text-texto-apoyo">{t.altaNoSeDeshace}</p>
         </Banda>
 
         {error && (
@@ -320,7 +322,7 @@ function ActivarPasos() {
           y desde que el alta concede un año de PRO lo es todavía más. */}
       <Banda orden={1} tono={1} className="py-6">
         <p className="text-apoyo">{t.incluyeUnAnio}</p>
-        <p className="mt-1.5 text-apoyo text-texto-apoyo">{t.comoCobras}</p>
+        <LoQueCobras />
       </Banda>
 
       <BotonPrincipalAccion
@@ -329,5 +331,65 @@ function ActivarPasos() {
         activo={valido}
       />
     </Pantalla>
+  );
+}
+
+/**
+ * LAS TRES VÍAS por las que el agente cobra, con las cifras de verdad.
+ *
+ * Aquí había UNA línea —«Cobras 0,03 $ por cada usuario que registre»— y tenía
+ * los dos defectos que puede tener una frase así.
+ *
+ * **Estaba incompleta.** Decía la vía menor y se callaba las otras dos: el
+ * porcentaje de lo que esos usuarios pagan por su PRO, y el bono mensual por los
+ * registros de toda la red. Justo en la pantalla donde el agente decide si le
+ * merece la pena captar a alguien, la aplicación le enseñaba un tercio de su
+ * razón para hacerlo.
+ *
+ * **Y mentía en cuanto cambiara la tarifa.** Los 0,03 son
+ * `TarifaVersion.cpaPorRegistroMicros`, versionada precisamente para poder
+ * moverse sin reescribir el histórico; la cadena estaba escrita a mano en cinco
+ * catálogos y no se iba a enterar. Ahora las cifras salen de
+ * `/api/agente/comisiones`, que las lee de la tarifa vigente.
+ *
+ * `useRecurso` y no un `useEffect` propio: guarda la respuesta fuera del árbol
+ * de React, así que la segunda vez que se abre esta pantalla —y se abre muchas—
+ * las tres líneas están en el primer fotograma.
+ *
+ * Cada línea se pinta solo si tiene su dato. Sin tarifa configurada no se
+ * inventa un «0,00 $ por registro», que se leería como «no cobras nada»; y sin
+ * escalera de bonos no se promete un bono que no existe.
+ */
+function LoQueCobras() {
+  const t = useCadenas();
+  const { datos } = useRecurso<Comisiones>("/api/agente/comisiones");
+  if (!datos) return null;
+
+  const lineas = [
+    datos.cpa ? t.cobrasPorRegistro(datos.cpa.texto) : null,
+    datos.cps ? t.cobrasPorPro(datos.cps) : null,
+    datos.bonos.length > 0 ? t.cobrasBonoMensual : null,
+  ].filter((l): l is string => l !== null);
+
+  if (lineas.length === 0) return null;
+
+  return (
+    <>
+      {/* El rótulo dice de quién es el dinero. Sin él, tres importes debajo de
+          «le das un año de PRO» se leen como el precio de ese año. */}
+      <p className="text-rotulo mt-4 text-texto-apoyo">{t.loQueCobrasTu}</p>
+      {/* Lista con junta: es la forma que esta aplicación ya usa para enumerar
+          —el menú de la portada, el historial de cobros—, y tres frases sueltas
+          separadas por márgenes no se leen como tres vías de lo mismo.
+          `first:pt-0 last:pb-0` porque el aire de los extremos lo pone el `mt`
+          de arriba y el `py` de la banda. */}
+      <ul className="mt-2 divide-y divide-junta" role="list">
+        {lineas.map((linea) => (
+          <li key={linea} className="py-2.5 text-apoyo text-texto-apoyo first:pt-0 last:pb-0">
+            {linea}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }

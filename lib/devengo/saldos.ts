@@ -172,3 +172,149 @@ export async function saldos(agenteId: string): Promise<Saldos> {
     pagadoMicros: sumaRetiro("PAGADO"),
   });
 }
+
+// ─────────────────────── De qué está hecho lo devengado ───────────────────────
+
+/**
+ * Las tres vías por las que entra dinero, separadas.
+ *
+ * La Escalera contesta a «¿dónde está mi dinero?» —devengado, disponible,
+ * solicitado, pagado— y esa es la pregunta de la pantalla. La que no contestaba
+ * nadie es la de al lado: **de qué está hecho**. Un agente veía un devengado que
+ * mezclaba los registros, las compras de PRO y los bonos del mes sin forma de
+ * separarlos, así que el bono —que es la parte que premia traer red, y la única
+ * que se puede perder por no llegar a tiempo— era invisible en cuanto se cobraba.
+ *
+ * Mismo `where` que el resto: `SOLO_DEVENGO`. Un retiro no es una vía de
+ * ingreso, es dinero cambiando de sitio, y meterlo aquí restaría de «lo que has
+ * ganado por registros» un dinero que no tiene nada que ver.
+ *
+ * Los ajustes van JUNTOS y aparte. Un `AJUSTE_REVERSO` es una revisión a la baja
+ * de Sophon y un `AJUSTE_MANUAL` una corrección del Operador; los dos son
+ * correcciones sobre lo ya contado, no una cuarta forma de ganar, y sumarlos a
+ * su tipo de origen escondería exactamente lo que el agente necesita ver cuando
+ * el total no le cuadra.
+ */
+export interface DesgloseDevengo {
+  /** CPA: lo fijo por cada usuario registrado. */
+  registrosMicros: Micros;
+  /** CPS: el porcentaje de lo que esos usuarios pagan por el PRO. */
+  proMicros: Micros;
+  /** BONO: los hitos mensuales de toda la red. */
+  bonosMicros: Micros;
+  /** Reversos de Sophon y correcciones del Operador. Puede ser negativo. */
+  ajustesMicros: Micros;
+}
+
+export async function desgloseDevengo(agenteId: string): Promise<DesgloseDevengo> {
+  const porTipo = await db.asientoComision.groupBy({
+    by: ["tipo"],
+    where: { agenteId, ...SOLO_DEVENGO },
+    _sum: { importeMicros: true },
+  });
+
+  const suma = (tipo: string): Micros =>
+    porTipo.find((p) => p.tipo === tipo)?._sum.importeMicros ?? 0n;
+
+  return {
+    registrosMicros: suma("CPA"),
+    proMicros: suma("CPS"),
+    bonosMicros: suma("BONO"),
+    ajustesMicros: suma("AJUSTE_REVERSO") + suma("AJUSTE_MANUAL"),
+  };
+}
+
+/** Un mes de bono, ya agrupado: lo que se cobró y el hito que lo explica. */
+export interface BonoDelMes {
+  /** `AAAA-MM`. */
+  mes: string;
+  importeMicros: Micros;
+  /** El hito más alto que se pagó ese mes, o `null` si el asiento no lo lleva. */
+  usuarios: number | null;
+  /** Falso mientras alguno de sus asientos siga dentro de la ventana de revisión. */
+  consolidado: boolean;
+}
+
+/**
+ * Los bonos cobrados, AGRUPADOS POR MES.
+ *
+ * Un mes puede llevar varios asientos: el bono no es acumulable, así que subir
+ * de escalón emite la DIFERENCIA hasta la recompensa nueva. Enseñar esos tramos
+ * sueltos —«50 $» y luego «100 $»— haría leer dos bonos donde hubo uno de 150,
+ * que es justo la confusión que la regla de no acumulación provoca. Se suman por
+ * mes y se enseña el hito más alto, que es el que explica el total.
+ *
+ * El orden es el natural de un historial: lo más reciente primero.
+ */
+/** Un asiento de bono, con lo justo para agruparlo. */
+export interface AsientoBono {
+  importeMicros: Micros;
+  /** `AAAA-MM-DD`. */
+  fechaDevengo: string;
+  consolidado: boolean;
+  /** El nivel que lo explica. `null` si el asiento se quedó sin él. */
+  usuarios: number | null;
+}
+
+/**
+ * La agrupación, separada de la consulta para poder probarla.
+ *
+ * Mismo criterio que `componerSaldos`: lo que necesita Postgres no se prueba, y
+ * lo único que aquí puede salir mal —sumar mal un mes, quedarse con el nivel
+ * bajo, dar por confirmado un mes que todavía se revisa— es aritmética pura.
+ *
+ * Espera los asientos ya ordenados de más reciente a más antiguo y conserva ese
+ * orden: el `Map` respeta el de inserción.
+ */
+export function agruparBonosPorMes(asientos: readonly AsientoBono[]): BonoDelMes[] {
+  const porMes = new Map<string, BonoDelMes>();
+
+  for (const a of asientos) {
+    const mes = a.fechaDevengo.slice(0, 7);
+    const previo = porMes.get(mes);
+    if (!previo) {
+      porMes.set(mes, {
+        mes,
+        importeMicros: a.importeMicros,
+        usuarios: a.usuarios,
+        consolidado: a.consolidado,
+      });
+      continue;
+    }
+    previo.importeMicros += a.importeMicros;
+    // El nivel MÁS ALTO del mes, que es el que explica el total: el bono no es
+    // acumulable, así que subir de nivel emite la diferencia y quedarse con el
+    // primer asiento dejaría el importe del nivel alto etiquetado con el bajo.
+    if (a.usuarios !== null && (previo.usuarios === null || a.usuarios > previo.usuarios)) {
+      previo.usuarios = a.usuarios;
+    }
+    // Un solo tramo aún revisable deja el mes entero sin confirmar: el total
+    // que se enseña es la suma, y decir que está cerrado cuando una parte puede
+    // moverse sería prometer una cifra que todavía no lo es.
+    previo.consolidado &&= a.consolidado;
+  }
+
+  return [...porMes.values()];
+}
+
+export async function bonosPorMes(agenteId: string, meses = 12): Promise<BonoDelMes[]> {
+  const asientos = await db.asientoComision.findMany({
+    where: { agenteId, tipo: "BONO", estado: { not: "ANULADO" } },
+    orderBy: { fechaDevengo: "desc" },
+    select: {
+      importeMicros: true,
+      fechaDevengo: true,
+      estado: true,
+      bonoEscalon: { select: { usuarios: true } },
+    },
+  });
+
+  return agruparBonosPorMes(
+    asientos.map((a) => ({
+      importeMicros: a.importeMicros,
+      fechaDevengo: a.fechaDevengo.toISOString().slice(0, 10),
+      consolidado: a.estado === "CONSOLIDADO",
+      usuarios: a.bonoEscalon?.usuarios ?? null,
+    })),
+  ).slice(0, meses);
+}

@@ -10,6 +10,7 @@ import { Aviso, Banda, Cargando, FalloDeCarga, Pantalla } from "@/components/Pan
 import { BotonPrincipalAccion, useCadenas, useTelegram } from "@/components/TelegramProvider";
 import { ErrorApi, aErrorApi, api, nuevaIdempotencia } from "@/lib/api/cliente";
 import { formatearMicros, microsACadena } from "@/lib/devengo/dinero";
+import { LOCALES, type Idioma } from "@/lib/idiomas";
 import type { Cadenas } from "@/lib/i18n";
 
 /**
@@ -118,8 +119,26 @@ interface Solicitud {
   referenciaPago: string | null;
 }
 
+interface Desglose {
+  registros: { micros: string; texto: string };
+  pro: { micros: string; texto: string };
+  bonos: { micros: string; texto: string };
+  ajustes: { micros: string; texto: string };
+}
+
+interface BonoDelMes {
+  /** `AAAA-MM`. */
+  mes: string;
+  importe: { micros: string; texto: string };
+  /** El nivel más alto que se pagó ese mes, o `null` si el asiento no lo lleva. */
+  usuarios: number | null;
+  consolidado: boolean;
+}
+
 interface Respuesta {
   cartera: Cartera;
+  desglose: Desglose;
+  bonos: BonoDelMes[];
   minimo: { micros: string; texto: string };
   historial: Solicitud[];
 }
@@ -457,11 +476,84 @@ export default function CarteraPagina() {
         </Banda>
       )}
 
+      {/*
+        DE DÓNDE SALE: la otra mitad de la pregunta del dinero.
+
+        La Escalera de arriba contesta a DÓNDE está —ganado, disponible, pedido,
+        cobrado—. Lo que no contestaba nadie es de QUÉ está hecho, y el que se
+        perdía por ahí era el bono: se ganaba, se anunciaba por Telegram, entraba
+        en el total y desaparecía. Un premio que solo se ve el día que se gana es
+        un premio que no se cuenta dos veces, y contarlo es la mitad de para qué
+        existe.
+
+        Va DESPUÉS del formulario y no antes: lo que trae al agente a esta
+        pantalla es pedir su dinero, y una explicación entre la cifra y el botón
+        habría empujado la acción fuera de la primera pantalla de scroll. Aquí
+        contesta a la pregunta que nace DESPUÉS de mirar el saldo.
+      */}
+      <Banda orden={2} tono={2} etiqueta={t.deDondeSale} className="py-6">
+        <p className="text-rotulo text-texto-apoyo">{t.deDondeSale}</p>
+        <p className="mt-1 text-apoyo text-texto-apoyo">{t.deDondeSaleApoyo}</p>
+
+        {/* En TARJETA, como la Escalera y por lo mismo: las tres vías son un
+            mismo saldo repartido, no tres magnitudes sueltas. Levantada del
+            papel se lee de un vistazo como una sola cosa. */}
+        <div className="tarjeta mt-4">
+          <ul className="divide-y divide-junta" role="list">
+            <FilaOrigen etiqueta={t.porRegistros} importe={datos.desglose.registros} />
+            <FilaOrigen etiqueta={t.porComprasPro} importe={datos.desglose.pro} />
+            <FilaOrigen etiqueta={t.porBonos} importe={datos.desglose.bonos} />
+            {/* Los ajustes solo si los hay. Una fila a cero en un sitio donde
+                cero es lo normal enseña una corrección que nunca ha pasado, y
+                deja al agente buscando qué le han quitado. */}
+            {datos.desglose.ajustes.micros !== "0" && (
+              <FilaOrigen etiqueta={t.porAjustes} importe={datos.desglose.ajustes} />
+            )}
+          </ul>
+        </div>
+
+        {/* Y los bonos, uno por uno. El reparto de arriba dice CUÁNTO llevas de
+            bonos; esto dice de qué meses y por qué nivel, que es lo que permite
+            compararlo con el mes que viene. */}
+        <p className="text-rotulo mt-6 text-texto-apoyo">{t.bonosCobrados}</p>
+        {datos.bonos.length === 0 ? (
+          <>
+            <p className="mt-2 text-apoyo text-texto-apoyo">{t.sinBonos}</p>
+            {/* El estado vacío ENSEÑA la regla en vez de disculparse: quien
+                todavía no ha cobrado ninguno es justo quien necesita saber que
+                el contador empieza de cero el día 1. */}
+            <p className="mt-1 text-apoyo text-texto-apoyo">{t.sinBonosApoyo}</p>
+          </>
+        ) : (
+          /* Tarjeta de BORDE y no de sombra, igual que el historial de cobros:
+             es una lista densa, y una sombra bajo doce filas no levanta nada,
+             hace ruido. La junta vuelve a verse porque la lista va sobre la
+             tarjeta y no sobre el estrato 2, que es el más oscuro de los tres. */
+          <ul className="tarjeta-borde mt-3 divide-y divide-junta" role="list">
+            {datos.bonos.map((b) => (
+              <li key={b.mes} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-cuerpo">{mesLargo(b.mes, idioma)}</span>
+                  <Importe texto={b.importe.texto} className="text-cuerpo font-semibold" />
+                </div>
+                <p className="mt-0.5 text-apoyo text-texto-apoyo">
+                  {b.usuarios !== null ? t.bonoNivelDe(b.usuarios) : t.bonoSinNivel}
+                  {/* Un bono del mes en curso todavía puede subir de nivel, así
+                      que decir solo la cifra sería prometer un total que no está
+                      cerrado. */}
+                  {!b.consolidado && ` · ${t.todaviaEnRevision}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Banda>
+
       {/* Historial SIN la solicitud viva: ya está arriba, con más detalle. Que
           apareciera dos veces en la misma pantalla hacía dudar de si eran dos
           solicitudes distintas, que es justo la confusión que este flujo —una
           sola viva a la vez— tiene que evitar. */}
-      <Banda orden={2} tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
+      <Banda orden={3} tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
         {/* Sin filete bajo el rótulo: la raya existe para separarlo de un
             contenido suelto, y aquí lo que viene debajo es una tarjeta que ya
             trae su propio canto. Dos líneas horizontales a catorce píxeles una
@@ -582,4 +674,43 @@ function estadoLegible(estado: string, t: Cadenas): string {
 function formatoFecha(iso: string): string {
   const d = new Date(iso);
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
+}
+
+/**
+ * Una vía de ingreso: de qué es y cuánto llevas por ella.
+ *
+ * `apagado` en el cero, que es la convención de `Importe` en toda la casa: una
+ * vía que todavía no ha dado nada se lee como el hueco que es, sin desaparecer
+ * de la lista. Quitarla sería peor —el agente no puede echar de menos una vía
+ * que nunca ha visto—, y pintarla con el mismo peso que las que sí pagan
+ * llenaría la tarjeta de ceros con voz de dato.
+ */
+function FilaOrigen({
+  etiqueta,
+  importe,
+}: {
+  etiqueta: string;
+  importe: { micros: string; texto: string };
+}) {
+  return (
+    <li className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+      <span className="text-rotulo text-texto-apoyo">{etiqueta}</span>
+      <Importe texto={importe.texto} className="text-cuerpo" apagado={importe.micros === "0"} />
+    </li>
+  );
+}
+
+/**
+ * `AAAA-MM` dicho como se dice un mes, en el idioma del agente.
+ *
+ * Se construye con el día 1 en UTC y se formatea en UTC: con la fecha local, un
+ * agente al oeste de Greenwich vería «julio» donde el ledger apuntó agosto,
+ * porque `new Date("2026-08-01")` es medianoche UTC y ahí ya es el 31.
+ */
+function mesLargo(mes: string, idioma: Idioma): string {
+  return new Intl.DateTimeFormat(LOCALES[idioma], {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${mes}-01T00:00:00Z`));
 }

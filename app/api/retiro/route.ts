@@ -5,6 +5,8 @@ import { db, esChoqueDeSolicitudViva } from "@/lib/db";
 import { claveIdempotencia, guardarWallet, leerWallet, mascaraWallet } from "@/lib/cripto";
 import { cadenas } from "@/lib/i18n";
 import { dinero, esRespuesta, exigirAgente, saldos } from "@/lib/api/agente";
+import { bonosPorMes, desgloseDevengo } from "@/lib/devengo/saldos";
+import { minimoDeRetiroMicros } from "@/lib/devengo/minimo";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
 import { avisarRetiroAlOperador } from "@/lib/bot/avisos";
 
@@ -25,9 +27,6 @@ import { avisarRetiroAlOperador } from "@/lib/bot/avisos";
 
 export const dynamic = "force-dynamic";
 
-/** Mínimo por defecto; el Operador puede cambiarlo en configuración. */
-const MINIMO_POR_DEFECTO_MICROS = 20_000_000n; // 20,00 $
-
 const Cuerpo = z.object({
   importe: z.string().regex(/^\d+([.,]\d{1,6})?$/, "importe no válido"),
   red: z.enum(["TRC20", "BSC", "TON"]),
@@ -35,18 +34,18 @@ const Cuerpo = z.object({
   idempotencia: z.string().min(8).max(64),
 });
 
-async function minimoMicros(): Promise<bigint> {
-  const cfg = await db.configuracion.findUnique({ where: { clave: "retiro.minimoMicros" } });
-  return cfg ? BigInt(cfg.valor) : MINIMO_POR_DEFECTO_MICROS;
-}
-
 export async function GET(peticion: Request): Promise<NextResponse> {
   const ctx = await exigirAgente(peticion);
   if (esRespuesta(ctx)) return ctx;
   const { agenteId, idioma } = ctx.sesion;
 
-  const [saldo, historial, minimo] = await Promise.all([
+  const [saldo, desglose, bonos, historial, minimo] = await Promise.all([
     saldos(agenteId),
+    // De qué está hecho lo devengado, y los bonos aparte. La Escalera dice DÓNDE
+    // está el dinero; esto dice DE DÓNDE viene, que es la otra mitad de la
+    // pregunta y la única forma de que el bono se vea después de cobrarlo.
+    desgloseDevengo(agenteId),
+    bonosPorMes(agenteId),
     db.solicitudRetiro.findMany({
       where: { agenteId },
       orderBy: { solicitadoEn: "desc" },
@@ -63,7 +62,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
         referenciaPago: true,
       },
     }),
-    minimoMicros(),
+    minimoDeRetiroMicros(),
   ]);
 
   return NextResponse.json({
@@ -73,6 +72,18 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       solicitado: dinero(saldo.solicitadoMicros, idioma),
       pagado: dinero(saldo.pagadoMicros, idioma),
     },
+    desglose: {
+      registros: dinero(desglose.registrosMicros, idioma),
+      pro: dinero(desglose.proMicros, idioma),
+      bonos: dinero(desglose.bonosMicros, idioma),
+      ajustes: dinero(desglose.ajustesMicros, idioma),
+    },
+    bonos: bonos.map((b) => ({
+      mes: b.mes,
+      importe: dinero(b.importeMicros, idioma),
+      usuarios: b.usuarios,
+      consolidado: b.consolidado,
+    })),
     minimo: dinero(minimo, idioma),
     // La wallet se muestra recortada: el agente la reconoce sin exponerla entera
     // en una captura de pantalla que pueda compartir. Se descifra para
@@ -106,7 +117,7 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   }
 
   const importeMicros = microsDesdeCadena(parseado.data.importe);
-  const [saldo, minimo] = await Promise.all([saldos(agenteId), minimoMicros()]);
+  const [saldo, minimo] = await Promise.all([saldos(agenteId), minimoDeRetiroMicros()]);
 
   if (importeMicros < minimo) {
     return NextResponse.json(
