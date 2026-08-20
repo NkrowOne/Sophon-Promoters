@@ -29,9 +29,13 @@
  *
  * Ni aquí ni en el resto de la aplicación: va por CONTRASTE y por PESO, así que
  * se distingue en escala de grises, en oscuro y con cualquier tema raro del
- * cliente de Telegram. Alcanzado es tinta plena y peso semi; en curso es tinta
- * plena con el raíl un escalón más marcado —`--borde-control` en vez de
- * `--borde`— para que se vea cuál está vivo; pendiente es tinta de apoyo.
+ * cliente de Telegram. Alcanzado lleva su marca y el premio en semi; en curso
+ * es el único con la barra a medias y el premio en tinta plena; pendiente va
+ * atenuado.
+ *
+ * La marca de cumplido no es adorno: un segmento lleno y otro al 95 % se parecen
+ * demasiado a la distancia de un pulgar, y la diferencia entre los dos es si ese
+ * dinero ya está o no.
  *
  * Nada de amarillo. El amarillo de este sistema es la ACCIÓN, y un progreso no
  * se pulsa. Y nada de medallas, insignias ni rachas: la regla de voz dice que
@@ -50,6 +54,7 @@
 import { tramosDelMedidor, type EscalonObjetivo } from "@/lib/devengo/objetivos";
 
 import { BarraCreciente } from "./Animacion";
+import { Icono } from "./Icono";
 import { Importe } from "./Importe";
 import { useCadenas } from "./TelegramProvider";
 
@@ -136,19 +141,46 @@ export function MedidorObjetivos({
               )}
             </span>
 
-            {/* El umbral, en cifra tabular para que las cinco columnas alineen
-                sus dígitos. Va antes que el premio porque es lo que identifica
-                el nivel; el premio es su consecuencia. */}
-            <p
-              className={`mt-2 text-apoyo tabular-nums ${
-                tr.alcanzado || tr.enCurso ? "text-texto" : "text-texto-apoyo"
-              }`}
-            >
+            {/*
+              EL UMBRAL, en rótulo y siempre atenuado.
+
+              Las dos líneas iban las dos en `text-apoyo` y con el mismo peso, y
+              con la tipografía de verdad —Archivo, altura de x grande— la fila
+              se leía como ocho cifras del mismo tamaño en vez de como cuatro
+              niveles con su precio. El umbral es la CONDICIÓN; el premio es la
+              respuesta. Un escalón de tamaño y uno de tinta bastan para que la
+              celda tenga un primario.
+
+              Y no cambia con el estado: el estado ya lo dicen el relleno, la
+              marca de cumplido y la tinta del premio. Una cuarta señal en la
+              misma celda es ruido.
+            */}
+            {/*
+              La marca de cumplido va en la línea del UMBRAL y no en la del
+              premio, y es una decisión de anchura medida, no de gusto.
+
+              Con cinco niveles la celda mide 66 px. El importe a 14 px ocupa
+              casi todos: puesto el icono delante, «100,00 $» y «150,00 $» se
+              tocaban — se vio en la captura. El umbral es la línea corta
+              —«10.000» son 40 px— y ahí caben los 11 px de la marca con holgura.
+
+              Y se lee igual de bien: la marca califica al NIVEL, y el nivel es
+              justo lo que nombra esa línea.
+            */}
+            <p className="text-rotulo mt-2 flex items-center gap-1 font-medium tabular-nums text-texto-apoyo">
+              {/* Con `titulo`, y por eso deja de ser decorativo: en la variante
+                  compacta —la de la ayuda— no hay línea de recuento debajo, así
+                  que sin esto un lector de pantalla leería los cinco niveles
+                  iguales y no sabría cuáles están cumplidos. */}
+              {tr.alcanzado && (
+                <Icono nombre="activo" tam={11} titulo={t.bonoYaEsTuyo} className="text-texto" />
+              )}
               {t.numero(tr.escalon.usuarios)}
             </p>
-            {/* El premio manda dentro de la celda: es la razón de perseguir el
-                nivel. Alcanzado en semi, el resto en regular — peso y contraste,
-                nunca color. */}
+            {/* EL PREMIO manda dentro de la celda: es la razón de perseguir el
+                nivel, y es la única línea de la celda que va en tinta. Cumplido
+                en semi, en curso en regular, pendiente atenuado — peso y
+                contraste, nunca color. */}
             <p className="mt-0.5">
               <Importe
                 texto={tr.escalon.premio.texto}
