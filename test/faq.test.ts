@@ -126,6 +126,26 @@ describe("las preguntas frecuentes", () => {
     }
   });
 
+  it("el inglés del FAQ va en la misma ortografía que el del catálogo, en-US", () => {
+    /*
+     * El FAQ se escribió después y en otro fichero, que es exactamente donde se
+     * separan las dos mitades de un mismo idioma: el catálogo decía «Program
+     * prices» y aquí ponía «in the programme». La misma prueba que vigila
+     * `lib/i18n.ts` tiene que llegar hasta aquí o solo cubre la mitad del texto.
+     */
+    for (const seccion of faq("en", CON_DATOS)) {
+      for (const p of seccion.preguntas) {
+        for (const texto of [p.pregunta, ...p.respuesta]) {
+          assert.doesNotMatch(
+            texto,
+            /\b\w+is(ation|ed|ing)\b|\bprogramme\b|\bcancelled\b|\bsign ?ups?\b/i,
+            `ortografía o término fuera de en-US: ${texto}`,
+          );
+        }
+      }
+    }
+  });
+
   /**
    * La regla dura, extendida a lo único que no la comprobaba.
    *

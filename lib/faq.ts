@@ -284,7 +284,7 @@ const en: Constructor = (d) => [
     titulo: "Commissions",
     preguntas: [
       {
-        pregunta: "How is revenue generated in the programme?",
+        pregunta: "How is revenue generated in the program?",
         respuesta: [
           "Through three concepts, all credited to the same balance: each user registered by a webmaster on the team, each PRO purchase made by those users, and a monthly bonus when the team as a whole reaches a sign-up level.",
         ],
@@ -354,7 +354,7 @@ const en: Constructor = (d) => [
         ],
       },
       {
-        pregunta: "The email does not exist on Sophon. What now?",
+        pregunta: "The email does not exist on Sophon. What is the procedure?",
         respuesta: [
           "Check the spelling and that it matches the address used to register on Sophon.",
           "If they have no account yet, it must be created first. Activation is not possible until then.",

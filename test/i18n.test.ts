@@ -183,6 +183,56 @@ test("la pantalla del dinero y el campo de la dirección no comparten palabra", 
   assert.match(t.walletUsdt, /monedero/i);
 });
 
+/* ── Un término, una palabra: la coherencia DENTRO de cada lengua ───────── */
+
+/**
+ * Las cinco lenguas se escribieron a la vez, y ahí es donde se cuela el defecto
+ * que ninguna prueba estructural ve: el catálogo entero puede estar completo,
+ * traducido y en registro profesional, y aun así llamar a la misma cosa de dos
+ * maneras distintas dentro del MISMO idioma.
+ *
+ * Pasó con las tres que se fijan aquí, y las tres se veían en pantalla.
+ */
+test("cada lengua usa UNA sola palabra para el equipo del agente", () => {
+  // El italiano decía «Il mio team» en el menú y «la tua squadra» en los
+  // errores: dos nombres para lo mismo a un toque de distancia.
+  for (const texto of textosDe("it")) {
+    assert.doesNotMatch(texto, /\bteam\b/i, `el italiano dice «team» donde el resto dice «squadra»: ${texto}`);
+  }
+});
+
+test("el árabe no traduce «webmaster», que es el nombre del puesto en el programa", () => {
+  /*
+   * Estaba traducido en dos claves —«مشرف الموقع»— y en latín en las otras
+   * veinte. El agente árabe leía el rótulo del menú con una palabra y el error
+   * de esa misma pantalla con otra.
+   *
+   * Se queda en latín, como PRO y como Sophon: es el nombre de un rol dentro
+   * del programa de socios, no una descripción de oficio.
+   */
+  for (const texto of textosDe("ar")) {
+    assert.doesNotMatch(texto, /مشرف الموقع|مشرف موقع/, `el árabe traduce «webmaster»: ${texto}`);
+  }
+});
+
+test("el inglés se escribe entero en la ortografía de su locale, que es en-US", () => {
+  /*
+   * Había «authorized» y «Authorisation» en la misma pantalla, y «signups»
+   * junto a «sign-ups». No es purismo: dos grafías de la misma palabra en el
+   * mismo mensaje se leen como un texto ensamblado a trozos, que es justo lo
+   * que era.
+   */
+  for (const texto of textosDe("en")) {
+    assert.doesNotMatch(
+      texto,
+      /\b\w+is(ation|ed|ing)\b|\bprogramme\b|\bcentre\b|\bcolour\b/i,
+      `ortografía británica: ${texto}`,
+    );
+    assert.doesNotMatch(texto, /\bsign ?ups?\b/i, `«signup» sin guion, que en el resto va «sign-up»: ${texto}`);
+    assert.doesNotMatch(texto, /\bcancelled\b/i, `«cancelled» es británico; en en-US va «canceled»: ${texto}`);
+  }
+});
+
 /* ── Los números, cada uno en su convención ─────────────────────────────── */
 
 test("los millares siguen la convención de cada idioma, no la del navegador", () => {

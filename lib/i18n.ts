@@ -493,7 +493,7 @@ export const es = {
     `El importe supera el saldo disponible de ${disponible}.`,
   errRetiroSaldoApoyo: "El importe pendiente de confirmación no puede retirarse.",
   errRetiroYaHayUna: (importe: string) => `Existe una solicitud pendiente de ${importe}.`,
-  errRetiroYaHayUnaApoyo: "Solo se admite una solicitud simultánea. Puedes cancelar la actual para crear otra.",
+  errRetiroYaHayUnaApoyo: "Solo se admite una solicitud simultánea. La solicitud actual puede cancelarse para crear otra.",
   errRetiroNoRegistrado: "No se ha podido registrar la solicitud.",
   errRetiroNoRegistradoApoyo: "No se ha descontado ningún importe. Vuelve a intentarlo.",
 
@@ -658,7 +658,7 @@ const en: Cadenas = {
   verSuFicha: "View profile",
   volverAlInicio: "Back to home",
   precios: "Prices",
-  preciosDelPrograma: "Programme prices",
+  preciosDelPrograma: "Program prices",
   preciosParaEnsenar: "Price per registered user for your webmasters.",
   loQueCobraTuWebmaster: "Webmaster commission",
   porCadaCienUsuarios: "Per 100 registered users",
@@ -677,7 +677,7 @@ const en: Cadenas = {
   tuComisionNoDependeDelNivel: "Your commission is the same at every level.",
   sinPrecios: "No rates available.",
   sinPreciosApoyo: "Sophon did not return the price table. Try again in a few minutes.",
-  activarElPrimero: "Activate your first one",
+  activarElPrimero: "Activate the first one",
 
   sinWebmasters: "No webmasters activated.",
   sinWebmastersApoyo: "Activate them with their Sophon-registered email.",
@@ -709,15 +709,15 @@ const en: Cadenas = {
 
   devengadoTreintaDias: "Earned · 30 days",
   registrosYWebmasters: (registros: number, webmasters: number) =>
-    `${registros.toLocaleString("en-US")} ${registros === 1 ? "signup" : "signups"} · ${webmasters} ${
-      webmasters === 1 ? "webmaster" : "webmasters"
-    }`,
-  repartoPorTier: "Signups by level",
+    `${registros.toLocaleString("en-US")} ${
+      registros === 1 ? "sign-up" : "sign-ups"
+    } · ${webmasters} ${webmasters === 1 ? "webmaster" : "webmasters"}`,
+  repartoPorTier: "Sign-ups by level",
   acciones: "Actions",
   estadoDeTuDinero: "Balance status",
   bonoDelMes: "Monthly bonus",
   registrosEsteMes: (n: number) =>
-    `${n.toLocaleString("en-US")} ${n === 1 ? "signup" : "signups"} this month`,
+    `${n.toLocaleString("en-US")} ${n === 1 ? "sign-up" : "sign-ups"} this month`,
   faltanParaElBono: (faltan: number, premio: string) =>
     `${faltan.toLocaleString("en-US")} ${
       faltan === 1 ? "sign-up" : "sign-ups"
@@ -777,9 +777,10 @@ const en: Cadenas = {
 
   enTuRedDesde: (fecha: string) => `on the team since ${fecha}`,
   teHaDado: "Contribution",
-  registrosEnDias: (registros: number, dias: number) => `${registros.toLocaleString("en-US")} ${registros === 1 ? "signup" : "signups"} in ${dias} ${
-      dias === 1 ? "day" : "days"
-    }`,
+  registrosEnDias: (registros: number, dias: number) =>
+    `${registros.toLocaleString("en-US")} ${
+      registros === 1 ? "sign-up" : "sign-ups"
+    } in ${dias} ${dias === 1 ? "day" : "days"}`,
   compraronPro: (n: number) => `${n} ${n === 1 ? "has" : "have"} bought PRO`,
   cobrasDesde: (fecha: string) => `Sign-ups count from ${fecha}.`,
   ultimosDias: (dias: number) => (dias === 1 ? "Last day" : `Last ${dias} days`),
@@ -794,7 +795,7 @@ const en: Cadenas = {
   dolares: (importe: string) => `${importe} dollars`,
   numero: (n: number) => n.toLocaleString("en-US"),
   registrosCortos: (n: number) =>
-    `${n.toLocaleString("en-US")} ${n === 1 ? "signup" : "signups"}`,
+    `${n.toLocaleString("en-US")} ${n === 1 ? "sign-up" : "sign-ups"}`,
 
   tiempoRestanteDePro: "PRO time left",
   venceEl: (fecha: string) => `ends ${fecha}`,
@@ -832,7 +833,7 @@ const en: Cadenas = {
   aquiEmpieza: "Start of the history. There is no earlier data.",
   desglose: (registros: number, t1: number, t2: number, t3: number) =>
     `${registros.toLocaleString("en-US")} ${
-      registros === 1 ? "signup" : "signups"
+      registros === 1 ? "sign-up" : "sign-ups"
     } · T1 ${t1} · T2 ${t2} · T3 ${t3}`,
   dePago: (n: number) => `${n} ${n === 1 ? "has paid" : "have paid"}`,
   diaAbierto: "Day in progress: figures may change.",
@@ -844,7 +845,7 @@ const en: Cadenas = {
   aprobadoPendientePago: "Approved · payment pending",
   estadoPagado: "Paid",
   estadoRechazado: "Rejected",
-  estadoCancelado: "Cancelled",
+  estadoCancelado: "Canceled",
   pedidaEl: (fecha: string) => `Requested on ${fecha}.`,
   soloUnaALaVez: "Only one request at a time is allowed. The next one can be made once this is resolved.",
   cuanto: "Amount to withdraw",
@@ -919,7 +920,7 @@ const en: Cadenas = {
   errNoExisteEnSophon: "The email does not exist on Sophon.",
   errNoExisteEnSophonApoyo: "The account must be registered on Sophon before it can be activated.",
   errSinWhitelist: "The account is not authorized on Sophon.",
-  errSinWhitelistApoyo: "Authorisation is handled manually with support. Nothing has been activated.",
+  errSinWhitelistApoyo: "Authorization is handled manually with support. Nothing has been activated.",
   errSophonNoResponde: "Sophon is not responding.",
   errSophonNoRespondeApoyo: "Nothing has been activated. Try again in a few minutes.",
   errSophonRechaza: "Sophon has rejected the activation.",
@@ -937,7 +938,7 @@ const en: Cadenas = {
   errProNoRegistrado: "PRO could not be recorded.",
   errProNoRegistradoApoyo: "No changes were applied. Try again from their profile.",
   errProSinWhitelist: "The account is not authorized on Sophon.",
-  errProSinWhitelistApoyo: "Authorisation is handled manually with support.",
+  errProSinWhitelistApoyo: "Authorization is handled manually with support.",
   errProRechazado: "Sophon rejected the PRO grant.",
   errProRechazadoApoyo: "Try again from their profile in a few minutes.",
 
@@ -949,7 +950,8 @@ const en: Cadenas = {
     `The amount exceeds the available balance of ${disponible}.`,
   errRetiroSaldoApoyo: "The amount pending confirmation cannot be withdrawn.",
   errRetiroYaHayUna: (importe: string) => `There is a pending request for ${importe}.`,
-  errRetiroYaHayUnaApoyo: "Only one request at a time is allowed. Cancel the current one to create another.",
+  errRetiroYaHayUnaApoyo:
+    "Only one request at a time is allowed. The current request can be canceled to create another.",
   errRetiroNoRegistrado: "The request could not be recorded.",
   errRetiroNoRegistradoApoyo: "No amount was deducted. Try again.",
 
@@ -962,7 +964,7 @@ const en: Cadenas = {
   botSinPublicar: "The application is not published yet. Notify the Operator.",
   botCadaComando: "Each command opens a screen:",
   botOStart: "Or /start for the full menu.",
-  botComandoDesconocido: "Command not recognised. Use /ayuda.",
+  botComandoDesconocido: "Command not recognized. Use /ayuda.",
   botUsaStart: "Use /start to open the app.",
   botActivarAtajo: "/activar email@example.com — activate without opening the app",
   botActivarComoSeUsa: "Provide the email after the command: /activar email@example.com",
@@ -977,7 +979,9 @@ const en: Cadenas = {
     `${n} of ${total} webmasters with no recent sign-ups:`,
   botRedDiasParado: (dias: number) => `${dias} ${dias === 1 ? "day" : "days"} inactive`,
   botRedIncidencias: (n: number) =>
-    `${n} ${n === 1 ? "webmaster" : "webmasters"} with problems on Sophon; cannot generate signups:`,
+    `${n} ${n === 1 ? "webmaster" : "webmasters"} with problems on Sophon; ${
+      n === 1 ? "it" : "they"
+    } cannot generate sign-ups:`,
   botRedYOtros: (n: number) => `…and ${n} more.`,
   botRedComoVerlo: "Check «My team» to review their acquisition links.",
 
@@ -1027,7 +1031,7 @@ const en: Cadenas = {
 
 const it: Cadenas = {
   inicio: "Inizio",
-  red: "Il mio team",
+  red: "La mia squadra",
   historico: "Cronologia",
   cartera: "Saldo",
   webmaster: "Webmaster",
@@ -1083,7 +1087,7 @@ const it: Cadenas = {
   entrarEnTuCuenta: "Entra",
   introduceTuCorreo: "Inserisci la tua email. Se l'account esiste, verrà inviato un codice di verifica.",
   codigoDeActivacion: "Codice di attivazione",
-  teLoDaElOperador: "Te lo dà l'Operatore.",
+  teLoDaElOperador: "Fornito dall'Operatore.",
   tuCorreo: "La tua email",
   seraTuIdentificador: "È il tuo identificativo su Sophon.",
   correoSinCuenta: "L'email non ha un account associato.",
@@ -1141,7 +1145,7 @@ const it: Cadenas = {
 
   correoDelWebmaster: "Email del webmaster",
   tieneQueExistirYa: "Deve essere un account già registrato su Sophon.",
-  yaEstaEnTuRed: (email: string) => `${email} è già nel tuo team.`,
+  yaEstaEnTuRed: (email: string) => `${email} è già nella tua squadra.`,
   cobrarasDesdeHoy: "Contano solo le registrazioni successive all'attivazione.",
 
   conIncidencia: (n: number) => `${n} con ${n === 1 ? "un problema" : "problemi"}`,
@@ -1341,7 +1345,7 @@ const it: Cadenas = {
     `L'importo supera il saldo disponibile di ${disponible}.`,
   errRetiroSaldoApoyo: "L'importo in attesa di conferma non può essere prelevato.",
   errRetiroYaHayUna: (importe: string) => `Esiste una richiesta in sospeso di ${importe}.`,
-  errRetiroYaHayUnaApoyo: "È ammessa una sola richiesta alla volta. Puoi annullare quella attuale per crearne un'altra.",
+  errRetiroYaHayUnaApoyo: "È ammessa una sola richiesta alla volta. La richiesta attuale può essere annullata per crearne un'altra.",
   errRetiroNoRegistrado: "Non è stato possibile registrare la richiesta.",
   errRetiroNoRegistradoApoyo: "Non è stato addebitato alcun importo. Riprova.",
 
@@ -1482,7 +1486,7 @@ const pt: Cadenas = {
   entrarEnTuCuenta: "Entrar",
   introduceTuCorreo: "Introduz o teu email. Se a conta existir, será enviado um código de verificação.",
   codigoDeActivacion: "Código de ativação",
-  teLoDaElOperador: "É o Operador que to dá.",
+  teLoDaElOperador: "Fornecido pelo Operador.",
   tuCorreo: "O teu email",
   seraTuIdentificador: "É o teu identificador na Sophon.",
   correoSinCuenta: "O email não tem conta associada.",
@@ -1740,7 +1744,7 @@ const pt: Cadenas = {
     `O valor excede o saldo disponível de ${disponible}.`,
   errRetiroSaldoApoyo: "O valor pendente de confirmação não pode ser levantado.",
   errRetiroYaHayUna: (importe: string) => `Existe um pedido pendente de ${importe}.`,
-  errRetiroYaHayUnaApoyo: "Só é permitido um pedido em simultâneo. Podes cancelar o atual para criar outro.",
+  errRetiroYaHayUnaApoyo: "Só é permitido um pedido em simultâneo. O pedido atual pode ser cancelado para criar outro.",
   errRetiroNoRegistrado: "Não foi possível registar o pedido.",
   errRetiroNoRegistradoApoyo: "Não foi descontado nenhum valor. Tenta novamente.",
 
@@ -1838,7 +1842,7 @@ const ar: Cadenas = {
   red: "فريقي",
   historico: "السجل",
   cartera: "الرصيد",
-  webmaster: "مشرف الموقع",
+  webmaster: "webmaster",
   devengado: "المكتسب",
   disponible: "المتاح",
   solicitado: "المطلوب",
@@ -1847,7 +1851,7 @@ const ar: Cadenas = {
   cargando: "جارٍ التحميل",
   sondeando: "جارٍ تحميل البيانات",
 
-  activarWebmaster: "تفعيل مشرف موقع",
+  activarWebmaster: "تفعيل webmaster",
   solicitarRetiro: "سحب",
   acceder: "تسجيل الدخول",
   reintentar: "أعد المحاولة",
@@ -1877,7 +1881,7 @@ const ar: Cadenas = {
   tuComisionNoDependeDelNivel: "عمولتك واحدة في جميع المستويات.",
   sinPrecios: "لا توجد تعريفات متاحة.",
   sinPreciosApoyo: "لم تُرجِع Sophon جدول الأسعار. أعد المحاولة بعد دقائق.",
-  activarElPrimero: "فعّل أول واحد",
+  activarElPrimero: "تفعيل الأول",
 
   sinWebmasters: "لا يوجد webmasters مفعَّلون.",
   sinWebmastersApoyo: "فعّلهم ببريدهم المسجَّل في Sophon.",
@@ -1891,7 +1895,7 @@ const ar: Cadenas = {
   entrarEnTuCuenta: "الدخول",
   introduceTuCorreo: "أدخل بريدك. إذا كان الحساب موجودًا، سيُرسَل رمز تحقق.",
   codigoDeActivacion: "رمز التفعيل",
-  teLoDaElOperador: "يعطيك إياه المشغّل.",
+  teLoDaElOperador: "يوفّره المشغّل.",
   tuCorreo: "بريدك الإلكتروني",
   seraTuIdentificador: "هو معرّفك في Sophon.",
   correoSinCuenta: "لا يوجد حساب مرتبط بهذا البريد.",
@@ -1938,7 +1942,7 @@ const ar: Cadenas = {
     `${porcentaje >= 0 ? "+" : "−"}${Math.abs(porcentaje)} % عن الشهر الماضي`,
   quienTeAcerca: "المساهمة حسب webmaster",
 
-  correoDelWebmaster: "بريد مشرف الموقع",
+  correoDelWebmaster: "بريد webmaster",
   tieneQueExistirYa: "يجب أن يكون حسابًا مسجَّلًا في Sophon مسبقًا.",
   yaEstaEnTuRed: (email: string) => `${email} موجود في فريقك بالفعل.`,
   cobrarasDesdeHoy: "تُحتسب التسجيلات اللاحقة للتفعيل فقط.",
@@ -2095,9 +2099,9 @@ const ar: Cadenas = {
   errFormatoCorreo: "البريد بصيغة غير صالحة.",
   errFormatoCorreoApoyo: "أدخل البريد الذي سُجِّل به في Sophon.",
 
-  errYaEnTuEquipo: "webmaster موجود في فريقك بالفعل.",
+  errYaEnTuEquipo: "هذا الـ webmaster موجود في فريقك بالفعل.",
   errYaEnTuEquipoApoyo: "راجعه في «فريقي».",
-  errDeOtroAgente: "webmaster مُسنَد إلى وكيل آخر.",
+  errDeOtroAgente: "هذا الـ webmaster مُسنَد إلى وكيل آخر.",
   errDeOtroAgenteApoyo: "لكل webmaster وكيل واحد مُسنَد. تواصل مع المشغّل إن كان ذلك خطأً.",
   errYaEnSophon: "كان الحساب موجودًا في Sophon.",
   errYaEnSophonApoyo: "لا يمكن تفعيل إلا الحسابات المسجَّلة عبر فريقك. أما السابقة فتعود إلى المشغّل.",
@@ -2114,7 +2118,7 @@ const ar: Cadenas = {
   errSinClasificar: "تعذّر إتمام التفعيل.",
   errSinClasificarApoyo: "لم يُفعَّل شيء. وقد سُجِّل الخطأ.",
 
-  errNoEsTuyo: "webmaster ليس في فريقك.",
+  errNoEsTuyo: "هذا الـ webmaster ليس في فريقك.",
   errNoEsTuyoApoyo: "لا يمكن تجديد PRO إلا لمن فعّلتهم أنت.",
   errNoEsTuyoAbrirApoyo: "تحقّق من البريد. وإن لم يُفعَّل بعد، فعّله من «تفعيل webmaster».",
   errProSigueActivo: "ما زال PRO ساريًا.",
@@ -2134,7 +2138,7 @@ const ar: Cadenas = {
     `يتجاوز المبلغ الرصيد المتاح البالغ ${disponible}.`,
   errRetiroSaldoApoyo: "لا يمكن سحب المبلغ المعلّق بانتظار التأكيد.",
   errRetiroYaHayUna: (importe: string) => `يوجد طلب معلّق بقيمة ${importe}.`,
-  errRetiroYaHayUnaApoyo: "يُسمح بطلب واحد في كل مرة. يمكنك إلغاء الحالي لإنشاء آخر.",
+  errRetiroYaHayUnaApoyo: "يُسمح بطلب واحد في كل مرة. ويمكن إلغاء الطلب الحالي لإنشاء آخر.",
   errRetiroNoRegistrado: "تعذّر تسجيل الطلب.",
   errRetiroNoRegistradoApoyo: "لم يُخصم أي مبلغ. أعد المحاولة.",
 
