@@ -1142,3 +1142,87 @@ const CATALOGOS: Record<Idioma, Constructor> = { es, en, it, pt, ar };
 export function faq(idioma: Idioma, datos: DatosFaq): SeccionFaq[] {
   return (CATALOGOS[idioma] ?? CATALOGOS[IDIOMA_DE_RESPALDO])(datos);
 }
+
+// ─────────────────────────── Buscar dentro de la ayuda ───────────────────────
+
+/**
+ * El texto, preparado para comparar.
+ *
+ * Descompone en NFD y tira los diacríticos, que es lo que hace que «comision»
+ * encuentre «comisión» y «bonus» no haga falta escribirlo con tilde. Vale para
+ * las cinco lenguas por el mismo mecanismo: en árabe, la descomposición separa
+ * el tashkeel y este filtro se lo lleva, así que buscar sin vocalizar encuentra
+ * el texto vocalizado.
+ *
+ * Sin esto el buscador es una trampa: el agente teclea como se teclea de verdad
+ * —rápido y sin acentos— y la ayuda le contesta que no hay nada.
+ */
+export function normalizarBusqueda(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+/** Un término del usuario, listo para meterlo en una expresión regular. */
+function escapar(termino: string): string {
+  return termino.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * ¿Empieza alguna PALABRA del texto por este término?
+ *
+ * Por prefijo de palabra y no por subcadena, y esto se corrigió mirando el
+ * buscador funcionando: «red» devolvía «¿El bono se arrastra al mes siguiente?»
+ * porque su respuesta dice «no he·red·a nada del anterior». Tres de cada cuatro
+ * resultados eran ruido de ese tipo, y un buscador con ruido se abandona a la
+ * segunda búsqueda.
+ *
+ * El prefijo sí hace falta: quien escribe «reg» espera encontrar «registro» y
+ * «registros», y quien escribe «cobr» espera «cobros» y «cobrar». Lo que no
+ * puede pasar es que la coincidencia empiece a media palabra.
+ *
+ * El límite se escribe con `\p{L}` y `\p{N}` en vez de `\b`: `\b` está
+ * definido sobre `[A-Za-z0-9_]`, así que en árabe considera límite CADA letra y
+ * el filtro degenera en una subcadena. Con las clases Unicode, las cinco
+ * lenguas se comportan igual.
+ */
+function empiezaPalabraPor(heno: string, aguja: string): boolean {
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapar(aguja)}`, "u").test(heno);
+}
+
+/**
+ * Las secciones que contienen el término, con las preguntas que no lo contienen
+ * ya fuera.
+ *
+ * Busca en la PREGUNTA Y EN LA RESPUESTA. Es la diferencia entre un buscador
+ * que sirve y uno decorativo: nadie escribe «¿Qué ocurre si la red es
+ * incorrecta?», se escribe «red» o «TRC20», y esas palabras están en el cuerpo.
+ *
+ * Y se piden TODOS los términos, no cualquiera: «bono mes» tiene que encontrar
+ * la pregunta que habla de los dos, no las once que hablan de uno. Con una sola
+ * palabra el comportamiento es el mismo, así que no hay dos modos que explicar.
+ *
+ * Una sección sin preguntas que casen desaparece entera: dejar su encabezado
+ * vacío diría que ahí había algo y se ha escondido.
+ */
+export function filtrarFaq(secciones: readonly SeccionFaq[], termino: string): SeccionFaq[] {
+  const palabras = normalizarBusqueda(termino).split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return [...secciones];
+
+  return secciones
+    .map((seccion) => ({
+      ...seccion,
+      preguntas: seccion.preguntas.filter((p) => {
+        const heno = normalizarBusqueda(`${p.pregunta} ${p.respuesta.join(" ")}`);
+        return palabras.every((aguja) => empiezaPalabraPor(heno, aguja));
+      }),
+    }))
+    .filter((seccion) => seccion.preguntas.length > 0);
+}
+
+/** Cuántas preguntas hay en total, para poder decir «3 de 23». */
+export function contarPreguntas(secciones: readonly SeccionFaq[]): number {
+  return secciones.reduce((total, s) => total + s.preguntas.length, 0);
+}

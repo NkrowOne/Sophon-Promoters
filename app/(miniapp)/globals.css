@@ -1732,11 +1732,11 @@ textarea::placeholder {
   justify-content: space-between;
   gap: 0.75rem;
   /*
-   * El objetivo táctil llega a 44 px por el relleno y el interlineado, no por
-   * una altura escrita a mano: así sigue llegando cuando la pregunta ocupe dos
-   * líneas —que en árabe y en portugués pasa— en vez de recortarse.
+   * El objetivo táctil llega por el relleno y el interlineado, no por una
+   * altura escrita a mano: así sigue llegando cuando la pregunta ocupe dos
+   * líneas —que en árabe y en portugués pasa— en vez de recortarse. El valor
+   * va más abajo, junto a por qué subió.
    */
-  padding-block: 0.875rem;
   cursor: pointer;
   list-style: none;
   -webkit-tap-highlight-color: transparent;
@@ -1797,4 +1797,52 @@ textarea::placeholder {
   .pregunta[open] .respuesta {
     animation: none;
   }
+}
+
+/*
+ * EL CAMPO DE BÚSQUEDA de la ayuda.
+ *
+ * `type="search"` se pide por lo que da: el teclado de iOS abre con la tecla
+ * «buscar» en vez de «intro», y los lectores de pantalla lo anuncian como lo
+ * que es. Lo que trae de regalo es el cromo propio de WebKit —la lupa gris de
+ * Safari a la izquierda y su aspa a la derecha—, y este campo ya lleva las dos
+ * cosas dibujadas por la casa. Sin esto se ven dos lupas y dos aspas, cada
+ * pareja con su tamaño y su color.
+ *
+ * Y no es un caso raro: la Mini App vive dentro del WebView de Telegram, que en
+ * iOS es Safari por obligación del sistema.
+ */
+/*
+ * El hueco de la lupa y el del aspa, en el propio campo.
+ *
+ * Iba con las utilidades `ps-11 pe-11` de Tailwind y NO se aplicaba: esta hoja
+ * se sirve detrás de `@tailwind utilities`, y `.campo-texto` declara `padding`
+ * en atajo con la misma especificidad, así que ganaba el atajo y el marcador de
+ * posición se pintaba encima de la lupa. Se veía en la captura.
+ *
+ * Propiedades lógicas, así que en árabe los dos huecos se cambian de lado
+ * solos, igual que los dos iconos.
+ */
+.campo-busqueda {
+  padding-inline: 2.75rem;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/*
+ * El relleno de la pregunta sube de 0,875 a 1 rem.
+ *
+ * Veintitrés filas con el mismo intervalo son una textura, no una lista: se vio
+ * en una captura de la pantalla entera. Ocho píxeles más por fila separan lo
+ * suficiente para que el ojo cuente filas en vez de leer un bloque, y de paso
+ * el objetivo táctil pasa de justo a holgado.
+ */
+.pregunta > summary {
+  padding-block: 1rem;
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { faq, type DatosFaq } from "../lib/faq.ts";
+import { contarPreguntas, faq, filtrarFaq, type DatosFaq } from "../lib/faq.ts";
 import { IDIOMAS } from "../lib/idiomas.ts";
 
 /**
@@ -208,5 +208,110 @@ describe("las preguntas frecuentes", () => {
     assert.match(texto, /no se recupera/i, "falta el aviso de la red equivocada");
     assert.match(texto, /entre 1 y 3 días/i, "falta el plazo de pago");
     assert.match(texto, /reinicia el día 1/i, "falta que el bono se reinicia cada mes");
+  });
+});
+
+/**
+ * EL BUSCADOR de la ayuda.
+ *
+ * La pantalla se abre con una duda concreta y con prisa, así que el filtro es
+ * el camino principal, no un adorno. Lo que se fija aquí es lo que lo hace
+ * utilizable: que encuentre escribiendo como se escribe de verdad —sin acentos
+ * y a medias— y que NO devuelva ruido.
+ */
+describe("buscar en las preguntas frecuentes", () => {
+  const TODAS = faq("es", CON_DATOS);
+
+  it("sin término devuelve la ayuda entera", () => {
+    assert.equal(contarPreguntas(filtrarFaq(TODAS, "")), contarPreguntas(TODAS));
+    assert.equal(contarPreguntas(filtrarFaq(TODAS, "   ")), contarPreguntas(TODAS));
+  });
+
+  it("encuentra sin acentos, que es como se teclea", () => {
+    // Nadie pone la tilde en un campo de búsqueda de un móvil.
+    const con = filtrarFaq(TODAS, "comisión");
+    const sin = filtrarFaq(TODAS, "comision");
+    assert.ok(contarPreguntas(sin) > 0);
+    assert.equal(contarPreguntas(sin), contarPreguntas(con));
+  });
+
+  it("encuentra por PREFIJO de palabra: «reg» trae «registro» y «registros»", () => {
+    const texto = filtrarFaq(TODAS, "reg")
+      .flatMap((s) => s.preguntas)
+      .map((p) => `${p.pregunta} ${p.respuesta.join(" ")}`)
+      .join(" ");
+    assert.match(texto, /registr/i);
+  });
+
+  /**
+   * El defecto que se vio con el buscador ya funcionando.
+   *
+   * Con coincidencia por subcadena, «red» devolvía «¿El bono se arrastra al mes
+   * siguiente?», porque su respuesta dice «no he·red·a nada del anterior». Tres
+   * de cada cuatro resultados eran ruido de ese tipo, y un buscador con ruido se
+   * abandona a la segunda búsqueda.
+   */
+  it("NO encuentra a media palabra: «red» no puede traer «hereda»", () => {
+    const preguntas = filtrarFaq(TODAS, "red").flatMap((s) => s.preguntas);
+    assert.ok(preguntas.length > 0, "«red» tiene que encontrar algo");
+
+    for (const p of preguntas) {
+      const texto = `${p.pregunta} ${p.respuesta.join(" ")}`;
+      assert.match(
+        texto,
+        /(^|[^\p{L}\p{N}])red/iu,
+        `«red» ha traído una pregunta donde solo aparece dentro de otra palabra: ${p.pregunta}`,
+      );
+    }
+  });
+
+  it("pide TODOS los términos, no cualquiera", () => {
+    const bono = contarPreguntas(filtrarFaq(TODAS, "bono"));
+    const dos = contarPreguntas(filtrarFaq(TODAS, "bono nivel"));
+    assert.ok(dos > 0, "«bono nivel» tiene que encontrar algo");
+    assert.ok(dos < bono, "añadir un término tiene que estrechar, no ensanchar");
+  });
+
+  it("busca también en la RESPUESTA, no solo en la pregunta", () => {
+    // «TRC20» no aparece en ningún enunciado: solo en el cuerpo de la respuesta
+    // sobre las redes de pago. Sin esto el buscador sería decorativo.
+    const encontradas = filtrarFaq(TODAS, "TRC20").flatMap((s) => s.preguntas);
+    assert.ok(encontradas.length > 0);
+    assert.ok(
+      encontradas.every((p) => !/TRC20/i.test(p.pregunta)),
+      "el caso deja de probar nada si «TRC20» ya está en el enunciado",
+    );
+  });
+
+  it("una sección sin coincidencias desaparece entera", () => {
+    // Un encabezado con la lista vacía debajo diría que ahí había algo y se ha
+    // escondido.
+    for (const seccion of filtrarFaq(TODAS, "red")) {
+      assert.ok(seccion.preguntas.length > 0, `«${seccion.titulo}» se ha quedado vacía`);
+    }
+  });
+
+  it("sin coincidencias no devuelve secciones", () => {
+    assert.deepEqual(filtrarFaq(TODAS, "zzzzz"), []);
+  });
+
+  it("un término con caracteres de expresión regular no revienta la búsqueda", () => {
+    // El campo acepta lo que sea: `(`, `*`, `[`… y el término se mete en una
+    // `RegExp`. Sin escapar, la primera lanza y la pantalla se cae entera.
+    for (const raro of ["(", "*", "[a-z]", "\\", "+?", "$"]) {
+      assert.doesNotThrow(() => filtrarFaq(TODAS, raro), `revienta con «${raro}»`);
+    }
+  });
+
+  it("funciona igual en árabe, donde `\\b` no serviría", () => {
+    /*
+     * El límite de palabra se escribe con `\p{L}`/`\p{N}` y no con `\b`, que
+     * está definido sobre `[A-Za-z0-9_]`: en árabe considera límite cada letra,
+     * así que el filtro degeneraría en una subcadena y el ruido volvería.
+     */
+    const arabe = faq("ar", CON_DATOS);
+    const encontradas = contarPreguntas(filtrarFaq(arabe, "المكافأة"));
+    assert.ok(encontradas > 0, "no encuentra «المكافأة» (la mecánica del bono)");
+    assert.ok(encontradas < contarPreguntas(arabe), "no ha filtrado nada");
   });
 });

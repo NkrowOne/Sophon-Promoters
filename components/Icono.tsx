@@ -53,7 +53,9 @@ export type NombreIcono =
   | "reintentar"
   | "copiar"
   | "ayuda"
-  | "desplegar";
+  | "desplegar"
+  | "buscar"
+  | "cerrar";
 
 /**
  * Los trazados, en una retícula de 24.
@@ -101,6 +103,13 @@ const TRAZOS: Record<NombreIcono, string> = {
   // 180° al abrirse sin que el árabe lo mande al revés. Por eso tampoco está
   // en `DIRECCIONALES`: un chevron vertical no apunta a ninguna orilla.
   desplegar: "M6.5 9.8 12 15.3 17.5 9.8",
+  // Lupa: círculo y mango. No está en `DIRECCIONALES` a propósito — una lupa
+  // espejada sigue siendo una lupa, y en árabe el campo ya la coloca al otro
+  // lado con una propiedad lógica.
+  buscar: "M11 18.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15M16.4 16.4 20.5 20.5",
+  // Aspa. Dos trazos y ninguna caja: la caja la pone el objetivo táctil de
+  // 44 px del botón que lo lleva.
+  cerrar: "M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5",
   copiar:
     "M9 9V6.5A1.5 1.5 0 0 1 10.5 5h7A1.5 1.5 0 0 1 19 6.5v7a1.5 1.5 0 0 1-1.5 1.5H15M6.5 9h7A1.5 1.5 0 0 1 15 10.5v7A1.5 1.5 0 0 1 13.5 19h-7A1.5 1.5 0 0 1 5 17.5v-7A1.5 1.5 0 0 1 6.5 9",
 };
