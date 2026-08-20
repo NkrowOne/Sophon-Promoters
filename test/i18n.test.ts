@@ -108,11 +108,11 @@ test("la jerga retirada en el §18 no vuelve al catálogo español", () => {
     [/devengad/i, "«devengado» es lenguaje contable: se dice «ganado»"],
     [/\bincidencia/i, "«con incidencia» es jerga de soporte: se dice «con problemas»"],
     [/\bhito\b/i, "«hito» es gestión de proyectos: se dice «nivel»"],
-    [/no consta/i, "«No consta» es lengua de registro civil: se dice «Ya no está»"],
+    [/no consta\b(?! en la Sophon)/i, "«No consta» a secas es lengua de registro civil"],
     [/plazo de resolución/i, "«plazo de resolución» es lengua de ventanilla"],
     [/saldo consolidado/i, "«consolidado» es contable: se dice «confirmado»"],
     [/sujet[oa]s? a revisión/i, "«sujetos a revisión» es jurídico"],
-    [/pendiente de borrado/i, "se dice «Se va a borrar», como en la Malla"],
+    [/pendiente de borrado/i, "«pendiente de borrado» es jerga de sistema: se dice «Baja programada»"],
   ];
 
   for (const texto of textosDe("es")) {
@@ -120,6 +120,47 @@ test("la jerga retirada en el §18 no vuelve al catálogo español", () => {
       assert.ok(!patron.test(texto), `${porque} — encontrado en: ${texto}`);
     }
   }
+});
+
+/**
+ * EL REGISTRO, que es lo que se acababa de reescribir entero.
+ *
+ * La interfaz hablaba como un compañero de trabajo: «Solo puedes retirar lo que
+ * ya está confirmado», «Enséñaselo a tus webmasters», «No hemos podido darle el
+ * PRO». Es una herramienta con la que se cobra dinero, y lo que se le pide al
+ * texto es que informe.
+ *
+ * Estas dos pruebas fijan las dos mitades del cambio, que son las que se
+ * deshacen solas en cuanto alguien escriba una cadena nueva sin mirar el resto.
+ */
+test("lo que hace el sistema se dice en impersonal, no en primera persona del plural", () => {
+  /*
+   * «No hemos podido registrar tu solicitud» convierte un fallo del sistema en
+   * una disculpa, y «te hemos descontado» convierte una operación en un favor.
+   * En impersonal —«no se ha podido registrar la solicitud», «no se ha
+   * descontado ningún importe»— la frase dice lo mismo y además dice lo único
+   * que el agente necesita: en qué estado ha quedado su dinero.
+   */
+  const primeraPersona = /\b(hemos|habíamos|podemos|tenemos|tardamos|estamos|damos|avisamos)\b/i;
+
+  for (const texto of textosDe("es")) {
+    assert.doesNotMatch(texto, primeraPersona, `la aplicación habla de sí misma en plural: ${texto}`);
+  }
+});
+
+test("los plazos se dicen en días, no en adverbios", () => {
+  // «El pago sale en breve» no es un plazo: es una estimación sin responsable,
+  // y en la pantalla del dinero es justo donde no vale. Los tres sitios que
+  // hablan de cuándo se cobra dicen «entre 1 y 3 días».
+  // «De inmediato» NO está en la lista: eso sí es un plazo, y es verdad —el
+  // saldo de un cobro rechazado vuelve en el mismo instante—.
+  const vaguedades = /\ben breve\b|\bpronto\b|\benseguida\b/i;
+
+  for (const texto of textosDe("es")) {
+    assert.doesNotMatch(texto, vaguedades, `un plazo dicho con un adverbio: ${texto}`);
+  }
+
+  assert.match(cadenas("es").revisionManual, /1 y 3 días/);
 });
 
 test("«red» queda reservada a la blockchain, que es donde equivocarse cuesta dinero", () => {

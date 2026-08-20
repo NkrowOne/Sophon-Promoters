@@ -186,7 +186,7 @@ describe("las preguntas frecuentes", () => {
 
     assert.match(texto, /disponible/i, "falta por qué el disponible es menos que lo ganado");
     assert.match(texto, /no se recupera/i, "falta el aviso de la red equivocada");
-    assert.match(texto, /1 a 3 días/i, "falta cuánto tarda un cobro");
-    assert.match(texto, /cero el día 1/i, "falta que el bono se reinicia cada mes");
+    assert.match(texto, /entre 1 y 3 días/i, "falta el plazo de pago");
+    assert.match(texto, /reinicia el día 1/i, "falta que el bono se reinicia cada mes");
   });
 });

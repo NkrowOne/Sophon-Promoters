@@ -14,6 +14,13 @@
  * Con la estructura en el dato, la pantalla no decide nada: pinta lo que le
  * llega, y las cinco lenguas comparten forma por construcción.
  *
+ * ── EL REGISTRO ES EL DE `lib/i18n.ts` ──
+ *
+ * Las mismas seis reglas, y aquí cuestan más de sostener: el texto largo tira
+ * hacia la conversación. Las respuestas enuncian —«El importe disponible está
+ * listo para retirar»—, dan cifras y plazos en vez de adverbios, y no animan a
+ * nadie. Una pregunta frecuente contesta; no acompaña.
+ *
  * ── LAS CIFRAS NO SE ESCRIBEN AQUÍ ──
  *
  * «Cobras 0,03 $ por registro» estuvo escrito a mano en cinco catálogos, y los
@@ -62,212 +69,211 @@ type Constructor = (d: DatosFaq) => SeccionFaq[];
 
 const es: Constructor = (d) => [
   {
-    titulo: "Cómo se gana",
+    titulo: "Comisiones",
     preguntas: [
       {
-        pregunta: "¿Cómo gano dinero con esto?",
+        pregunta: "¿Cómo se generan ingresos en el programa?",
         respuesta: [
-          "Por tres vías, y las tres caen en el mismo saldo: cada usuario que registra uno de tus webmasters, cada compra de PRO que hacen esos usuarios, y un bono al mes si toda tu red llega a un nivel de registros.",
-          "No tienes que elegir entre ellas. Van sumando solas.",
+          "Por tres conceptos, que se acumulan en el mismo saldo: cada usuario registrado por un webmaster del equipo, cada compra de PRO de esos usuarios, y un bono mensual cuando el conjunto del equipo alcanza un nivel de registros.",
         ],
       },
       {
-        pregunta: "¿Cuánto cobro por cada usuario registrado?",
+        pregunta: "¿Cuál es la comisión por usuario registrado?",
         respuesta: [
           d.cpa
-            ? `${d.cpa} por usuario, sea cual sea su país.`
-            : "Una cantidad fija por usuario, sea cual sea su país.",
-          "El país sí cambia lo que cobra tu webmaster, y por eso la pantalla de precios lo separa por niveles. Lo tuyo es igual en los tres.",
+            ? `${d.cpa} por usuario, con independencia del país.`
+            : "Un importe fijo por usuario, con independencia del país.",
+          "El país determina la tarifa del webmaster, no la del agente: la comisión del agente es la misma en los tres niveles de país.",
         ],
       },
       {
-        pregunta: "¿Y por las compras de PRO?",
+        pregunta: "¿Cuál es la comisión sobre las compras de PRO?",
         respuesta: [
           d.cps
-            ? `Te llevas el ${d.cps} de lo que esos usuarios paguen por su PRO.`
-            : "Te llevas un porcentaje de lo que esos usuarios paguen por su PRO.",
-          "Se cobra cada vez que uno de ellos paga, no solo la primera vez.",
+            ? `${d.cps} del importe que esos usuarios paguen por el PRO.`
+            : "Un porcentaje del importe que esos usuarios paguen por el PRO.",
+          "Se aplica a cada compra, no solo a la primera.",
         ],
       },
       {
-        pregunta: "¿Qué es el bono del mes?",
+        pregunta: "¿Qué es el bono mensual?",
         respuesta: [
           d.primerNivel
-            ? `Un premio por el total de registros de toda tu red dentro del mes. El primer nivel son ${d.primerNivel.usuarios} registros y paga ${d.primerNivel.premio}.`
-            : "Un premio por el total de registros de toda tu red dentro del mes.",
-          "Cuenta la red entera, no un webmaster suelto: por eso interesa tener varios en marcha a la vez.",
+            ? `Un importe adicional por el total de registros del equipo dentro del mes natural. El primer nivel son ${d.primerNivel.usuarios} registros y corresponde a ${d.primerNivel.premio}.`
+            : "Un importe adicional por el total de registros del equipo dentro del mes natural.",
+          "El cómputo es agregado: suma los registros de todos los webmasters, no los de uno solo.",
         ],
       },
       {
-        pregunta: "¿Los niveles del bono se suman entre sí?",
+        pregunta: "¿Los niveles del bono son acumulables?",
         respuesta: [
-          "No. Se paga el nivel más alto al que llegues, no la suma de todos los que hayas pasado.",
-          "Si cruzas el primero y luego el segundo, cobras la diferencia hasta el segundo. El total del mes es siempre lo que paga un solo nivel.",
+          "No. Se abona el nivel más alto alcanzado, no la suma de los inferiores.",
+          "Al superar un segundo nivel se abona la diferencia hasta ese nivel. El total del mes equivale siempre al importe de un único nivel.",
         ],
       },
       {
-        pregunta: "¿El bono se guarda de un mes para otro?",
+        pregunta: "¿El bono se arrastra al mes siguiente?",
         respuesta: [
-          "No. El contador vuelve a cero el día 1, así que el bono se puede ganar todos los meses y no se hereda del anterior.",
-          "Lo que ya has cobrado no se toca.",
+          "No. El cómputo se reinicia el día 1 de cada mes, de modo que el bono puede obtenerse todos los meses y no hereda nada del anterior.",
+          "Los bonos ya abonados no se revierten.",
         ],
       },
       {
-        pregunta: "Si mi webmaster sube de nivel, ¿cobro yo más?",
+        pregunta: "Si el webmaster sube de nivel, ¿aumenta la comisión del agente?",
         respuesta: [
-          "Tu comisión no cambia con el nivel: cobras lo mismo en todos.",
-          "Lo que sube es lo que cobra él, y eso es lo que le enseñas en la pantalla de precios para que le compense traer más usuarios.",
+          "No. La comisión del agente es la misma en todos los niveles.",
+          "Lo que aumenta es la tarifa del webmaster, que es el dato que se le muestra en la pantalla de precios.",
         ],
       },
     ],
   },
   {
-    titulo: "Tu equipo",
+    titulo: "Equipo",
     preguntas: [
       {
         pregunta: "¿Qué es un webmaster?",
         respuesta: [
-          "La persona que trae usuarios a Sophon. Tú no registras usuarios: los registran ellos, y tú cobras por lo que ellos consiguen.",
+          "El colaborador que aporta usuarios a Sophon. El agente no registra usuarios directamente: percibe comisión por los que aportan los webmasters de su equipo.",
         ],
       },
       {
-        pregunta: "¿Cómo doy de alta a uno?",
+        pregunta: "¿Cómo se activa un webmaster?",
         respuesta: [
-          "Desde «Activar webmaster». Escribes su correo, lo revisas en el paso de confirmación y activas.",
-          "Su cuenta tiene que existir ya en Sophon: primero que se registre él, después lo activas tú.",
+          "Desde «Activar webmaster»: se introduce su correo, se revisa en el paso de confirmación y se activa.",
+          "Su cuenta debe existir previamente en Sophon. El registro lo hace él; la activación, el agente.",
         ],
       },
       {
-        pregunta: "Me dice que el correo no existe. ¿Qué hago?",
+        pregunta: "El correo no existe en Sophon. ¿Qué procede?",
         respuesta: [
-          "Comprueba que está bien escrito y que es el mismo con el que se registró en Sophon.",
-          "Si todavía no tiene cuenta, que la cree y vuelve a intentarlo. El alta no funciona antes de eso.",
+          "Comprobar que está bien escrito y que coincide con el que utilizó al registrarse en Sophon.",
+          "Si aún no tiene cuenta, debe crearla antes. La activación no es posible hasta entonces.",
         ],
       },
       {
-        pregunta: "¿Puedo deshacer una activación?",
+        pregunta: "¿La activación es reversible?",
         respuesta: [
-          "No. Al activarlo queda vinculado a ti en Sophon para siempre y se gasta el año de PRO del alta.",
-          "Por eso hay un paso de confirmación antes: es tu última oportunidad de corregir el correo.",
+          "No. El webmaster queda vinculado a la cuenta del agente en Sophon de forma permanente y se consume el año de PRO asociado.",
+          "El paso de confirmación previo es la última oportunidad de corregir el correo.",
         ],
       },
       {
-        pregunta: "¿Qué es el PRO y cuánto dura?",
+        pregunta: "¿Qué incluye el PRO y cuánto dura?",
         respuesta: [
-          "Un año, desde el día que lo activas. Se lo das tú con el alta, no tiene que pagarlo.",
-          "Cuando se acerca el final puedes renovarle otro año desde su ficha.",
+          "Un año desde la fecha de activación, sin coste para el webmaster.",
+          "Al aproximarse el vencimiento puede renovarse otro año desde su perfil.",
         ],
       },
       {
-        pregunta: "¿Cuentan los usuarios que registró antes de que yo lo diera de alta?",
+        pregunta: "¿Computan los usuarios registrados antes de la activación?",
         respuesta: [
-          "No. Cuentan desde la fecha del alta en adelante.",
-          "Es lo que aparece en su ficha como fecha desde la que cobras.",
+          "No. Solo computan los registros posteriores a la fecha de activación.",
+          "Esa fecha figura en el perfil del webmaster.",
         ],
       },
     ],
   },
   {
-    titulo: "Tu dinero",
+    titulo: "Saldo",
     preguntas: [
       {
-        pregunta: "¿Por qué «Disponible» es menos que «Ganado»?",
+        pregunta: "¿Por qué el importe disponible es inferior al ganado?",
         respuesta: [
-          "Porque los últimos días todavía los estamos revisando. Sophon puede corregir un día a la baja después de darlo, así que ese tramo no se puede sacar aún.",
-          "Cuando el día sale de revisión, su dinero pasa solo a disponible. No tienes que hacer nada.",
+          "Los últimos días permanecen en revisión. Sophon puede corregir a la baja una jornada ya comunicada, de modo que ese tramo no es retirable todavía.",
+          "Al superar la revisión, el importe pasa automáticamente a disponible. No requiere ninguna acción.",
         ],
       },
       {
-        pregunta: "¿Cada cuánto se actualiza?",
+        pregunta: "¿Con qué frecuencia se actualizan los datos?",
         respuesta: [
-          "Todos los días. Leemos los datos de Sophon, apuntamos lo nuevo y dejamos lo anterior como estaba.",
+          "A diario. Se leen los datos de Sophon, se registran los nuevos y los anteriores permanecen sin modificar.",
         ],
       },
       {
-        pregunta: "¿Puede bajar algo que ya tenía ganado?",
+        pregunta: "¿Puede disminuir un importe ya ganado?",
         respuesta: [
-          "Sí, si Sophon corrige un día a la baja. Aparece como un ajuste, con su fecha, y nunca reescribimos lo de antes: se apunta la corrección aparte para que puedas verla.",
-          "Los bonos que ya has cobrado no se quitan.",
+          "Sí, si Sophon corrige una jornada a la baja. La corrección se registra como un ajuste con su propia fecha; el histórico no se reescribe.",
+          "Los bonos ya abonados no se revierten.",
         ],
       },
       {
-        pregunta: "¿Dónde veo de dónde sale mi saldo?",
+        pregunta: "¿Dónde se consulta el desglose del saldo?",
         respuesta: [
-          "En «Tu saldo». Debajo de la escalera está el reparto por origen: registros, compras de PRO, bonos y ajustes.",
+          "En «Saldo», bajo el estado del saldo: registros, compras de PRO, bonos y ajustes.",
         ],
       },
     ],
   },
   {
-    titulo: "Cobrar",
+    titulo: "Cobros",
     preguntas: [
       {
-        pregunta: "¿Cuánto es el mínimo para pedir un cobro?",
+        pregunta: "¿Cuál es el importe mínimo por solicitud?",
         respuesta: [
           d.minimo
-            ? `${d.minimo}. Por debajo de eso el botón no deja pedir.`
-            : "Lo tienes escrito en «Tu saldo», debajo del campo del importe. Por debajo de esa cifra el botón no deja pedir.",
+            ? `${d.minimo}. Por debajo de esa cifra la solicitud no se admite.`
+            : "Figura en «Saldo», bajo el campo del importe. Por debajo de esa cifra la solicitud no se admite.",
         ],
       },
       {
-        pregunta: "¿En qué redes se paga?",
+        pregunta: "¿En qué redes se realiza el pago?",
         respuesta: [
-          "En USDT, por TRC20 (TRON), BSC (BNB Smart Chain) o TON. Eliges la red al pedirlo.",
+          "En USDT, sobre TRC20 (TRON), BSC (BNB Smart Chain) o TON. La red se elige al crear la solicitud.",
         ],
       },
       {
-        pregunta: "¿Y si me equivoco de red?",
+        pregunta: "¿Qué ocurre si la red es incorrecta?",
         respuesta: [
-          "Un pago a la red equivocada no se recupera. Comprueba la dirección y la red antes de pedir.",
-          "La aplicación revisa la forma de la dirección y te avisa si no encaja con la red elegida, pero no puede saber si el monedero es tuyo.",
+          "Un pago enviado a una red distinta de la del monedero no se recupera. Conviene verificar dirección y red antes de solicitar.",
+          "La aplicación valida el formato de la dirección y avisa si no corresponde a la red elegida, pero no puede verificar la titularidad del monedero.",
         ],
       },
       {
-        pregunta: "¿Cuánto tarda?",
+        pregunta: "¿Cuál es el plazo de pago?",
         respuesta: [
-          "De 1 a 3 días. Las revisiones son manuales: alguien mira cada solicitud antes de pagarla.",
+          "Entre 1 y 3 días. La revisión es manual: cada solicitud se comprueba antes de emitir el pago.",
         ],
       },
       {
-        pregunta: "¿Puedo pedir dos cobros a la vez?",
+        pregunta: "¿Se admiten varias solicitudes simultáneas?",
         respuesta: [
-          "No. Solo puede haber uno en curso. Cuando se resuelve, puedes pedir el siguiente.",
+          "No. Solo puede haber una solicitud en curso. La siguiente puede crearse una vez resuelta la anterior.",
         ],
       },
       {
-        pregunta: "Me han rechazado un cobro. ¿Y ahora?",
+        pregunta: "¿Qué procede si se rechaza una solicitud?",
         respuesta: [
-          "El saldo vuelve a estar disponible enseguida, no se pierde nada.",
-          "El motivo sale junto a la solicitud en «Cobros anteriores». Corriges lo que diga y vuelves a pedirlo.",
+          "El importe vuelve a estar disponible de inmediato.",
+          "El motivo del rechazo figura junto a la solicitud en «Cobros anteriores». Una vez corregido, puede volver a solicitarse.",
         ],
       },
     ],
   },
   {
-    titulo: "Tu cuenta",
+    titulo: "Cuenta",
     preguntas: [
       {
-        pregunta: "¿Cómo entro?",
+        pregunta: "¿Cómo se accede a la aplicación?",
         respuesta: [
-          "Con tu correo. Te mandamos un código de seis cifras que caduca a los pocos minutos y solo sirve una vez.",
+          "Con el correo de la cuenta. Se envía un código de seis dígitos, válido durante 10 minutos y de un solo uso.",
         ],
       },
       {
-        pregunta: "No me llega el código.",
+        pregunta: "El código de verificación no llega.",
         respuesta: [
-          "Mira la carpeta de correo no deseado y comprueba que es el correo con el que te diste de alta.",
-          "Si sigue sin llegar, pide otro: el anterior deja de valer en cuanto se manda el nuevo.",
+          "Revisar la carpeta de correo no deseado y comprobar que la dirección es la de la cuenta de agente.",
+          "Si no llega, solicitar uno nuevo: el anterior queda anulado al emitirse el siguiente.",
         ],
       },
       {
-        pregunta: "¿En qué idiomas está?",
+        pregunta: "¿En qué idiomas está disponible?",
         respuesta: [
-          "En español, inglés, italiano, portugués y árabe. Sale del idioma que tengas puesto en Telegram; no hay que elegirlo aquí.",
+          "Español, inglés, italiano, portugués y árabe. El idioma se toma del configurado en Telegram; no se selecciona en la aplicación.",
         ],
       },
       {
-        pregunta: "Tengo un problema que no está aquí.",
-        respuesta: ["Escríbelo por el bot. Te contestamos por el mismo sitio."],
+        pregunta: "El caso no aparece en esta página.",
+        respuesta: ["Escribir por el bot. La respuesta llega por el mismo canal."],
       },
     ],
   },
@@ -275,210 +281,209 @@ const es: Constructor = (d) => [
 
 const en: Constructor = (d) => [
   {
-    titulo: "How you earn",
+    titulo: "Commissions",
     preguntas: [
       {
-        pregunta: "How do I make money with this?",
+        pregunta: "How is revenue generated in the programme?",
         respuesta: [
-          "Three ways, and all three land in the same balance: every user one of your webmasters signs up, every PRO purchase those users make, and a monthly bonus if your whole team hits a sign-up level.",
-          "You do not pick between them. They add up on their own.",
+          "Through three concepts, all credited to the same balance: each user registered by a webmaster on the team, each PRO purchase made by those users, and a monthly bonus when the team as a whole reaches a sign-up level.",
         ],
       },
       {
-        pregunta: "How much do I earn per registered user?",
+        pregunta: "What is the commission per registered user?",
         respuesta: [
-          d.cpa ? `${d.cpa} per user, whatever their country.` : "A fixed amount per user, whatever their country.",
-          "The country does change what your webmaster earns, which is why the prices screen splits it by level. Your side is the same across all three.",
+          d.cpa ? `${d.cpa} per user, regardless of country.` : "A fixed amount per user, regardless of country.",
+          "Country determines the webmaster's rate, not the agent's: the agent commission is the same across all three country tiers.",
         ],
       },
       {
-        pregunta: "And on PRO purchases?",
+        pregunta: "What is the commission on PRO purchases?",
         respuesta: [
           d.cps
-            ? `You take ${d.cps} of whatever those users pay for their PRO.`
-            : "You take a percentage of whatever those users pay for their PRO.",
-          "It pays out every time one of them pays, not just the first time.",
+            ? `${d.cps} of the amount those users pay for PRO.`
+            : "A percentage of the amount those users pay for PRO.",
+          "It applies to every purchase, not only the first.",
         ],
       },
       {
         pregunta: "What is the monthly bonus?",
         respuesta: [
           d.primerNivel
-            ? `A reward for the total sign-ups across your whole team within the month. The first level is ${d.primerNivel.usuarios} sign-ups and pays ${d.primerNivel.premio}.`
-            : "A reward for the total sign-ups across your whole team within the month.",
-          "It counts the whole team, not one webmaster on their own — which is why it pays to keep several running at once.",
+            ? `An additional amount for the team's total sign-ups within the calendar month. The first level is ${d.primerNivel.usuarios} sign-ups and corresponds to ${d.primerNivel.premio}.`
+            : "An additional amount for the team's total sign-ups within the calendar month.",
+          "The count is aggregate: it adds up sign-ups across all webmasters, not those of a single one.",
         ],
       },
       {
         pregunta: "Do bonus levels stack?",
         respuesta: [
-          "No. You get the highest level you reach, not the sum of the ones below it.",
-          "Cross the first and then the second, and you are paid the difference up to the second. The month's total is always what a single level pays.",
+          "No. The highest level reached is paid, not the sum of the levels below it.",
+          "On passing a second level, the difference up to that level is paid. The month's total always equals the amount of a single level.",
         ],
       },
       {
-        pregunta: "Does the bonus carry over to the next month?",
+        pregunta: "Does the bonus carry over to the following month?",
         respuesta: [
-          "No. The counter goes back to zero on the 1st, so the bonus can be won every month and nothing is inherited from the last one.",
-          "What you have already been paid stays yours.",
+          "No. The count resets on the 1st of each month, so the bonus can be obtained every month and inherits nothing from the previous one.",
+          "Bonuses already paid are not reversed.",
         ],
       },
       {
-        pregunta: "If my webmaster moves up a level, do I earn more?",
+        pregunta: "If the webmaster moves up a level, does the agent commission increase?",
         respuesta: [
-          "Your commission does not change with the level: you earn the same at every one.",
-          "What goes up is what they earn, and that is what you show them on the prices screen so bringing in more users pays off for them.",
+          "No. The agent commission is the same at every level.",
+          "What increases is the webmaster's rate, which is the figure shown to them on the prices screen.",
         ],
       },
     ],
   },
   {
-    titulo: "Your team",
+    titulo: "Team",
     preguntas: [
       {
         pregunta: "What is a webmaster?",
         respuesta: [
-          "The person who brings users to Sophon. You do not sign up users yourself: they do, and you earn on what they bring in.",
+          "The partner who brings users to Sophon. The agent does not register users directly: they earn commission on the users brought in by the webmasters on their team.",
         ],
       },
       {
-        pregunta: "How do I activate one?",
+        pregunta: "How is a webmaster activated?",
         respuesta: [
-          "From «Activate webmaster». You type their email, check it on the confirmation step and activate.",
-          "Their account has to exist on Sophon already: they register first, you activate after.",
+          "From «Activate webmaster»: enter their email, review it on the confirmation step and activate.",
+          "Their account must already exist on Sophon. They handle registration; the agent handles activation.",
         ],
       },
       {
-        pregunta: "It says the email does not exist. What now?",
+        pregunta: "The email does not exist on Sophon. What now?",
         respuesta: [
-          "Check the spelling and that it is the same address they registered with on Sophon.",
-          "If they have no account yet, have them create one and try again. Activation will not work before that.",
+          "Check the spelling and that it matches the address used to register on Sophon.",
+          "If they have no account yet, it must be created first. Activation is not possible until then.",
         ],
       },
       {
-        pregunta: "Can I undo an activation?",
+        pregunta: "Is activation reversible?",
         respuesta: [
-          "No. Activating links them to you on Sophon for good and spends the year of PRO that comes with it.",
-          "That is what the confirmation step is for: it is your last chance to fix the address.",
+          "No. The webmaster is permanently linked to the agent's account on Sophon and the associated year of PRO is consumed.",
+          "The preceding confirmation step is the last opportunity to correct the address.",
         ],
       },
       {
-        pregunta: "What is PRO and how long does it last?",
+        pregunta: "What does PRO include and how long does it last?",
         respuesta: [
-          "A year, from the day you activate them. You give it to them with the activation; they pay nothing for it.",
-          "As it runs out you can renew another year from their profile.",
+          "One year from the activation date, at no cost to the webmaster.",
+          "As expiry approaches, another year can be renewed from their profile.",
         ],
       },
       {
-        pregunta: "Do the users they signed up before I activated them count?",
+        pregunta: "Do users registered before activation count?",
         respuesta: [
-          "No. They count from the activation date onwards.",
-          "That is the date shown on their profile as the day your earnings start.",
+          "No. Only sign-ups after the activation date are counted.",
+          "That date is shown on the webmaster's profile.",
         ],
       },
     ],
   },
   {
-    titulo: "Your money",
+    titulo: "Balance",
     preguntas: [
       {
-        pregunta: "Why is «Available» less than «Earned»?",
+        pregunta: "Why is the available amount lower than the amount earned?",
         respuesta: [
-          "Because we are still reviewing the last few days. Sophon can correct a day downwards after reporting it, so that stretch cannot be withdrawn yet.",
-          "Once a day clears review, its money moves to available on its own. You do not have to do anything.",
+          "The most recent days remain under review. Sophon may revise a reported day downwards, so that portion is not yet withdrawable.",
+          "Once review is cleared, the amount moves to available automatically. No action is required.",
         ],
       },
       {
-        pregunta: "How often does it update?",
+        pregunta: "How often is the data updated?",
         respuesta: [
-          "Every day. We read the data from Sophon, record what is new and leave what was already there untouched.",
+          "Daily. Data is read from Sophon, new entries are recorded and earlier ones remain unchanged.",
         ],
       },
       {
-        pregunta: "Can something I had already earned go down?",
+        pregunta: "Can an amount already earned decrease?",
         respuesta: [
-          "Yes, if Sophon corrects a day downwards. It shows up as an adjustment, with its date, and we never rewrite the past: the correction is recorded separately so you can see it.",
-          "Bonuses you have already been paid are not taken back.",
+          "Yes, if Sophon revises a day downwards. The correction is recorded as an adjustment with its own date; history is never rewritten.",
+          "Bonuses already paid are not reversed.",
         ],
       },
       {
-        pregunta: "Where do I see what my balance is made of?",
+        pregunta: "Where is the balance breakdown shown?",
         respuesta: [
-          "On «Your balance». Under the ladder there is the split by source: sign-ups, PRO purchases, bonuses and adjustments.",
+          "Under «Balance», below the balance status: sign-ups, PRO purchases, bonuses and adjustments.",
         ],
       },
     ],
   },
   {
-    titulo: "Getting paid",
+    titulo: "Payouts",
     preguntas: [
       {
-        pregunta: "What is the minimum to request a payout?",
+        pregunta: "What is the minimum amount per request?",
         respuesta: [
           d.minimo
-            ? `${d.minimo}. Below that the button will not let you request one.`
-            : "It is written on «Your balance», under the amount field. Below that figure the button will not let you request one.",
+            ? `${d.minimo}. Below that figure the request is not accepted.`
+            : "It is shown under «Balance», below the amount field. Below that figure the request is not accepted.",
         ],
       },
       {
-        pregunta: "Which networks do you pay on?",
+        pregunta: "Which networks are payments made on?",
         respuesta: [
-          "USDT, over TRC20 (TRON), BSC (BNB Smart Chain) or TON. You pick the network when you request it.",
+          "In USDT, over TRC20 (TRON), BSC (BNB Smart Chain) or TON. The network is chosen when creating the request.",
         ],
       },
       {
-        pregunta: "What if I pick the wrong network?",
+        pregunta: "What happens if the network is wrong?",
         respuesta: [
-          "A payment sent to the wrong network cannot be recovered. Check the address and the network before you request.",
-          "The app checks the shape of the address and warns you if it does not match the network you picked, but it cannot know whether the wallet is yours.",
+          "A payment sent to a network other than the wallet's cannot be recovered. Address and network should be verified before requesting.",
+          "The application validates the address format and warns if it does not match the chosen network, but it cannot verify wallet ownership.",
         ],
       },
       {
-        pregunta: "How long does it take?",
+        pregunta: "What is the payment turnaround?",
         respuesta: [
-          "1 to 3 days. Reviews are manual: someone looks at each request before paying it.",
+          "1 to 3 days. Review is manual: every request is checked before the payment is issued.",
         ],
       },
       {
-        pregunta: "Can I have two payouts running at once?",
+        pregunta: "Are simultaneous requests allowed?",
         respuesta: [
-          "No. Only one can be open at a time. Once it is resolved you can request the next.",
+          "No. Only one request can be open at a time. The next can be created once the previous one is resolved.",
         ],
       },
       {
-        pregunta: "My payout was rejected. Now what?",
+        pregunta: "What happens if a request is rejected?",
         respuesta: [
-          "The balance goes straight back to available; nothing is lost.",
-          "The reason shows next to the request under «Past payouts». Fix what it says and request again.",
+          "The amount becomes available again immediately.",
+          "The reason for rejection is shown next to the request under «Past payouts». Once corrected, it can be requested again.",
         ],
       },
     ],
   },
   {
-    titulo: "Your account",
+    titulo: "Account",
     preguntas: [
       {
-        pregunta: "How do I sign in?",
+        pregunta: "How is the application accessed?",
         respuesta: [
-          "With your email. We send you a six-digit code that expires within minutes and works only once.",
+          "With the account email. A six-digit code is sent, valid for 10 minutes and single use only.",
         ],
       },
       {
-        pregunta: "The code is not arriving.",
+        pregunta: "The verification code does not arrive.",
         respuesta: [
-          "Check your spam folder and make sure it is the address you signed up with.",
-          "If it still does not arrive, ask for another: the previous one stops working the moment the new one goes out.",
+          "Check the spam folder and confirm the address is the one on the agent account.",
+          "If it still does not arrive, request a new one: the previous code is voided when the next is issued.",
         ],
       },
       {
-        pregunta: "What languages is it in?",
+        pregunta: "Which languages are available?",
         respuesta: [
-          "Spanish, English, Italian, Portuguese and Arabic. It follows the language set in Telegram; there is nothing to pick here.",
+          "Spanish, English, Italian, Portuguese and Arabic. The language follows the one set in Telegram; it is not selected in the application.",
         ],
       },
       {
-        pregunta: "I have a problem that is not listed here.",
-        respuesta: ["Write it on the bot. We answer through the same place."],
+        pregunta: "The case is not listed on this page.",
+        respuesta: ["Write on the bot. The reply arrives through the same channel."],
       },
     ],
   },
@@ -486,210 +491,209 @@ const en: Constructor = (d) => [
 
 const it: Constructor = (d) => [
   {
-    titulo: "Come si guadagna",
+    titulo: "Commissioni",
     preguntas: [
       {
-        pregunta: "Come guadagno con questa app?",
+        pregunta: "Come si generano guadagni nel programma?",
         respuesta: [
-          "In tre modi, e tutti e tre finiscono nello stesso saldo: ogni utente che registra uno dei tuoi webmaster, ogni acquisto di PRO che fanno quegli utenti, e un bonus mensile se tutta la tua squadra arriva a un livello di registrazioni.",
-          "Non devi sceglierne uno. Si sommano da soli.",
+          "Attraverso tre voci, che confluiscono nello stesso saldo: ogni utente registrato da un webmaster della squadra, ogni acquisto di PRO di quegli utenti e un bonus mensile quando l'insieme della squadra raggiunge un livello di registrazioni.",
         ],
       },
       {
-        pregunta: "Quanto guadagno per ogni utente registrato?",
+        pregunta: "Qual è la commissione per utente registrato?",
         respuesta: [
-          d.cpa ? `${d.cpa} per utente, qualunque sia il suo paese.` : "Una cifra fissa per utente, qualunque sia il suo paese.",
-          "Il paese cambia quello che guadagna il tuo webmaster, ed è per questo che la schermata dei prezzi lo divide per livelli. La tua parte è uguale in tutti e tre.",
+          d.cpa ? `${d.cpa} per utente, indipendentemente dal paese.` : "Un importo fisso per utente, indipendentemente dal paese.",
+          "Il paese determina la tariffa del webmaster, non quella dell'agente: la commissione dell'agente è la stessa nei tre livelli di paese.",
         ],
       },
       {
-        pregunta: "E sugli acquisti di PRO?",
+        pregunta: "Qual è la commissione sugli acquisti di PRO?",
         respuesta: [
           d.cps
-            ? `Prendi il ${d.cps} di quello che quegli utenti pagano per il loro PRO.`
-            : "Prendi una percentuale di quello che quegli utenti pagano per il loro PRO.",
-          "Si guadagna ogni volta che uno di loro paga, non solo la prima.",
+            ? `${d.cps} dell'importo che quegli utenti pagano per il PRO.`
+            : "Una percentuale dell'importo che quegli utenti pagano per il PRO.",
+          "Si applica a ogni acquisto, non solo al primo.",
         ],
       },
       {
-        pregunta: "Cos'è il bonus del mese?",
+        pregunta: "Che cos'è il bonus mensile?",
         respuesta: [
           d.primerNivel
-            ? `Un premio sul totale delle registrazioni di tutta la tua squadra nel mese. Il primo livello è ${d.primerNivel.usuarios} registrazioni e paga ${d.primerNivel.premio}.`
-            : "Un premio sul totale delle registrazioni di tutta la tua squadra nel mese.",
-          "Conta la squadra intera, non un webmaster da solo: per questo conviene averne più di uno attivo.",
+            ? `Un importo aggiuntivo sul totale delle registrazioni della squadra entro il mese solare. Il primo livello è di ${d.primerNivel.usuarios} registrazioni e corrisponde a ${d.primerNivel.premio}.`
+            : "Un importo aggiuntivo sul totale delle registrazioni della squadra entro il mese solare.",
+          "Il conteggio è aggregato: somma le registrazioni di tutti i webmaster, non quelle di uno solo.",
         ],
       },
       {
-        pregunta: "I livelli del bonus si sommano tra loro?",
+        pregunta: "I livelli del bonus sono cumulabili?",
         respuesta: [
-          "No. Si paga il livello più alto che raggiungi, non la somma di quelli sotto.",
-          "Se superi il primo e poi il secondo, ti viene pagata la differenza fino al secondo. Il totale del mese è sempre quello che paga un solo livello.",
+          "No. Viene corrisposto il livello più alto raggiunto, non la somma di quelli inferiori.",
+          "Superando un secondo livello viene corrisposta la differenza fino a quel livello. Il totale del mese equivale sempre all'importo di un solo livello.",
         ],
       },
       {
-        pregunta: "Il bonus si porta al mese dopo?",
+        pregunta: "Il bonus si riporta al mese successivo?",
         respuesta: [
-          "No. Il contatore torna a zero il giorno 1, quindi il bonus si può vincere tutti i mesi e non si eredita nulla dal precedente.",
-          "Quello che hai già incassato resta tuo.",
+          "No. Il conteggio riparte il giorno 1 di ogni mese, quindi il bonus può essere ottenuto tutti i mesi e non eredita nulla dal precedente.",
+          "I bonus già corrisposti non vengono revocati.",
         ],
       },
       {
-        pregunta: "Se il mio webmaster sale di livello, guadagno di più?",
+        pregunta: "Se il webmaster sale di livello, aumenta la commissione dell'agente?",
         respuesta: [
-          "La tua commissione non cambia con il livello: guadagni lo stesso in tutti.",
-          "Quello che sale è quanto guadagna lui, ed è quello che gli mostri nella schermata dei prezzi perché gli convenga portare più utenti.",
+          "No. La commissione dell'agente è la stessa in tutti i livelli.",
+          "Ad aumentare è la tariffa del webmaster, che è il dato mostrato a lui nella schermata dei prezzi.",
         ],
       },
     ],
   },
   {
-    titulo: "La tua squadra",
+    titulo: "Squadra",
     preguntas: [
       {
-        pregunta: "Cos'è un webmaster?",
+        pregunta: "Che cos'è un webmaster?",
         respuesta: [
-          "La persona che porta utenti su Sophon. Tu non registri utenti: li registrano loro, e tu guadagni su quello che portano.",
+          "Il collaboratore che porta utenti su Sophon. L'agente non registra utenti direttamente: percepisce una commissione su quelli portati dai webmaster della sua squadra.",
         ],
       },
       {
-        pregunta: "Come ne attivo uno?",
+        pregunta: "Come si attiva un webmaster?",
         respuesta: [
-          "Da «Attiva webmaster». Scrivi la sua email, la rileggi nel passo di conferma e attivi.",
-          "Il suo account deve esistere già su Sophon: prima si registra lui, poi lo attivi tu.",
+          "Da «Attiva webmaster»: si inserisce la sua email, la si rilegge nel passo di conferma e si attiva.",
+          "Il suo account deve esistere già su Sophon. La registrazione la fa lui; l'attivazione, l'agente.",
         ],
       },
       {
-        pregunta: "Dice che l'email non esiste. E adesso?",
+        pregunta: "L'email non esiste su Sophon. Come si procede?",
         respuesta: [
-          "Controlla che sia scritta bene e che sia la stessa con cui si è registrato su Sophon.",
-          "Se non ha ancora un account, fagliene creare uno e riprova. Prima di quello l'attivazione non funziona.",
+          "Verificare che sia scritta correttamente e che coincida con quella usata per registrarsi su Sophon.",
+          "Se non ha ancora un account, deve crearlo prima. Fino ad allora l'attivazione non è possibile.",
         ],
       },
       {
-        pregunta: "Posso annullare un'attivazione?",
+        pregunta: "L'attivazione è reversibile?",
         respuesta: [
-          "No. Attivandolo resta collegato a te su Sophon per sempre e si consuma l'anno di PRO dell'attivazione.",
-          "Per questo c'è un passo di conferma: è l'ultima occasione per correggere l'indirizzo.",
+          "No. Il webmaster resta collegato in modo permanente all'account dell'agente su Sophon e si consuma l'anno di PRO associato.",
+          "Il passo di conferma precedente è l'ultima occasione per correggere l'indirizzo.",
         ],
       },
       {
-        pregunta: "Cos'è il PRO e quanto dura?",
+        pregunta: "Che cosa include il PRO e quanto dura?",
         respuesta: [
-          "Un anno, dal giorno in cui lo attivi. Glielo dai tu con l'attivazione, non lo paga lui.",
-          "Quando si avvicina la scadenza puoi rinnovargli un altro anno dalla sua scheda.",
+          "Un anno dalla data di attivazione, senza costi per il webmaster.",
+          "All'avvicinarsi della scadenza è possibile rinnovare un altro anno dal suo profilo.",
         ],
       },
       {
-        pregunta: "Contano gli utenti che ha registrato prima che lo attivassi?",
+        pregunta: "Contano gli utenti registrati prima dell'attivazione?",
         respuesta: [
-          "No. Contano dalla data di attivazione in poi.",
-          "È la data che vedi sulla sua scheda come inizio dei tuoi guadagni.",
+          "No. Contano solo le registrazioni successive alla data di attivazione.",
+          "Tale data è indicata nel profilo del webmaster.",
         ],
       },
     ],
   },
   {
-    titulo: "I tuoi soldi",
+    titulo: "Saldo",
     preguntas: [
       {
-        pregunta: "Perché «Disponibile» è meno di «Guadagnato»?",
+        pregunta: "Perché l'importo disponibile è inferiore a quello maturato?",
         respuesta: [
-          "Perché gli ultimi giorni li stiamo ancora verificando. Sophon può correggere un giorno al ribasso dopo averlo comunicato, quindi quel pezzo non si può ancora ritirare.",
-          "Quando un giorno esce dalla verifica, i suoi soldi passano da soli a disponibile. Non devi fare nulla.",
+          "Gli ultimi giorni restano in verifica. Sophon può correggere al ribasso una giornata già comunicata, quindi quella parte non è ancora prelevabile.",
+          "Superata la verifica, l'importo passa automaticamente a disponibile. Non richiede alcuna azione.",
         ],
       },
       {
-        pregunta: "Ogni quanto si aggiorna?",
+        pregunta: "Con quale frequenza si aggiornano i dati?",
         respuesta: [
-          "Tutti i giorni. Leggiamo i dati di Sophon, registriamo quello che è nuovo e lasciamo com'era quello di prima.",
+          "Ogni giorno. Si leggono i dati di Sophon, si registrano quelli nuovi e i precedenti restano invariati.",
         ],
       },
       {
-        pregunta: "Può scendere qualcosa che avevo già guadagnato?",
+        pregunta: "Un importo già maturato può diminuire?",
         respuesta: [
-          "Sì, se Sophon corregge un giorno al ribasso. Compare come una rettifica, con la sua data, e non riscriviamo mai il passato: la correzione si registra a parte perché tu possa vederla.",
-          "I bonus che hai già incassato non vengono tolti.",
+          "Sì, se Sophon corregge una giornata al ribasso. La correzione viene registrata come rettifica con una propria data; lo storico non viene riscritto.",
+          "I bonus già corrisposti non vengono revocati.",
         ],
       },
       {
-        pregunta: "Dove vedo da dove viene il mio saldo?",
+        pregunta: "Dove si consulta la ripartizione del saldo?",
         respuesta: [
-          "In «Il tuo saldo». Sotto la scala c'è la ripartizione per origine: registrazioni, acquisti di PRO, bonus e rettifiche.",
+          "In «Saldo», sotto lo stato del saldo: registrazioni, acquisti di PRO, bonus e rettifiche.",
         ],
       },
     ],
   },
   {
-    titulo: "Incassare",
+    titulo: "Pagamenti",
     preguntas: [
       {
-        pregunta: "Qual è il minimo per chiedere un pagamento?",
+        pregunta: "Qual è l'importo minimo per richiesta?",
         respuesta: [
           d.minimo
-            ? `${d.minimo}. Sotto quella cifra il pulsante non lo permette.`
-            : "Lo trovi scritto in «Il tuo saldo», sotto il campo dell'importo. Sotto quella cifra il pulsante non lo permette.",
+            ? `${d.minimo}. Al di sotto di tale cifra la richiesta non viene accettata.`
+            : "È indicato in «Saldo», sotto il campo dell'importo. Al di sotto di tale cifra la richiesta non viene accettata.",
         ],
       },
       {
-        pregunta: "Su quali reti si paga?",
+        pregunta: "Su quali reti viene effettuato il pagamento?",
         respuesta: [
-          "In USDT, su TRC20 (TRON), BSC (BNB Smart Chain) o TON. La rete la scegli quando lo chiedi.",
+          "In USDT, su TRC20 (TRON), BSC (BNB Smart Chain) o TON. La rete si sceglie al momento della richiesta.",
         ],
       },
       {
-        pregunta: "E se sbaglio rete?",
+        pregunta: "Che cosa succede se la rete è errata?",
         respuesta: [
-          "Un pagamento sulla rete sbagliata non si recupera. Controlla indirizzo e rete prima di chiedere.",
-          "L'app controlla la forma dell'indirizzo e ti avvisa se non corrisponde alla rete scelta, ma non può sapere se il portafoglio è tuo.",
+          "Un pagamento inviato a una rete diversa da quella del portafoglio non si recupera. Conviene verificare indirizzo e rete prima di richiedere.",
+          "L'applicazione convalida il formato dell'indirizzo e avvisa se non corrisponde alla rete scelta, ma non può verificare la titolarità del portafoglio.",
         ],
       },
       {
-        pregunta: "Quanto ci vuole?",
+        pregunta: "Qual è il tempo di pagamento?",
         respuesta: [
-          "Da 1 a 3 giorni. Le verifiche sono manuali: qualcuno guarda ogni richiesta prima di pagarla.",
+          "Da 1 a 3 giorni. La verifica è manuale: ogni richiesta viene controllata prima di emettere il pagamento.",
         ],
       },
       {
-        pregunta: "Posso avere due richieste aperte insieme?",
+        pregunta: "Sono ammesse richieste simultanee?",
         respuesta: [
-          "No. Ne può essere aperta una sola. Quando si risolve, puoi chiedere la successiva.",
+          "No. Può essere aperta una sola richiesta alla volta. La successiva si può creare una volta risolta la precedente.",
         ],
       },
       {
-        pregunta: "Mi hanno rifiutato un pagamento. E adesso?",
+        pregunta: "Che cosa succede se una richiesta viene rifiutata?",
         respuesta: [
-          "Il saldo torna subito disponibile, non si perde niente.",
-          "Il motivo compare accanto alla richiesta in «Pagamenti precedenti». Correggi quello che dice e richiedilo.",
+          "L'importo torna immediatamente disponibile.",
+          "Il motivo del rifiuto è indicato accanto alla richiesta in «Pagamenti precedenti». Una volta corretto, si può richiedere di nuovo.",
         ],
       },
     ],
   },
   {
-    titulo: "Il tuo account",
+    titulo: "Account",
     preguntas: [
       {
-        pregunta: "Come entro?",
+        pregunta: "Come si accede all'applicazione?",
         respuesta: [
-          "Con la tua email. Ti mandiamo un codice di sei cifre che scade in pochi minuti e vale una volta sola.",
+          "Con l'email dell'account. Viene inviato un codice di sei cifre, valido 10 minuti e monouso.",
         ],
       },
       {
-        pregunta: "Il codice non arriva.",
+        pregunta: "Il codice di verifica non arriva.",
         respuesta: [
-          "Guarda nella posta indesiderata e controlla che sia l'indirizzo con cui ti sei registrato.",
-          "Se ancora non arriva, chiedine un altro: il precedente smette di valere appena parte il nuovo.",
+          "Controllare la posta indesiderata e verificare che l'indirizzo sia quello dell'account agente.",
+          "Se non arriva, richiederne uno nuovo: il precedente viene annullato all'emissione del successivo.",
         ],
       },
       {
-        pregunta: "In che lingue è?",
+        pregunta: "In quali lingue è disponibile?",
         respuesta: [
-          "In spagnolo, inglese, italiano, portoghese e arabo. Segue la lingua che hai impostato su Telegram; qui non c'è niente da scegliere.",
+          "Spagnolo, inglese, italiano, portoghese e arabo. La lingua segue quella impostata su Telegram; non si seleziona nell'applicazione.",
         ],
       },
       {
-        pregunta: "Ho un problema che qui non c'è.",
-        respuesta: ["Scrivilo sul bot. Ti rispondiamo dallo stesso posto."],
+        pregunta: "Il caso non compare in questa pagina.",
+        respuesta: ["Scrivere sul bot. La risposta arriva dallo stesso canale."],
       },
     ],
   },
@@ -697,210 +701,209 @@ const it: Constructor = (d) => [
 
 const pt: Constructor = (d) => [
   {
-    titulo: "Como se ganha",
+    titulo: "Comissões",
     preguntas: [
       {
-        pregunta: "Como ganho dinheiro com isto?",
+        pregunta: "Como se geram receitas no programa?",
         respuesta: [
-          "Por três vias, e as três caem no mesmo saldo: cada utilizador que um dos teus webmasters regista, cada compra de PRO que esses utilizadores fazem, e um bónus por mês se toda a tua equipa chegar a um nível de registos.",
-          "Não tens de escolher entre elas. Vão somando sozinhas.",
+          "Através de três rubricas, que se acumulam no mesmo saldo: cada utilizador registado por um webmaster da equipa, cada compra de PRO desses utilizadores e um bónus mensal quando o conjunto da equipa atinge um nível de registos.",
         ],
       },
       {
-        pregunta: "Quanto ganho por cada utilizador registado?",
+        pregunta: "Qual é a comissão por utilizador registado?",
         respuesta: [
-          d.cpa ? `${d.cpa} por utilizador, seja qual for o país.` : "Um valor fixo por utilizador, seja qual for o país.",
-          "O país muda o que o teu webmaster ganha, e por isso o ecrã de preços separa isso por níveis. A tua parte é igual nos três.",
+          d.cpa ? `${d.cpa} por utilizador, independentemente do país.` : "Um valor fixo por utilizador, independentemente do país.",
+          "O país determina a tarifa do webmaster, não a do agente: a comissão do agente é a mesma nos três níveis de país.",
         ],
       },
       {
-        pregunta: "E nas compras de PRO?",
+        pregunta: "Qual é a comissão sobre as compras de PRO?",
         respuesta: [
           d.cps
-            ? `Levas ${d.cps} do que esses utilizadores pagarem pelo PRO.`
-            : "Levas uma percentagem do que esses utilizadores pagarem pelo PRO.",
-          "Ganha-se sempre que um deles paga, não só da primeira vez.",
+            ? `${d.cps} do valor que esses utilizadores pagarem pelo PRO.`
+            : "Uma percentagem do valor que esses utilizadores pagarem pelo PRO.",
+          "Aplica-se a cada compra, não apenas à primeira.",
         ],
       },
       {
-        pregunta: "O que é o bónus do mês?",
+        pregunta: "O que é o bónus mensal?",
         respuesta: [
           d.primerNivel
-            ? `Um prémio pelo total de registos de toda a tua equipa dentro do mês. O primeiro nível são ${d.primerNivel.usuarios} registos e paga ${d.primerNivel.premio}.`
-            : "Um prémio pelo total de registos de toda a tua equipa dentro do mês.",
-          "Conta a equipa inteira, não um webmaster sozinho: por isso compensa ter vários a andar ao mesmo tempo.",
+            ? `Um valor adicional pelo total de registos da equipa dentro do mês de calendário. O primeiro nível são ${d.primerNivel.usuarios} registos e corresponde a ${d.primerNivel.premio}.`
+            : "Um valor adicional pelo total de registos da equipa dentro do mês de calendário.",
+          "A contagem é agregada: soma os registos de todos os webmasters, não os de um só.",
         ],
       },
       {
-        pregunta: "Os níveis do bónus somam-se entre si?",
+        pregunta: "Os níveis do bónus são acumuláveis?",
         respuesta: [
-          "Não. Paga-se o nível mais alto a que chegares, não a soma dos que ficaram por baixo.",
-          "Se passares o primeiro e depois o segundo, recebes a diferença até ao segundo. O total do mês é sempre o que paga um só nível.",
+          "Não. Paga-se o nível mais alto atingido, não a soma dos inferiores.",
+          "Ao ultrapassar um segundo nível paga-se a diferença até esse nível. O total do mês equivale sempre ao valor de um único nível.",
         ],
       },
       {
-        pregunta: "O bónus passa de um mês para o outro?",
+        pregunta: "O bónus transita para o mês seguinte?",
         respuesta: [
-          "Não. O contador volta a zero no dia 1, por isso o bónus pode ganhar-se todos os meses e não se herda nada do anterior.",
-          "O que já recebeste não se toca.",
+          "Não. A contagem reinicia no dia 1 de cada mês, pelo que o bónus pode obter-se todos os meses e não herda nada do anterior.",
+          "Os bónus já pagos não são revertidos.",
         ],
       },
       {
-        pregunta: "Se o meu webmaster subir de nível, ganho mais?",
+        pregunta: "Se o webmaster subir de nível, aumenta a comissão do agente?",
         respuesta: [
-          "A tua comissão não muda com o nível: ganhas o mesmo em todos.",
-          "O que sobe é o que ele ganha, e é isso que lhe mostras no ecrã de preços para lhe compensar trazer mais utilizadores.",
+          "Não. A comissão do agente é a mesma em todos os níveis.",
+          "O que aumenta é a tarifa do webmaster, que é o dado que lhe é mostrado no ecrã de preços.",
         ],
       },
     ],
   },
   {
-    titulo: "A tua equipa",
+    titulo: "Equipa",
     preguntas: [
       {
         pregunta: "O que é um webmaster?",
         respuesta: [
-          "A pessoa que traz utilizadores para a Sophon. Tu não registas utilizadores: registam eles, e tu ganhas com o que eles trazem.",
+          "O colaborador que traz utilizadores para a Sophon. O agente não regista utilizadores diretamente: recebe comissão pelos que são trazidos pelos webmasters da sua equipa.",
         ],
       },
       {
-        pregunta: "Como ativo um?",
+        pregunta: "Como se ativa um webmaster?",
         respuesta: [
-          "Em «Ativar webmaster». Escreves o email dele, confirmas no passo seguinte e ativas.",
-          "A conta dele já tem de existir na Sophon: primeiro regista-se ele, depois ativas tu.",
+          "Em «Ativar webmaster»: introduz-se o email, revê-se no passo de confirmação e ativa-se.",
+          "A conta dele tem de existir previamente na Sophon. O registo é feito por ele; a ativação, pelo agente.",
         ],
       },
       {
-        pregunta: "Diz que o email não existe. E agora?",
+        pregunta: "O email não existe na Sophon. Como se procede?",
         respuesta: [
-          "Confirma que está bem escrito e que é o mesmo com que ele se registou na Sophon.",
-          "Se ainda não tem conta, pede-lhe que a crie e tenta outra vez. Antes disso a ativação não funciona.",
+          "Verificar que está bem escrito e que coincide com o utilizado no registo na Sophon.",
+          "Se ainda não tiver conta, deve criá-la primeiro. Até lá a ativação não é possível.",
         ],
       },
       {
-        pregunta: "Posso desfazer uma ativação?",
+        pregunta: "A ativação é reversível?",
         respuesta: [
-          "Não. Ao ativá-lo fica ligado a ti na Sophon para sempre e gasta-se o ano de PRO da ativação.",
-          "É para isso que serve o passo de confirmação: é a última oportunidade de corrigir o endereço.",
+          "Não. O webmaster fica associado de forma permanente à conta do agente na Sophon e consome-se o ano de PRO associado.",
+          "O passo de confirmação anterior é a última oportunidade de corrigir o endereço.",
         ],
       },
       {
-        pregunta: "O que é o PRO e quanto dura?",
+        pregunta: "O que inclui o PRO e quanto dura?",
         respuesta: [
-          "Um ano, a partir do dia em que o ativas. És tu que lho dás com a ativação; ele não paga nada.",
-          "Quando estiver a acabar podes renovar-lhe outro ano a partir da ficha dele.",
+          "Um ano a partir da data de ativação, sem custo para o webmaster.",
+          "Ao aproximar-se o vencimento pode renovar-se outro ano a partir do seu perfil.",
         ],
       },
       {
-        pregunta: "Contam os utilizadores que ele registou antes de eu o ativar?",
+        pregunta: "Contam os utilizadores registados antes da ativação?",
         respuesta: [
-          "Não. Contam a partir da data da ativação.",
-          "É a data que aparece na ficha dele como início dos teus ganhos.",
+          "Não. Apenas contam os registos posteriores à data de ativação.",
+          "Essa data consta do perfil do webmaster.",
         ],
       },
     ],
   },
   {
-    titulo: "O teu dinheiro",
+    titulo: "Saldo",
     preguntas: [
       {
-        pregunta: "Porque é que «Disponível» é menos do que «Ganho»?",
+        pregunta: "Porque é que o valor disponível é inferior ao ganho?",
         respuesta: [
-          "Porque os últimos dias ainda estão a ser revistos. A Sophon pode corrigir um dia em baixa depois de o comunicar, por isso esse troço ainda não se pode levantar.",
-          "Quando um dia sai da revisão, o dinheiro passa sozinho a disponível. Não tens de fazer nada.",
+          "Os últimos dias permanecem em revisão. A Sophon pode corrigir em baixa um dia já comunicado, pelo que essa parcela ainda não é levantável.",
+          "Concluída a revisão, o valor passa automaticamente a disponível. Não requer qualquer ação.",
         ],
       },
       {
-        pregunta: "De quanto em quanto tempo se atualiza?",
+        pregunta: "Com que frequência são atualizados os dados?",
         respuesta: [
-          "Todos os dias. Lemos os dados da Sophon, apontamos o que é novo e deixamos o anterior como estava.",
+          "Diariamente. Leem-se os dados da Sophon, registam-se os novos e os anteriores permanecem inalterados.",
         ],
       },
       {
-        pregunta: "Pode descer alguma coisa que eu já tinha ganho?",
+        pregunta: "Um valor já ganho pode diminuir?",
         respuesta: [
-          "Pode, se a Sophon corrigir um dia em baixa. Aparece como um acerto, com a sua data, e nunca reescrevemos o passado: a correção fica registada à parte para a poderes ver.",
-          "Os bónus que já recebeste não são retirados.",
+          "Sim, se a Sophon corrigir um dia em baixa. A correção é registada como um acerto com data própria; o histórico não é reescrito.",
+          "Os bónus já pagos não são revertidos.",
         ],
       },
       {
-        pregunta: "Onde vejo de onde vem o meu saldo?",
+        pregunta: "Onde se consulta a discriminação do saldo?",
         respuesta: [
-          "Em «O teu saldo». Por baixo da escada está a repartição por origem: registos, compras de PRO, bónus e acertos.",
+          "Em «Saldo», por baixo do estado do saldo: registos, compras de PRO, bónus e acertos.",
         ],
       },
     ],
   },
   {
-    titulo: "Receber",
+    titulo: "Pagamentos",
     preguntas: [
       {
-        pregunta: "Qual é o mínimo para pedir um pagamento?",
+        pregunta: "Qual é o valor mínimo por pedido?",
         respuesta: [
           d.minimo
-            ? `${d.minimo}. Abaixo disso o botão não deixa pedir.`
-            : "Está escrito em «O teu saldo», por baixo do campo do valor. Abaixo dessa cifra o botão não deixa pedir.",
+            ? `${d.minimo}. Abaixo dessa cifra o pedido não é aceite.`
+            : "Consta em «Saldo», por baixo do campo do valor. Abaixo dessa cifra o pedido não é aceite.",
         ],
       },
       {
-        pregunta: "Em que redes se paga?",
+        pregunta: "Em que redes é feito o pagamento?",
         respuesta: [
-          "Em USDT, por TRC20 (TRON), BSC (BNB Smart Chain) ou TON. Escolhes a rede ao pedir.",
+          "Em USDT, sobre TRC20 (TRON), BSC (BNB Smart Chain) ou TON. A rede é escolhida ao criar o pedido.",
         ],
       },
       {
-        pregunta: "E se enganar-me na rede?",
+        pregunta: "O que acontece se a rede estiver errada?",
         respuesta: [
-          "Um pagamento na rede errada não se recupera. Confirma o endereço e a rede antes de pedir.",
-          "A aplicação verifica a forma do endereço e avisa-te se não encaixar na rede escolhida, mas não pode saber se a carteira é tua.",
+          "Um pagamento enviado para uma rede diferente da da carteira não se recupera. Convém verificar endereço e rede antes de solicitar.",
+          "A aplicação valida o formato do endereço e avisa se não corresponder à rede escolhida, mas não pode verificar a titularidade da carteira.",
         ],
       },
       {
-        pregunta: "Quanto tempo demora?",
+        pregunta: "Qual é o prazo de pagamento?",
         respuesta: [
-          "De 1 a 3 dias. As revisões são manuais: alguém olha para cada pedido antes de o pagar.",
+          "Entre 1 e 3 dias. A revisão é manual: cada pedido é verificado antes de o pagamento ser emitido.",
         ],
       },
       {
-        pregunta: "Posso ter dois pedidos ao mesmo tempo?",
+        pregunta: "São admitidos pedidos simultâneos?",
         respuesta: [
-          "Não. Só pode haver um a decorrer. Quando ficar resolvido, podes pedir o seguinte.",
+          "Não. Só pode haver um pedido em curso. O seguinte pode ser criado depois de resolvido o anterior.",
         ],
       },
       {
-        pregunta: "Recusaram-me um pagamento. E agora?",
+        pregunta: "O que acontece se um pedido for recusado?",
         respuesta: [
-          "O saldo volta logo a disponível, não se perde nada.",
-          "O motivo aparece junto ao pedido em «Pagamentos anteriores». Corriges o que ele disser e pedes outra vez.",
+          "O valor volta a estar disponível de imediato.",
+          "O motivo da recusa consta junto ao pedido em «Pagamentos anteriores». Depois de corrigido, pode voltar a solicitar-se.",
         ],
       },
     ],
   },
   {
-    titulo: "A tua conta",
+    titulo: "Conta",
     preguntas: [
       {
-        pregunta: "Como entro?",
+        pregunta: "Como se acede à aplicação?",
         respuesta: [
-          "Com o teu email. Mandamos-te um código de seis dígitos que expira em poucos minutos e só serve uma vez.",
+          "Com o email da conta. É enviado um código de seis dígitos, válido durante 10 minutos e de utilização única.",
         ],
       },
       {
-        pregunta: "O código não chega.",
+        pregunta: "O código de verificação não chega.",
         respuesta: [
-          "Vê a pasta de correio não desejado e confirma que é o email com que te inscreveste.",
-          "Se mesmo assim não chegar, pede outro: o anterior deixa de valer assim que o novo é enviado.",
+          "Verificar a pasta de correio não desejado e confirmar que o endereço é o da conta de agente.",
+          "Se não chegar, solicitar um novo: o anterior fica anulado assim que o seguinte é emitido.",
         ],
       },
       {
-        pregunta: "Em que idiomas está?",
+        pregunta: "Em que idiomas está disponível?",
         respuesta: [
-          "Em espanhol, inglês, italiano, português e árabe. Segue o idioma que tens no Telegram; aqui não há nada a escolher.",
+          "Espanhol, inglês, italiano, português e árabe. O idioma segue o configurado no Telegram; não se seleciona na aplicação.",
         ],
       },
       {
-        pregunta: "Tenho um problema que não está aqui.",
-        respuesta: ["Escreve pelo bot. Respondemos pelo mesmo sítio."],
+        pregunta: "O caso não aparece nesta página.",
+        respuesta: ["Escrever pelo bot. A resposta chega pelo mesmo canal."],
       },
     ],
   },
@@ -908,210 +911,209 @@ const pt: Constructor = (d) => [
 
 const ar: Constructor = (d) => [
   {
-    titulo: "كيف تربح",
+    titulo: "العمولات",
     preguntas: [
       {
-        pregunta: "كيف أربح المال من هذا؟",
+        pregunta: "كيف تتحقق الأرباح في البرنامج؟",
         respuesta: [
-          "بثلاث طرق، وكلها تصبّ في الرصيد نفسه: كل مستخدم يسجّله أحد webmasters لديك، وكل عملية شراء PRO يقوم بها هؤلاء المستخدمون، ومكافأة شهرية إذا بلغ فريقك كله مستوى معيّنًا من التسجيلات.",
-          "لا تختار بينها. تتراكم وحدها.",
+          "من ثلاثة بنود تتجمع في الرصيد نفسه: كل مستخدم يسجّله webmaster في الفريق، وكل عملية شراء PRO لهؤلاء المستخدمين، ومكافأة شهرية عند بلوغ الفريق مجتمعًا مستوى من التسجيلات.",
         ],
       },
       {
-        pregunta: "كم أربح عن كل مستخدم مسجَّل؟",
+        pregunta: "ما مقدار العمولة عن كل مستخدم مسجَّل؟",
         respuesta: [
-          d.cpa ? `${d.cpa} عن كل مستخدم، أيًا كان بلده.` : "مبلغ ثابت عن كل مستخدم، أيًا كان بلده.",
-          "البلد يغيّر ما يربحه webmaster لديك، ولهذا تفصل شاشة الأسعار ذلك حسب المستوى. أما نصيبك فهو نفسه في المستويات الثلاثة.",
+          d.cpa ? `${d.cpa} عن كل مستخدم، بصرف النظر عن البلد.` : "مبلغ ثابت عن كل مستخدم، بصرف النظر عن البلد.",
+          "يحدّد البلد تعرفة webmaster لا تعرفة الوكيل: عمولة الوكيل واحدة في مستويات البلدان الثلاثة.",
         ],
       },
       {
-        pregunta: "وماذا عن مشتريات PRO؟",
+        pregunta: "ما مقدار العمولة على مشتريات PRO؟",
         respuesta: [
           d.cps
-            ? `تأخذ ${d.cps} مما يدفعه هؤلاء المستخدمون مقابل PRO.`
-            : "تأخذ نسبة مما يدفعه هؤلاء المستخدمون مقابل PRO.",
-          "يُحتسب في كل مرة يدفع فيها أحدهم، وليس في المرة الأولى فقط.",
+            ? `${d.cps} من المبلغ الذي يدفعه هؤلاء المستخدمون مقابل PRO.`
+            : "نسبة مئوية من المبلغ الذي يدفعه هؤلاء المستخدمون مقابل PRO.",
+          "تُطبَّق على كل عملية شراء، لا على الأولى فحسب.",
         ],
       },
       {
-        pregunta: "ما هي مكافأة الشهر؟",
+        pregunta: "ما هي المكافأة الشهرية؟",
         respuesta: [
           d.primerNivel
-            ? `جائزة على مجموع تسجيلات فريقك كله خلال الشهر. المستوى الأول هو ${d.primerNivel.usuarios} تسجيلًا ويدفع ${d.primerNivel.premio}.`
-            : "جائزة على مجموع تسجيلات فريقك كله خلال الشهر.",
-          "تُحتسب على الفريق كله لا على webmaster واحد: لذلك يفيدك أن يكون لديك أكثر من واحد نشط.",
+            ? `مبلغ إضافي على إجمالي تسجيلات الفريق خلال الشهر الميلادي. المستوى الأول هو ${d.primerNivel.usuarios} تسجيلًا ويقابله ${d.primerNivel.premio}.`
+            : "مبلغ إضافي على إجمالي تسجيلات الفريق خلال الشهر الميلادي.",
+          "الاحتساب تجميعي: يجمع تسجيلات جميع webmasters لا تسجيلات واحد منهم.",
         ],
       },
       {
-        pregunta: "هل تتجمع مستويات المكافأة؟",
+        pregunta: "هل مستويات المكافأة تراكمية؟",
         respuesta: [
-          "لا. يُدفع أعلى مستوى تبلغه، لا مجموع المستويات التي تحتها.",
-          "إذا تجاوزت الأول ثم الثاني، يُدفع لك الفرق حتى الثاني. مجموع الشهر هو دائمًا ما يدفعه مستوى واحد.",
+          "لا. يُصرف أعلى مستوى تم بلوغه، لا مجموع المستويات الأدنى.",
+          "وعند تجاوز مستوى ثانٍ يُصرف الفرق حتى ذلك المستوى. ويعادل إجمالي الشهر دائمًا مبلغ مستوى واحد.",
         ],
       },
       {
-        pregunta: "هل تنتقل المكافأة إلى الشهر التالي؟",
+        pregunta: "هل تُرحَّل المكافأة إلى الشهر التالي؟",
         respuesta: [
-          "لا. يعود العدّاد إلى الصفر في اليوم الأول، فتُكسب المكافأة كل شهر ولا يُورَّث شيء من الشهر السابق.",
-          "وما قبضته يبقى لك.",
+          "لا. يُعاد ضبط الاحتساب في اليوم الأول من كل شهر، فتُكتسب المكافأة كل شهر ولا ترث شيئًا من الشهر السابق.",
+          "والمكافآت المصروفة لا تُسترَد.",
         ],
       },
       {
-        pregunta: "إذا ارتقى webmaster لديّ مستوى، هل أربح أكثر؟",
+        pregunta: "إذا ارتقى webmaster مستوى، هل ترتفع عمولة الوكيل؟",
         respuesta: [
-          "عمولتك لا تتغير بالمستوى: تربح المبلغ نفسه في كل المستويات.",
-          "الذي يرتفع هو ما يربحه هو، وهذا ما تعرضه له في شاشة الأسعار كي يجد فائدة في جلب مستخدمين أكثر.",
+          "لا. عمولة الوكيل واحدة في جميع المستويات.",
+          "الذي يرتفع هو تعرفة webmaster، وهي البيان المعروض له في شاشة الأسعار.",
         ],
       },
     ],
   },
   {
-    titulo: "فريقك",
+    titulo: "الفريق",
     preguntas: [
       {
         pregunta: "ما هو webmaster؟",
         respuesta: [
-          "الشخص الذي يجلب المستخدمين إلى Sophon. أنت لا تسجّل مستخدمين: هم يسجّلونهم، وأنت تربح مما يجلبونه.",
+          "الشريك الذي يجلب المستخدمين إلى Sophon. لا يسجّل الوكيل المستخدمين مباشرة، بل يتقاضى عمولة عمّن يجلبهم webmasters في فريقه.",
         ],
       },
       {
-        pregunta: "كيف أفعّل واحدًا؟",
+        pregunta: "كيف يُفعَّل webmaster؟",
         respuesta: [
-          "من «تفعيل webmaster». تكتب بريده، وتراجعه في خطوة التأكيد، ثم تفعّل.",
-          "يجب أن يكون حسابه موجودًا في Sophon مسبقًا: يسجّل هو أولًا، ثم تفعّله أنت.",
+          "من «تفعيل webmaster»: يُدخَل بريده، ويُراجَع في خطوة التأكيد، ثم يُفعَّل.",
+          "ويجب أن يكون حسابه موجودًا في Sophon مسبقًا. التسجيل يقوم به هو، والتفعيل يقوم به الوكيل.",
         ],
       },
       {
-        pregunta: "تقول إن البريد غير موجود. ماذا أفعل؟",
+        pregunta: "البريد غير موجود في Sophon. ما الإجراء؟",
         respuesta: [
-          "تأكد من كتابته بشكل صحيح وأنه البريد نفسه الذي سجّل به في Sophon.",
-          "إن لم يكن لديه حساب بعد، فليُنشئ واحدًا ثم أعد المحاولة. قبل ذلك لن يعمل التفعيل.",
+          "التحقق من صحة كتابته ومن مطابقته للبريد المستخدَم عند التسجيل في Sophon.",
+          "وإن لم يكن لديه حساب بعد، فعليه إنشاؤه أولًا. ولا يمكن التفعيل قبل ذلك.",
         ],
       },
       {
-        pregunta: "هل يمكنني التراجع عن تفعيل؟",
+        pregunta: "هل التفعيل قابل للتراجع؟",
         respuesta: [
-          "لا. بتفعيله يرتبط بك في Sophon نهائيًا وتُستهلك سنة PRO المرافقة للتفعيل.",
-          "لهذا توجد خطوة التأكيد: هي فرصتك الأخيرة لتصحيح البريد.",
+          "لا. يرتبط webmaster بحساب الوكيل في Sophon ارتباطًا دائمًا، وتُستهلك سنة PRO المرافقة.",
+          "وخطوة التأكيد السابقة هي آخر فرصة لتصحيح العنوان.",
         ],
       },
       {
-        pregunta: "ما هو PRO وكم يدوم؟",
+        pregunta: "ماذا يشمل PRO وكم يدوم؟",
         respuesta: [
-          "سنة، من يوم تفعيله. أنت من يمنحه إياها مع التفعيل، ولا يدفع هو شيئًا.",
-          "وعند اقتراب انتهائها يمكنك تجديد سنة أخرى من صفحته.",
+          "سنة واحدة من تاريخ التفعيل، دون تكلفة على webmaster.",
+          "وعند اقتراب انتهائها يمكن تجديد سنة أخرى من ملفه.",
         ],
       },
       {
-        pregunta: "هل يُحتسب المستخدمون الذين سجّلهم قبل أن أفعّله؟",
+        pregunta: "هل تُحتسب التسجيلات السابقة للتفعيل؟",
         respuesta: [
-          "لا. يُحتسبون من تاريخ التفعيل فصاعدًا.",
-          "وهو التاريخ الظاهر في صفحته بوصفه بداية أرباحك.",
+          "لا. تُحتسب التسجيلات اللاحقة لتاريخ التفعيل فقط.",
+          "وهذا التاريخ مبيَّن في ملف webmaster.",
         ],
       },
     ],
   },
   {
-    titulo: "أموالك",
+    titulo: "الرصيد",
     preguntas: [
       {
-        pregunta: "لماذا «المتاح» أقل من «المكتسب»؟",
+        pregunta: "لماذا المبلغ المتاح أقل من المبلغ المكتسب؟",
         respuesta: [
-          "لأن الأيام الأخيرة ما زالت قيد المراجعة. قد تصحّح Sophon يومًا بالخفض بعد الإبلاغ عنه، فلا يمكن سحب ذلك الجزء بعد.",
-          "وحين يخرج اليوم من المراجعة ينتقل ماله إلى المتاح وحده. لا يلزمك فعل شيء.",
+          "تبقى الأيام الأخيرة قيد المراجعة. فقد تصحّح Sophon يومًا مُبلَّغًا عنه بالخفض، ولذلك لا يمكن سحب ذلك الجزء بعد.",
+          "وعند اجتياز المراجعة ينتقل المبلغ تلقائيًا إلى المتاح، دون حاجة إلى أي إجراء.",
         ],
       },
       {
-        pregunta: "كل كم يتحدّث؟",
+        pregunta: "ما وتيرة تحديث البيانات؟",
         respuesta: [
-          "كل يوم. نقرأ بيانات Sophon، ونسجّل الجديد، ونترك ما سبق كما هو.",
+          "يوميًا. تُقرأ بيانات Sophon، ويُسجَّل الجديد، ويبقى السابق دون تعديل.",
         ],
       },
       {
-        pregunta: "هل يمكن أن ينقص شيء كسبته من قبل؟",
+        pregunta: "هل يمكن أن ينقص مبلغ مكتسب سلفًا؟",
         respuesta: [
-          "نعم، إذا صحّحت Sophon يومًا بالخفض. يظهر ذلك تسوية بتاريخها، ولا نعيد كتابة الماضي أبدًا: تُسجَّل التسوية على حدة كي تراها.",
-          "أما المكافآت التي قبضتها فلا تُسترَد.",
+          "نعم، إذا صحّحت Sophon يومًا بالخفض. تُسجَّل التسوية بتاريخها الخاص، ولا يُعاد كتابة السجل.",
+          "والمكافآت المصروفة لا تُسترَد.",
         ],
       },
       {
-        pregunta: "أين أرى مصدر رصيدي؟",
+        pregunta: "أين يُطالَع تفصيل الرصيد؟",
         respuesta: [
-          "في «رصيدك». تحت السلّم يوجد التوزيع حسب المصدر: التسجيلات، ومشتريات PRO، والمكافآت، والتسويات.",
+          "في «الرصيد»، أسفل حالة الرصيد: التسجيلات، ومشتريات PRO، والمكافآت، والتسويات.",
         ],
       },
     ],
   },
   {
-    titulo: "القبض",
+    titulo: "المدفوعات",
     preguntas: [
       {
-        pregunta: "ما الحد الأدنى لطلب السحب؟",
+        pregunta: "ما الحد الأدنى للطلب الواحد؟",
         respuesta: [
           d.minimo
-            ? `${d.minimo}. وتحت ذلك لا يسمح الزر بالطلب.`
-            : "تجده مكتوبًا في «رصيدك»، تحت حقل المبلغ. وتحت ذلك المبلغ لا يسمح الزر بالطلب.",
+            ? `${d.minimo}. ودون ذلك المبلغ لا يُقبل الطلب.`
+            : "مبيَّن في «الرصيد» أسفل حقل المبلغ. ودون ذلك المبلغ لا يُقبل الطلب.",
         ],
       },
       {
         pregunta: "على أي شبكات يتم الدفع؟",
         respuesta: [
-          "بـ USDT، عبر TRC20 (TRON) أو BSC (BNB Smart Chain) أو TON. تختار الشبكة عند الطلب.",
+          "بـ USDT، على TRC20 (TRON) أو BSC (BNB Smart Chain) أو TON. وتُختار الشبكة عند إنشاء الطلب.",
         ],
       },
       {
-        pregunta: "وماذا لو أخطأت الشبكة؟",
+        pregunta: "ماذا يحدث إذا كانت الشبكة خاطئة؟",
         respuesta: [
-          "الدفع إلى الشبكة الخطأ لا يُسترَد. تحقّق من العنوان والشبكة قبل الطلب.",
-          "يتحقق التطبيق من شكل العنوان وينبّهك إن لم يطابق الشبكة المختارة، لكنه لا يعرف إن كانت المحفظة لك.",
+          "الدفع إلى شبكة غير شبكة المحفظة لا يُسترَد. ويُستحسن التحقق من العنوان والشبكة قبل الطلب.",
+          "يتحقق التطبيق من صيغة العنوان وينبّه إن لم تطابق الشبكة المختارة، لكنه لا يستطيع التحقق من ملكية المحفظة.",
         ],
       },
       {
-        pregunta: "كم يستغرق؟",
+        pregunta: "ما مدة الدفع؟",
         respuesta: [
-          "من يوم إلى ثلاثة أيام. المراجعات يدوية: يطّلع شخص على كل طلب قبل دفعه.",
+          "من يوم إلى ثلاثة أيام. المراجعة يدوية: يُفحص كل طلب قبل صرف الدفعة.",
         ],
       },
       {
-        pregunta: "هل يمكن أن يكون لديّ طلبان في الوقت نفسه؟",
+        pregunta: "هل تُقبل طلبات متزامنة؟",
         respuesta: [
-          "لا. لا يكون مفتوحًا إلا طلب واحد. وحين يُحسَم يمكنك طلب التالي.",
+          "لا. لا يكون قيد التنفيذ سوى طلب واحد. ويمكن إنشاء التالي بعد حسم السابق.",
         ],
       },
       {
-        pregunta: "رُفض طلب السحب. ماذا الآن؟",
+        pregunta: "ماذا يحدث عند رفض طلب؟",
         respuesta: [
-          "يعود الرصيد إلى المتاح فورًا، ولا يضيع شيء.",
-          "ويظهر السبب بجانب الطلب في «المدفوعات السابقة». صحّح ما يقوله ثم اطلب من جديد.",
+          "يعود المبلغ إلى المتاح فورًا.",
+          "ويظهر سبب الرفض بجانب الطلب في «المدفوعات السابقة». وبعد التصحيح يمكن تقديمه من جديد.",
         ],
       },
     ],
   },
   {
-    titulo: "حسابك",
+    titulo: "الحساب",
     preguntas: [
       {
-        pregunta: "كيف أدخل؟",
+        pregunta: "كيف يتم الدخول إلى التطبيق؟",
         respuesta: [
-          "ببريدك. نرسل لك رمزًا من ستة أرقام ينتهي خلال دقائق ويصلح مرة واحدة.",
+          "ببريد الحساب. يُرسَل رمز من ستة أرقام، صالح 10 دقائق ولاستعمال واحد.",
         ],
       },
       {
-        pregunta: "الرمز لا يصل.",
+        pregunta: "رمز التحقق لا يصل.",
         respuesta: [
-          "راجع مجلد البريد غير المرغوب فيه، وتأكد أنه البريد الذي سجّلت به.",
-          "وإن لم يصل بعد، اطلب رمزًا آخر: يبطل السابق فور إرسال الجديد.",
+          "مراجعة مجلد البريد غير المرغوب فيه، والتأكد من أن العنوان هو عنوان حساب الوكيل.",
+          "وإن لم يصل، طلب رمز جديد: يُلغى السابق فور إصدار التالي.",
         ],
       },
       {
         pregunta: "بأي لغات يتوفر؟",
         respuesta: [
-          "بالإسبانية والإنجليزية والإيطالية والبرتغالية والعربية. يتبع اللغة المضبوطة في Telegram؛ ولا شيء تختاره هنا.",
+          "الإسبانية والإنجليزية والإيطالية والبرتغالية والعربية. تتبع اللغة ما هو مضبوط في Telegram، ولا تُختار داخل التطبيق.",
         ],
       },
       {
-        pregunta: "لديّ مشكلة غير مذكورة هنا.",
-        respuesta: ["اكتبها في البوت. نردّ عليك من المكان نفسه."],
+        pregunta: "الحالة غير مذكورة في هذه الصفحة.",
+        respuesta: ["الكتابة عبر البوت. ويصل الرد من القناة نفسها."],
       },
     ],
   },
