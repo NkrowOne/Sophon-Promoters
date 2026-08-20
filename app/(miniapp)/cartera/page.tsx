@@ -249,7 +249,7 @@ export default function CarteraPagina() {
             disponible < devengado, que es la pregunta que nace al mirar la
             escalera. Dentro se leería como un peldaño más. Lo que tarda el
             Operador se dice junto al botón de pedir, que es cuando importa. */}
-        <p className="mt-3 text-apoyo text-texto-apoyo">{t.soloConsolidado}</p>
+        <p className="mt-4 text-apoyo text-texto-apoyo">{t.soloConsolidado}</p>
 
         {/* El aviso vive FUERA del ternario de abajo. Estaba dentro de la rama
             que solo se pinta cuando no hay solicitud viva, así que un fallo al
