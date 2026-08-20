@@ -616,6 +616,16 @@ export const es = {
   ayudaApoyo: "Comisiones, activaciones, saldo y cobros.",
   ayudaNoResuelta: "¿No encuentras tu caso?",
   ayudaNoResueltaApoyo: "Escríbenos por el bot. La respuesta llegará por el mismo canal.",
+  // ── La pantalla que no existe ─────────────────────────────────────────────
+  //
+  // Era la ÚNICA pantalla del agente escrita a mano y sin traducir: un agente
+  // árabe que abriera un enlace viejo se encontraba con dos frases en español.
+  // Estaba en un componente de servidor para no cruzar el catálogo a cliente, y
+  // el argumento ya no vale: las demás pantallas de la Mini App son de cliente
+  // y el catálogo va en el fragmento común, así que traerlo aquí no añade un
+  // solo kilobyte.
+  paginaNoExiste: "La página no existe.",
+  paginaNoExisteApoyo: "El enlace puede pertenecer a una versión anterior de la aplicación.",
 } as const;
 
 /**
@@ -1027,6 +1037,8 @@ const en: Cadenas = {
   ayudaApoyo: "Commissions, activations, balance and payouts.",
   ayudaNoResuelta: "Not covered here?",
   ayudaNoResueltaApoyo: "Write to us on the bot. The reply arrives through the same channel.",
+  paginaNoExiste: "The page does not exist.",
+  paginaNoExisteApoyo: "The link may belong to an earlier version of the application.",
 };
 
 const it: Cadenas = {
@@ -1423,6 +1435,8 @@ const it: Cadenas = {
   ayudaApoyo: "Commissioni, attivazioni, saldo e pagamenti.",
   ayudaNoResuelta: "Non trovi il tuo caso?",
   ayudaNoResueltaApoyo: "Scrivici sul bot. La risposta arriva dallo stesso canale.",
+  paginaNoExiste: "La pagina non esiste.",
+  paginaNoExisteApoyo: "Il link può appartenere a una versione precedente dell'applicazione.",
 };
 
 const pt: Cadenas = {
@@ -1820,6 +1834,8 @@ const pt: Cadenas = {
   ayudaApoyo: "Comissões, ativações, saldo e pagamentos.",
   ayudaNoResuelta: "Não encontras o teu caso?",
   ayudaNoResueltaApoyo: "Escreve-nos pelo bot. A resposta chega pelo mesmo canal.",
+  paginaNoExiste: "A página não existe.",
+  paginaNoExisteApoyo: "O link pode pertencer a uma versão anterior da aplicação.",
 };
 
 /**
@@ -2215,6 +2231,8 @@ const ar: Cadenas = {
   ayudaApoyo: "العمولات والتفعيلات والرصيد والمدفوعات.",
   ayudaNoResuelta: "لم تجد حالتك؟",
   ayudaNoResueltaApoyo: "راسلنا عبر البوت. وسيصلك الرد من القناة نفسها.",
+  paginaNoExiste: "الصفحة غير موجودة.",
+  paginaNoExisteApoyo: "قد يعود الرابط إلى إصدار سابق من التطبيق.",
 };
 
 const catalogos: Record<Idioma, Cadenas> = { es, en, ar, it, pt };

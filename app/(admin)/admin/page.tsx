@@ -123,7 +123,7 @@ export default async function Panel() {
                 anteriores a ese corte.{" "}
                 {ultimosRegistros
                   ? `Último barrido de registros: ${fecha(ultimosRegistros.iniciadaEn)}.`
-                  : "No consta ningún barrido de registros."}{" "}
+                  : "Sin barridos de registros."}{" "}
                 Comprueba el planificador de Skyway.
               </li>
             )}
@@ -180,7 +180,7 @@ export default async function Panel() {
           }}
         >
           <Dato
-            etiqueta="Por pagar"
+            etiqueta="Pendiente de pago"
             valor={formatearMicros(porPagarMicros)}
             apoyo={
               porPagarCuenta > 0
@@ -191,7 +191,7 @@ export default async function Panel() {
             href={porPagarCuenta > 0 ? "/admin/retiros" : undefined}
           />
           <Dato
-            etiqueta="Ya pagado"
+            etiqueta="Pagado"
             valor={formatearMicros(pagados?._sum.importeMicros ?? 0n)}
             apoyo={`${pagados?._count ?? 0} en total`}
           />

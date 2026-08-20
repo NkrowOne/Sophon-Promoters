@@ -155,7 +155,7 @@ export default async function Agentes() {
               </form>
               <form action={cortarSesiones}>
                 <input type="hidden" name="agenteId" value={a.id} />
-                <button type="submit" className="boton" title="Obliga a iniciar sesión de nuevo con el correo">
+                <button type="submit" className="boton" title="Exige iniciar sesión de nuevo con el correo">
                   Expulsar sus sesiones
                 </button>
               </form>

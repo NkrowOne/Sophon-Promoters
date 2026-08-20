@@ -105,7 +105,7 @@ const base = process.env["APP_URL"]?.trim() || "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(base),
   title: "Sophon Promoters",
-  description: "Gestiona tus webmasters de Sophon y consulta tus ganancias.",
+  description: "Gestión de webmasters de Sophon: equipo, registros y saldo.",
   manifest: "/manifest.webmanifest",
   applicationName: "Sophon Promoters",
   /*

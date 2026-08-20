@@ -108,9 +108,9 @@ export default function DiagnosticoPagina() {
             que encuadrar, y una sola frase dentro de un filete se lee como un
             dato más en vez de como la ausencia de todos. */}
         {falloRed ? (
-          <p className="mt-2 text-cuerpo">No responde. Mira si el contenedor está en pie.</p>
+          <p className="mt-2 text-cuerpo">Sin respuesta. Comprueba que el contenedor esté en ejecución.</p>
         ) : !servidor ? (
-          <p className="mt-2 text-apoyo text-texto-apoyo">Preguntando…</p>
+          <p className="mt-2 text-apoyo text-texto-apoyo">Consultando…</p>
         ) : (
           <div className="tarjeta-borde mt-3 flex flex-col gap-3">
             <Dato que="Veredicto" vale={servidor.veredicto} />
@@ -177,25 +177,25 @@ function concluir(
   servidor: Diagnostico | null,
   falloRed: boolean,
 ): string {
-  if (falloRed) return "El servidor no contesta.";
+  if (falloRed) return "El servidor no responde.";
   if (!hayCliente) {
-    return "Esto no se ha abierto dentro de Telegram, o el guion telegram-web-app.js no ha cargado. Ábrelo con el botón del bot.";
+    return "La aplicación no se ha abierto dentro de Telegram, o el guion telegram-web-app.js no ha cargado. Ábrela con el botón del bot.";
   }
   if (!initData) {
-    return "Telegram no ha entregado el initData. Pasa cuando la app se abre por un enlace normal en vez de por un botón de Mini App.";
+    return "Telegram no ha entregado el initData. Ocurre cuando la aplicación se abre por un enlace en vez de por un botón de Mini App.";
   }
-  if (!servidor) return "Preguntando al servidor…";
+  if (!servidor) return "Consultando el servidor…";
   if (servidor.cabecera.longitud === 0) {
-    return "El navegador tiene el initData pero al servidor le llega vacío: algo por el camino borra la cabecera x-telegram-init-data.";
+    return "El navegador tiene el initData pero al servidor llega vacío: algo en el trayecto elimina la cabecera x-telegram-init-data.";
   }
   if (servidor.veredicto === "ok") {
-    return "Todo correcto: la firma se verifica. Si aun así ves «Telegram no ha verificado tu acceso», es de la sesión, no de la firma.";
+    return "Firma verificada correctamente. Si aun así aparece «Telegram no ha verificado tu acceso», el problema está en la sesión, no en la firma.";
   }
   if (servidor.veredicto.includes("firma")) {
-    return `La firma no cuadra. El servidor está usando el token del bot ${servidor.bot.id ?? "?"}; comprueba en BotFather que ese sea el bot desde el que has abierto la app.`;
+    return `La firma no coincide. El servidor usa el token del bot ${servidor.bot.id ?? "?"}; comprueba en BotFather que sea el bot desde el que se ha abierto la aplicación.`;
   }
   if (servidor.veredicto.includes("caducado") || servidor.veredicto.includes("futuro")) {
-    return `Relojes desalineados: ${servidor.reloj.desfaseSegundos} s entre el servidor y la firma.`;
+    return `Relojes desalineados: ${servidor.reloj.desfaseSegundos} s de desfase entre el servidor y la firma.`;
   }
   return servidor.veredicto;
 }

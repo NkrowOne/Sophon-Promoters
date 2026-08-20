@@ -284,11 +284,11 @@ function registrar(b: Bot): void {
         [
           "<b>Sophon Promoters</b>",
           "",
-          "Eres el Operador. Desde aquí gestionas la aplicación:",
+          "Panel del Operador. Comandos disponibles:",
           "",
           "/codigo — generar un código de activación para un agente",
           "/agentes — agentes dados de alta",
-          "/retiros — retiros pendientes de pagar",
+          "/retiros — retiros pendientes de pago",
           "/panel — abrir el panel web",
         ].join("\n"),
         { parse_mode: "HTML" },
@@ -365,7 +365,7 @@ function registrar(b: Bot): void {
     // alta primero», que es la aplicación pidiéndole a su dueño que se registre
     // en su propio producto.
     if (!agente) {
-      await ctx.reply(esOperador(id) ? "El alta de webmasters es de los agentes." : t.botSinCuenta);
+      await ctx.reply(esOperador(id) ? "La activación de webmasters corresponde a los agentes." : t.botSinCuenta);
       return;
     }
     if (agente.estado === "SUSPENDIDO") {
@@ -464,7 +464,7 @@ function registrar(b: Bot): void {
         enlace,
         "",
         `Un solo uso. Caduca en ${MINUTOS_CANJE} minutos.`,
-        "Generar otro invalida este.",
+        "Generar otro código invalida este.",
       ].join("\n"),
       // Sin previsualización: Telegram la genera abriendo la URL, y eso
       // gastaría el enlace de un solo uso antes de que nadie lo tocara.
@@ -498,7 +498,7 @@ function registrar(b: Bot): void {
       return;
     }
 
-    await ctx.reply("Ábrelo desde aquí, no por enlace: hace falta que lo abra Telegram.", {
+    await ctx.reply("Debe abrirse desde aquí: el diagnóstico requiere que lo lance Telegram.", {
       reply_markup: new InlineKeyboard().webApp("Diagnóstico", `${url}/diagnostico`),
     });
   });
@@ -529,14 +529,14 @@ function registrar(b: Bot): void {
       // No es solo «no entra»: `probarSmtp` da también por malo un
       // SMTP_REMITENTE sin dirección dentro, que autentica bien y luego hace
       // rebotar el envío con un 530 que habla del buzón y no de la variable.
-      await ctx.reply(`No se puede mandar:\n\n${r.detalle}`);
+      await ctx.reply(`Error de envío:\n\n${r.detalle}`);
       return;
     }
 
     if (!destino) {
       await ctx.reply(
-        `Autentica bien: ${r.detalle}.\n\n` +
-          "Para probar la entrega de verdad: /correo tu@dirección.com",
+        `Autenticación correcta: ${r.detalle}.\n\n` +
+          "Para comprobar la entrega: /correo tu@dominio.com",
       );
       return;
     }
@@ -548,9 +548,9 @@ function registrar(b: Bot): void {
       // El código y los minutos son de mentira: aquí solo se mira si sale y
       // llega. La caducidad de verdad la pone la ruta del alta.
       await enviarOtp({ email: destino, codigo: "000000", minutosValidez: 10 });
-      await ctx.reply(`Enviado a ${destino}. Si no llega, mira la carpeta de correo no deseado.`);
+      await ctx.reply(`Enviado a ${destino}. Si no llega, revisa la carpeta de correo no deseado.`);
     } catch (e) {
-      await ctx.reply(`Autentica pero no entrega:\n\n${e instanceof Error ? e.message : e}`);
+      await ctx.reply(`Autenticación correcta, entrega fallida:\n\n${e instanceof Error ? e.message : e}`);
     }
   });
 
@@ -585,7 +585,7 @@ function registrar(b: Bot): void {
         "/codigo — genera un código de activación",
         "/codigo correo@ejemplo.com — solo canjeable con ese correo",
         `/codigo correo@ejemplo.com 30 — vigencia de 30 días (máx. ${MAX_DIAS_CODIGO})`,
-        "/agentes — agentes dados de alta y su devengo",
+        "/agentes — agentes dados de alta y su saldo",
         "/retiros — solicitudes pendientes y su wallet",
         "/panel — enlace de entrada al panel",
         "",
