@@ -22,6 +22,7 @@
     "docker:local": "docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build",
     "docker:local:parar": "docker compose -f docker-compose.yml -f docker-compose.local.yml down",
     "iconos": "node scripts/iconos.mjs",
+    "vista": "node scripts/vista.mjs",
     "sophon:diagnostico": "node --experimental-strip-types scripts/diagnostico-sophon.ts",
     "bot:configurar": "node --experimental-strip-types scripts/bot-configurar.ts",
     "prueba:e2e": "node --experimental-strip-types scripts/prueba-extremo-a-extremo.ts"

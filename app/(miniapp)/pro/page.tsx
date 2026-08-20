@@ -249,11 +249,11 @@ export default function Renovaciones() {
       }
     >
       {cabecera && (
-        /* Sin relleno superior: cuando hay placa, la cabecera tiene que
-           MORDERLA —una franja de fondo entre las dos se lee como una costura
-           mal cerrada justo debajo de la pieza que abre la pantalla—, y cuando
-           no la hay el aire lo pone `Pantalla`, que en esa rama sí abre con
-           `pt`. */
+        /* Sin relleno superior ESCRITO AQUÍ, y por eso mismo: el aire bajo
+           la placa lo pone `.con-placa` en la hoja, que solo existe cuando la
+           placa se ha pintado. Escrito como `pt` en esta banda se sumaría al
+           `pt-7` que `Pantalla` abre en la rama sin placa —la de cero
+           renovables— y dejaría 52 px de nada sobre una sola línea. */
         <Banda orden={0} tono={0} como="header" className="pb-6">
           {datos.renovables === 0 && (
             <p className="text-apoyo text-texto-apoyo">{t.ningunoRenovable}</p>

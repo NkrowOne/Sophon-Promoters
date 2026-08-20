@@ -51,7 +51,9 @@ export type NombreIcono =
   | "avance"
   | "atras"
   | "reintentar"
-  | "copiar";
+  | "copiar"
+  | "ayuda"
+  | "desplegar";
 
 /**
  * Los trazados, en una retícula de 24.
@@ -90,6 +92,15 @@ const TRAZOS: Record<NombreIcono, string> = {
   avance: "M9.5 5.5 16 12l-6.5 6.5",
   atras: "M14.5 5.5 8 12l6.5 6.5",
   reintentar: "M4 12a8 8 0 1 0 2.6-5.9M4 4v4.6h4.6",
+  // Círculo, interrogante y su punto. El punto es un trazo de longitud casi
+  // cero con el remate redondo del `svg`: un `circle` aparte no cabe en esta
+  // tabla, que es de trazados y nada más.
+  ayuda:
+    "M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17M9.5 9.4a2.6 2.6 0 0 1 5.1.7c0 1.7-2.6 2.1-2.6 3.8M12 17.1h.01",
+  // Chevron hacia ABAJO, no hacia un lado: es lo único que le permite girar
+  // 180° al abrirse sin que el árabe lo mande al revés. Por eso tampoco está
+  // en `DIRECCIONALES`: un chevron vertical no apunta a ninguna orilla.
+  desplegar: "M6.5 9.8 12 15.3 17.5 9.8",
   copiar:
     "M9 9V6.5A1.5 1.5 0 0 1 10.5 5h7A1.5 1.5 0 0 1 19 6.5v7a1.5 1.5 0 0 1-1.5 1.5H15M6.5 9h7A1.5 1.5 0 0 1 15 10.5v7A1.5 1.5 0 0 1 13.5 19h-7A1.5 1.5 0 0 1 5 17.5v-7A1.5 1.5 0 0 1 6.5 9",
 };

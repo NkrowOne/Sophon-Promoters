@@ -108,11 +108,11 @@ test("la jerga retirada en el §18 no vuelve al catálogo español", () => {
     [/devengad/i, "«devengado» es lenguaje contable: se dice «ganado»"],
     [/\bincidencia/i, "«con incidencia» es jerga de soporte: se dice «con problemas»"],
     [/\bhito\b/i, "«hito» es gestión de proyectos: se dice «nivel»"],
-    [/no consta/i, "«No consta» es lengua de registro civil: se dice «Ya no está»"],
+    [/no consta\b(?! en la Sophon)/i, "«No consta» a secas es lengua de registro civil"],
     [/plazo de resolución/i, "«plazo de resolución» es lengua de ventanilla"],
     [/saldo consolidado/i, "«consolidado» es contable: se dice «confirmado»"],
     [/sujet[oa]s? a revisión/i, "«sujetos a revisión» es jurídico"],
-    [/pendiente de borrado/i, "se dice «Se va a borrar», como en la Malla"],
+    [/pendiente de borrado/i, "«pendiente de borrado» es jerga de sistema: se dice «Baja programada»"],
   ];
 
   for (const texto of textosDe("es")) {
@@ -120,6 +120,47 @@ test("la jerga retirada en el §18 no vuelve al catálogo español", () => {
       assert.ok(!patron.test(texto), `${porque} — encontrado en: ${texto}`);
     }
   }
+});
+
+/**
+ * EL REGISTRO, que es lo que se acababa de reescribir entero.
+ *
+ * La interfaz hablaba como un compañero de trabajo: «Solo puedes retirar lo que
+ * ya está confirmado», «Enséñaselo a tus webmasters», «No hemos podido darle el
+ * PRO». Es una herramienta con la que se cobra dinero, y lo que se le pide al
+ * texto es que informe.
+ *
+ * Estas dos pruebas fijan las dos mitades del cambio, que son las que se
+ * deshacen solas en cuanto alguien escriba una cadena nueva sin mirar el resto.
+ */
+test("lo que hace el sistema se dice en impersonal, no en primera persona del plural", () => {
+  /*
+   * «No hemos podido registrar tu solicitud» convierte un fallo del sistema en
+   * una disculpa, y «te hemos descontado» convierte una operación en un favor.
+   * En impersonal —«no se ha podido registrar la solicitud», «no se ha
+   * descontado ningún importe»— la frase dice lo mismo y además dice lo único
+   * que el agente necesita: en qué estado ha quedado su dinero.
+   */
+  const primeraPersona = /\b(hemos|habíamos|podemos|tenemos|tardamos|estamos|damos|avisamos)\b/i;
+
+  for (const texto of textosDe("es")) {
+    assert.doesNotMatch(texto, primeraPersona, `la aplicación habla de sí misma en plural: ${texto}`);
+  }
+});
+
+test("los plazos se dicen en días, no en adverbios", () => {
+  // «El pago sale en breve» no es un plazo: es una estimación sin responsable,
+  // y en la pantalla del dinero es justo donde no vale. Los tres sitios que
+  // hablan de cuándo se cobra dicen «entre 1 y 3 días».
+  // «De inmediato» NO está en la lista: eso sí es un plazo, y es verdad —el
+  // saldo de un cobro rechazado vuelve en el mismo instante—.
+  const vaguedades = /\ben breve\b|\bpronto\b|\benseguida\b/i;
+
+  for (const texto of textosDe("es")) {
+    assert.doesNotMatch(texto, vaguedades, `un plazo dicho con un adverbio: ${texto}`);
+  }
+
+  assert.match(cadenas("es").revisionManual, /1 y 3 días/);
 });
 
 test("«red» queda reservada a la blockchain, que es donde equivocarse cuesta dinero", () => {
@@ -140,6 +181,56 @@ test("la pantalla del dinero y el campo de la dirección no comparten palabra", 
   // distancia: uno era la pantalla y otro la dirección USDT.
   assert.doesNotMatch(t.cartera, /cartera|monedero/i);
   assert.match(t.walletUsdt, /monedero/i);
+});
+
+/* ── Un término, una palabra: la coherencia DENTRO de cada lengua ───────── */
+
+/**
+ * Las cinco lenguas se escribieron a la vez, y ahí es donde se cuela el defecto
+ * que ninguna prueba estructural ve: el catálogo entero puede estar completo,
+ * traducido y en registro profesional, y aun así llamar a la misma cosa de dos
+ * maneras distintas dentro del MISMO idioma.
+ *
+ * Pasó con las tres que se fijan aquí, y las tres se veían en pantalla.
+ */
+test("cada lengua usa UNA sola palabra para el equipo del agente", () => {
+  // El italiano decía «Il mio team» en el menú y «la tua squadra» en los
+  // errores: dos nombres para lo mismo a un toque de distancia.
+  for (const texto of textosDe("it")) {
+    assert.doesNotMatch(texto, /\bteam\b/i, `el italiano dice «team» donde el resto dice «squadra»: ${texto}`);
+  }
+});
+
+test("el árabe no traduce «webmaster», que es el nombre del puesto en el programa", () => {
+  /*
+   * Estaba traducido en dos claves —«مشرف الموقع»— y en latín en las otras
+   * veinte. El agente árabe leía el rótulo del menú con una palabra y el error
+   * de esa misma pantalla con otra.
+   *
+   * Se queda en latín, como PRO y como Sophon: es el nombre de un rol dentro
+   * del programa de socios, no una descripción de oficio.
+   */
+  for (const texto of textosDe("ar")) {
+    assert.doesNotMatch(texto, /مشرف الموقع|مشرف موقع/, `el árabe traduce «webmaster»: ${texto}`);
+  }
+});
+
+test("el inglés se escribe entero en la ortografía de su locale, que es en-US", () => {
+  /*
+   * Había «authorized» y «Authorisation» en la misma pantalla, y «signups»
+   * junto a «sign-ups». No es purismo: dos grafías de la misma palabra en el
+   * mismo mensaje se leen como un texto ensamblado a trozos, que es justo lo
+   * que era.
+   */
+  for (const texto of textosDe("en")) {
+    assert.doesNotMatch(
+      texto,
+      /\b\w+is(ation|ed|ing)\b|\bprogramme\b|\bcentre\b|\bcolour\b/i,
+      `ortografía británica: ${texto}`,
+    );
+    assert.doesNotMatch(texto, /\bsign ?ups?\b/i, `«signup» sin guion, que en el resto va «sign-up»: ${texto}`);
+    assert.doesNotMatch(texto, /\bcancelled\b/i, `«cancelled» es británico; en en-US va «canceled»: ${texto}`);
+  }
 });
 
 /* ── Los números, cada uno en su convención ─────────────────────────────── */

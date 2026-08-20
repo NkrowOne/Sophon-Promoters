@@ -25,7 +25,7 @@ export default function manifest(): MetadataRoute.Manifest {
     // El corto es el que cabe debajo del icono: doce caracteres y a partir de
     // ahí Android recorta con puntos suspensivos.
     short_name: "Promoters",
-    description: "Gestiona tus webmasters de Sophon y consulta tus ganancias.",
+    description: "Gestión de webmasters de Sophon: equipo, registros y saldo.",
     start_url: "/",
     display: "standalone",
     background_color: "#482304",

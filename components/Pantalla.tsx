@@ -62,12 +62,17 @@ export function Pantalla({
         cerrada, justo debajo de la pieza que abre la pantalla.
 
         No es un descuido que se pueda dejar: la metáfora es una secuencia de
-        estratos, y un estrato no flota sobre el anterior. Las dos pantallas con
-        placa abren con `Banda`, que ya trae su propio `py`, así que el aire no
-        se pierde: cambia de dueño.
+        estratos, y un estrato no flota sobre el anterior.
+
+        Cero relleno es del ESTRATO, no de su contenido, y esa parte se había
+        perdido: las tres pantallas con placa abrían con una banda de solo `pb`,
+        así que la primera tarjeta empezaba a 24 px de la cifra de la placa —el
+        relleno de la placa y nada más— y se leía pegada al titular que la
+        explica. El aire de dentro lo pone ahora `.con-placa`, en la hoja: la
+        banda sigue mordiendo el canto y el contenido respira.
       */}
       <div
-        className={placa ? "pb-16" : "pb-16 pt-7"}
+        className={placa ? "con-placa pb-16" : "pb-16 pt-7"}
         style={{ paddingInline: "var(--margen-pantalla)" }}
       >
         {/* Con placa NO se repite el título: el rótulo de la placa ya nombra la
@@ -202,6 +207,10 @@ function useCompactaAlBajar(): boolean {
  * El relleno vertical NO tiene valor por defecto a propósito: cada banda lo
  * declara. Un `py-6` heredado obligaría a pelearse con él en la primera y la
  * última, que son justo las que necesitan un ritmo distinto.
+ *
+ * La única excepción es el relleno SUPERIOR de la primera banda cuando hay
+ * placa: eso no lo sabe la banda —depende de qué tenga encima— y lo pone
+ * `.con-placa` en la hoja, junto a la regla de las juntas.
  */
 export function Banda({
   tono = 0,

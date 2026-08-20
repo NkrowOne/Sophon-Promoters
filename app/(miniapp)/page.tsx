@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import Link from "next/link";
 
 import { BarraCreciente, CifraProtagonista } from "@/components/Animacion";
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Icono, type NombreIcono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
+import { MedidorObjetivos } from "@/components/MedidorObjetivos";
 import { Aviso, Banda, Cargando, Placa, Vacio } from "@/components/Pantalla";
 import type { DiaTestigo } from "@/components/testigo/TestigoAncho";
 import { useCadenas, useTelegram } from "@/components/TelegramProvider";
@@ -356,6 +357,11 @@ export default function Inicio() {
               etiqueta={t.cartera}
               dato={cartera ? cartera.disponible.texto : null}
             />
+            {/* La ayuda va la ÚLTIMA y sin dato, que es donde va la ayuda en
+                cualquier sitio: no se viene a ella, se acude. Delante de la
+                cartera habría empujado el dinero un renglón hacia abajo para
+                adelantar una pantalla que solo se abre cuando algo no cuadra. */}
+            <Fila href="/ayuda" icono="ayuda" etiqueta={t.ayuda} />
           </ul>
         </Banda>
       </div>
@@ -490,21 +496,6 @@ function Fila({
   );
 }
 
-/**
- * ¿Ha pedido el sistema menos movimiento?
- *
- * Se consulta desde JavaScript en vez de dejárselo al CSS porque la regla de
- * `prefers-reduced-motion` de `globals.css` conserva a propósito las
- * transiciones de opacidad —lo que molesta a quien activa la preferencia es que
- * las cosas se desplacen, no que algo se atenúe—, y el encendido de los
- * escalones es opacidad CON RETARDO: hasta 580 ms mirando media escalera
- * apagada. Con la preferencia puesta se pinta encendida desde el primer
- * fotograma.
- */
-function prefiereQuietud(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /**
  * El bono del mes: dónde vas, a qué ritmo y quién te está llevando.
@@ -562,17 +553,6 @@ function BandaHito({
   etiquetas: Cadenas;
   orden: number;
 }) {
-  const meta = hito.siguiente?.usuarios ?? hito.escalones[hito.escalones.length - 1]?.usuarios ?? 0;
-  /*
-   * La escala es el escalón SIGUIENTE, no el más alto de la escalera.
-   *
-   * Contra la escalera entera, 720 de 30.000 es un 2,4 % y la barra no se ve
-   * nunca. Contra el siguiente peldaño es un 7,2 %, que ya es una marca. Y no
-   * engaña, porque el peldaño al que se refiere está escrito debajo con su
-   * premio; lo que la barra mide es exactamente lo que dice medir.
-   */
-  const porcentaje = meta > 0 ? Math.min(100, (hito.registros / meta) * 100) : 0;
-
   const variacion =
     hito.mesAnterior && hito.mesAnterior > 0
       ? Math.round(((hito.registros - hito.mesAnterior) / hito.mesAnterior) * 100)
@@ -599,22 +579,6 @@ function BandaHito({
     : yaHaGanado
       ? t.bonoMasSiLlegas(hito.siguiente.incremento.texto, hito.siguiente.usuarios)
       : t.bonoExtraSi(hito.siguiente.usuarios);
-
-  /*
-   * El encendido de los escalones ya alcanzados.
-   *
-   * Arranca apagado y se enciende en el primer fotograma útil; el CUÁNDO de
-   * cada uno va en su propio `transitionDelay`, más abajo. Con la preferencia
-   * de movimiento reducido nace ya encendido, así que la transición no llega a
-   * dispararse nunca.
-   */
-  const [encendido, setEncendido] = useState(prefiereQuietud);
-
-  useEffect(() => {
-    if (prefiereQuietud()) return;
-    const id = requestAnimationFrame(() => setEncendido(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
 
   return (
     <Banda tono={0} etiqueta={t.bonoDelMes} orden={orden} className="py-6">
@@ -669,142 +633,39 @@ function BandaHito({
 
         <p className="mt-2 text-apoyo text-texto-apoyo tabular-nums">{apoyo}</p>
 
-        {/* El raíl con los escalones ya superados marcados.
+        {/*
+          EL MEDIDOR DE OBJETIVOS, dentro de la tarjeta y en un solo objeto.
 
-            Las muescas se posicionaban con anchos ACUMULADOS en una fila
-            flexible, y como los hijos de un flex encogen por defecto, la suma
-            —que pasaba holgadamente del 100 %— se repartía a prorrata: con
-            12.000 registros las marcas debían caer al 50 % y al 100 %, y caían
-            al 20 %, 60 % y 100 %. Ninguna estaba sobre su escalón. Ahora cada
-            una se coloca sola, en su sitio, con una propiedad lógica que se
-            espeja en árabe.
+          Aquí había un raíl escalado al escalón siguiente y, colgando de la
+          banda, una rejilla de cuatro tarjetas de filete con los umbrales. Dos
+          piezas para una pregunta: la del progreso no enseñaba los objetivos y
+          la de los objetivos no enseñaba el progreso, así que emparejarlas era
+          trabajo del agente.
 
-            La del propio objetivo no se dibuja: el final del raíl ES ese
-            escalón, y una muesca ahí queda medio recortada por el `overflow`.
+          Ahora es uno: un segmento por nivel, cada uno con su umbral y su
+          premio debajo, y el relleno de cada segmento midiendo el avance dentro
+          de SU tramo. El porqué de que un eje ordinal no distorsione nada está
+          escrito en `components/MedidorObjetivos.tsx`.
 
-            La barra sube a tinta plena y el raíl a 8 px. Iba en T2 sobre 6 px
-            cuando estaba sobre el papel de la banda; dentro de la tarjeta la
-            medida es lo único que mide algo aquí, así que se lleva el escalón
-            más denso de la rampa. Amarilla NO: `--chart-accent` existe para la
-            serie que hay que mirar, pero un progreso no se pulsa y el amarillo
-            de esta pantalla ya tiene dueño. */}
-        <div className="relative mt-3.5 h-2 overflow-hidden rounded-marca bg-borde">
-          <BarraCreciente porcentaje={Math.max(porcentaje, 1.5)} className="bg-tinta" />
-          {meta > 0 &&
-            hito.escalones.map((e) => {
-              const posicion = (e.usuarios / meta) * 100;
-              if (posicion <= 0 || posicion >= 100) return null;
-              return (
-                /* La muesca es del color de LA TARJETA, no del fondo de página:
-                   el raíl se mudó aquí dentro y en oscuro esos dos valores no
-                   son el mismo —`--fondo` es #0E0E10 y `--card` es #16161A—, así
-                   que la muesca se veía como una raya negra dentro de la barra
-                   en vez de como un corte. */
-                <span
-                  key={e.usuarios}
-                  aria-hidden
-                  className="pointer-events-none absolute top-0 h-full w-0.5 bg-[var(--card)]"
-                  style={{ insetInlineStart: `${posicion}%` }}
-                />
-              );
-            })}
+          Y entra en la tarjeta, que es donde tenía que estar desde el principio:
+          la tarjeta responde «dónde estoy y cuánto vale», y los objetivos son la
+          segunda mitad de esa frase, no otra pregunta.
+        */}
+        <div className="mt-4">
+          <MedidorObjetivos registros={hito.registros} escalones={hito.escalones} />
         </div>
 
-        {/* La línea de métricas: lo que mide la barra que tiene encima.
-
-            `flex-wrap`: con seis cifras —35.000 registros— las dos columnas se
-            estrangulaban y cada una partía en dos líneas, dejando cuatro
-            renglones para lo que es una frase. Envolviendo, la comparación baja
-            entera. */}
-        <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-apoyo text-texto-apoyo tabular-nums">
-          <p>
-            {hito.siguiente
-              ? t.bonoEsteMesLlevas(hito.registros, hito.siguiente.faltan)
-              : t.registrosEsteMes(hito.registros)}
+        {/* La comparación con el mes cerrado anterior, que el medidor no puede
+            llevar dentro: no mide niveles, mide contra otro mes. Es además la
+            única cifra de la banda que puede ser negativa, y se dice igual —un
+            mes flojo que la aplicación esconde es un mes flojo que el agente
+            descubre al no cobrar—. */}
+        {variacion !== null && (
+          <p className="mt-1 text-apoyo text-texto-apoyo tabular-nums">
+            {t.frenteAlMesPasado(variacion)}
           </p>
-          {/* La comparación con el mes cerrado anterior. Es la cifra que se
-              mueve aunque el nivel esté lejos, y la única de la banda que puede
-              ser negativa: se dice igual, porque un mes flojo que la aplicación
-              esconde es un mes flojo que el agente descubre al no cobrar. */}
-          {variacion !== null && <p>{t.frenteAlMesPasado(variacion)}</p>}
-        </div>
+        )}
       </div>
-
-      {/* La escalera entera, con lo que paga cada peldaño.
-
-          El premio y el estado de cada escalón ya viajaban en la respuesta y la
-          pantalla solo leía el umbral: enseñarlos no cuesta ni una consulta. Y
-          cambia la pregunta que contesta la banda —de «cuánto me falta» a «cómo
-          es el juego»—, que es lo que hace que valga la pena perseguirlo.
-
-          Cada escalón es ahora una TARJETA DE FILETE, y esa es la variante y no
-          la de sombra a propósito: son cuatro objetos idénticos en fila de
-          ~82 px, y cuatro sombras seguidas no son cuatro objetos levantados,
-          son ruido. El filete cierra cada peldaño para que el par
-          «umbral / premio» se lea como una unidad —antes eran ocho cifras
-          sueltas en dos renglones y había que emparejarlas con la vista—.
-
-          Va FUERA de la tarjeta del bono, colgando de la banda: una tarjeta no
-          contiene tarjetas, igual que no contiene bandas. La tarjeta responde
-          «dónde estoy», la escalera responde «cómo es el juego», y son dos
-          preguntas.
-
-          El relleno se recorta con `!`: `.tarjeta-borde` trae los 18 px de una
-          tarjeta de ancho completo, y esta hoja se sirve detrás de las
-          utilidades de Tailwind, así que sin la marca de importancia gana ella.
-          Con 18 px por lado, un umbral de cinco cifras no cabe en la columna. */}
-      <ul
-        aria-label={t.escaleraDelBono}
-        className="mt-3.5 grid gap-2 text-center"
-        style={{ gridTemplateColumns: `repeat(${hito.escalones.length}, minmax(0, 1fr))` }}
-      >
-        {hito.escalones.map((e) => {
-          /*
-           * Cada escalón alcanzado se enciende cuando la barra pasa por él.
-           *
-           * El retardo no es un número elegido a ojo ni un escalonado por orden
-           * de lista: es DÓNDE CAE SU MUESCA —la misma `posicion` con la que se
-           * dibuja arriba— sobre los 520 ms que tarda `BarraCreciente` en
-           * recorrer el raíl, más los 60 ms que espera antes de arrancar. Así
-           * el instante lo decide el umbral, y ver encenderse el escalón dice
-           * cuánto de la barra le corresponde.
-           *
-           * Se recorta al 100 % porque la escalera enseña todos los escalones y
-           * la barra solo llega hasta la meta: los que quedan por encima no
-           * están alcanzados, pero si alguna vez lo estuvieran no tendría
-           * sentido esperarles un retardo mayor que la propia barra.
-           */
-          const posicion = meta > 0 ? Math.min((e.usuarios / meta) * 100, 100) : 0;
-          return (
-            <li
-              key={e.usuarios}
-              /* Cumplido en tinta plena y con el filete fuerte; pendiente en
-                 tinta de apoyo y con el filete normal. El estado NO va por
-                 color: va por CONTRASTE y por peso, así que se distingue en
-                 escala de grises, en oscuro y con cualquier tema raro del
-                 cliente. Es además la única forma de marcarlo que no gasta
-                 amarillo en algo que no se pulsa. */
-              className={`tarjeta-borde !px-1 !py-2.5 ${
-                e.alcanzado ? "!border-borde-control text-texto" : "text-texto-apoyo"
-              }`}
-              style={
-                e.alcanzado
-                  ? {
-                      opacity: encendido ? 1 : 0,
-                      transition: "opacity var(--t-entrada) var(--curva)",
-                      transitionDelay: `${Math.round(60 + (posicion / 100) * 520)}ms`,
-                    }
-                  : undefined
-              }
-            >
-              <p className={`text-apoyo tabular-nums ${e.alcanzado ? "font-semibold" : ""}`}>
-                {t.numero(e.usuarios)}
-              </p>
-              <p className="text-rotulo font-normal tabular-nums opacity-80">{e.premio.texto}</p>
-            </li>
-          );
-        })}
-      </ul>
 
       {/* El ritmo y la recta final.
 

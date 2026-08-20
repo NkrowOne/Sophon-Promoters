@@ -29,7 +29,7 @@ contenedor:
 
 | Cara | Ruta | Quién entra | Cómo se autentica |
 |---|---|---|---|
-| Mini App | `/`, `/red`, `/cartera`, `/pro`, `/historico`… | El agente comercial | `initData` firmado por Telegram **más** cookie de sesión |
+| Mini App | `/`, `/red`, `/cartera`, `/pro`, `/historico`, `/ayuda`… | El agente comercial | `initData` firmado por Telegram **más** cookie de sesión |
 | Panel | `/admin/*` | El Operador, una sola persona | Enlace de un solo uso que manda el bot a su Telegram |
 | Bot | `/api/bot` | Telegram | Secreto en `X-Telegram-Bot-Api-Secret-Token` |
 

@@ -306,7 +306,7 @@ export async function avisarErrorSinClasificarAlOperador(datos: {
 }): Promise<void> {
   await enviar(
     [
-      "<b>Sophon ha rechazado un alta y no sabemos por qué</b>",
+      "<b>Alta rechazada por Sophon sin motivo identificado</b>",
       "",
       `Correo: ${escapar(datos.email)}`,
       `Código: <code>${escapar(String(datos.codigo ?? "sin código"))}</code>`,

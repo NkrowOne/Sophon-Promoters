@@ -51,9 +51,14 @@ const global_ = globalThis as unknown as { transporte?: Transporter; marca?: Buf
  * del que sale, que es lo que ata este fichero a `app/(miniapp)/globals.css`
  * cuando la paleta se mueve — como acaba de pasar: estos cinco eran el espresso
  * y el papel crema de la versión anterior.
+ *
+ * Falta `--campo-tinta` (#1a1206), que era la tinta del código. La ponía sobre
+ * el amarillo y ahí la sustituye `--texto`: un gris neutro muy oscuro contrasta
+ * igual de bien sobre el amarillo y, cuando el tema oscuro de Gmail invierte la
+ * pareja fondo/texto, un neutro vuelve neutro. El marrón casi negro volvía un
+ * crema sucio. El token sigue vivo en la aplicación; aquí no hacía falta.
  */
 const CAMPO = "#f9d027"; // --campo · --brand
-const CAMPO_TINTA = "#1a1206"; // --campo-tinta · --brand-foreground
 const CAMPO_CANTO = "#a8850b"; // --campo-canto · --brand-edge
 const TEXTO = "#17171a"; // --texto · --neutral-900
 const TEXTO_APOYO = "#5f5f67"; // --tinta-apoyo · --neutral-600
@@ -303,6 +308,22 @@ async function marca(): Promise<Buffer | null> {
 /** Identificador de la imagen incrustada. Se referencia desde el HTML como `cid:`. */
 const CID_MARCA = "marca@sophon-promoters";
 
+/*
+ * EL PIE LEGAL.
+ *
+ * La razón social, la dirección y el dominio se escriben igual en las cinco
+ * lenguas, así que no pasan por `lib/i18n.ts`: allí solo va la frase de la
+ * marca registrada, que sí es una frase. Repetirlos cinco veces en el catálogo
+ * sería cinco sitios donde equivocarse el día que la sociedad se mude.
+ *
+ * La dirección va en una sola línea con comas y en caja normal, no en las
+ * mayúsculas del registro mercantil: un bloque en versales dentro de un pie de
+ * 11 px se lee peor y grita más que el propio código.
+ */
+const DIRECCION_LEGAL =
+  "RM11, 13/F, Blk C, Wong King Ind. Bld., 192-198 Choi Hung Rd, San Po Kong, Hong Kong";
+const WEB_LEGAL = "www.newsophon.com";
+
 /**
  * La PLANTILLA, separada del envío.
  *
@@ -334,6 +355,11 @@ export function plantillaOtp(params: {
     t.correoOtpCaduca(minutosValidez),
     "",
     t.correoOtpNoPedido,
+    "",
+    "—",
+    t.correoPieMarca,
+    DIRECCION_LEGAL,
+    WEB_LEGAL,
   ].join("\n");
 
   /*
@@ -407,8 +433,24 @@ export function plantillaOtp(params: {
                      incluido el último, así que un texto centrado con tracking
                      queda descentrado media unidad hacia la izquierda. Es el
                      mismo defecto que tenía el campo del OTP en la aplicación,
-                     y se arregla igual. -->
-                <div dir="ltr" style="background:${CAMPO};background-image:linear-gradient(135deg,#fbda4e 0%,#f9d027 52%,#e5bc10 100%);color:${CAMPO_TINTA};border:1px solid ${CAMPO_CANTO};border-radius:14px;padding:22px 16px;font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:34px;font-weight:700;letter-spacing:.18em;text-indent:.18em;text-align:center;-webkit-user-select:all;-moz-user-select:all;-ms-user-select:all;user-select:all">${codigo}</div>
+                     y se arregla igual.
+
+                     ══ Y POR QUÉ EL FONDO ES PLANO ══
+
+                     Porque tenía un degradado y el código salía BLANCO SOBRE
+                     AMARILLO, ilegible, en Gmail con el tema oscuro. El tema
+                     oscuro de Gmail invierte los colores del mensaje, y lo
+                     hace por parejas: donde un elemento declara fondo y texto,
+                     invierte los dos y el contraste se conserva. Un
+                     background-image no lo sabe invertir, así que dejaba el
+                     amarillo intacto y volvía claro el texto que iba encima.
+                     El degradado se veía bien en la mitad de los clientes y
+                     dejaba sin código en la otra mitad; ese cambio no sale a
+                     cuenta.
+
+                     Con un color plano solo hay dos finales posibles y los dos
+                     se leen: amarillo con tinta oscura, o su inverso. -->
+                <div dir="ltr" style="background:${CAMPO};background-color:${CAMPO};color:${TEXTO};border:1px solid ${CAMPO_CANTO};border-radius:14px;padding:22px 16px;font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:34px;font-weight:700;letter-spacing:.18em;text-indent:.18em;text-align:center;-webkit-user-select:all;-moz-user-select:all;-ms-user-select:all;user-select:all">${codigo}</div>
               </td>
             </tr>
             <tr>
@@ -421,9 +463,41 @@ export function plantillaOtp(params: {
                 ${t.correoOtpCaduca(minutosValidez)}
               </td>
             </tr>
+            <!-- ══ EL PIE ══
+
+                 A 11 px, dos menos que antes. No es tacañería tipográfica: el
+                 pie dice DOS cosas de peso muy distinto —«esto no lo has
+                 pedido, ignóralo» y la ficha legal de la sociedad— y a 13 px
+                 competían con el aviso de caducidad, que sí hay que leer. Dos
+                 puntos menos es el escalón que se nota sin llegar a la letra
+                 pequeña ilegible: 11 px es el suelo de un pie de correo y el
+                 interlineado sube a 1,6 para compensarlo.
+
+                 El aviso va primero y la ficha legal después, separada por su
+                 propio filete: quien busca la dirección de la sociedad la
+                 busca al final, y quien lee el correo por el código no debería
+                 tropezar con ella antes que con el aviso. -->
             <tr>
-              <td align="${inicio}" style="border-top:1px solid ${BORDE};padding:18px 0 0;font-size:13px;line-height:20px;color:${TEXTO_APOYO}">
+              <td align="${inicio}" style="border-top:1px solid ${BORDE};padding:18px 0 16px;font-size:11px;line-height:18px;color:${TEXTO_APOYO}">
                 ${t.correoOtpNoPedido}
+              </td>
+            </tr>
+            <tr>
+              <!-- padding y no margin: el margen en una celda de tabla lo
+                   ignoran Outlook y Gmail, así que el aire va siempre dentro. -->
+              <td align="${inicio}" style="border-top:1px solid ${BORDE};padding:14px 0 0;font-size:11px;line-height:18px;color:${TEXTO_APOYO}">
+                ${t.correoPieMarca}<br>
+                <!-- dir="ltr" en la dirección y en el dominio por lo mismo que
+                     en el código: son cadenas latinas con números y comas
+                     dentro de un correo que en árabe va de derecha a izquierda,
+                     y el algoritmo bidi les mueve la puntuación de sitio. La
+                     celda las sigue alineando a la derecha; lo que se fija es
+                     el orden de dentro. -->
+                <span dir="ltr">${DIRECCION_LEGAL}</span><br>
+                <!-- Enlace explícito y en el mismo gris: sin color propio,
+                     Gmail y Apple Mail lo pintan de azul de sistema y el pie
+                     legal se convierte en lo más llamativo del correo. -->
+                <a dir="ltr" href="https://${WEB_LEGAL}" style="color:${TEXTO_APOYO};text-decoration:underline">${WEB_LEGAL}</a>
               </td>
             </tr>
           </table>

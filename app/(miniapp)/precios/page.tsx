@@ -192,7 +192,7 @@ export default function Precios() {
           no era verdad de nadie. El nivel que manda ahora es el de la placa, y
           arranca en el primero de la escalera: el de quien empieza hoy.
         */}
-        <div className="tarjeta campo-malla mt-5">
+        <div className="tarjeta campo-malla mt-6">
           <p className="text-rotulo text-texto-apoyo">{t.loQueCobraTuWebmaster}</p>
           <p className="mt-1 text-apoyo text-texto-apoyo">{t.porCadaCienUsuarios}</p>
 
