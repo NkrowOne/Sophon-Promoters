@@ -261,7 +261,6 @@ export async function concederAnio(
   try {
     const r = await sophon().concederMembresia(emailWebmaster, PLAN_UNICO, SEGUNDOS_UN_ANIO);
 
-    const fin = fechaDeSophon(r.membership_end_at);
     /*
      * El inicio se guarda aunque hoy nadie lo lea. Es la evidencia que falta
      * para saber si Sophon SUMA o SUSTITUYE el plazo —si al conceder sobre algo
@@ -269,7 +268,45 @@ export async function concederAnio(
      * columna. Sin esto, la primera vez que ocurra pasará sin dejar rastro, que
      * es exactamente lo que ya pasó con los «30 días».
      */
-    const inicio = fechaDeSophon(r.membership_start_at);
+    const inicio = fechaDeMembresia(r, CLAVES_INICIO);
+    const finDeSophon = fechaDeMembresia(r, CLAVES_FIN);
+
+    /*
+     * ── LA CADUCIDAD NO PUEDE QUEDARSE VACÍA ──
+     *
+     * Esto se escribía como `vigenteHasta: fechaDeSophon(r.membership_end_at)`,
+     * y cuando esa lectura daba `null` —Sophon aceptó la concesión y devolvió un
+     * cuerpo sin la fecha, o con otro nombre— la concesión se guardaba
+     * CONFIRMADA con la caducidad a nulo. Pasó en producción y costó caro:
+     *
+     *  1. `Webmaster.proVigenteHasta` se quedaba a nulo, así que la Malla decía
+     *     «Sin PRO» de un webmaster que SÍ tenía su año y sus 6 TB.
+     *  2. Y como el guardián de vigencia lee ese mismo campo, `proActivo`
+     *     respondía «no tiene nada» y la pantalla de renovaciones seguía
+     *     ofreciendo el botón. Cada toque era otro `setmembership` sobre una
+     *     membresía viva: exactamente la llamada que toda la regla de
+     *     `vigencia.ts` existe para no hacer nunca. Se contaron seis en un mismo
+     *     minuto sobre la misma cuenta.
+     *
+     * Así que si Sophon ha dicho que sí pero no dice hasta cuándo, se deduce del
+     * plazo que se pidió, que es el dato que sí conocemos con certeza: se mandó
+     * `duration = SEGUNDOS_UN_ANIO`. Deducir puede errar por horas; dejarlo a
+     * nulo erraba por un año entero y encima abría la puerta a repetir la
+     * concesión.
+     *
+     * La respuesta cruda se guarda en `mensaje` porque es la única forma de
+     * enterarse de qué devuelve Sophon de verdad: no hay endpoint que consulte
+     * una membresía después de concederla.
+     */
+    const fin =
+      finDeSophon ?? new Date((inicio ?? ahora()).getTime() + SEGUNDOS_UN_ANIO * 1000);
+    const deducida = finDeSophon === null;
+    if (deducida) {
+      console.error(
+        "[pro] setmembership aceptó sin fecha de caducidad legible; se deduce del plazo pedido",
+        { email: emailWebmaster, respuesta: resumenRespuesta(r) },
+      );
+    }
 
     await db.$transaction([
       db.concesionPro.update({
@@ -278,7 +315,11 @@ export async function concederAnio(
           estado: "CONFIRMADA",
           vigenteHasta: fin,
           vigenteDesde: inicio,
-          uidSophon: r.uid ?? null,
+          uidSophon: uidDeSophon(r),
+          // Solo cuando hay algo que contar: en el camino normal la columna se
+          // queda limpia y una concesión con `mensaje` es, por sí sola, la lista
+          // de las que hay que mirar.
+          ...(deducida ? { mensaje: `SIN_FECHA_EN_RESPUESTA ${resumenRespuesta(r)}` } : {}),
         },
       }),
       db.webmaster.update({
@@ -291,12 +332,17 @@ export async function concederAnio(
           actorId: agenteId,
           accion: motivo === "ALTA" ? "pro.concedido_en_alta" : "pro.renovado",
           recurso: emailWebmaster,
-          detalle: { vigenteHasta: fin?.toISOString() ?? null, segundos: SEGUNDOS_UN_ANIO },
+          detalle: {
+            vigenteHasta: fin.toISOString(),
+            segundos: SEGUNDOS_UN_ANIO,
+            /** La fecha la puso el plazo pedido, no Sophon. */
+            fechaDeducida: deducida,
+          },
         },
       }),
     ]);
 
-    return { ok: true, vigenteHasta: fin ? fin.toISOString().slice(0, 10) : null };
+    return { ok: true, vigenteHasta: fin.toISOString().slice(0, 10) };
   } catch (e) {
     const err = e instanceof ErrorSophon ? e : null;
     await db.concesionPro.update({
@@ -328,15 +374,93 @@ export async function concederAnio(
 }
 
 /**
- * Las fechas de `setmembership` llegan de dos formas y hay que aceptar las dos.
+ * Dónde puede venir la caducidad, por orden de preferencia.
+ *
+ * El tipo declara `membership_end_at` y esa sigue siendo la primera opción, pero
+ * el tipo describe lo que ESPERAMOS, no lo que llega: la misma API mezcla los
+ * dos estilos —el cuerpo de la petición va en `snake_case` (`membership_code`,
+ * `duration`) y las lecturas vuelven en `camelCase` (`partnerLevel`,
+ * `countRegister`, `rewardStorageBytes`)—. Buscar por varios nombres cuesta un
+ * bucle y evita que un cambio de estilo en el otro extremo vuelva a dejar la
+ * caducidad a nulo sin que nadie se entere.
+ */
+const CLAVES_FIN = ["membership_end_at", "membershipEndAt", "end_at", "endAt"] as const;
+const CLAVES_INICIO = [
+  "membership_start_at",
+  "membershipStartAt",
+  "start_at",
+  "startAt",
+] as const;
+
+/** La primera de esas claves que traiga una fecha legible. */
+function fechaDeMembresia(respuesta: unknown, claves: readonly string[]): Date | null {
+  if (!respuesta || typeof respuesta !== "object") return null;
+  const obj = respuesta as Record<string, unknown>;
+  for (const clave of claves) {
+    const fecha = fechaDeSophon(obj[clave]);
+    if (fecha) return fecha;
+  }
+  return null;
+}
+
+/**
+ * Las fechas de `setmembership` llegan de varias formas y hay que aceptarlas todas.
  *
  * Con protobuf sobre JSON, un `Timestamp` sale como `{seconds}`; por la pasarela
- * HTTP, como cadena ISO. Se observaron ambas contra la cuenta real.
+ * HTTP, como cadena ISO. Se observaron ambas contra la cuenta real. Se aceptan
+ * además el número suelto y la cadena de dígitos porque esta API devuelve
+ * rutinariamente sus números como texto —`expiresIn: "604800"`,
+ * `countRegister: "12"`— y un `{ seconds: "1790000000" }` es exactamente la
+ * clase de detalle que ya se tragó una caducidad entera.
+ *
+ * Devuelve `null` solo cuando de verdad no hay nada legible. Nunca una fecha
+ * inválida: un `Invalid Date` llegando a Prisma es un fallo mucho más ruidoso y
+ * mucho más tarde.
  */
-function fechaDeSophon(v: { seconds?: number } | string | undefined): Date | null {
-  if (typeof v === "object" && v?.seconds) return new Date(v.seconds * 1000);
-  if (typeof v === "string" && v) return new Date(v);
+function fechaDeSophon(v: unknown): Date | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "object") return fechaDeEpoca((v as { seconds?: unknown }).seconds);
+  if (typeof v === "number") return fechaDeEpoca(v);
+  if (typeof v === "string") {
+    if (!v) return null;
+    if (/^\d+$/.test(v)) return fechaDeEpoca(v);
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
   return null;
+}
+
+/** Segundos o milisegundos desde la época, vengan como número o como texto. */
+function fechaDeEpoca(v: unknown): Date | null {
+  const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  // Sophon manda segundos. Un milisegundo suelto se reconoce por magnitud: en
+  // segundos, 1e11 es el año 5138.
+  const d = new Date(n > 1e11 ? n : n * 1000);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** El UID, si viene. No es crítico: se guarda para poder cruzar con Sophon. */
+function uidDeSophon(respuesta: unknown): string | null {
+  if (!respuesta || typeof respuesta !== "object") return null;
+  const uid = (respuesta as { uid?: unknown }).uid;
+  return typeof uid === "string" && uid ? uid : null;
+}
+
+/**
+ * La respuesta cruda, recortada, para dejarla escrita en la concesión.
+ *
+ * Es la pieza que faltaba cuando esto falló: la aplicación no guardaba en
+ * ninguna parte qué había contestado Sophon, así que la única forma de
+ * investigar era deducirlo. El recorte evita que un cuerpo enorme llene la
+ * columna, y `catch` cubre lo que no se pueda serializar.
+ */
+function resumenRespuesta(respuesta: unknown): string {
+  try {
+    return JSON.stringify(respuesta ?? null).slice(0, 500);
+  } catch {
+    return String(respuesta).slice(0, 500);
+  }
 }
 
 /** Primer instante del mes en curso, en la zona horaria contable declarada. */

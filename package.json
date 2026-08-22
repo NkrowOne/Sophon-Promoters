@@ -25,7 +25,8 @@
     "vista": "node scripts/vista.mjs",
     "sophon:diagnostico": "node --experimental-strip-types scripts/diagnostico-sophon.ts",
     "bot:configurar": "node --experimental-strip-types scripts/bot-configurar.ts",
-    "prueba:e2e": "node --experimental-strip-types scripts/prueba-extremo-a-extremo.ts"
+    "prueba:e2e": "node --experimental-strip-types scripts/prueba-extremo-a-extremo.ts",
+    "pro:reparar": "node --experimental-strip-types scripts/reparar-pro-sin-fecha.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",

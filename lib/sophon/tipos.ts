@@ -193,10 +193,29 @@ export interface RespuestaSubAfiliados {
   total: number;
 }
 
+/**
+ * Lo que devuelve `setmembership`. **Todo es opcional, y eso no es prudencia
+ * defensiva: es lo observado.**
+ *
+ * Estaba declarado con los cuatro campos obligatorios, y el tipo se leyó como
+ * una garantía: `lib/pro/conceder.ts` hacía `r.membership_end_at` y guardaba el
+ * resultado tal cual. En producción llegó una respuesta aceptada —`code: 0`— de
+ * la que no se pudo leer ninguna fecha, la caducidad se guardó a nulo y el
+ * webmaster apareció como «Sin PRO» teniendo su año.
+ *
+ * Un tipo no valida nada en ejecución. Declararlos opcionales obliga a quien
+ * lee a decidir qué hace cuando no vienen, que es la pregunta que faltaba.
+ */
 export interface ResultadoMembresia {
-  uid: string;
-  membership_code: string;
-  membership_start_at: { seconds?: number } | string;
-  /** Única fuente de la fecha de caducidad: hay que persistirla al conceder. */
-  membership_end_at: { seconds?: number } | string;
+  uid?: string;
+  membership_code?: string;
+  membership_start_at?: { seconds?: number | string } | string | number;
+  /**
+   * Única fuente de la fecha de caducidad: hay que persistirla al conceder.
+   *
+   * Y si no viene, hay que deducirla del plazo pedido. Lo que no vale es dejarla
+   * a nulo: el guardián de vigencia lee ese campo, así que un nulo no significa
+   * «no lo sabemos» sino «vuelve a concederlo».
+   */
+  membership_end_at?: { seconds?: number | string } | string | number;
 }
