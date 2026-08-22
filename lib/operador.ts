@@ -26,6 +26,8 @@
  * arrastrara.
  */
 
+import { timingSafeEqual } from "node:crypto";
+
 /** El nombre viejo. Sigue valiendo mientras haya despliegues sin actualizar. */
 const VARIABLE_ANTIGUA = "TELEGRAM_SUPERADMIN_ID";
 const VARIABLE = "TELEGRAM_OPERADOR_ID";
@@ -54,6 +56,74 @@ export function idOperador(): string | null {
 export function esOperador(telegramId: number | bigint | undefined | null): boolean {
   const declarado = idOperador();
   return Boolean(declarado && telegramId != null && String(telegramId) === declarado);
+}
+
+/**
+ * La CLAVE del Operador: la otra forma de entrar al panel.
+ *
+ * ── QUÉ ES Y QUÉ NO ES ──
+ *
+ * Es una contraseña que se escribe en el campo del correo de la Mini App y
+ * cambia la sesión a modo Operador. Existe porque la vía por Telegram depende de
+ * que `TELEGRAM_OPERADOR_ID` esté bien puesto en el panel de despliegue, y eso
+ * es un valor que vive fuera de este repositorio: cuando no cuadra, el Operador
+ * se queda sin panel y sin ninguna pista de por qué.
+ *
+ * **Es más débil que la vía por Telegram y conviene saberlo.** Una firma de
+ * Telegram no se puede reenviar; una contraseña sí se puede contar, copiar o
+ * teclear delante de alguien. Lo que la sostiene son tres cosas:
+ *
+ *  1. **Hay que estar dentro de Telegram.** La ruta exige `initData` firmado, así
+ *     que hace falta una cuenta de Telegram Y la clave. Cualquiera con la clave
+ *     y sin Telegram no llega a intentarlo.
+ *  2. **Los intentos se cuentan y se cortan.** Sin freno, una contraseña en un
+ *     formulario público es un problema de tiempo, no de suerte.
+ *  3. **Cada intento queda escrito**, acertado o no.
+ *
+ * ── POR QUÉ EL MÍNIMO DE LONGITUD ES UNA COMPROBACIÓN Y NO UN CONSEJO ──
+ *
+ * Sin él, una variable declarada y vacía —`CLAVE_OPERADOR=`— haría que la
+ * comparación con la cadena vacía cuadrara, y el primer campo enviado en blanco
+ * abriría el panel. Un despiste de despliegue no puede ser una llave maestra, así
+ * que por debajo de 12 caracteres la clave sencillamente NO EXISTE.
+ */
+const VARIABLE_CLAVE = "CLAVE_OPERADOR";
+const LARGO_MINIMO_CLAVE = 12;
+
+/** La clave declarada, o `null` si no la hay o es demasiado corta para servir. */
+export function claveOperador(): string | null {
+  const valor = process.env[VARIABLE_CLAVE]?.trim();
+  if (!valor || valor.length < LARGO_MINIMO_CLAVE) return null;
+  return valor;
+}
+
+/** ¿Está declarada una clave utilizable? Lo mira el aviso de arranque. */
+export function hayClaveOperador(): boolean {
+  return claveOperador() !== null;
+}
+
+/**
+ * ¿Es esto la clave del Operador?
+ *
+ * La comparación es en tiempo constante. No es ceremonia: una comparación normal
+ * se para en el primer byte distinto, y la diferencia de tiempo entre fallar en
+ * el primero y fallar en el décimo se mide por la red. Con suficientes intentos
+ * eso reconstruye la clave carácter a carácter sin acertarla nunca de golpe.
+ *
+ * Las longitudes se igualan antes de comparar porque `timingSafeEqual` lanza si
+ * no coinciden, y esa excepción sería justo la filtración que se quiere evitar.
+ */
+export function esClaveDeOperador(escrito: string | null | undefined): boolean {
+  const clave = claveOperador();
+  if (!clave || !escrito) return false;
+
+  const a = Buffer.from(escrito, "utf8");
+  const b = Buffer.from(clave, "utf8");
+  // Se compara SIEMPRE sobre el mismo tamaño para no delatar la longitud, y el
+  // resultado exige además que midieran lo mismo.
+  const largo = Math.max(a.length, b.length);
+  const relleno = (x: Buffer) => Buffer.concat([x, Buffer.alloc(largo - x.length)]);
+  return timingSafeEqual(relleno(a), relleno(b)) && a.length === b.length;
 }
 
 /** Para el aviso de arranque: dice si se está usando el nombre viejo. */

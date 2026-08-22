@@ -219,6 +219,20 @@ model SesionAdmin {
   canjeadoEn DateTime?
 
   telegramId  BigInt
+
+  /// Esta sesión se abrió escribiendo la CLAVE, no por ser el Telegram del
+  /// Operador.
+  ///
+  /// Hace falta guardarlo porque `sesionAdmin()` revalida en CADA petición que
+  /// el `telegramId` de la fila sea el declarado en el entorno —para que cambiar
+  /// de cuenta de Telegram mate las sesiones viejas solas—. Una sesión abierta
+  /// con la clave desde otro Telegram cumple esa comprobación NUNCA, así que sin
+  /// esta marca se abriría bien y moriría en el segundo clic, que es la clase de
+  /// fallo que parece un problema de red.
+  ///
+  /// No es un permiso: es la respuesta a «¿por qué se confió en esta sesión?».
+  porClave    Boolean   @default(false)
+
   emitidaEn   DateTime  @default(now())
   expiraEn    DateTime
   ultimoUsoEn DateTime  @default(now())

@@ -76,7 +76,11 @@ const DIGITOS_OTP = 6;
 /** Lo que contesta `/api/auth/codigo`. `paso` es lo que decide la pantalla. */
 interface RespuestaCodigo {
   ok: true;
-  paso: "codigo" | "otp";
+  /**
+   * `operador` es la clave del Operador escrita en el campo del correo. No es un
+   * paso de esta pantalla: es la señal de que hay que irse a otra aplicación.
+   */
+  paso: "codigo" | "otp" | "operador";
   registrado?: boolean;
   minutosValidez?: number;
 }
@@ -203,6 +207,20 @@ function AltaPasos() {
         email: emailLimpio,
         ...(codigoCompleto ? { codigo: codigoLimpio } : {}),
       });
+
+      /*
+       * La clave del Operador. La sesión del panel ya está puesta en la cookie,
+       * así que aquí solo queda irse.
+       *
+       * `location.assign` y no el enrutador: `/admin` es otro grupo de rutas, con
+       * su propia raíz y su propia hoja de estilos. Y no se toca ni el háptico ni
+       * el estado —`setEnviando(false)` incluido—: la pantalla se va a destruir
+       * en el mismo tic y apagar el botón antes solo produce un parpadeo.
+       */
+      if (r.paso === "operador") {
+        window.location.assign("/admin");
+        return;
+      }
 
       // Correo sin cuenta: no se ha mandado nada, hace falta el código.
       if (r.paso === "codigo") {

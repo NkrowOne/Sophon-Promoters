@@ -139,6 +139,14 @@ export async function canjearEnlace(canje: string, ip?: string | null): Promise<
 export async function abrirSesionDeOperador(
   telegramId: bigint,
   ip?: string | null,
+  /**
+   * `true` cuando la sesión la abre la CLAVE y no el Telegram declarado.
+   *
+   * Sin esta marca la sesión se abriría bien y moriría en el segundo clic:
+   * `sesionAdmin()` revalida en cada petición que el Telegram de la fila sea el
+   * del entorno, y una entrada por clave desde otra cuenta no lo cumple nunca.
+   */
+  porClave = false,
 ): Promise<string> {
   const { token, hash } = generarTokenSesion();
   const ahora = new Date();
@@ -150,6 +158,7 @@ export async function abrirSesionDeOperador(
       // sesión abierta desde Telegram de una abierta desde el chat.
       canjeadoEn: ahora,
       telegramId,
+      porClave,
       expiraEn: new Date(ahora.getTime() + HORAS_SESION_ADMIN * 3_600_000),
       ip: ip ?? null,
     },
@@ -159,7 +168,10 @@ export async function abrirSesionDeOperador(
     data: {
       actorTipo: "OPERADOR",
       actorId: String(telegramId),
-      accion: "admin.sesion_abierta_en_telegram",
+      // Dos acciones y no una con un campo: en el registro se leen de un vistazo
+      // y se pueden buscar por separado. Una entrada por clave desde un Telegram
+      // que no es el declarado es lo primero que hay que poder encontrar.
+      accion: porClave ? "admin.sesion_abierta_con_clave" : "admin.sesion_abierta_en_telegram",
       ip: ip ?? null,
     },
   });
@@ -179,14 +191,29 @@ export async function sesionAdmin(): Promise<SesionAdmin | null> {
 
   const fila = await db.sesionAdmin.findUnique({
     where: { tokenHash: hashToken(token) },
-    select: { id: true, telegramId: true, expiraEn: true, revocadaEn: true, canjeadoEn: true },
+    select: {
+      id: true,
+      telegramId: true,
+      expiraEn: true,
+      revocadaEn: true,
+      canjeadoEn: true,
+      porClave: true,
+    },
   });
 
   if (!fila || fila.revocadaEn || !fila.canjeadoEn || fila.expiraEn < new Date()) return null;
-  // Se vuelve a comprobar contra el entorno en CADA petición: si el Operador
-  // cambia de cuenta de Telegram, las sesiones de la anterior mueren solas sin
-  // tener que acordarse de borrarlas.
-  if (!esOperador(fila.telegramId)) return null;
+  /*
+   * Se vuelve a comprobar contra el entorno en CADA petición: si el Operador
+   * cambia de cuenta de Telegram, las sesiones de la anterior mueren solas sin
+   * tener que acordarse de borrarlas.
+   *
+   * Las abiertas con la CLAVE quedan fuera de esa comprobación, y tienen que
+   * quedar: se abren precisamente cuando el Telegram declarado no cuadra —o no
+   * hay ninguno—, así que exigírselo las mataría en la petición siguiente. Lo
+   * que las corta a ellas es lo mismo que corta a todas: caducar, revocarse, o
+   * que se borre `CLAVE_OPERADOR` y ya no se pueda abrir ninguna nueva.
+   */
+  if (!fila.porClave && !esOperador(fila.telegramId)) return null;
 
   return { id: fila.id, telegramId: fila.telegramId };
 }
