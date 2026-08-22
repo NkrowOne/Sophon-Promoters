@@ -145,39 +145,41 @@ export default async function Tarifas() {
             Sin versiones registradas.
           </p>
         ) : (
-          <table style={{ marginTop: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th>Vigencia</th>
-                <th className="num">CPA</th>
-                <th className="num">CPS</th>
-                <th className="num">Asientos</th>
-                <th>Nota</th>
-              </tr>
-            </thead>
-            <tbody>
-              {versiones.map((v) => (
-                <tr key={v.id}>
-                  <td>
-                    {fecha(v.validaDesde)}
-                    {v.validaHasta ? (
-                      <span className="apoyo"> → {fecha(v.validaHasta)}</span>
-                    ) : (
-                      <span className="rotulo" style={{ marginLeft: "0.5rem" }}>
-                        en vigor
-                      </span>
-                    )}
-                  </td>
-                  <td className="num">{formatearMicros(v.cpaPorRegistroMicros, 4)}</td>
-                  <td className="num">{v.cpsBps / 100} %</td>
-                  {/* Cuántos asientos explica esta versión: es la razón por la
-                      que no se puede editar. */}
-                  <td className="num">{v._count.asientos}</td>
-                  <td className="apoyo">{v.nota ?? "—"}</td>
+          <div className="tabla-marco">
+            <table style={{ marginTop: "0.9rem" }}>
+              <thead>
+                <tr>
+                  <th>Vigencia</th>
+                  <th className="num">CPA</th>
+                  <th className="num">CPS</th>
+                  <th className="num">Asientos</th>
+                  <th>Nota</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {versiones.map((v) => (
+                  <tr key={v.id}>
+                    <td>
+                      {fecha(v.validaDesde)}
+                      {v.validaHasta ? (
+                        <span className="apoyo"> → {fecha(v.validaHasta)}</span>
+                      ) : (
+                        <span className="rotulo" style={{ marginLeft: "0.5rem" }}>
+                          en vigor
+                        </span>
+                      )}
+                    </td>
+                    <td className="num">{formatearMicros(v.cpaPorRegistroMicros, 4)}</td>
+                    <td className="num">{v.cpsBps / 100} %</td>
+                    {/* Cuántos asientos explica esta versión: es la razón por la
+                        que no se puede editar. */}
+                    <td className="num">{v._count.asientos}</td>
+                    <td className="apoyo">{v.nota ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </>

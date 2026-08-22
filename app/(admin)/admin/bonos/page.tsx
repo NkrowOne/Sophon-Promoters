@@ -78,53 +78,55 @@ export default async function Bonos() {
         </p>
 
         <form action={cambiarEscaleraBono} style={{ marginTop: "1.1rem", maxWidth: "38rem" }}>
-          <table style={{ marginBottom: "1rem" }}>
-            <thead>
-              <tr>
-                <th>Registros en el mes</th>
-                <th>Paga</th>
-                <th className="num">Coste si lo alcanzan todos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Cinco filas fijas: las vacías se descartan al guardar, así que
-                  quitar un escalón es borrar su umbral y guardar. Un formulario
-                  con «añadir fila» exigiría estado de cliente en una página que
-                  hoy es enteramente de servidor. */}
-              {Array.from({ length: 5 }, (_, i) => {
-                const e = vigente?.escalones[i];
-                return (
-                  <tr key={i}>
-                    <td>
-                      <input
-                        name="usuarios"
-                        type="text"
-                        inputMode="numeric"
-                        defaultValue={e ? String(e.usuarios) : ""}
-                        placeholder={i === 0 ? "10000" : ""}
-                        style={campo}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        name="recompensa"
-                        type="text"
-                        inputMode="decimal"
-                        defaultValue={
-                          e ? formatearMicros(e.recompensaMicros).replace(/\s*\$$/, "") : ""
-                        }
-                        placeholder={i === 0 ? "50" : ""}
-                        style={campo}
-                      />
-                    </td>
-                    <td className="num apoyo">
-                      {e ? formatearMicros(e.recompensaMicros * BigInt(agentesActivos)) : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="tabla-marco">
+            <table style={{ marginBottom: "1rem" }}>
+              <thead>
+                <tr>
+                  <th>Registros en el mes</th>
+                  <th>Paga</th>
+                  <th className="num">Coste si lo alcanzan todos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Cinco filas fijas: las vacías se descartan al guardar, así que
+                    quitar un escalón es borrar su umbral y guardar. Un formulario
+                    con «añadir fila» exigiría estado de cliente en una página que
+                    hoy es enteramente de servidor. */}
+                {Array.from({ length: 5 }, (_, i) => {
+                  const e = vigente?.escalones[i];
+                  return (
+                    <tr key={i}>
+                      <td>
+                        <input
+                          name="usuarios"
+                          type="text"
+                          inputMode="numeric"
+                          defaultValue={e ? String(e.usuarios) : ""}
+                          placeholder={i === 0 ? "10000" : ""}
+                          style={campo}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          name="recompensa"
+                          type="text"
+                          inputMode="decimal"
+                          defaultValue={
+                            e ? formatearMicros(e.recompensaMicros).replace(/\s*\$$/, "") : ""
+                          }
+                          placeholder={i === 0 ? "50" : ""}
+                          style={campo}
+                        />
+                      </td>
+                      <td className="num apoyo">
+                        {e ? formatearMicros(e.recompensaMicros * BigInt(agentesActivos)) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
           <p className="apoyo" style={{ marginBottom: "1rem" }}>
             Las recompensas tienen que crecer con los registros. Una escalera en la que un
@@ -153,30 +155,32 @@ export default async function Bonos() {
           Escalera en vigor · alcanzado en {mesPasado}
         </p>
         {vigente && vigente.escalones.length > 0 ? (
-          <table style={{ marginTop: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th className="num">Registros</th>
-                <th className="num">Paga</th>
-                <th className="num">Alcanzado por</th>
-                <th className="num">Asientos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vigente.escalones.map((e) => (
-                <tr key={e.id}>
-                  <td className="num">{e.usuarios.toLocaleString("es-ES")}</td>
-                  <td className="num">{formatearMicros(e.recompensaMicros)}</td>
-                  {/* Cero aquí en los tres escalones significa que están fuera
-                      de alcance, no que los agentes no trabajen. */}
-                  <td className="num">
-                    {alcanzado.get(e.usuarios) ?? 0} de {agentesActivos}
-                  </td>
-                  <td className="num apoyo">{e._count.asientos}</td>
+          <div className="tabla-marco">
+            <table style={{ marginTop: "0.9rem" }}>
+              <thead>
+                <tr>
+                  <th className="num">Registros</th>
+                  <th className="num">Paga</th>
+                  <th className="num">Alcanzado por</th>
+                  <th className="num">Asientos</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {vigente.escalones.map((e) => (
+                  <tr key={e.id}>
+                    <td className="num">{e.usuarios.toLocaleString("es-ES")}</td>
+                    <td className="num">{formatearMicros(e.recompensaMicros)}</td>
+                    {/* Cero aquí en los tres escalones significa que están fuera
+                        de alcance, no que los agentes no trabajen. */}
+                    <td className="num">
+                      {alcanzado.get(e.usuarios) ?? 0} de {agentesActivos}
+                    </td>
+                    <td className="num apoyo">{e._count.asientos}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p className="apoyo" style={{ marginTop: "0.9rem" }}>
             Ninguna configurada.
@@ -196,44 +200,46 @@ export default async function Bonos() {
             Ninguna todavía.
           </p>
         ) : (
-          <table style={{ marginTop: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th>Vigencia</th>
-                <th>Escalera</th>
-                <th className="num">Asientos</th>
-                <th>Motivo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {versiones.map((v) => (
-                <tr key={v.id}>
-                  <td>
-                    {fecha(v.validaDesde)}
-                    {v.validaHasta ? (
-                      <span className="apoyo"> → {fecha(v.validaHasta)}</span>
-                    ) : (
-                      <span className="rotulo" style={{ marginLeft: "0.5rem" }}>
-                        en vigor
-                      </span>
-                    )}
-                  </td>
-                  <td className="apoyo">
-                    {v.escalones
-                      .map(
-                        (e) =>
-                          `${e.usuarios.toLocaleString("es-ES")} → ${formatearMicros(e.recompensaMicros)}`,
-                      )
-                      .join(" · ")}
-                  </td>
-                  <td className="num apoyo">
-                    {v.escalones.reduce((a, e) => a + e._count.asientos, 0)}
-                  </td>
-                  <td className="apoyo">{v.nota ?? "—"}</td>
+          <div className="tabla-marco">
+            <table style={{ marginTop: "0.9rem" }}>
+              <thead>
+                <tr>
+                  <th>Vigencia</th>
+                  <th>Escalera</th>
+                  <th className="num">Asientos</th>
+                  <th>Motivo</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {versiones.map((v) => (
+                  <tr key={v.id}>
+                    <td>
+                      {fecha(v.validaDesde)}
+                      {v.validaHasta ? (
+                        <span className="apoyo"> → {fecha(v.validaHasta)}</span>
+                      ) : (
+                        <span className="rotulo" style={{ marginLeft: "0.5rem" }}>
+                          en vigor
+                        </span>
+                      )}
+                    </td>
+                    <td className="apoyo">
+                      {v.escalones
+                        .map(
+                          (e) =>
+                            `${e.usuarios.toLocaleString("es-ES")} → ${formatearMicros(e.recompensaMicros)}`,
+                        )
+                        .join(" · ")}
+                    </td>
+                    <td className="num apoyo">
+                      {v.escalones.reduce((a, e) => a + e._count.asientos, 0)}
+                    </td>
+                    <td className="apoyo">{v.nota ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </>

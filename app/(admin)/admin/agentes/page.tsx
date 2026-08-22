@@ -1,21 +1,32 @@
-import { db } from "@/lib/db";
+import Link from "next/link";
+
 import { exigirAdmin } from "@/lib/auth/admin";
+import { plantillaDeAgentes, problemasDeRed } from "@/lib/admin/control";
 import { cambiarEstadoAgente, cortarSesiones } from "../acciones";
 import { Cerrada } from "../_piezas/Cerrada";
 import { Importe } from "../_piezas/Importe";
-import { inicioDelMes } from "@/lib/pro/conceder";
+import { Chapa, EstadoAgente, Num, dia } from "../_piezas/Control";
 
 /**
- * Agentes.
+ * La plantilla: todos los agentes, en una sola tabla comparable.
  *
- * Lo que se administra aquí es **lo que un agente puede gastar del Operador**.
- * Y desde que el PRO va atado al alta, eso es una sola cifra: cada alta regala
- * un año de VIP, así que el tope de altas ES el tope de gasto. Ya no hay planes
- * que autorizar ni cupo de PRO aparte que cuadrar con él.
+ * ── POR QUÉ SE FUE LA LISTA DE TARJETAS ──
  *
- * Cada agente muestra lo que lleva devengado y las altas que ha hecho este mes,
- * que es el contexto sin el cual «subirle el tope a 50» es una cifra elegida a
- * ciegas.
+ * Esta página eran tarjetas con cuatro datos: nombre, correo, devengado y
+ * cuántos webmasters. Servía para leer un agente y no servía para nada más, que
+ * es justo lo contrario de lo que se le pide: el Operador entra aquí para
+ * comparar —quién produce, quién se ha apagado, quién tiene la red rota, a quién
+ * le debo dinero— y comparar entre tarjetas obliga a recordar la anterior
+ * mientras se lee la siguiente.
+ *
+ * Una tabla contesta las cuatro de un vistazo. Y el detalle no se pierde: cada
+ * fila abre su ficha, que es donde caben las veinte columnas que aquí no caben.
+ *
+ * ── LO QUE DECIDE EL ORDEN ──
+ *
+ * Activos primero y dentro por lo devengado (`ordenarAgentes`). Los suspendidos
+ * no se esconden —hay que poder reactivarlos— pero bajan, porque un agente
+ * suspendido no compite por la atención con uno que está produciendo.
  */
 
 export const dynamic = "force-dynamic";
@@ -23,146 +34,218 @@ export const dynamic = "force-dynamic";
 export default async function Agentes() {
   if (!(await exigirAdmin())) return <Cerrada />;
 
-  const desdeElDiaUno = inicioDelMes();
-
-  const sinOrdenar = await db.agente.findMany({
-    include: {
-      _count: { select: { webmasters: true } },
-      // Las altas se cuentan sobre los intentos con éxito, igual que en la ruta
-      // que las limita. Si el panel contara de otra forma, enseñaría «te quedan
-      // 3» mientras el servidor rechaza la siguiente.
-      vinculaciones: {
-        where: { exito: true, creadoEn: { gte: desdeElDiaUno } },
-        select: { id: true },
-      },
-    },
-  });
-
-  const devengos = await db.asientoComision.groupBy({
-    by: ["agenteId"],
-    where: { estado: { not: "ANULADO" }, tipo: { not: "RETIRO" } },
-    _sum: { importeMicros: true },
-  });
-  const devengado = new Map(devengos.map((d) => [d.agenteId, d._sum.importeMicros ?? 0n]));
-
-  // Ordenados por lo que producen, no por cuándo se dieron de alta. Ordenar por
-  // fecha dejaba al agente que más mueve al final de la página, que es justo el
-  // que se viene a mirar. Se ordena en memoria porque el devengo sale de una
-  // agregación aparte y son pocas filas.
-  const agentes = [...sinOrdenar].sort((a, b) => {
-    if ((a.estado === "ACTIVO") !== (b.estado === "ACTIVO")) return a.estado === "ACTIVO" ? -1 : 1;
-    const da = devengado.get(a.id) ?? 0n;
-    const dbb = devengado.get(b.id) ?? 0n;
-    return da === dbb ? 0 : da > dbb ? -1 : 1;
-  });
+  const agentes = await plantillaDeAgentes();
 
   if (agentes.length === 0) {
     return (
       <>
         <h1 style={{ fontSize: "1.3125rem", fontWeight: 600 }}>Agentes</h1>
         <p className="apoyo" style={{ marginTop: "0.6rem" }}>
-          Sin agentes registrados. Los códigos de activación se generan con{" "}
-          <code>/codigo</code> en el bot.
+          Sin agentes registrados. Los códigos de activación se generan con <code>/codigo</code>{" "}
+          en el bot.
         </p>
       </>
     );
   }
+
+  const activos = agentes.filter((a) => a.estado === "ACTIVO").length;
+  const webmasters = agentes.reduce((s, a) => s + a.webmasters.total, 0);
+  const conProblemas = agentes.filter((a) => problemasDeRed(a.webmasters).length > 0).length;
+  const porCobrar = agentes.reduce((s, a) => s + a.retiroPendienteMicros, 0n);
 
   return (
     <>
       <h1 style={{ fontSize: "1.3125rem", fontWeight: 600, letterSpacing: "-0.015em" }}>
         Agentes
       </h1>
-      <p className="apoyo" style={{ marginTop: "0.35rem" }}>
-        {agentes.length} en total. Cada activación de webmaster concede un año de PRO. No
-        hay tope de activaciones; el único freno es la suspensión del agente.
+      <p className="apoyo" style={{ marginTop: "0.35rem", maxWidth: "62ch" }}>
+        {agentes.length} en total, {activos} activos, {webmasters} webmasters entre todos.{" "}
+        {conProblemas > 0 ? (
+          <span className="vivo">
+            {conProblemas} {conProblemas === 1 ? "tiene" : "tienen"} algo que mirar en su red.
+          </span>
+        ) : (
+          "Ninguna red tiene incidencias."
+        )}{" "}
+        Cada activación concede un año de PRO; el único freno es suspender al agente.
       </p>
 
-      <div style={{ marginTop: "2rem", display: "grid", gap: "1.25rem" }}>
-        {agentes.map((a) => (
-          <article
-            key={a.id}
-            style={{
-              border: "1px solid var(--p-borde)",
-              borderRadius: 4,
-              padding: "1rem 1.1rem",
-              opacity: a.estado === "ACTIVO" ? 1 : 0.72,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "1rem",
-                flexWrap: "wrap",
-                alignItems: "baseline",
-              }}
-            >
-              <div>
-                <p style={{ fontWeight: 600 }}>
-                  {a.nombreVisible}{" "}
-                  {a.estado !== "ACTIVO" && (
-                    <span className="rotulo vivo">{a.estado.toLowerCase()}</span>
-                  )}
-                </p>
-                <p className="apoyo" style={{ fontFamily: "ui-monospace, monospace" }}>
-                  {a.emailNormalizado}
-                </p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <Importe
-                  micros={devengado.get(a.id) ?? 0n}
-                  style={{
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: "1.125rem",
-                    fontWeight: 600,
-                    display: "block",
-                  }}
-                />
-                <p className="apoyo">
-                  {a._count.webmasters}{" "}
-                  {a._count.webmasters === 1 ? "webmaster" : "webmasters"} ·{" "}
-                  {a.vinculaciones.length} altas este mes
-                </p>
-              </div>
-            </div>
+      {porCobrar > 0n && (
+        <p className="apoyo" style={{ marginTop: "0.4rem" }}>
+          <Importe micros={porCobrar} /> pendientes de pagar.{" "}
+          <Link href="/admin/retiros">Ver retiros</Link>.
+        </p>
+      )}
 
-            {/* Ya no hay permisos ni topes que configurar: un agente activa
-                cuantos webmasters quiera, y el único freno es suspenderlo. Un
-                formulario con un solo interruptor redundante sería peor que no
-                tenerlo. */}
-
-            <div
-              style={{
-                marginTop: "1rem",
-                paddingTop: "0.9rem",
-                borderTop: "1px solid var(--p-borde)",
-                display: "flex",
-                gap: "0.5rem",
-                flexWrap: "wrap",
-              }}
-            >
-              <form action={cambiarEstadoAgente}>
-                <input type="hidden" name="agenteId" value={a.id} />
-                <input
-                  type="hidden"
-                  name="estado"
-                  value={a.estado === "ACTIVO" ? "SUSPENDIDO" : "ACTIVO"}
-                />
-                <button type="submit" className="boton">
-                  {a.estado === "ACTIVO" ? "Suspender" : "Reactivar"}
-                </button>
-              </form>
-              <form action={cortarSesiones}>
-                <input type="hidden" name="agenteId" value={a.id} />
-                <button type="submit" className="boton" title="Exige iniciar sesión de nuevo con el correo">
-                  Expulsar sus sesiones
-                </button>
-              </form>
-            </div>
-          </article>
-        ))}
+      <div className="tabla-marco" style={{ marginTop: "1.75rem" }}>
+        <table className="densa">
+          <thead>
+            <tr>
+              <th>Agente</th>
+              <th>Estado</th>
+              <th className="num">Red</th>
+              <th className="num">Con PRO</th>
+              <th className="num">Altas mes</th>
+              <th className="num">Registros 14 d</th>
+              <th className="num">Devengado</th>
+              <th className="num">Disponible</th>
+              <th className="num">Por pagar</th>
+              <th>Incidencias en su red</th>
+            </tr>
+          </thead>
+          <tbody>
+            {agentes.map((a) => {
+              const avisos = problemasDeRed(a.webmasters);
+              return (
+                <tr key={a.id} style={{ opacity: a.estado === "ACTIVO" ? 1 : 0.72 }}>
+                  <td className="ancla">
+                    <Link href={`/admin/agentes/${a.id}`} style={{ textDecoration: "none" }}>
+                      {a.nombre}
+                    </Link>
+                    <span className="apoyo mono" style={{ display: "block", fontSize: "0.75rem" }}>
+                      {a.email}
+                    </span>
+                  </td>
+                  <td>
+                    <EstadoAgente estado={a.estado} />
+                    {(a.cpaPropiaMicros !== null || a.cpsPropiaBps !== null) && (
+                      <>
+                        {" "}
+                        <Chapa tono="atencion">tarifa propia</Chapa>
+                      </>
+                    )}
+                  </td>
+                  <td className="num">
+                    <Num valor={a.webmasters.total} />
+                  </td>
+                  <td className="num">
+                    <Num valor={a.webmasters.conPro} />
+                  </td>
+                  <td className="num">
+                    <Num valor={a.altasDelMes} />
+                  </td>
+                  <td className="num">
+                    <Num valor={a.registrosVentana} />
+                  </td>
+                  <td className="num">
+                    <Importe micros={a.saldos.devengadoMicros} />
+                  </td>
+                  <td className="num">
+                    <Importe micros={a.saldos.disponibleMicros} />
+                  </td>
+                  <td className="num">
+                    {a.retiroPendienteMicros > 0n ? (
+                      <Link href="/admin/retiros" style={{ textDecoration: "none" }}>
+                        <Importe micros={a.retiroPendienteMicros} className="vivo" />
+                      </Link>
+                    ) : (
+                      <span className="nulo">—</span>
+                    )}
+                  </td>
+                  <td>
+                    {avisos.length === 0 ? (
+                      <span className="nulo">—</span>
+                    ) : (
+                      /* `nowrap`: la tabla ya se desplaza a lo ancho, así que
+                         apilar aquí no gana espacio, solo estira la fila. En un
+                         móvil, un agente con cuatro incidencias abría un hueco
+                         en blanco de tres renglones en la parte visible de la
+                         tabla, con las chapas fuera de la pantalla. */
+                      <span style={{ display: "inline-flex", gap: "0.3rem", flexWrap: "nowrap" }}>
+                        {avisos.map((t) => (
+                          <Chapa key={t} tono="problema">
+                            {t}
+                          </Chapa>
+                        ))}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
+
+      {/*
+        Las acciones se quedan FUERA de la tabla y agrupadas debajo.
+        Un botón «Suspender» por fila, a diez filas de distancia de su nombre,
+        es la forma más fácil de suspender al agente equivocado. Aquí cada
+        bloque lleva el nombre pegado al botón.
+      */}
+      <section style={{ marginTop: "2.5rem" }}>
+        <p
+          className="rotulo"
+          style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}
+        >
+          Acciones
+        </p>
+        <div
+          style={{
+            marginTop: "1rem",
+            display: "grid",
+            /* `min(...)`: un mínimo de 25rem fijo son 400 px, y en una pantalla
+               de 390 la columna no cabía —la página entera se salía por la
+               derecha y los botones quedaban cortados—. Con el mínimo topado al
+               ancho disponible, cae a una columna en vez de desbordar. */
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(25rem, 100%), 1fr))",
+            gap: "0.75rem 1.5rem",
+          }}
+        >
+          {agentes.map((a) => (
+            <div
+              key={a.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "0.75rem",
+                paddingBottom: "0.6rem",
+                borderBottom: "1px solid var(--p-borde)",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontWeight: 550, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {a.nombre}
+                </p>
+                {/* La línea SÍ envuelve —si no, en un móvil se salía por debajo
+                    del filete—; lo que no se parte es la fecha, que leída como
+                    `2026-08-` y `19` en dos renglones parecen dos datos. */}
+                <p className="apoyo" style={{ fontSize: "0.8125rem" }}>
+                  <span style={{ whiteSpace: "nowrap" }}>desde {dia(a.creadoEn)}</span> ·{" "}
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    {a.sesionesVivas} {a.sesionesVivas === 1 ? "sesión viva" : "sesiones vivas"}
+                  </span>
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
+                <form action={cambiarEstadoAgente}>
+                  <input type="hidden" name="agenteId" value={a.id} />
+                  <input
+                    type="hidden"
+                    name="estado"
+                    value={a.estado === "ACTIVO" ? "SUSPENDIDO" : "ACTIVO"}
+                  />
+                  <button type="submit" className="boton">
+                    {a.estado === "ACTIVO" ? "Suspender" : "Reactivar"}
+                  </button>
+                </form>
+                <form action={cortarSesiones}>
+                  <input type="hidden" name="agenteId" value={a.id} />
+                  <button
+                    type="submit"
+                    className="boton"
+                    title="Exige iniciar sesión de nuevo con el correo"
+                    disabled={a.sesionesVivas === 0}
+                  >
+                    Expulsar
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </>
   );
 }

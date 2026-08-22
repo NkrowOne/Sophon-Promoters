@@ -25,7 +25,27 @@ export function Importe({
   return (
     <span
       className={className}
-      style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", ...style }}
+      /*
+       * `position: relative` NO es decorativo: contiene al texto alternativo.
+       *
+       * El `<span>` de abajo va en `position: absolute` para quedar fuera de la
+       * vista y seguir leyéndose en voz alta. Sin un ancestro posicionado, su
+       * bloque contenedor es el documento entero, así que **se escapa de
+       * cualquier contenedor con desplazamiento** en el que esté la cifra: en la
+       * tabla de webmasters, los importes de la columna derecha aterrizaban a
+       * 750 px del borde izquierdo de la PÁGINA y estiraban el documento medio
+       * metro. En un móvil eso es la pantalla saliéndose por la derecha, con la
+       * franja de fondo sin pintar y los botones cortados.
+       *
+       * Se vio midiendo, no leyendo: ningún elemento visible se salía del
+       * ancho, y el desbordamiento venía de un span de 1×1 píxel que nadie ve.
+       */
+      style={{
+        position: "relative",
+        whiteSpace: "nowrap",
+        fontVariantNumeric: "tabular-nums",
+        ...style,
+      }}
     >
       <span aria-hidden>{numero}</span>
       <span aria-hidden style={{ marginLeft: "0.16em", fontSize: "0.82em", color: "var(--p-apoyo)" }}>

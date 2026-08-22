@@ -172,7 +172,15 @@ Y las que necesitan credenciales de verdad:
 ```bash
 npm run sophon:diagnostico   # en qué estado está la cuenta de Sophon ahora mismo
 npm run prueba:e2e           # circuito completo, incluido el del dinero
+npm run pro:reparar          # concesiones que se guardaron sin caducidad (simula; --aplicar escribe)
 ```
+
+`pro:reparar` es una escotilla, no una tarea periódica. Existe porque hubo
+concesiones que Sophon aceptó y que se guardaron con la caducidad a nulo: el
+webmaster tenía su año pero la Malla decía «Sin PRO» y la pantalla de
+renovaciones seguía ofreciendo el botón, así que se le volvía a conceder encima.
+`lib/pro/conceder.ts` ya no puede dejar ese campo vacío; esto arregla las filas
+anteriores.
 
 ### Las capturas
 

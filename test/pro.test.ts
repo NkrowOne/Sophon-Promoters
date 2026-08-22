@@ -7,7 +7,7 @@ import {
   type MotivoConcesion,
 } from "../lib/pro/conceder.ts";
 import { DIAS_AVISO_PRO, diasRestantesPro, proActivo, renovablePro } from "../lib/pro/vigencia.ts";
-import { SEGUNDOS_UN_ANIO } from "../lib/sophon/tipos.ts";
+import { SEGUNDOS_UN_ANIO, type ResultadoMembresia } from "../lib/sophon/tipos.ts";
 
 /**
  * La regla del PRO, que hasta ahora no tenía una sola prueba.
@@ -27,6 +27,7 @@ import { SEGUNDOS_UN_ANIO } from "../lib/sophon/tipos.ts";
 const DIA = 86_400_000;
 const AHORA = new Date("2026-07-26T12:00:00Z");
 const enDias = (n: number) => new Date(AHORA.getTime() + n * DIA);
+const isoDe = (d: Date) => d.toISOString().slice(0, 10);
 
 describe("vigencia del PRO", () => {
   it("activo es tener fecha y que no haya pasado", () => {
@@ -78,6 +79,16 @@ function montar(estado: {
   proVigenteHasta: Date | null;
   /** Concesión ya existente con la misma clave, si la hay. */
   previa?: { id: string; estado: string; vigenteHasta: Date | null };
+  /**
+   * Lo que contesta `setmembership`, cuando la prueba necesita otra forma.
+   *
+   * Estaba fijo, y por eso el fallo de producción no tenía prueba que lo
+   * cazara: el doble devolvía SIEMPRE un `membership_end_at` perfecto, así que
+   * el único camino que se ejercitaba era el bueno. Sophon contestó con un
+   * cuerpo sin fecha y la aplicación guardó la caducidad a nulo sin que nada
+   * fallara.
+   */
+  respuesta?: Record<string, unknown>;
 }) {
   const registro = {
     llamadasSophon: [] as { email: string; duracion: number }[],
@@ -86,6 +97,9 @@ function montar(estado: {
     auditorias: [] as string[],
     vigenteHastaEscrito: null as Date | null,
     vigenteDesdeEscrito: null as Date | null,
+    proEscritoEnWebmaster: undefined as Date | null | undefined,
+    mensajeEscrito: null as string | null,
+    auditoriaDetalle: [] as Record<string, unknown>[],
   };
 
   const tx = {
@@ -113,16 +127,32 @@ function montar(estado: {
           : Promise.resolve([])) as DependenciasConcesion["db"]["$transaction"],
       concesionPro: {
         update: (a: unknown) => {
-          const datos = (a as { data: { vigenteHasta?: Date; vigenteDesde?: Date } }).data;
+          const datos = (a as {
+            data: { vigenteHasta?: Date; vigenteDesde?: Date; mensaje?: string };
+          }).data;
           if (datos.vigenteHasta) registro.vigenteHastaEscrito = datos.vigenteHasta;
           if (datos.vigenteDesde) registro.vigenteDesdeEscrito = datos.vigenteDesde;
+          if (datos.mensaje) registro.mensajeEscrito = datos.mensaje;
           return a;
         },
       },
-      webmaster: { update: (a: unknown) => a },
+      // Se registra lo que se escribe en el WEBMASTER, que es el campo del que
+      // vive la chapa «Sin PRO» y el guardián de vigencia. Antes no se miraba, y
+      // por ahí se coló el nulo.
+      webmaster: {
+        update: (a: unknown) => {
+          registro.proEscritoEnWebmaster = (
+            a as { data: { proVigenteHasta?: Date | null } }
+          ).data.proVigenteHasta;
+          return a;
+        },
+      },
       auditoria: {
         create: (a: unknown) => {
-          registro.auditorias.push((a as { data: { accion: string } }).data.accion);
+          const datos = (a as { data: { accion: string; detalle?: Record<string, unknown> } })
+            .data;
+          registro.auditorias.push(datos.accion);
+          if (datos.detalle) registro.auditoriaDetalle.push(datos.detalle);
           return a;
         },
       },
@@ -130,12 +160,12 @@ function montar(estado: {
     sophon: () => ({
       concederMembresia: async (email, _codigo, duracionSegundos) => {
         registro.llamadasSophon.push({ email, duracion: duracionSegundos });
-        return {
+        return (estado.respuesta ?? {
           uid: "uid-1",
           membership_code: "vip.year",
           membership_start_at: { seconds: Math.floor(AHORA.getTime() / 1000) },
           membership_end_at: { seconds: Math.floor(enDias(365).getTime() / 1000) },
-        };
+        }) as unknown as ResultadoMembresia;
       },
     }),
     /*
@@ -315,6 +345,101 @@ describe("conceder PRO", () => {
     await concederAnio(peticion("RENOVACION"), deps);
 
     assert.deepEqual(registro.auditorias, ["pro.renovado"]);
+  });
+
+  it("si Sophon acepta y NO manda fecha, la caducidad se deduce del plazo pedido", async () => {
+    /*
+     * EL FALLO DE PRODUCCIÓN, en una prueba.
+     *
+     * `setmembership` devolvió `code: 0` con un cuerpo del que no se podía leer
+     * `membership_end_at`. La aplicación guardó la concesión como CONFIRMADA con
+     * `vigenteHasta = null` y le puso `proVigenteHasta = null` al webmaster. Dos
+     * daños, y el segundo peor que el primero:
+     *
+     *  1. La Malla dijo «Sin PRO» de un webmaster que tenía su año y sus 6 TB.
+     *  2. El guardián de vigencia lee ese mismo campo, así que la pantalla de
+     *     renovaciones siguió ofreciendo el botón y cada toque volvió a llamar a
+     *     `setmembership` sobre una membresía viva. Seis veces en un minuto.
+     *
+     * Un nulo aquí no es «no lo sabemos»: es «vuelve a concederlo».
+     */
+    const { deps, registro } = montar({ proVigenteHasta: null, respuesta: {} });
+    const r = await concederAnio(peticion("ALTA"), deps);
+
+    assert.equal(r.ok, true, "Sophon aceptó: esto no es un fallo");
+    assert.equal(r.vigenteHasta, isoDe(enDias(365)), "la fecha no se dedujo del año pedido");
+    assert.deepEqual(registro.vigenteHastaEscrito, enDias(365));
+    assert.deepEqual(
+      registro.proEscritoEnWebmaster,
+      enDias(365),
+      "el webmaster se quedó sin caducidad, que es lo que reabre la puerta a repetir",
+    );
+  });
+
+  it("y la deducción queda ESCRITA, no disimulada", async () => {
+    // Una fecha deducida y una que dio Sophon no valen lo mismo, y dentro de un
+    // año habrá que saber cuál es cuál. La respuesta cruda va en `mensaje`
+    // porque no hay endpoint que permita consultar una membresía después.
+    const { deps, registro } = montar({
+      proVigenteHasta: null,
+      respuesta: { uid: "uid-9", membership_code: "vip.year" },
+    });
+    await concederAnio(peticion("ALTA"), deps);
+
+    assert.match(registro.mensajeEscrito ?? "", /^SIN_FECHA_EN_RESPUESTA /);
+    assert.match(registro.mensajeEscrito ?? "", /uid-9/, "no se guardó la respuesta de Sophon");
+    assert.equal(registro.auditoriaDetalle[0]?.["fechaDeducida"], true);
+  });
+
+  it("y cuando Sophon SÍ manda la fecha, no se deduce nada", async () => {
+    // La red de seguridad no puede tapar el camino bueno: si se dedujera
+    // siempre, dejaríamos de enterarnos de lo que Sophon concede de verdad.
+    const { deps, registro } = montar({ proVigenteHasta: null });
+    await concederAnio(peticion("ALTA"), deps);
+
+    assert.equal(registro.mensajeEscrito, null);
+    assert.equal(registro.auditoriaDetalle[0]?.["fechaDeducida"], false);
+  });
+
+  it("la fecha se lee venga como venga: ISO, camelCase o segundos en texto", async () => {
+    /*
+     * El tipo dice `membership_end_at` con `{seconds: number}`, pero el tipo
+     * describe lo que esperamos. Esta API mezcla estilos —el cuerpo va en
+     * `snake_case` y las lecturas vuelven en `camelCase`— y devuelve sus números
+     * como texto (`expiresIn: "604800"`). Cada una de estas formas es una
+     * caducidad que antes se habría perdido.
+     */
+    const formas: Record<string, unknown>[] = [
+      { membership_end_at: enDias(365).toISOString() },
+      { membershipEndAt: { seconds: Math.floor(enDias(365).getTime() / 1000) } },
+      { membership_end_at: { seconds: String(Math.floor(enDias(365).getTime() / 1000)) } },
+      { end_at: Math.floor(enDias(365).getTime() / 1000) },
+      { membership_end_at: enDias(365).getTime() },
+    ];
+
+    for (const respuesta of formas) {
+      const { deps, registro } = montar({ proVigenteHasta: null, respuesta });
+      await concederAnio(peticion("ALTA"), deps);
+
+      assert.deepEqual(
+        registro.vigenteHastaEscrito,
+        enDias(365),
+        `no se leyó la fecha de ${JSON.stringify(respuesta)}`,
+      );
+      assert.equal(registro.mensajeEscrito, null, `se dedujo pudiendo leerla`);
+    }
+  });
+
+  it("una fecha ilegible se deduce, nunca se guarda inválida", async () => {
+    // Un `Invalid Date` no falla aquí: falla en Prisma, más tarde y más lejos.
+    const { deps, registro } = montar({
+      proVigenteHasta: null,
+      respuesta: { membership_end_at: "el martes que viene" },
+    });
+    const r = await concederAnio(peticion("ALTA"), deps);
+
+    assert.equal(r.ok, true);
+    assert.deepEqual(registro.vigenteHastaEscrito, enDias(365));
   });
 
   it("el alta y la renovación se auditan como hechos distintos", async () => {
