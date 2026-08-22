@@ -110,10 +110,22 @@ function ActivarPasos() {
     setEnviando(true);
     setError(null);
     try {
-      const r = await api.post<Resultado>("/api/webmaster/activar", {
+      const r = await api.post<Resultado & { paso?: "operador" }>("/api/webmaster/activar", {
         email: email.trim(),
         idempotencia: clave.current,
       });
+      /*
+       * La clave del Operador escrita en este campo. La sesión del panel ya va
+       * en la cookie, así que aquí solo queda irse.
+       *
+       * `location.assign` y no el enrutador: `/admin` es otro grupo de rutas con
+       * su propia raíz y su propia hoja de estilos. Y no se toca ni el háptico
+       * ni el estado: la pantalla se destruye en el mismo tic.
+       */
+      if (r.paso === "operador") {
+        window.location.assign("/admin");
+        return;
+      }
       haptica("exito");
       setHecho(r);
       // `replace` y no `push`: volver atrás desde el resultado a la pantalla de

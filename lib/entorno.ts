@@ -84,6 +84,27 @@ const DE_FUNCION: readonly Requisito[] = [
     // en el panel de despliegue, no aquí. Ver `lib/operador.ts`.
     alternativa: "TELEGRAM_SUPERADMIN_ID",
   },
+  {
+    /*
+     * No es esencial —sin ella el panel sigue teniendo su puerta por Telegram—
+     * pero SÍ tiene que salir en el registro de arranque y en `/api/salud`.
+     *
+     * El motivo es un fallo real: sin esta línea, una clave sin declarar se
+     * comporta exactamente igual que una clave mal escrita —el campo contesta
+     * «formato de correo no válido» y ya— así que no hay forma de distinguir «me
+     * he equivocado al teclear» de «la variable no está puesta en el panel de
+     * despliegue». Con esto, `/api/salud` lo dice desde fuera y sin sesión.
+     *
+     * Se comprueba también la longitud: por debajo de 12 la clave se ignora
+     * entera, y una variable declarada y demasiado corta se lee como puesta.
+     */
+    nombre: "CLAVE_OPERADOR",
+    para: "entrar al panel escribiendo la clave en un campo de correo (la otra puerta es Telegram)",
+    formato: (valor) =>
+      valor.trim().length >= 12
+        ? null
+        : `son ${valor.trim().length} caracteres y hacen falta 12; por debajo se ignora entera`,
+  },
   { nombre: "SMTP_HOST", para: "el envío de los códigos de acceso; sin él nadie puede darse de alta" },
   { nombre: "SOPHON_EMAIL", para: "leer registros e ingresos de Sophon" },
   { nombre: "SOPHON_PASSWORD", para: "leer registros e ingresos de Sophon" },

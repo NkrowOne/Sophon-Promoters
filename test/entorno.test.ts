@@ -60,6 +60,9 @@ const COMPLETO = {
   SMTP_HOST: "smtp.example.com",
   SOPHON_EMAIL: "a@example.com",
   SOPHON_PASSWORD: "x",
+  // 12 caracteres es el mínimo con el que la clave del Operador cuenta como
+  // puesta. Por debajo se ignora entera, así que aquí tiene que ir una válida.
+  CLAVE_OPERADOR: "clave-de-doce-o-mas",
 };
 
 describe("revisión del entorno", () => {
@@ -115,6 +118,34 @@ describe("revisión del entorno", () => {
       const r = revisarEntorno();
       assert.deepEqual(r.faltanEsenciales, []);
       assert.equal(r.faltanDeFuncion.length, 2);
+    });
+  });
+
+  it("la clave del Operador demasiado corta se reporta como apagada", () => {
+    /*
+     * Es el caso que motivó meterla aquí. Sin este aviso, una clave mal puesta
+     * en el panel de despliegue se comporta EXACTAMENTE igual que una clave mal
+     * tecleada: el campo contesta «formato de correo no válido» y ya. No hay
+     * forma de distinguir «me he equivocado al escribir» de «la variable no
+     * está», y se pierde una tarde buscando en el sitio equivocado.
+     *
+     * Y va en «de función» y no en «esencial» porque sin ella el panel sigue
+     * teniendo su otra puerta: tirar el arranque por esto sería peor.
+     */
+    con({ ...COMPLETO, CLAVE_OPERADOR: "corta" }, () => {
+      const r = revisarEntorno();
+      assert.deepEqual(r.faltanEsenciales, []);
+      assert.equal(r.faltanDeFuncion.length, 1);
+      assert.match(r.faltanDeFuncion[0] ?? "", /CLAVE_OPERADOR/);
+      assert.match(r.faltanDeFuncion[0] ?? "", /12/);
+    });
+  });
+
+  it("y sin declarar también, en vez de callarse", () => {
+    con({ ...COMPLETO, CLAVE_OPERADOR: undefined }, () => {
+      const r = revisarEntorno();
+      assert.equal(r.faltanDeFuncion.length, 1);
+      assert.match(r.faltanDeFuncion[0] ?? "", /CLAVE_OPERADOR/);
     });
   });
 });
