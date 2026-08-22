@@ -25,9 +25,9 @@
  * después de concederla; si lo hubiera, esto no existiría.
  *
  * Cuando un webmaster tiene VARIAS concesiones sin fecha —el caso de los toques
- * repetidos— se toma la ÚLTIMA. Es la respuesta correcta si Sophon SUSTITUYE el
- * plazo, y la conservadora si lo SUMA: en ese caso la membresía real dura más de
- * lo que diremos, que es el error que no le quita nada a nadie.
+ * repetidos— se toma la ÚLTIMA, y ahora se sabe que es la respuesta EXACTA y no
+ * una aproximación conservadora: el PRO no acumula, así que la última concesión
+ * sustituyó a todas las anteriores. Su fecha es la única que cuenta.
  *
  * No escribe nada sobre un PRO que ya tenga fecha: si `proVigenteHasta` ya dice
  * algo más lejano, manda lo que hay.

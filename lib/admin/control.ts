@@ -32,7 +32,7 @@ import { componerSaldos, SOLO_DEVENGO, type Saldos } from "../devengo/saldos.ts"
 import type { Micros } from "../devengo/dinero.ts";
 import { inicioDelMes } from "../fechas.ts";
 import { diasSinActividad, DIAS_PARA_AVISAR } from "../red/inactividad.ts";
-import { diasRestantesPro, renovablePro } from "../pro/vigencia.ts";
+import { diasRestantesPro, finEfectivoDelPro, renovablePro } from "../pro/vigencia.ts";
 import { hoyContable } from "../sync/registros.ts";
 
 /**
@@ -489,7 +489,16 @@ export async function webmastersDetallados(
           select: { fecha: true, countRegister: true, countPayingUsers: true },
           orderBy: { fecha: "desc" },
         },
-        concesiones: { select: { estado: true, mensaje: true } },
+        concesiones: {
+          select: {
+            estado: true,
+            mensaje: true,
+            creadoEn: true,
+            duracionSegundos: true,
+            vigenteHasta: true,
+          },
+          orderBy: { creadoEn: "desc" },
+        },
         asientos: {
           where: SOLO_DEVENGO,
           select: { importeMicros: true },
@@ -512,6 +521,10 @@ export async function webmastersDetallados(
   const salida: FilaWebmaster[] = filas.map((w) => {
     const parado = diasSinActividad(w.filasDiarias, hoy);
     const confirmadas = w.concesiones.filter((c) => c.estado === "CONFIRMADA");
+    // La caducidad EFECTIVA: si la anotación está vacía pero la última concesión
+    // sigue dentro de plazo, hay PRO. El panel no puede decir «sin PRO» de una
+    // cuenta a la que el servidor se niega a concederle otro.
+    const finPro = finEfectivoDelPro(w.proVigenteHasta, confirmadas[0] ?? null);
 
     return {
       id: w.id,
@@ -531,9 +544,9 @@ export async function webmastersDetallados(
       vistoPorUltimaVezEn: w.vistoPorUltimaVezEn,
       desaparecidoEn: w.desaparecidoEn,
       creadoEn: w.creadoEn,
-      proVigenteHasta: w.proVigenteHasta,
-      diasDePro: diasRestantesPro(w.proVigenteHasta, ahora),
-      proRenovable: renovablePro(w.proVigenteHasta, ahora),
+      proVigenteHasta: finPro,
+      diasDePro: diasRestantesPro(finPro, ahora),
+      proRenovable: renovablePro(finPro, ahora),
       concesiones: confirmadas.length,
       concesionesFallidas: w.concesiones.filter((c) => c.estado === "FALLIDA").length,
       concesionesDeducidas: confirmadas.filter((c) => c.mensaje?.startsWith("SIN_FECHA") || c.mensaje?.startsWith("FECHA_DEDUCIDA")).length,

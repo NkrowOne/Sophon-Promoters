@@ -1,20 +1,25 @@
 /**
  * La vigencia del PRO: una sola regla, en un solo sitio.
  *
- *     Un PRO activo NO se renueva. Hay que esperar a que termine.
+ *     El PRO se concede UNA VEZ. No acumula. Mientras esté activo no se
+ *     renueva: hay que esperar a que caduque.
  *
- * **No es solo una preferencia de negocio: es la única postura segura.**
- * `lib/sophon/tipos.ts` documenta que en `setmembership` el `membership_code`
- * nombra el plan y `duration` fija el plazo —ese fue el fallo que hacía que «un
- * año» concediera 30 días—. Lo que NO está documentado en ninguna parte es qué
- * pasa al fijar la membresía sobre una suscripción viva: si el plazo se **suma**
- * o se **sustituye**.
+ * **Ya no es una postura prudente ante una duda: es lo que hace Sophon.** El
+ * comentario que había aquí decía que no se sabía si al fijar la membresía sobre
+ * una suscripción viva el plazo se suma o se sustituye, y que por si acaso no se
+ * tocaba. La duda está resuelta —lo ha confirmado el Operador—: **no acumula**.
  *
- * Si sustituye, renovar a mitad de año le borra al webmaster los meses que le
- * quedaban, y el agente creería estar regalándole tiempo mientras se lo quita.
- * Como la whitelist del Tool API no está activa en la cuenta de producción, no
- * se puede provocar el caso para comprobarlo. Así que no se llama nunca a
- * `setmembership` sobre una membresía vigente, y la pregunta deja de importar.
+ * O sea que conceder sobre un PRO vigente no regala tiempo: lo TIRA. El agente
+ * creería estar dándole meses a su webmaster mientras se los quita, y el
+ * webmaster perdería lo que le quedaba sin que nadie se enterase, porque no hay
+ * ningún endpoint que permita consultar una membresía después de concederla.
+ *
+ * Es la única operación de esta aplicación que puede QUITARLE algo a alguien, y
+ * por eso el guardián está por duplicado en `conceder.ts`: uno mira nuestra
+ * anotación (`Webmaster.proVigenteHasta`) y otro mira lo que de verdad se pidió
+ * (la tabla de concesiones). Un PRO concedido y mal anotado sigue siendo un PRO,
+ * y ya hubo una vez en que esa diferencia costó seis concesiones sobre la misma
+ * cuenta en un minuto.
  *
  * Este módulo es deliberadamente **puro** —sin Prisma, sin `next`, sin nada de
  * servidor— porque lo consumen las dos orillas: las rutas de API y los
@@ -49,16 +54,56 @@ export function diasRestantesPro(vigenteHasta: Date | null, ahora: Date = new Da
   return Math.ceil((vigenteHasta.getTime() - ahora.getTime()) / MS_POR_DIA);
 }
 
-/** Tiene PRO y no ha caducado. Es lo que bloquea una renovación. */
+/**
+ * Tiene PRO y no ha caducado. Es lo que bloquea una segunda concesión.
+ *
+ * «No ha caducado» es estrictamente mayor que ahora: un PRO que termina hoy a
+ * las 23:00 sigue siendo un PRO a las 22:59. Conceder ahí tiraría esas horas.
+ */
 export function proActivo(vigenteHasta: Date | null, ahora: Date = new Date()): boolean {
   return vigenteHasta !== null && vigenteHasta.getTime() > ahora.getTime();
+}
+
+/**
+ * Hasta cuándo tiene PRO de verdad, mirando las DOS fuentes.
+ *
+ * `Webmaster.proVigenteHasta` es nuestra ANOTACIÓN; la tabla de concesiones es el
+ * registro de lo que se PIDIÓ. Normalmente dicen lo mismo. Cuando no —pasó: una
+ * respuesta de Sophon sin fecha dejó la anotación vacía con la membresía viva—,
+ * manda la que va más lejos: un PRO concedido y mal anotado sigue siendo un PRO.
+ *
+ * Existe para que el guardián de `concederAnio` y las pantallas que pintan el
+ * botón lean lo mismo. Con dos criterios, la pantalla ofrece «Dar un año» y el
+ * servidor contesta «ya está activo», que es el defecto contra el que el propio
+ * `/api/pro` lleva escrita una advertencia desde antes de que esto existiera.
+ *
+ * El fin de la concesión se calcula desde `creadoEn + duracionSegundos` cuando no
+ * trae `vigenteHasta`, porque ese campo es justo el que puede faltar.
+ */
+export function finEfectivoDelPro(
+  proVigenteHasta: Date | null,
+  ultimaConcesion?: {
+    creadoEn: Date;
+    duracionSegundos: number;
+    vigenteHasta: Date | null;
+  } | null,
+): Date | null {
+  const porConcesion = ultimaConcesion
+    ? (ultimaConcesion.vigenteHasta ??
+      new Date(ultimaConcesion.creadoEn.getTime() + ultimaConcesion.duracionSegundos * 1000))
+    : null;
+
+  if (!proVigenteHasta) return porConcesion;
+  if (!porConcesion) return proVigenteHasta;
+  return porConcesion.getTime() > proVigenteHasta.getTime() ? porConcesion : proVigenteHasta;
 }
 
 /**
  * Se le puede conceder PRO hoy.
  *
  * Dos casos y solo dos: no lo ha tenido nunca, o el que tenía ya se apagó. Todo
- * lo demás es esperar.
+ * lo demás es esperar, porque no acumula: adelantar la concesión no suma plazo,
+ * sustituye el que hay.
  */
 export function renovablePro(vigenteHasta: Date | null, ahora: Date = new Date()): boolean {
   return !proActivo(vigenteHasta, ahora);

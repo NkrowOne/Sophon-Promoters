@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
-import { DIAS_AVISO_PRO, diasRestantesPro, renovablePro } from "@/lib/pro/vigencia";
+import {
+  DIAS_AVISO_PRO,
+  diasRestantesPro,
+  finEfectivoDelPro,
+  renovablePro,
+} from "@/lib/pro/vigencia";
 
 /**
  * La cola de renovaciones.
@@ -40,7 +45,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
           where: { estado: "CONFIRMADA" },
           orderBy: { creadoEn: "desc" },
           take: 1,
-          select: { creadoEn: true, vigenteHasta: true },
+          select: { creadoEn: true, vigenteHasta: true, duracionSegundos: true },
         },
       },
   });
@@ -49,12 +54,22 @@ export async function GET(peticion: Request): Promise<NextResponse> {
 
   const salida = webmasters.map((w) => {
     const vigente = w.concesiones[0];
+    /*
+     * La caducidad efectiva, no la anotada.
+     *
+     * Esta pantalla PINTA EL BOTÓN, así que tiene que decidir con lo mismo que
+     * el guardián de `concederAnio`: si la anotación está vacía pero la última
+     * concesión sigue dentro de plazo, hay PRO. Con el campo a secas, la
+     * pantalla ofrecía «Dar un año» y el servidor contestaba «ya está activo»
+     * —justo el defecto contra el que la cabecera de este fichero ya avisaba—.
+     */
+    const fin = finEfectivoDelPro(w.proVigenteHasta, vigente ?? null);
     return {
       email: w.emailOriginal,
       id: w.emailNormalizado,
       bloqueado: w.estadoSophon === "BLOQUEADO" || w.estadoSophon === "PENDIENTE_BORRADO",
-      proVigenteHasta: w.proVigenteHasta ? isoFecha(w.proVigenteHasta) : null,
-      diasRestantes: diasRestantesPro(w.proVigenteHasta, ahora),
+      proVigenteHasta: fin ? isoFecha(fin) : null,
+      diasRestantes: diasRestantesPro(fin, ahora),
       // La Mecha necesita el periodo completo para dibujar lo consumido.
       diasConcedidos:
         vigente?.vigenteHasta && vigente.creadoEn
@@ -64,7 +79,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
             )
           : null,
       /** Nunca tuvo PRO: su alta se quedó a medias o llegó como huérfano. */
-      sinPro: w.proVigenteHasta === null,
+      sinPro: fin === null,
       /**
        * Se le puede conceder HOY: nunca tuvo PRO o el suyo ya se apagó.
        *
@@ -73,9 +88,9 @@ export async function GET(peticion: Request): Promise<NextResponse> {
        * pantalla acabaría ofreciendo botones que el servidor rechaza —o
        * escondiendo los que sí funcionan—.
        */
-      renovable: renovablePro(w.proVigenteHasta, ahora),
+      renovable: renovablePro(fin, ahora),
       /** Cuándo se libera. Es lo único accionable que se puede decir de un PRO vivo. */
-      renovableEl: w.proVigenteHasta ? isoFecha(w.proVigenteHasta) : null,
+      renovableEl: fin ? isoFecha(fin) : null,
     };
   });
 
