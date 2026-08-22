@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { FilaWebmaster } from "@/lib/admin/control";
 import { DIAS_VENTANA } from "@/lib/admin/control";
 import { Importe } from "./Importe";
-import { EstadoWebmaster, Num, Senal, Senales, SenalPro, Serie, dia } from "./Control";
+import { Correo, EstadoWebmaster, Num, Senal, Senales, SenalPro, Serie, dia } from "./Control";
 
 /**
  * El origen, en una palabra.
@@ -79,7 +79,7 @@ export function TablaWebmasters({
             <th className="num">Parado</th>
             <th className="num">Ganado</th>
             <th className="secundaria">Origen</th>
-            <th>Alta</th>
+            <th className="secundaria">Alta</th>
             <th className="secundaria">Devenga</th>
             <th className="secundaria">Visto</th>
             <th className="secundaria">UID</th>
@@ -88,12 +88,34 @@ export function TablaWebmasters({
         <tbody>
           {filas.map((w) => (
             <tr key={w.id}>
-              <td className="ancla mono" style={{ maxWidth: "24ch" }}>
+              {/* Sin `mono`. Una dirección de correo no es una medida que se
+                  compare dígito sobre dígito: es un nombre. En monoespaciada
+                  ocupaba una cuarta parte más de ancho —y en el móvil eso era
+                  `protonmail.c` en un renglón y `om` en el siguiente— a cambio
+                  de una alineación que aquí no sirve de nada. La mono se queda
+                  donde gana algo: el UID y las fechas. */}
+              {/* El ancho de la columna vive en `admin.css` y no aquí: tiene que
+                  desaparecer en el móvil —donde manda el reparto de la lista— y un
+                  atributo `style` no se puede desactivar con una consulta de
+                  medios. Con el mínimo en línea, la fila del móvil pedía 365 px en
+                  una pantalla de 347 y la cifra se caía al renglón de abajo. */}
+              <td className="ancla correo">
+                {/* `nowrap` en el escritorio: si envuelve, TODAS las filas miden dos
+                    renglones por culpa de las tres direcciones largas y la tabla
+                    pierde la mitad de su densidad. Recortada, la dirección entera
+                    sigue en el `title` y la columna va fija a la izquierda. En el
+                    móvil la consulta de medios lo devuelve a `normal`, que es donde
+                    el `<wbr>` de `Correo` parte por la arroba. */}
                 <span
-                  style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis" }}
+                  style={{
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
                   title={w.email}
                 >
-                  {w.email}
+                  <Correo valor={w.email} />
                 </span>
               </td>
 
@@ -117,10 +139,12 @@ export function TablaWebmasters({
                 <EstadoWebmaster estado={w.estado} />
               </td>
 
-              {/* `nowrap`, por lo mismo que las incidencias de la plantilla: la
-                  tabla ya se desplaza a lo ancho, así que apilar las chapas aquí
-                  no ahorra nada y estira la fila. El webmaster con seis
-                  concesiones abría tres renglones en blanco en la parte visible. */}
+              {/* En el escritorio las señales van seguidas en una línea: la tabla
+                  se desplaza a lo ancho, así que apilarlas no ahorra nada y
+                  estira la fila. En el móvil la celda es un renglón entero de la
+                  lista y envuelven solas — que es lo que antes no pasaba, porque
+                  la celda medía media pantalla y las cuatro señales del PRO se
+                  salían por encima de la de al lado. */}
               <td data-etiqueta="PRO">
                 <Senales>
                   <SenalPro diasDePro={w.diasDePro} proVigenteHasta={w.proVigenteHasta} />
@@ -161,7 +185,11 @@ export function TablaWebmasters({
                   <span className={w.apagado ? "vivo" : undefined}>{w.diasSinActividad} d</span>
                 )}
               </td>
-              <td className="num" data-etiqueta="Ganado">
+              {/* `cabeza`: en el móvil sube a la primera línea, a la derecha del
+                  correo. Es la cifra que se recorre en vertical buscando la que
+                  canta, y entre los otros ocho datos habría que ir fila por fila
+                  leyendo rótulos para encontrarla. */}
+              <td className="num cabeza" data-etiqueta="Ganado">
                 <Importe micros={w.ganadoMicros} />
               </td>
 
@@ -172,7 +200,9 @@ export function TablaWebmasters({
               >
                 {ORIGEN[w.origen] ?? w.origen.toLowerCase()}
               </td>
-              <td className="mono apoyo" data-etiqueta="Alta">
+              {/* Administrativa: se mira cuando algo ya no cuadra, y eso se hace
+                  sentado. En el escritorio sigue entera. */}
+              <td className="mono apoyo secundaria" data-etiqueta="Alta">
                 {dia(w.atribuidoEn)}
               </td>
               <td className="mono apoyo secundaria" data-etiqueta="Devenga">

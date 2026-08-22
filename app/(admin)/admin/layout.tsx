@@ -34,21 +34,14 @@ export default async function LayoutAdmin({ children }: { children: React.ReactN
           1080 porque desde que hay tablas de quince columnas el ancho anterior
           obligaba a desplazarse en horizontal para leer una fila. */}
       <div className="marco">
-        <header
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            gap: "1rem",
-            borderBottom: "1px solid var(--p-borde)",
-            paddingBottom: "0.75rem",
-            marginBottom: "1.75rem",
-            flexWrap: "wrap",
-          }}
-        >
-          {/* `flexWrap` y no una barra rígida: en un móvil los cinco enlaces no
-              caben en una línea y sin esto «Bonos» se salía de la pantalla. */}
-          <nav style={{ display: "flex", gap: "1rem 1.25rem", alignItems: "center", flexWrap: "wrap" }}>
+        <header className="cabecera">
+          {/* En el escritorio envuelve; en un móvil se convierte en un carril que
+              se arrastra. Envolviendo allí también, los seis enlaces y «Cerrar
+              sesión» ocupaban tres renglones —«Bonos» solo en uno— y la cabecera
+              se comía el primer tercio de la pantalla. La consulta de medios que
+              lo arregla está en `admin.css`: un atributo `style` no puede
+              tenerla, que es por lo que esto dejó de ir en línea. */}
+          <nav className="navegacion">
             {/* El isotipo hace de inicio, y sustituye a la palabra «Panel».
                 Un rótulo de navegación que dice «Panel» dentro del panel no
                 informa de nada: el sitio ya se sabe. La marca sí dice algo —de
@@ -77,7 +70,7 @@ export default async function LayoutAdmin({ children }: { children: React.ReactN
               Bonos
             </Link>
           </nav>
-          <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
+          <div className="salida">
             {desdeTelegram && (
               /* `<a>` y no `<Link>`: la Mini App es OTRO grupo de rutas, con su
                  propia raíz y su propia hoja. El enrutador intentaría montarla

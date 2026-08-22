@@ -383,6 +383,20 @@
 }
 
 /*
+ * La columna del correo: entre 24 y 26 caracteres.
+ *
+ * El máximo impide que una dirección larguísima se lleve media tabla. El mínimo
+ * hace falta por una razón menos obvia: el correo va dentro de un `span` con
+ * `overflow: hidden`, y una caja con el desbordamiento oculto APORTA CERO al
+ * reparto de anchos de una tabla. Sin mínimo, el navegador le dejaba 132 px y
+ * recortaba con puntos suspensivos direcciones que caben enteras de sobra.
+ */
+.panel table.densa td.ancla.correo {
+  min-width: 24ch;
+  max-width: 26ch;
+}
+
+/*
  * LA COLUMNA QUE ANCLA LA FILA SE QUEDA QUIETA.
  *
  * Desplazada tres columnas ya no se sabe de quién es la fila. El filete lo pinta
@@ -429,6 +443,22 @@
    y el dato ilegible. Las que llevan `max-width` propio siguen recortando. */
 .panel td.mono {
   white-space: nowrap;
+}
+
+/*
+ * El `<wbr>` de los correos solo existe en el MÓVIL.
+ *
+ * `Correo` mete uno detrás de la arroba para que una dirección larga se parta
+ * por ahí y no por la mitad del dominio. En el escritorio eso no hace falta —la
+ * columna recorta con puntos suspensivos y la dirección entera está en el
+ * `title`— y además estorba: Chromium trata el corte del `<wbr>` como
+ * irrenunciable y lo aplica AUNQUE la celda diga `white-space: nowrap`. Medido,
+ * no supuesto: con `nowrap` puesto a mano, cada correo seguía saliendo en dos
+ * renglones y la tabla entera medía el doble de alto. `white-space: inherit`
+ * sobre el propio `<wbr>` tampoco lo evita; lo único que lo quita es no pintarlo.
+ */
+.panel wbr {
+  display: none;
 }
 
 /*
@@ -479,7 +509,13 @@
  */
 .panel .senales {
   display: inline-flex;
-  flex-wrap: wrap;
+  /* En el ESCRITORIO no envuelve. La tabla ya se desplaza a lo ancho, así que
+     partir «365 d · 2027-08-22 · 6 concesiones · fecha deducida» en tres
+     renglones no ahorra nada: triplica el alto de la fila y deja un punto medio
+     colgando al final de cada renglón, como una frase a medio terminar. En el
+     móvil sí envuelve —la celda es un renglón de la lista, no una columna— y esa
+     regla está en la consulta de medios. */
+  flex-wrap: nowrap;
   align-items: baseline;
   gap: 0 0.3rem;
 }
@@ -512,7 +548,11 @@
  * clara de lo que es.
  */
 .panel .serie {
-  display: flex;
+  /* `inline-flex` y no `flex`: en el móvil la celda lleva su rótulo delante como
+     texto, y una caja de bloque lo dejaba solo en un renglón con el gráfico
+     colgando debajo, sin nada que dijera de qué era. */
+  display: inline-flex;
+  vertical-align: -0.35em;
   align-items: flex-end;
   gap: 1px;
   height: 22px;
@@ -629,6 +669,37 @@
 }
 
 /*
+ * La cabecera del panel.
+ *
+ * Estaba en estilos en línea, y por eso no podía cambiar en un móvil: un
+ * atributo `style` no admite consulta de medios. El resultado era una cabecera
+ * de tres renglones en la pantalla donde menos sitio hay.
+ */
+.panel .cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--p-borde);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+
+.panel .cabecera .navegacion {
+  display: flex;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.panel .cabecera .salida {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/*
  * El fondo lo pinta también el `body`.
  *
  * `.panel` es un bloque: mide el ancho del hueco, no el del documento. En cuanto
@@ -706,16 +777,56 @@ body:has(> .panel) {
     width: 100%;
   }
 
-  /* Cada dato lleva su etiqueta pegada, así que la cabecera sobra. */
+  /* Cada dato lleva su rótulo pegado, así que la cabecera sobra. */
   .panel table.densa thead {
     display: none;
   }
 
+  /*
+   * ── LA FILA SE LEE COMO UNA FRASE, NO COMO UNA FICHA ──
+   *
+   * Antes cada fila se partía en una rejilla de dos columnas con el rótulo
+   * ENCIMA de cada dato. Siete pares visibles por webmaster, nueve renglones por
+   * fila, ciento y pico pares por pantalla: eso no es una lista, es un volcado.
+   * Y la pregunta que trae aquí al Operador —cuál de estos sesenta tiene algo
+   * raro— se contesta comparando, que es justo lo que un volcado impide: para
+   * saber si «activo» es de este webmaster o del de arriba hay que leerse el
+   * rótulo de al lado.
+   *
+   * Así lo resuelven las herramientas que viven de tablas densas en un móvil
+   * —Stripe, Linear, Vercel—: la fila deja de ser una tabla en miniatura y pasa
+   * a ser una línea de identidad con una línea de apoyo debajo.
+   *
+   *   pedritaas77@gmail.com                                0,00 $
+   *   Agente Nkrow  Estado activo  PRO 365 d · 2027-08-22
+   *   6 concesiones · fecha deducida
+   *
+   * Arriba, quién es y —a la derecha— la cifra que decide. Debajo, lo demás
+   * seguido, con su rótulo delante y en gris. El ojo baja por la columna de
+   * identidades y por la de importes sin leer nada más, y solo se para donde hay
+   * rojo. Lo que en la rejilla eran nueve renglones aquí son tres.
+   *
+   * ── EL SALTO DE LÍNEA NO PUEDE DEPENDER DE LOS DATOS ──
+   *
+   * Con `flex-grow` a secas no basta, y esto costó una ronda de capturas: el
+   * navegador decide dónde parte la línea con los tamaños BASE, y solo después
+   * reparte el sobrante. Así que una fila con el nombre corto —«Luca Bianchi»—
+   * se subía el estado a la cabecera mientras la de al lado no, y dos filas
+   * seguidas con distinta forma se leen como dos cosas distintas.
+   *
+   * Lo que lo fija es que las dos piezas de la cabecera SUMEN la línea entera:
+   * la cifra mide 9rem clavadas y la identidad mide «todo menos eso».
+   * Cualquier dato que venga detrás ya no cabe, siempre, con cualquier nombre.
+   * Y de paso las cifras quedan en columna entre filas, que es lo que hace que
+   * se puedan recorrer sin leerlas.
+   */
   .panel table.densa tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem 1rem;
-    padding: 0.9rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.9rem;
+    row-gap: 0.3rem;
+    padding: 0.85rem 0;
     border-bottom: 1px solid var(--p-borde);
   }
 
@@ -736,6 +847,9 @@ body:has(> .panel) {
     box-shadow: none;
     background: none;
     white-space: normal;
+    /* Cada celda es un dato entero: lo que envuelve es la lista, no la palabra.
+       Un `min-width` de contenido dejaría a la más larga empujando la fila. */
+    min-width: 0;
   }
 
   /*
@@ -751,16 +865,40 @@ body:has(> .panel) {
     background: none;
   }
 
-  /* El correo manda: ocupa las dos columnas y va primero. */
+  /* La identidad manda: abre la fila, crece hasta llenar la línea, y va un punto
+     por encima del resto en cuerpo y en peso. */
   .panel table.densa td.ancla {
-    grid-column: 1 / -1;
+    order: 0;
+    /* La BASE, no un mínimo. El navegador parte la línea con los tamaños base y
+       el de `auto` es el del contenido: con un correo largo la identidad sola ya
+       pasaba del ancho y echaba la cifra al renglón de abajo, distinta en cada
+       fila. Fijada a «todo menos la cifra», la cabecera mide siempre lo mismo y
+       lo que sobra envuelve DENTRO del correo.
+
+       10,5rem = 9 de la cifra + 0,9 del hueco + 0,6 de holgura. La holgura no
+       es un margen de seguridad de esos que se ponen por si acaso: sin ella la
+       cuenta daba 100% CLAVADO y un redondeo de medio píxel bastaba para que la
+       cifra se cayera al renglón de abajo en unas filas sí y en otras no. Con
+       ella la línea nunca llega al 100%, y como no hay dato más estrecho que
+       9,6 px, lo que venga detrás sigue envolviendo siempre. El `flex-grow` se
+       come esa holgura, así que la cifra queda pegada a la derecha igual. */
+    flex: 1 1 calc(100% - 10.5rem);
     max-width: none;
-    /* 0,875 y no 0,9375: en monoespaciada, quince píxeles hacen que un correo
-       normal no quepa en 360 y se parta por la mitad de la palabra. */
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.3;
     /* `break-word` y no `anywhere`: parte solo si de verdad no cabe, y prueba
-       antes por los puntos de corte naturales del correo. */
+       antes por los puntos de corte naturales de la dirección. */
     overflow-wrap: break-word;
+  }
+
+  /* Y el ancho de la columna del correo se va con la tabla: aquí no hay
+     columnas, hay renglones, y un mínimo de 24 caracteres —207 px— sumado a la
+     cifra pedía 365 px en una pantalla que da 347. La cifra se caía al renglón
+     de abajo en TODAS las filas. */
+  .panel table.densa td.ancla.correo {
+    min-width: 0;
+    max-width: none;
   }
 
   .panel table.densa td.ancla span {
@@ -770,27 +908,99 @@ body:has(> .panel) {
   }
 
   /*
-   * La etiqueta de cada dato, encima y pequeña.
+   * La cifra que decide sube a la cabecera de la fila.
+   *
+   * Es la única que se compara EN VERTICAL: el Operador recorre la columna de
+   * importes de arriba abajo buscando el que canta. Enterrada entre los otros
+   * ocho datos habría que ir fila por fila leyendo rótulos, que es exactamente
+   * el trabajo que la tabla del escritorio ahorra con una columna.
+   *
+   * Sin rótulo: encabezando la fila junto al nombre, un «Ganado» delante del
+   * número pesa más que el número.
+   */
+  .panel table.densa td.cabeza {
+    order: 1;
+    /* Ancho FIJO, no `auto`: es la mitad de la resta que fuerza el salto, y
+       además pone las cifras en columna de una fila a otra. Si una se pasa,
+       envuelve dentro de su celda; no empuja la página. */
+    flex: 0 0 9rem;
+    text-align: right;
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+
+  /*
+   * Todo lo demás baja a la línea de apoyo, en el orden en que está escrito.
+   *
+   * `0 1 auto` y no `0 0 auto`: sin encoger, una celda más ancha que la pantalla
+   * —las cuatro señales del PRO de un webmaster con seis concesiones— no envuelve
+   * por dentro, se sale por la derecha y arrastra la página entera con ella.
+   */
+  .panel table.densa tbody td:not(.ancla):not(.cabeza) {
+    order: 2;
+    flex: 0 1 auto;
+  }
+
+  /*
+   * Una celda que se lleva su renglón entero.
+   *
+   * Las incidencias de una red son una frase larga y en rojo —«1 bloqueado · 1
+   * sin PRO · 1 con el PRO caducado»— y compartiendo línea con «Disponible
+   * 384,00 $» quedaban como el final de un párrafo: lo más urgente de la fila,
+   * leído lo último. Con su renglón, es lo que se ve al pasar.
+   */
+  /* Aquí sí: la lista deja envolver, y el corte por la arroba es la diferencia
+     entre `esgabrielcabrera@ / gmail.com` y `esgabrielcabrera@gmail. / com`. */
+  .panel wbr {
+    display: inline;
+  }
+
+  /* Aquí la celda es un renglón entero y no una columna: las señales envuelven,
+     y cada una entera —`nowrap` sigue puesto en la señal— para que «6
+     concesiones» no acabe partido en dos. */
+  .panel .senales {
+    flex-wrap: wrap;
+  }
+
+  .panel table.densa tbody td.linea-propia {
+    /* Detrás de la regla de arriba y con la misma cuenta de elementos, que si no
+       gana ella —lleva dos `:not()`, que puntúan como clases— y la celda se
+       queda sin encoger: las incidencias de la red más rota se salían 125 px por
+       la derecha y desplazaban la página entera. */
+    flex: 1 1 100%;
+  }
+
+  /*
+   * El rótulo va DELANTE del dato, no encima.
+   *
+   * Encima, cada dato costaba dos renglones y la fila entera nueve. Delante y en
+   * gris pequeño, el rótulo se aparta cuando no se le busca y está cuando hace
+   * falta, que es la diferencia entre «activo» y «Estado activo» cuando ya
+   * llevas cuarenta filas leídas.
    *
    * Sale del atributo, no de un segundo marcado: el mismo `<td>` sirve para la
-   * tabla del escritorio y para la ficha del móvil, y una columna nueva no puede
-   * quedarse sin etiqueta porque la etiqueta es la cabecera que ya tenía.
+   * tabla del escritorio y para la lista del móvil, y una columna nueva no puede
+   * quedarse sin rótulo porque el rótulo es la cabecera que ya tenía.
    */
   .panel table.densa td[data-etiqueta]::before {
     content: attr(data-etiqueta);
-    display: block;
-    /* Nunca en monoespaciada, aunque la celda lo sea: es una etiqueta. */
+    /* Nunca en monoespaciada, aunque la celda lo sea: es un rótulo. */
     font-family: var(--fuente), system-ui, -apple-system, sans-serif;
-    font-size: 0.6875rem;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 500;
     color: var(--p-apoyo);
-    margin-bottom: 0.05rem;
+    margin-right: 0.3rem;
   }
 
-  /* Alineados a la izquierda: en una ficha de dos columnas, un número pegado a
-     la derecha se separa de su propia etiqueta. */
+  /* En una línea corrida, un número alineado a la derecha se separa de su propio
+     rótulo. Y no se parte: «14 d» en dos renglones no es una medida. */
   .panel table.densa td.num {
     text-align: left;
+    white-space: nowrap;
+  }
+
+  .panel table.densa td.num.cabeza {
+    text-align: right;
   }
 
   /*
@@ -803,5 +1013,46 @@ body:has(> .panel) {
   .panel table.densa td.secundaria,
   .panel table.densa th.secundaria {
     display: none;
+  }
+
+  /*
+   * La barra de navegación, un carril y no cinco renglones.
+   *
+   * Con `wrap`, los seis enlaces y «Cerrar sesión» caían en tres líneas —«Bonos»
+   * solo en una— y la cabecera se comía el primer tercio de la pantalla antes de
+   * enseñar un solo dato. Un carril que se arrastra es lo que hace cualquier
+   * herramienta con más pestañas que ancho, y deja la cabecera en una línea.
+   */
+  .panel .cabecera {
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+  }
+
+  .panel .cabecera .navegacion {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    /* Sin barra visible: es un carril de siete enlaces, no una región de
+       desplazamiento, y la barra le robaría un renglón a la cabecera. */
+    scrollbar-width: none;
+    /* El borde del carril no corta una palabra por la mitad. */
+    scroll-snap-type: x proximity;
+    min-width: 0;
+    /* El último enlace se desvanece en vez de cortarse a hueso contra «Cerrar
+       sesión». Un corte limpio se lee como un fallo de maquetación; un degradado
+       se lee como «hay más, arrastra». */
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+  }
+
+  .panel .cabecera .navegacion::-webkit-scrollbar {
+    display: none;
+  }
+
+  .panel .cabecera .navegacion > * {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .panel .cabecera .salida {
+    flex: 0 0 auto;
   }
 }

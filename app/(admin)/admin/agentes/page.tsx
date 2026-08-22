@@ -126,7 +126,11 @@ export default async function Agentes() {
                   <td className="num" data-etiqueta="Registros 14 d">
                     <Num valor={a.registrosVentana} />
                   </td>
-                  <td className="num" data-etiqueta="Devengado">
+                  {/* `cabeza`: en el móvil sube a la primera línea, junto al nombre.
+                      Es la cifra con la que se comparan los agentes entre sí, y
+                      es la que hay que poder recorrer en vertical sin leer nada
+                      más. */}
+                  <td className="num cabeza" data-etiqueta="Devengado">
                     <Importe micros={a.saldos.devengadoMicros} />
                   </td>
                   <td className="num" data-etiqueta="Disponible">
@@ -141,7 +145,10 @@ export default async function Agentes() {
                       <span className="nulo">—</span>
                     )}
                   </td>
-                  <td data-etiqueta="Incidencias">
+                  {/* `linea-propia`: en el móvil se lleva su renglón entero. Es lo
+                      más urgente de la fila y compartiendo línea con «Disponible
+                      384,00 $» quedaba de coletilla, leído lo último. */}
+                  <td className="linea-propia" data-etiqueta="Incidencias">
                     {avisos.length === 0 ? (
                       <span className="nulo">—</span>
                     ) : (

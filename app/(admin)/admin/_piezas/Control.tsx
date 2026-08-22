@@ -131,6 +131,29 @@ export function Serie({ valores, maximo }: { valores: readonly number[]; maximo:
   );
 }
 
+/**
+ * Una dirección de correo que envuelve por donde debe.
+ *
+ * Sin ayuda, el navegador parte por donde le cabe y en un móvil salía
+ * `esgabrielcabrera@gmail.` en un renglón y `com` en el siguiente, que se lee
+ * como una dirección rota. Un `<wbr>` detrás de la arroba le da el único punto
+ * de corte que un correo tiene de verdad: usuario arriba, dominio abajo.
+ *
+ * No fuerza nada —si cabe entero, cabe entero— y `overflow-wrap` sigue puesto de
+ * red por si aparece una dirección sin arroba y más larga que la pantalla.
+ */
+export function Correo({ valor }: { valor: string }) {
+  const corte = valor.lastIndexOf("@");
+  if (corte <= 0) return <>{valor}</>;
+  return (
+    <>
+      {valor.slice(0, corte + 1)}
+      <wbr />
+      {valor.slice(corte + 1)}
+    </>
+  );
+}
+
 /** `AAAA-MM-DD`. Sin hora: en una tabla de veinte columnas la hora es ruido. */
 export function dia(d: Date | null | undefined): string {
   return d ? d.toISOString().slice(0, 10) : "—";
