@@ -14,7 +14,11 @@ import { Isotipo } from "@/components/Isotipo";
 export default function LayoutAdmin({ children }: { children: React.ReactNode }) {
   return (
     <div className="panel">
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "1.5rem 1.25rem 4rem" }}>
+      {/* 1320 y no 1080: desde que hay tablas de quince columnas —la red de un
+          agente con su PRO, su tráfico y su origen— el ancho anterior obligaba a
+          desplazarse en horizontal para leer una sola fila. La prosa NO se
+          estira con el marco: `admin.css` le pone medida propia. */}
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem 1.25rem 4rem" }}>
         <header
           style={{
             display: "flex",
@@ -42,6 +46,9 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
             </Link>
             <Link href="/admin/agentes" className="apoyo" style={{ textDecoration: "none" }}>
               Agentes
+            </Link>
+            <Link href="/admin/webmasters" className="apoyo" style={{ textDecoration: "none" }}>
+              Webmasters
             </Link>
             <Link href="/admin/retiros" className="apoyo" style={{ textDecoration: "none" }}>
               Retiros

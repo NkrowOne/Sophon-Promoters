@@ -308,3 +308,268 @@
     transform: none;
   }
 }
+
+/* ═══════════════════════ EL CONTROL DE MANDO ═══════════════════════
+ *
+ * Piezas que el panel no tenía porque hasta ahora no había ninguna pantalla que
+ * comparara cincuenta filas de golpe. Todas salen de lo que YA existe aquí
+ * —mismos tokens, mismo radio, mismas cifras tabulares— y ninguna inventa un
+ * color: el amarillo sigue siendo la acción y el rojo sigue siendo el problema.
+ * Un tercer color habría hecho que ninguno de los tres significara nada.
+ */
+
+/*
+ * La tabla densa.
+ *
+ * La normal respira 0,6rem por celda, que está bien para ocho filas de barridos
+ * y es una página y media de desplazamiento para una red de sesenta webmasters.
+ * Aquí se comparan números entre filas, y para eso lo que importa es cuántas
+ * caben a la vez en el ojo.
+ */
+.panel .tabla-marco {
+  overflow-x: auto;
+  /* El filete de abajo cierra la tabla cuando desborda: sin él, una tabla
+     cortada por la derecha no se distingue de una tabla que se acaba ahí. */
+  border-bottom: 1px solid var(--p-borde);
+}
+
+.panel table.densa td {
+  padding: 0.4rem 0.7rem 0.4rem 0;
+  font-size: 0.875rem;
+}
+
+.panel table.densa th {
+  padding: 0 0.7rem 0.4rem 0;
+  /* La cabecera se queda mientras se recorre la tabla. En una de veinte columnas
+     es la diferencia entre leer un número y adivinar de qué es. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--p-fondo);
+}
+
+/* La fila bajo el puntero, porque a lo ancho de veinte columnas el ojo se cae
+   de renglón. Es el mismo papel cálido de las superficies, no un azul de
+   selección: aquí no se selecciona nada, solo se sigue la línea. */
+.panel table.densa tbody tr:hover {
+  background: var(--p-superficie);
+}
+
+/* La primera columna ancla la fila, así que se queda quieta y con peso. */
+.panel table.densa td.ancla {
+  font-weight: 550;
+}
+
+.panel td.mono,
+.panel th.mono {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.8125rem;
+}
+
+/*
+ * La chapa de estado.
+ *
+ * Píldora y no cuadrado: es la misma pieza que la Mini App usa en la Malla para
+ * decir «Sin PRO» o «bloqueado», y el Operador y el agente tienen que estar
+ * mirando la misma etiqueta cuando hablan del mismo webmaster.
+ *
+ * En reposo NO lleva color. Un panel donde cada estado tiene su tono acaba
+ * siendo un semáforo de catorce luces donde ninguna llama la atención; aquí solo
+ * se tiñe lo que exige hacer algo.
+ */
+.panel .chapa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--p-borde);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 550;
+  line-height: 1.5;
+  color: var(--p-apoyo);
+  white-space: nowrap;
+}
+
+/* Hay que hacer algo, y pronto. El mismo rojo que marca un barrido caído. */
+.panel .chapa.problema {
+  color: var(--p-vivo);
+  border-color: color-mix(in srgb, var(--p-vivo) 45%, transparent);
+}
+
+/* Conviene mirarlo, no corre prisa. Va del marrón de la casa, que ya es el color
+   del dato en todo el producto. */
+.panel .chapa.atencion {
+  color: var(--p-tinta);
+  border-color: color-mix(in srgb, var(--p-tinta) 35%, transparent);
+}
+
+/* Está bien. Sin tinte: el estado normal no compite por la mirada. */
+.panel .chapa.bien {
+  color: var(--p-texto);
+}
+
+/*
+ * La serie de catorce días.
+ *
+ * Es el mismo gráfico que la Malla del agente y con la misma regla —una columna
+ * por día, todas a la misma escala— para que el Operador vea la forma que ve el
+ * agente. Aquí cabe en una celda porque lo que se lee no es el valor exacto sino
+ * el hueco: dónde dejó de entrar tráfico.
+ */
+.panel .serie {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 22px;
+  width: 84px;
+}
+
+.panel .serie i {
+  flex: 1;
+  background: var(--p-tinta);
+  border-radius: 1px;
+  /* Un día a cero deja un pelo visible en la base. Sin él, catorce días sin
+     tráfico son una celda vacía, que se lee como «no hay datos» y no como
+     «está parado», que es lo contrario. */
+  min-height: 1px;
+  opacity: 0.85;
+}
+
+.panel .serie i[data-cero="si"] {
+  background: var(--p-borde);
+  opacity: 1;
+}
+
+/*
+ * La barra de filtros.
+ *
+ * Enlaces, no un desplegable con JavaScript: el estado del filtro vive en la URL
+ * y por tanto se puede compartir, marcar y recargar. En un panel desde el que se
+ * pega una fila en un chat, eso vale más que la animación de un `select`.
+ */
+.panel .filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.panel .filtros a {
+  text-decoration: none;
+  border: 1px solid var(--p-borde);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.8125rem;
+  color: var(--p-apoyo);
+  transition:
+    background-color var(--p-t-toque) var(--p-curva),
+    border-color var(--p-t-toque) var(--p-curva);
+}
+
+.panel .filtros a:hover {
+  background: var(--p-superficie);
+}
+
+/* El filtro puesto se marca con tinta y peso, no con el amarillo: el amarillo es
+   la acción, y un filtro activo no es una acción pendiente. */
+.panel .filtros a[aria-current="page"] {
+  color: var(--p-texto);
+  border-color: var(--p-tinta);
+  font-weight: 600;
+}
+
+/* La rejilla de datos sueltos, que estaba escrita a mano en cada página. */
+.panel .rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 1.1rem 1.75rem;
+}
+
+/* Una cifra que se lee de un vistazo, en tres tamaños y sin más decisiones. */
+.panel .cifra {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  margin: 0.15rem 0 0;
+}
+
+.panel .cifra.grande {
+  font-size: 3rem;
+  font-weight: 620;
+  letter-spacing: -0.035em;
+}
+
+.panel .cifra.pequena {
+  font-size: 1.125rem;
+}
+
+/* Un cero no es un dato: es la ausencia de uno. Se apaga para que las columnas
+   con contenido salten solas en una tabla llena de ceros. */
+.panel .nulo {
+  color: var(--p-apoyo);
+  opacity: 0.55;
+}
+
+/*
+ * LA MEDIDA DE LA PROSA, que el marco ancho dejó al descubierto.
+ *
+ * El armazón pasó de 1080 a 1320 px para que quepan las tablas de la red, y un
+ * párrafo de apoyo a 1320 px son unos 110 caracteres por línea: el ojo pierde el
+ * renglón al volver. Se le pone medida a los párrafos y a los elementos de
+ * lista, que son lo único que se lee de corrido en el panel.
+ *
+ * Las celdas quedan fuera. Dentro de una tabla `.apoyo` no es prosa, es un dato
+ * secundario —un correo, una fecha, un motivo— y limitarlo a 68ch rompería la
+ * alineación de la columna sin que nadie ganara nada.
+ */
+.panel p.apoyo,
+.panel li {
+  max-width: 68ch;
+}
+
+/*
+ * Los rótulos NO. Aprendido mirando la pantalla: el rótulo de sección lleva el
+ * filete que la abre, así que limitarlo a 68ch dejaba la línea cortada a media
+ * página, como si la sección terminara ahí. Una regla de medida de prosa
+ * aplicada a un elemento que no es prosa.
+ */
+.panel .rotulo {
+  max-width: none;
+}
+
+/* Y dentro de una tabla `.apoyo` no es prosa: es un dato secundario —un motivo,
+   un navegador— y una medida ahí rompe la alineación de la columna. */
+.panel td .apoyo,
+.panel td p,
+.panel th p {
+  max-width: none;
+}
+
+/*
+ * LAS CABECERAS NO VAN EN MONOESPACIADA.
+ *
+ * `.num` pone `ui-monospace` para que los importes se puedan comparar dígito
+ * sobre dígito, y eso se estaba aplicando también al `<th>`. Con dos columnas
+ * numéricas pasaba desapercibido; con ocho, media cabecera de la tabla salía en
+ * una tipografía distinta del resto del panel. Un encabezado es una etiqueta, no
+ * una medida: la mono ahí es disfraz. Las cifras tabulares se quedan, que esas
+ * sí alinean la columna con su cabecera.
+ */
+.panel th.num {
+  font-family: inherit;
+  font-size: 0.8125rem;
+}
+
+/*
+ * Las celdas mono no parten.
+ *
+ * Una fecha `2026-08-22` cortada en dos líneas por el guion deja la columna con
+ * el doble de alto y el dato ilegible; se vio en la tabla de webmasters, donde
+ * hay tres columnas de fecha seguidas. Las que llevan `max-width` propio (el
+ * correo, la wallet) siguen recortando con puntos suspensivos, que es lo suyo.
+ */
+.panel td.mono {
+  white-space: nowrap;
+}
