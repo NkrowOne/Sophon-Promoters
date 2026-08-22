@@ -121,8 +121,6 @@ export interface FilaWebmaster {
   proVigenteHasta: Date | null;
   diasDePro: number | null;
   proRenovable: boolean;
-  /** Cuántas veces se le ha concedido el PRO. Más de una y conviene mirar. */
-  concesiones: number;
   concesionesFallidas: number;
   /**
    * Concesiones confirmadas cuya caducidad tuvo que deducirse porque Sophon no
@@ -549,7 +547,6 @@ export async function webmastersDetallados(
       proVigenteHasta: finPro,
       diasDePro: diasRestantesPro(finPro, ahora),
       proRenovable: renovablePro(finPro, ahora),
-      concesiones: confirmadas.length,
       concesionesFallidas: w.concesiones.filter((c) => c.estado === "FALLIDA").length,
       concesionesDeducidas: confirmadas.filter((c) => c.mensaje?.startsWith("SIN_FECHA") || c.mensaje?.startsWith("FECHA_DEDUCIDA")).length,
       registrosVentana: w.filasDiarias.reduce((s, f) => s + f.countRegister, 0),

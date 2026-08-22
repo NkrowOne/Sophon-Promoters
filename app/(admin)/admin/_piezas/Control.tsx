@@ -90,6 +90,18 @@ export function EstadoAgente({ estado }: { estado: string }) {
  * «Caduca en 200 días» no es información para el Operador: no hay nada que hacer
  * con ella y ocuparía la misma celda que un «sin PRO», que sí lo es. La misma
  * regla que sigue la Malla del agente.
+ *
+ * ── Y POR ESO YA NO CUENTA DÍAS ──
+ *
+ * Ponía «365 d · 2027-08-22». Los días sobraban por lo de arriba, y encima hacían
+ * daño: puestos al lado del recuento de concesiones que había en la celda de
+ * al lado, la fila entera se leía como si el plazo se hubiera SUMADO. El PRO no
+ * acumula —hay uno solo, de 365 días desde la activación— y una pantalla que
+ * insinúa lo contrario contradice la única regla de esta aplicación que puede
+ * quitarle algo a un webmaster.
+ *
+ * Queda «activo», que es lo único que hay que saber, con la fecha de liberación
+ * detrás y en gris: no es una alarma, es el día en que vuelve a haber botón.
  */
 export function SenalPro({
   diasDePro,
@@ -102,7 +114,8 @@ export function SenalPro({
   if (diasDePro !== null && diasDePro <= 0) return <Senal tono="problema">caducado</Senal>;
   return (
     <Senal tono="bien">
-      {diasDePro} d<span style={{ fontWeight: 400, opacity: 0.75 }}> · {dia(proVigenteHasta)}</span>
+      activo
+      <span style={{ fontWeight: 400, opacity: 0.75 }}> · hasta {dia(proVigenteHasta)}</span>
     </Senal>
   );
 }

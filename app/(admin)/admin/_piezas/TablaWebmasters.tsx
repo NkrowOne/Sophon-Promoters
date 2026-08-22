@@ -148,12 +148,13 @@ export function TablaWebmasters({
               <td data-etiqueta="PRO">
                 <Senales>
                   <SenalPro diasDePro={w.diasDePro} proVigenteHasta={w.proVigenteHasta} />
-                {/* Más de una concesión sobre el mismo webmaster es la huella de
-                    haberle llamado a `setmembership` varias veces, que es la
-                    llamada que la regla de vigencia existe para no repetir. */}
-                  {w.concesiones > 1 && (
-                    <Senal tono="atencion">{w.concesiones} concesiones</Senal>
-                  )}
+                  {/* Aquí había un «6 concesiones». Contaba las veces que se llamó a
+                      `setmembership` sobre la misma cuenta, que fue la huella del
+                      fallo de agosto; pero al lado del plazo se leía como si los
+                      seis años se hubieran sumado, y el PRO no acumula. El dato no
+                      se pierde —está en `ConcesionPro`, y una concesión de más deja
+                      su rastro en «fecha deducida» y en la auditoría—: lo que se va
+                      es una cifra que en esta celda solo podía engañar. */}
                   {w.concesionesDeducidas > 0 && <Senal tono="atencion">fecha deducida</Senal>}
                   {w.concesionesFallidas > 0 && (
                     <Senal tono="problema">{w.concesionesFallidas} fallidas</Senal>

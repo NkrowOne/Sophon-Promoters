@@ -496,7 +496,7 @@
  * Varias señales seguidas: punto medio entre ellas, y ningún contenedor.
  *
  * `inline-flex` con `wrap` y no `inline`, y la diferencia no es de gusto.
- * Cada señal lleva `nowrap` para que «6 concesiones» no se parta por la mitad, y
+ * Cada señal lleva `nowrap` para que «fecha deducida» no se parta por la mitad, y
  * el separador va en un `::before` DENTRO de la señal siguiente. Con `display:
  * inline` eso deja una tirada de texto sin un solo punto por donde cortar —no
  * hay espacios entre los elementos, los quita JSX— así que las cuatro señales
@@ -510,7 +510,7 @@
 .panel .senales {
   display: inline-flex;
   /* En el ESCRITORIO no envuelve. La tabla ya se desplaza a lo ancho, así que
-     partir «365 d · 2027-08-22 · 6 concesiones · fecha deducida» en tres
+     partir «activo · hasta 2027-08-22 · fecha deducida · 2 fallidas» en tres
      renglones no ahorra nada: triplica el alto de la fila y deja un punto medio
      colgando al final de cada renglón, como una frase a medio terminar. En el
      móvil sí envuelve —la celda es un renglón de la lista, no una columna— y esa
@@ -798,8 +798,8 @@ body:has(> .panel) {
    * a ser una línea de identidad con una línea de apoyo debajo.
    *
    *   pedritaas77@gmail.com                                0,00 $
-   *   Agente Nkrow  Estado activo  PRO 365 d · 2027-08-22
-   *   6 concesiones · fecha deducida
+   *   Agente Nkrow  Estado activo  PRO activo · hasta 2027-08-22
+   *   fecha deducida · 2 fallidas
    *
    * Arriba, quién es y —a la derecha— la cifra que decide. Debajo, lo demás
    * seguido, con su rótulo delante y en gris. El ojo baja por la columna de
@@ -933,7 +933,7 @@ body:has(> .panel) {
    * Todo lo demás baja a la línea de apoyo, en el orden en que está escrito.
    *
    * `0 1 auto` y no `0 0 auto`: sin encoger, una celda más ancha que la pantalla
-   * —las cuatro señales del PRO de un webmaster con seis concesiones— no envuelve
+   * —las tres señales del PRO de un webmaster con la fecha deducida— no envuelve
    * por dentro, se sale por la derecha y arrastra la página entera con ella.
    */
   .panel table.densa tbody td:not(.ancla):not(.cabeza) {
@@ -957,7 +957,7 @@ body:has(> .panel) {
 
   /* Aquí la celda es un renglón entero y no una columna: las señales envuelven,
      y cada una entera —`nowrap` sigue puesto en la señal— para que «6
-     concesiones» no acabe partido en dos. */
+     deducida» no acabe partido en dos. */
   .panel .senales {
     flex-wrap: wrap;
   }
