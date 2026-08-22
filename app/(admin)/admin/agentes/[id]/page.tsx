@@ -205,7 +205,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             tono={r.bloqueados > 0 ? "problema" : undefined}
           />
           <Dato
-            etiqueta="Se borran"
+            etiqueta="Baja programada"
             valor={<Num valor={r.pendientesBorrado} />}
             tono={r.pendientesBorrado > 0 ? "problema" : undefined}
           />

@@ -382,7 +382,9 @@ function recuentoVacio(): RecuentoWebmasters {
 export function problemasDeRed(r: RecuentoWebmasters): string[] {
   const avisos: string[] = [];
   if (r.bloqueados > 0) avisos.push(`${r.bloqueados} bloqueado${r.bloqueados === 1 ? "" : "s"}`);
-  if (r.pendientesBorrado > 0) avisos.push(`${r.pendientesBorrado} se borra${r.pendientesBorrado === 1 ? "" : "n"}`);
+  // Invariable: «2 con baja programada» no necesita concordar, y evita el
+  // «se borran» que sonaba a que ya había pasado.
+  if (r.pendientesBorrado > 0) avisos.push(`${r.pendientesBorrado} con baja programada`);
   if (r.desaparecidos > 0) avisos.push(`${r.desaparecidos} desaparecido${r.desaparecidos === 1 ? "" : "s"}`);
   if (r.nuncaTuvoPro > 0) avisos.push(`${r.nuncaTuvoPro} sin PRO`);
   if (r.proCaducado > 0) avisos.push(`${r.proCaducado} con el PRO caducado`);

@@ -126,7 +126,7 @@ export default async function Webmasters({
         <Dato
           etiqueta="Con problema"
           valor={conProblema.toLocaleString("es-ES")}
-          apoyo="bloqueado, se borra o desaparecido"
+          apoyo="bloqueado, con baja programada o desaparecido"
           tono={conProblema > 0 ? "problema" : undefined}
         />
       </div>

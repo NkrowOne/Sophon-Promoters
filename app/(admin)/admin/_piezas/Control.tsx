@@ -58,7 +58,11 @@ export function Senales({ children }: { children: React.ReactNode }) {
 const ESTADOS_WEBMASTER: Record<string, { texto: string; tono: Tono }> = {
   ACTIVO: { texto: "activo", tono: "bien" },
   BLOQUEADO: { texto: "bloqueado", tono: "problema" },
-  PENDIENTE_BORRADO: { texto: "se borra", tono: "problema" },
+  // «Baja programada» y no «se borra»: es la misma palabra que ve el agente en
+  // su Mini App para este estado, y el panel no puede llamarle de otra forma a lo
+  // mismo. Además dice lo que es —un plazo abierto por Sophon, todavía
+  // reversible— y no lo que parece: que ya está borrado.
+  PENDIENTE_BORRADO: { texto: "baja programada", tono: "problema" },
   DESAPARECIDO: { texto: "desaparecido", tono: "problema" },
   PENDIENTE_CONFIRMACION: { texto: "sin confirmar", tono: "atencion" },
   DESCONOCIDO: { texto: "desconocido", tono: "atencion" },
