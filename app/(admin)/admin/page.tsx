@@ -209,26 +209,28 @@ export default async function Panel() {
             Sin ejecuciones registradas. El planificador está en Skyway.
           </p>
         ) : (
-          <table style={{ marginTop: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th>Tarea</th>
-                <th>Estado</th>
-                <th>Última ejecución</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...ultimaPorTipo.values()].map((s) => (
-                <tr key={s.tipo}>
-                  <td>{s.tipo.toLowerCase()}</td>
-                  <td className={s.estado === "FALLIDA" ? "vivo" : undefined}>
-                    {s.estado.toLowerCase()}
-                  </td>
-                  <td className="apoyo">{fecha(s.terminadaEn ?? s.iniciadaEn)}</td>
+          <div className="tabla-marco">
+            <table style={{ marginTop: "0.9rem" }}>
+              <thead>
+                <tr>
+                  <th>Tarea</th>
+                  <th>Estado</th>
+                  <th>Última ejecución</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[...ultimaPorTipo.values()].map((s) => (
+                  <tr key={s.tipo}>
+                    <td>{s.tipo.toLowerCase()}</td>
+                    <td className={s.estado === "FALLIDA" ? "vivo" : undefined}>
+                      {s.estado.toLowerCase()}
+                    </td>
+                    <td className="apoyo">{fecha(s.terminadaEn ?? s.iniciadaEn)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </>

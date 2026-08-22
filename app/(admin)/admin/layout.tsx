@@ -14,11 +14,11 @@ import { Isotipo } from "@/components/Isotipo";
 export default function LayoutAdmin({ children }: { children: React.ReactNode }) {
   return (
     <div className="panel">
-      {/* 1320 y no 1080: desde que hay tablas de quince columnas —la red de un
-          agente con su PRO, su tráfico y su origen— el ancho anterior obligaba a
-          desplazarse en horizontal para leer una sola fila. La prosa NO se
-          estira con el marco: `admin.css` le pone medida propia. */}
-      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem 1.25rem 4rem" }}>
+      {/* El marco vive en `admin.css` y no aquí: tiene consulta de medios —en un
+          móvil el relleno baja— y un estilo en línea no puede tenerla. 1320 y no
+          1080 porque desde que hay tablas de quince columnas el ancho anterior
+          obligaba a desplazarse en horizontal para leer una fila. */}
+      <div className="marco">
         <header
           style={{
             display: "flex",
@@ -31,7 +31,9 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
             flexWrap: "wrap",
           }}
         >
-          <nav style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
+          {/* `flexWrap` y no una barra rígida: en un móvil los cinco enlaces no
+              caben en una línea y sin esto «Bonos» se salía de la pantalla. */}
+          <nav style={{ display: "flex", gap: "1rem 1.25rem", alignItems: "center", flexWrap: "wrap" }}>
             {/* El isotipo hace de inicio, y sustituye a la palabra «Panel».
                 Un rótulo de navegación que dice «Panel» dentro del panel no
                 informa de nada: el sitio ya se sabe. La marca sí dice algo —de

@@ -117,7 +117,11 @@ export function TablaWebmasters({
                 <EstadoWebmaster estado={w.estado} />
               </td>
 
-              <td>
+              {/* `nowrap`, por lo mismo que las incidencias de la plantilla: la
+                  tabla ya se desplaza a lo ancho, así que apilar las chapas aquí
+                  no ahorra nada y estira la fila. El webmaster con seis
+                  concesiones abría tres renglones en blanco en la parte visible. */}
+              <td style={{ whiteSpace: "nowrap" }}>
                 <ChapaPro diasDePro={w.diasDePro} proVigenteHasta={w.proVigenteHasta} />
                 {/* Más de una concesión sobre el mismo webmaster es la huella de
                     haberle llamado a `setmembership` varias veces, que es la

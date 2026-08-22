@@ -146,7 +146,12 @@ export default async function Agentes() {
                     {avisos.length === 0 ? (
                       <span className="nulo">—</span>
                     ) : (
-                      <span style={{ display: "inline-flex", gap: "0.3rem", flexWrap: "wrap" }}>
+                      /* `nowrap`: la tabla ya se desplaza a lo ancho, así que
+                         apilar aquí no gana espacio, solo estira la fila. En un
+                         móvil, un agente con cuatro incidencias abría un hueco
+                         en blanco de tres renglones en la parte visible de la
+                         tabla, con las chapas fuera de la pantalla. */
+                      <span style={{ display: "inline-flex", gap: "0.3rem", flexWrap: "nowrap" }}>
                         {avisos.map((t) => (
                           <Chapa key={t} tono="problema">
                             {t}
@@ -179,7 +184,11 @@ export default async function Agentes() {
           style={{
             marginTop: "1rem",
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(25rem, 1fr))",
+            /* `min(...)`: un mínimo de 25rem fijo son 400 px, y en una pantalla
+               de 390 la columna no cabía —la página entera se salía por la
+               derecha y los botones quedaban cortados—. Con el mínimo topado al
+               ancho disponible, cae a una columna en vez de desbordar. */
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(25rem, 100%), 1fr))",
             gap: "0.75rem 1.5rem",
           }}
         >
@@ -199,10 +208,14 @@ export default async function Agentes() {
                 <p style={{ fontWeight: 550, overflow: "hidden", textOverflow: "ellipsis" }}>
                   {a.nombre}
                 </p>
-                {/* Sin partir: `desde 2026-08-\n19` se leía como dos datos. */}
-                <p className="apoyo" style={{ fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
-                  desde {dia(a.creadoEn)} · {a.sesionesVivas}{" "}
-                  {a.sesionesVivas === 1 ? "sesión viva" : "sesiones vivas"}
+                {/* La línea SÍ envuelve —si no, en un móvil se salía por debajo
+                    del filete—; lo que no se parte es la fecha, que leída como
+                    `2026-08-` y `19` en dos renglones parecen dos datos. */}
+                <p className="apoyo" style={{ fontSize: "0.8125rem" }}>
+                  <span style={{ whiteSpace: "nowrap" }}>desde {dia(a.creadoEn)}</span> ·{" "}
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    {a.sesionesVivas} {a.sesionesVivas === 1 ? "sesión viva" : "sesiones vivas"}
+                  </span>
                 </p>
               </div>
               <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>

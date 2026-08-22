@@ -573,3 +573,111 @@
 .panel td.mono {
   white-space: nowrap;
 }
+
+/* ═══════════════════════ EL PANEL EN UN MÓVIL ═══════════════════════
+ *
+ * No estaba pensado para eso y se notaba: la página se salía por la derecha, el
+ * fondo se quedaba a media pantalla —el `.panel` mide lo que el hueco, no lo que
+ * el documento desbordado— y los botones de suspender quedaban cortados por el
+ * borde. Se vio en un iPhone emulado, no leyendo el código.
+ *
+ * Y hay que arreglarlo aunque «el panel es de escritorio», porque quien lo abre
+ * lo abre desde el enlace que le manda el bot AL TELÉFONO. La pantalla real no
+ * es la que uno diseña, es la que se tiene en la mano.
+ */
+
+/*
+ * El fondo lo pinta también el `body`.
+ *
+ * `.panel` es un bloque: mide el ancho del hueco, no el del documento. En cuanto
+ * algo desbordaba a lo ancho, el documento crecía y su color de fondo se quedaba
+ * detrás, dejando una franja blanca a la derecha en modo oscuro. Con el `body`
+ * pintado, el desbordamiento podrá ser un fallo pero nunca un agujero.
+ */
+body:has(> .panel) {
+  background: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  body:has(> .panel) {
+    background: #12100d;
+  }
+}
+
+.panel .marco {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+/*
+ * LA COLUMNA QUE ANCLA LA FILA SE QUEDA QUIETA.
+ *
+ * Una tabla de quince columnas en una pantalla de 390 px se lee desplazándola, y
+ * desplazada tres columnas ya no se sabe de quién es la fila. Con el correo
+ * fijo a la izquierda, el dato y su dueño no se separan nunca.
+ *
+ * Vale igual en el escritorio, así que no se encierra en una consulta de medios:
+ * una tabla que se comporta distinto según el ancho es una tabla que hay que
+ * aprender dos veces.
+ */
+.panel table.densa td.ancla,
+.panel table.densa thead th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--p-fondo);
+  /* El filete lo dibuja la sombra y no un borde: un borde participaría en el
+     ancho de la columna y descuadraría la cabecera con su cuerpo. */
+  box-shadow: 1px 0 0 var(--p-borde);
+  z-index: 2;
+}
+
+.panel table.densa thead th:first-child {
+  /* Fija por arriba y por la izquierda a la vez: tiene que ganar a las dos. */
+  z-index: 3;
+}
+
+/* La fila bajo el puntero también tiñe su ancla, o la columna fija se
+   despegaría del resto de la fila justo al seguirla con el ratón. */
+.panel table.densa tbody tr:hover td.ancla {
+  background: var(--p-superficie);
+}
+
+@media (max-width: 720px) {
+  .panel .marco {
+    /* Menos margen: en 390 px, 1,25rem por lado son 40 px que le faltan a la
+       tabla. El aire se saca de donde no cuesta información. */
+    padding: 1rem 0.85rem 3rem;
+  }
+
+  /*
+   * Las rejillas de datos, a dos columnas en vez de a una.
+   *
+   * `auto-fit` con un mínimo de 10,5rem cae a UNA sola columna en un móvil, y
+   * entonces los doce datos de «Su red» son doce pantallazos de desplazamiento.
+   * Con `min()` el mínimo nunca supera la mitad del hueco, así que caben dos y
+   * se pueden comparar.
+   */
+  .panel .rejilla {
+    grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 45%), 1fr));
+    gap: 1rem 1.25rem;
+  }
+
+  .panel .cifra {
+    font-size: 1.25rem;
+  }
+
+  .panel .cifra.grande {
+    font-size: 2.25rem;
+  }
+
+  /* La cabecera fija de la tabla estorba en un móvil: se lleva un tercio de la
+     pantalla en cuanto se baja un poco. Se suelta. */
+  .panel table.densa th {
+    position: static;
+  }
+
+  .panel table.densa thead th:first-child {
+    position: sticky;
+  }
+}

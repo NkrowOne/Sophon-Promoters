@@ -183,41 +183,43 @@ export default async function Retiros() {
         {resueltas.length === 0 ? (
           <p className="apoyo" style={{ marginTop: "0.9rem" }}>Sin retiros resueltos.</p>
         ) : (
-          <table style={{ marginTop: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th>Agente</th>
-                <th className="num">Importe</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th>Referencia</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resueltas.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.agente.nombreVisible}</td>
-                  <td className="num"><Importe micros={s.importeMicros} /></td>
-                  <td className={s.estado === "RECHAZADO" ? "vivo" : undefined}>
-                    {ETIQUETA[s.estado]}
-                    {s.motivo && (
-                      <span className="apoyo" style={{ display: "block" }}>{s.motivo}</span>
-                    )}
-                  </td>
-                  <td className="apoyo">{fecha(s.resueltoEn ?? s.solicitadoEn)}</td>
-                  <td
-                    className="apoyo"
-                    style={{ fontFamily: "ui-monospace, monospace", userSelect: "all" }}
-                    title={s.referenciaPago ?? ""}
-                  >
-                    {s.referenciaPago
-                      ? `${s.referenciaPago.slice(0, 10)}…${s.referenciaPago.slice(-6)}`
-                      : "—"}
-                  </td>
+          <div className="tabla-marco">
+            <table style={{ marginTop: "0.9rem" }}>
+              <thead>
+                <tr>
+                  <th>Agente</th>
+                  <th className="num">Importe</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Referencia</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {resueltas.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.agente.nombreVisible}</td>
+                    <td className="num"><Importe micros={s.importeMicros} /></td>
+                    <td className={s.estado === "RECHAZADO" ? "vivo" : undefined}>
+                      {ETIQUETA[s.estado]}
+                      {s.motivo && (
+                        <span className="apoyo" style={{ display: "block" }}>{s.motivo}</span>
+                      )}
+                    </td>
+                    <td className="apoyo">{fecha(s.resueltoEn ?? s.solicitadoEn)}</td>
+                    <td
+                      className="apoyo"
+                      style={{ fontFamily: "ui-monospace, monospace", userSelect: "all" }}
+                      title={s.referenciaPago ?? ""}
+                    >
+                      {s.referenciaPago
+                        ? `${s.referenciaPago.slice(0, 10)}…${s.referenciaPago.slice(-6)}`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </>

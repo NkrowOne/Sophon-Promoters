@@ -153,7 +153,12 @@ export default async function Webmasters({
           ))}
         </nav>
 
-        <form method="get" style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        {/* Envuelve: en un móvil el desplegable, el buscador y el botón no caben
+            en una línea, y sin esto el formulario empujaba la página entera. */}
+        <form
+          method="get"
+          style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
+        >
           {estado !== "todos" && <input type="hidden" name="estado" value={estado} />}
           <select name="agente" defaultValue={q.agente ?? ""} aria-label="Agente">
             <option value="">Todos los agentes</option>
@@ -169,7 +174,7 @@ export default async function Webmasters({
             defaultValue={busca}
             placeholder="Buscar correo"
             aria-label="Buscar por correo"
-            style={{ minWidth: "14rem" }}
+            style={{ minWidth: "min(14rem, 100%)", flex: "1 1 12rem" }}
           />
           <button type="submit" className="boton">
             Filtrar
