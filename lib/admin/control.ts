@@ -121,8 +121,6 @@ export interface FilaWebmaster {
   proVigenteHasta: Date | null;
   diasDePro: number | null;
   proRenovable: boolean;
-  /** Cuántas veces se le ha concedido el PRO. Más de una y conviene mirar. */
-  concesiones: number;
   concesionesFallidas: number;
   /**
    * Concesiones confirmadas cuya caducidad tuvo que deducirse porque Sophon no
@@ -382,7 +380,9 @@ function recuentoVacio(): RecuentoWebmasters {
 export function problemasDeRed(r: RecuentoWebmasters): string[] {
   const avisos: string[] = [];
   if (r.bloqueados > 0) avisos.push(`${r.bloqueados} bloqueado${r.bloqueados === 1 ? "" : "s"}`);
-  if (r.pendientesBorrado > 0) avisos.push(`${r.pendientesBorrado} se borra${r.pendientesBorrado === 1 ? "" : "n"}`);
+  // Invariable: «2 con baja programada» no necesita concordar, y evita el
+  // «se borran» que sonaba a que ya había pasado.
+  if (r.pendientesBorrado > 0) avisos.push(`${r.pendientesBorrado} con baja programada`);
   if (r.desaparecidos > 0) avisos.push(`${r.desaparecidos} desaparecido${r.desaparecidos === 1 ? "" : "s"}`);
   if (r.nuncaTuvoPro > 0) avisos.push(`${r.nuncaTuvoPro} sin PRO`);
   if (r.proCaducado > 0) avisos.push(`${r.proCaducado} con el PRO caducado`);
@@ -547,7 +547,6 @@ export async function webmastersDetallados(
       proVigenteHasta: finPro,
       diasDePro: diasRestantesPro(finPro, ahora),
       proRenovable: renovablePro(finPro, ahora),
-      concesiones: confirmadas.length,
       concesionesFallidas: w.concesiones.filter((c) => c.estado === "FALLIDA").length,
       concesionesDeducidas: confirmadas.filter((c) => c.mensaje?.startsWith("SIN_FECHA") || c.mensaje?.startsWith("FECHA_DEDUCIDA")).length,
       registrosVentana: w.filasDiarias.reduce((s, f) => s + f.countRegister, 0),

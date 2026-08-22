@@ -16,10 +16,11 @@
  *     idempotencia. Un doble toque no concede dos años.
  *  3. **`membership_end_at` es la única fuente de la caducidad.** No hay
  *     endpoint que la consulte después: si no se persiste aquí, se pierde.
- *  4. **Un PRO vigente no se toca.** Ver `vigencia.ts`: no sabemos si Sophon
- *     suma el plazo o lo sustituye, y no podemos comprobarlo. El guardián va
- *     aquí y no en la ruta precisamente porque este módulo existe para que los
- *     dos caminos que conceden no puedan divergir.
+ *  4. **Un PRO vigente no se toca.** Ver `vigencia.ts`: el PRO **no acumula**
+ *     —lo ha confirmado el Operador—, así que conceder sobre una membresía viva
+ *     no alarga nada: la sustituye, y tira lo que quedaba. El guardián va aquí y
+ *     no en la ruta precisamente porque este módulo existe para que los dos
+ *     caminos que conceden no puedan divergir.
  */
 
 import { db } from "../db.ts";

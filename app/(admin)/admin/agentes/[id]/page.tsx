@@ -8,7 +8,9 @@ import { Cerrada } from "../../_piezas/Cerrada";
 import { Importe } from "../../_piezas/Importe";
 import { TablaWebmasters } from "../../_piezas/TablaWebmasters";
 import {
-  Chapa,
+  Correo,
+  Senal,
+  Senales,
   Dato,
   EstadoAgente,
   Num,
@@ -109,12 +111,14 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
       {/* Lo que hay que mirar va arriba y en una línea. Enterrado bajo las
           cifras de dinero llegaría después de haber decidido. */}
       {avisos.length > 0 && (
-        <p style={{ marginTop: "1.25rem", display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
-          {avisos.map((t) => (
-            <Chapa key={t} tono="problema">
-              {t}
-            </Chapa>
-          ))}
+        <p style={{ marginTop: "1.25rem" }}>
+          <Senales>
+            {avisos.map((t) => (
+              <Senal key={t} tono="problema">
+                {t}
+              </Senal>
+            ))}
+          </Senales>
         </p>
       )}
 
@@ -201,7 +205,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             tono={r.bloqueados > 0 ? "problema" : undefined}
           />
           <Dato
-            etiqueta="Se borran"
+            etiqueta="Baja programada"
             valor={<Num valor={r.pendientesBorrado} />}
             tono={r.pendientesBorrado > 0 ? "problema" : undefined}
           />
@@ -270,16 +274,21 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
               <tbody>
                 {retiros.map((s) => (
                   <tr key={s.id}>
-                    <td className="mono">{momento(s.solicitadoEn)}</td>
-                    <td className="num">
+                    <td className="ancla mono">{momento(s.solicitadoEn)}</td>
+                    <td className="num cabeza" data-etiqueta="Importe">
                       <Importe micros={s.importeMicros} />
                     </td>
-                    <td>{s.red}</td>
-                    <td className="mono" style={{ maxWidth: "16ch", overflow: "hidden", textOverflow: "ellipsis" }} title={s.wallet}>
+                    <td data-etiqueta="Red">{s.red}</td>
+                    <td
+                      className="mono linea-propia"
+                      data-etiqueta="Wallet"
+                      style={{ maxWidth: "16ch", overflow: "hidden", textOverflow: "ellipsis" }}
+                      title={s.wallet}
+                    >
                       {s.wallet}
                     </td>
-                    <td>
-                      <Chapa
+                    <td data-etiqueta="Estado">
+                      <Senal
                         tono={
                           s.estado === "PAGADO"
                             ? "bien"
@@ -289,10 +298,14 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
                         }
                       >
                         {s.estado.toLowerCase()}
-                      </Chapa>
+                      </Senal>
                     </td>
-                    <td className="mono">{momento(s.resueltoEn)}</td>
-                    <td className="apoyo">{s.motivo ?? s.referenciaPago ?? "—"}</td>
+                    <td className="mono" data-etiqueta="Resuelto">
+                      {momento(s.resueltoEn)}
+                    </td>
+                    <td className="apoyo linea-propia" data-etiqueta="Motivo / referencia">
+                      {s.motivo ?? s.referenciaPago ?? "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -318,8 +331,8 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <table className="densa">
               <thead>
                 <tr>
-                  <th>Cuándo</th>
                   <th>Correo</th>
+                  <th>Cuándo</th>
                   <th className="num">Código</th>
                   <th>Respuesta de Sophon</th>
                 </tr>
@@ -327,10 +340,23 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
               <tbody>
                 {intentosFallidos.map((i) => (
                   <tr key={i.id}>
-                    <td className="mono">{momento(i.creadoEn)}</td>
-                    <td className="mono">{i.email}</td>
-                    <td className="num">{i.codigoRespuesta ?? "—"}</td>
-                    <td className="apoyo">{i.mensaje ?? "sin mensaje"}</td>
+                    {/* El correo abre la fila y no la fecha: lo que se busca aquí
+                        es «qué pasa con esta dirección», y la hora solo sitúa.
+                        Además `ancla` fija la columna al desplazar la tabla, y una
+                        columna fijada que no es la primera se pinta encima de la
+                        que sí lo es. */}
+                    <td className="ancla">
+                      <Correo valor={i.email} />
+                    </td>
+                    <td className="mono" data-etiqueta="Cuándo">
+                      {momento(i.creadoEn)}
+                    </td>
+                    <td className="num cabeza" data-etiqueta="Código">
+                      {i.codigoRespuesta ?? "—"}
+                    </td>
+                    <td className="apoyo linea-propia" data-etiqueta="Respuesta de Sophon">
+                      {i.mensaje ?? "sin mensaje"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -357,12 +383,19 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
               <tbody>
                 {sesiones.map((s) => (
                   <tr key={s.id}>
-                    <td className="mono">{momento(s.emitidaEn)}</td>
-                    <td className="mono">{momento(s.ultimoUsoEn)}</td>
-                    <td className="mono">{momento(s.expiraEn)}</td>
-                    <td className="mono">{s.ip ?? "—"}</td>
+                    <td className="ancla mono">{momento(s.emitidaEn)}</td>
+                    <td className="mono" data-etiqueta="Último uso">
+                      {momento(s.ultimoUsoEn)}
+                    </td>
+                    <td className="mono" data-etiqueta="Caduca">
+                      {momento(s.expiraEn)}
+                    </td>
+                    <td className="mono" data-etiqueta="IP">
+                      {s.ip ?? "—"}
+                    </td>
                     <td
-                      className="apoyo"
+                      data-etiqueta="Navegador"
+                      className="apoyo linea-propia"
                       style={{ maxWidth: "40ch", overflow: "hidden", textOverflow: "ellipsis" }}
                       title={s.agenteUsuario ?? ""}
                     >
@@ -384,17 +417,24 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <table className="densa">
               <thead>
                 <tr>
-                  <th>Cuándo</th>
                   <th>Acción</th>
+                  <th>Cuándo</th>
                   <th>Sobre</th>
                 </tr>
               </thead>
               <tbody>
                 {auditoria.map((x) => (
                   <tr key={x.id}>
-                    <td className="mono">{momento(x.creadoEn)}</td>
-                    <td>{x.accion}</td>
-                    <td className="mono apoyo">{x.recurso ?? "—"}</td>
+                    {/* La acción abre la fila: es lo que se lee, y la hora la
+                        sitúa. Y `ancla` tiene que ir en la primera columna, que es
+                        la que se queda fija al desplazar. */}
+                    <td className="ancla">{x.accion}</td>
+                    <td className="mono" data-etiqueta="Cuándo">
+                      {momento(x.creadoEn)}
+                    </td>
+                    <td className="mono apoyo linea-propia" data-etiqueta="Sobre">
+                      {x.recurso ?? "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

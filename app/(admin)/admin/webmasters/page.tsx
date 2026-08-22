@@ -126,7 +126,7 @@ export default async function Webmasters({
         <Dato
           etiqueta="Con problema"
           valor={conProblema.toLocaleString("es-ES")}
-          apoyo="bloqueado, se borra o desaparecido"
+          apoyo="bloqueado, con baja programada o desaparecido"
           tono={conProblema > 0 ? "problema" : undefined}
         />
       </div>
@@ -174,7 +174,10 @@ export default async function Webmasters({
             defaultValue={busca}
             placeholder="Buscar correo"
             aria-label="Buscar por correo"
-            style={{ minWidth: "min(14rem, 100%)", flex: "1 1 12rem" }}
+            /* `0 1` y no `1 1`: creciendo, el buscador se comía el hueco y
+               empujaba «Filtrar» a un segundo renglón él solo. Encoge si hace
+               falta —en el móvil— pero no reclama el sitio de los demás. */
+            style={{ minWidth: "min(12rem, 100%)", flex: "0 1 18rem" }}
           />
           <button type="submit" className="boton">
             Filtrar

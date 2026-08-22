@@ -5,7 +5,7 @@ import { plantillaDeAgentes, problemasDeRed } from "@/lib/admin/control";
 import { cambiarEstadoAgente, cortarSesiones } from "../acciones";
 import { Cerrada } from "../_piezas/Cerrada";
 import { Importe } from "../_piezas/Importe";
-import { Chapa, EstadoAgente, Num, dia } from "../_piezas/Control";
+import { EstadoAgente, Num, Senal, Senales, dia } from "../_piezas/Control";
 
 /**
  * La plantilla: todos los agentes, en una sola tabla comparable.
@@ -85,7 +85,7 @@ export default async function Agentes() {
               <th>Estado</th>
               <th className="num">Red</th>
               <th className="num">Con PRO</th>
-              <th className="num">Altas mes</th>
+              <th className="num secundaria">Altas mes</th>
               <th className="num">Registros 14 d</th>
               <th className="num">Devengado</th>
               <th className="num">Disponible</th>
@@ -106,34 +106,37 @@ export default async function Agentes() {
                       {a.email}
                     </span>
                   </td>
-                  <td>
-                    <EstadoAgente estado={a.estado} />
-                    {(a.cpaPropiaMicros !== null || a.cpsPropiaBps !== null) && (
-                      <>
-                        {" "}
-                        <Chapa tono="atencion">tarifa propia</Chapa>
-                      </>
-                    )}
+                  <td data-etiqueta="Estado">
+                    <Senales>
+                      <EstadoAgente estado={a.estado} />
+                      {(a.cpaPropiaMicros !== null || a.cpsPropiaBps !== null) && (
+                        <Senal tono="atencion">tarifa propia</Senal>
+                      )}
+                    </Senales>
                   </td>
-                  <td className="num">
+                  <td className="num" data-etiqueta="Red">
                     <Num valor={a.webmasters.total} />
                   </td>
-                  <td className="num">
+                  <td className="num" data-etiqueta="Con PRO">
                     <Num valor={a.webmasters.conPro} />
                   </td>
-                  <td className="num">
+                  <td className="num secundaria" data-etiqueta="Altas mes">
                     <Num valor={a.altasDelMes} />
                   </td>
-                  <td className="num">
+                  <td className="num" data-etiqueta="Registros 14 d">
                     <Num valor={a.registrosVentana} />
                   </td>
-                  <td className="num">
+                  {/* `cabeza`: en el móvil sube a la primera línea, junto al nombre.
+                      Es la cifra con la que se comparan los agentes entre sí, y
+                      es la que hay que poder recorrer en vertical sin leer nada
+                      más. */}
+                  <td className="num cabeza" data-etiqueta="Devengado">
                     <Importe micros={a.saldos.devengadoMicros} />
                   </td>
-                  <td className="num">
+                  <td className="num" data-etiqueta="Disponible">
                     <Importe micros={a.saldos.disponibleMicros} />
                   </td>
-                  <td className="num">
+                  <td className="num" data-etiqueta="Por pagar">
                     {a.retiroPendienteMicros > 0n ? (
                       <Link href="/admin/retiros" style={{ textDecoration: "none" }}>
                         <Importe micros={a.retiroPendienteMicros} className="vivo" />
@@ -142,22 +145,24 @@ export default async function Agentes() {
                       <span className="nulo">—</span>
                     )}
                   </td>
-                  <td>
+                  {/* `linea-propia`: en el móvil se lleva su renglón entero. Es lo
+                      más urgente de la fila y compartiendo línea con «Disponible
+                      384,00 $» quedaba de coletilla, leído lo último. */}
+                  <td className="linea-propia" data-etiqueta="Incidencias">
                     {avisos.length === 0 ? (
                       <span className="nulo">—</span>
                     ) : (
-                      /* `nowrap`: la tabla ya se desplaza a lo ancho, así que
-                         apilar aquí no gana espacio, solo estira la fila. En un
-                         móvil, un agente con cuatro incidencias abría un hueco
-                         en blanco de tres renglones en la parte visible de la
-                         tabla, con las chapas fuera de la pantalla. */
-                      <span style={{ display: "inline-flex", gap: "0.3rem", flexWrap: "nowrap" }}>
+                      /* Sin cajas: las incidencias se separan con un punto medio
+                         y todas en rojo. Apiladas en píldoras estiraban la fila
+                         y dejaban un hueco en blanco de tres renglones en la
+                         parte visible de la tabla. */
+                      <Senales>
                         {avisos.map((t) => (
-                          <Chapa key={t} tono="problema">
+                          <Senal key={t} tono="problema">
                             {t}
-                          </Chapa>
+                          </Senal>
                         ))}
-                      </span>
+                      </Senales>
                     )}
                   </td>
                 </tr>

@@ -175,7 +175,7 @@ const es: Constructor = (d) => [
         pregunta: "¿Qué incluye el PRO y cuánto dura?",
         respuesta: [
           "Un año desde la fecha de activación, sin coste para el webmaster.",
-          "Al aproximarse el vencimiento puede renovarse otro año desde su perfil.",
+          "Solo hay uno y no se acumula: hasta que caduque no se puede conceder otro. Ese día aparece el botón en su perfil.",
         ],
       },
       {
@@ -386,7 +386,7 @@ const en: Constructor = (d) => [
         pregunta: "What does PRO include and how long does it last?",
         respuesta: [
           "One year from the activation date, at no cost to the webmaster.",
-          "As expiry approaches, another year can be renewed from their profile.",
+          "There is only one and it does not stack: no other can be granted until it expires. That day the button appears on their profile.",
         ],
       },
       {
@@ -597,7 +597,7 @@ const it: Constructor = (d) => [
         pregunta: "Che cosa include il PRO e quanto dura?",
         respuesta: [
           "Un anno dalla data di attivazione, senza costi per il webmaster.",
-          "All'avvicinarsi della scadenza è possibile rinnovare un altro anno dal suo profilo.",
+          "Ce n'è uno solo e non si cumula: fino alla scadenza non se ne può concedere un altro. Quel giorno compare il pulsante nel suo profilo.",
         ],
       },
       {
@@ -808,7 +808,7 @@ const pt: Constructor = (d) => [
         pregunta: "O que inclui o PRO e quanto dura?",
         respuesta: [
           "Um ano a partir da data de ativação, sem custo para o webmaster.",
-          "Ao aproximar-se o vencimento pode renovar-se outro ano a partir do seu perfil.",
+          "Só há um e não acumula: até caducar não se pode conceder outro. Nesse dia aparece o botão no seu perfil.",
         ],
       },
       {
@@ -1019,7 +1019,7 @@ const ar: Constructor = (d) => [
         pregunta: "ماذا يشمل PRO وكم يدوم؟",
         respuesta: [
           "سنة واحدة من تاريخ التفعيل، دون تكلفة على webmaster.",
-          "وعند اقتراب انتهائها يمكن تجديد سنة أخرى من ملفه.",
+          "هناك سنة واحدة فقط ولا تتراكم: لا يمكن منح أخرى قبل انتهائها. وفي ذلك اليوم يظهر الزر في ملفه.",
         ],
       },
       {
