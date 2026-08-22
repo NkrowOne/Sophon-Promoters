@@ -459,16 +459,38 @@ function registrar(b: Bot): void {
       return;
     }
 
+    /*
+     * DOS PUERTAS, y la de arriba es la que se usa.
+     *
+     * El enlace abre un NAVEGADOR. Está bien para el escritorio y es la única
+     * forma de llevarse el panel a una pantalla grande, pero en el móvil obliga
+     * a salir de Telegram para mirar una tabla y volver: la fricción justa para
+     * no mirarla nunca.
+     *
+     * El botón abre el panel DENTRO de Telegram, por el puente `/panel` de la
+     * Mini App, que cambia la firma de Telegram por una sesión sin enlace de por
+     * medio. Necesita HTTPS —Telegram no abre una Mini App en claro— y si no lo
+     * hay se manda solo el enlace en vez de un botón que no haría nada.
+     */
+    const url = urlMiniApp();
+    const enTelegram = url.startsWith("https://");
+
     await ctx.reply(
       [
         enlace,
         "",
         `Un solo uso. Caduca en ${MINUTOS_CANJE} minutos.`,
         "Generar otro código invalida este.",
+        ...(enTelegram ? ["", "O ábrelo aquí mismo, sin salir de Telegram:"] : []),
       ].join("\n"),
-      // Sin previsualización: Telegram la genera abriendo la URL, y eso
-      // gastaría el enlace de un solo uso antes de que nadie lo tocara.
-      { link_preview_options: { is_disabled: true } },
+      {
+        // Sin previsualización: Telegram la genera abriendo la URL, y eso
+        // gastaría el enlace de un solo uso antes de que nadie lo tocara.
+        link_preview_options: { is_disabled: true },
+        ...(enTelegram
+          ? { reply_markup: new InlineKeyboard().webApp("Abrir el panel", `${url}/panel`) }
+          : {}),
+      },
     );
   });
 

@@ -55,7 +55,8 @@ export type NombreIcono =
   | "ayuda"
   | "desplegar"
   | "buscar"
-  | "cerrar";
+  | "cerrar"
+  | "panel";
 
 /**
  * Los trazados, en una retícula de 24.
@@ -64,6 +65,14 @@ export type NombreIcono =
  * varios trazos sueltos no necesita varios elementos en el fuente.
  */
 const TRAZOS: Record<NombreIcono, string> = {
+  /*
+   * El panel del Operador: una tabla. Marco, cabecera y dos renglones.
+   *
+   * No es un engranaje ni un escudo —los dos tópicos de «administración»— porque
+   * lo que hay al otro lado no es una configuración ni un permiso: son filas que
+   * se comparan. El icono dice a qué se va.
+   */
+  panel: "M4.4 5.6h15.2v12.8H4.4zM4.4 9.6h15.2M10 9.6v8.8",
   // Tres nodos y sus enlaces: la red del agente, que es literalmente eso.
   red: "M12 4.6a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4M5.4 15a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4m13.2 0a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4M10.5 8.9 6.9 15m10.2 0-3.6-6.1M7.6 17.2h8.8",
   // Ciclo abierto: un año que vuelve a empezar.

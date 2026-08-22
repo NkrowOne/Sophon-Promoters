@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -8,6 +9,14 @@ import { cadenas } from "@/lib/i18n";
 import { idiomaDesdeTelegram } from "@/lib/idiomas";
 import { decidirEntrada } from "@/lib/auth/entrada";
 import { telegramDeLaPeticion } from "@/lib/auth/sesion";
+import { esClaveDeOperador } from "@/lib/operador";
+import {
+  abrirSesionDeOperador,
+  COOKIE_ADMIN,
+  COOKIE_DESDE_TELEGRAM,
+  opcionesCookieAdmin,
+  opcionesMarcaTelegram,
+} from "@/lib/auth/admin";
 
 /**
  * Paso 1 de la entrada: identificar el correo y mandar el OTP.
@@ -67,6 +76,95 @@ const SEGUNDOS_REENVIO = 60;
  * pone un techo a lo que una sola cuenta puede disparar en total.
  */
 const MAX_OTP_POR_TELEGRAM = 5;
+
+/**
+ * Freno de la clave del Operador.
+ *
+ * Una contraseña en un formulario que cualquiera puede enviar, sin freno, no es
+ * un secreto: es una cuestión de tiempo. Cinco intentos por cuenta de Telegram
+ * cada quince minutos convierten un ataque por fuerza bruta en algo que tarda
+ * más que cambiar la clave.
+ *
+ * Se cuenta contra la AUDITORÍA y no contra una tabla nueva ni una variable en
+ * memoria: la auditoría ya existe, sobrevive a un reinicio —una en memoria se
+ * vacía sola y regala intentos cada vez que el proceso arranca— y de paso deja
+ * el rastro que hay que poder mirar cuando alguien esté probando.
+ */
+const MAX_CLAVE_POR_TELEGRAM = 5;
+const VENTANA_CLAVE_MINUTOS = 15;
+
+/** La IP del que llama, para el registro. Detrás de un proxy va en la cabecera. */
+function ip(peticion: Request): string | null {
+  return peticion.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+}
+
+/**
+ * ¿Se ha gastado ya el cupo de intentos de clave de esta cuenta?
+ *
+ * ── EL FALLO QUE ESTO ARREGLA, PORQUE ESTUVO ESCRITO AL REVÉS ──
+ *
+ * La primera versión contaba dentro de «alguien ha ACERTADO la clave», así que un
+ * ataque por fuerza bruta —que por definición falla— no incrementaba nada y el
+ * freno no frenaba absolutamente nada. Lo cazó la prueba de extremo a extremo al
+ * mandar ocho claves equivocadas seguidas y recibir ocho respuestas normales.
+ *
+ * Ahora se cuenta el INTENTO, y el intento es «has mandado en el campo del correo
+ * algo que no es un correo». Es la señal correcta: quien se equivoca de tecla
+ * escribiendo su dirección manda algo que sigue pareciendo una dirección; quien
+ * prueba claves, no. Y la clave tampoco lo parece, así que el Operador que la
+ * falle cinco veces también se frena, que es lo suyo.
+ */
+async function frenoDeClave(
+  telegramId: bigint,
+  desdeIp: string | null,
+): Promise<NextResponse | null> {
+  const desde = new Date(Date.now() - VENTANA_CLAVE_MINUTOS * 60_000);
+  const intentos = await db.auditoria.count({
+    where: {
+      accion: "admin.clave_intentada",
+      actorId: String(telegramId),
+      creadoEn: { gte: desde },
+    },
+  });
+
+  const cortado = intentos >= MAX_CLAVE_POR_TELEGRAM;
+
+  // Se escribe SIEMPRE y antes de decidir. Si solo se anotaran los fallos, el
+  // contador se reiniciaría al acertar y quien acertara una vez tendría otras
+  // cinco tiradas gratis. Y anotar también los cortados es lo que hace que el
+  // castigo dure mientras se siga insistiendo.
+  await db.auditoria.create({
+    data: {
+      actorTipo: "OPERADOR",
+      actorId: String(telegramId),
+      accion: "admin.clave_intentada",
+      ip: desdeIp,
+      detalle: { cortado },
+    },
+  });
+
+  if (!cortado) return null;
+  return NextResponse.json(
+    { error: "Demasiados intentos.", apoyo: "Espera unos minutos y vuelve a probar." },
+    { status: 429 },
+  );
+}
+
+/** La clave era buena: se abre la sesión del panel y se dice a dónde ir. */
+async function entrarComoOperador(
+  telegramId: bigint,
+  desdeIp: string | null,
+): Promise<NextResponse> {
+  const token = await abrirSesionDeOperador(telegramId, desdeIp, true);
+  const almacen = await cookies();
+  almacen.set(COOKIE_ADMIN, token, opcionesCookieAdmin(true));
+  almacen.set(COOKIE_DESDE_TELEGRAM, "1", opcionesMarcaTelegram());
+
+  // `paso: "operador"` es lo único que la pantalla necesita saber para saltar al
+  // panel. No lleva ni nombre ni nada del Operador: la respuesta viaja por la
+  // misma tubería que las de cualquier agente.
+  return NextResponse.json({ ok: true, paso: "operador" });
+}
 const VENTANA_TELEGRAM_MINUTOS = 15;
 
 const Cuerpo = z.object({
@@ -93,7 +191,48 @@ export async function POST(peticion: Request): Promise<NextResponse> {
     );
   }
 
-  const parseado = Cuerpo.safeParse(await peticion.json().catch(() => null));
+  const crudo = await peticion.json().catch(() => null);
+
+  /*
+   * ── LA CLAVE DEL OPERADOR, ANTES DE VALIDAR EL CORREO ──
+   *
+   * Va aquí arriba y no más abajo por una razón mecánica: el esquema exige que
+   * `email` sea un correo, así que una clave que no lo parezca moriría en el
+   * `safeParse` con «formato no válido» y no llegaría nunca a comprobarse. Se
+   * mira el campo en crudo y, si no es la clave, sigue el camino de siempre.
+   *
+   * Que se escriba en el campo del correo es deliberado: no hay una pantalla de
+   * administrador que encontrar, ni un campo de más que le pregunte a cada agente
+   * por una contraseña que no tiene. Quien no sabe que existe, no la ve.
+   *
+   * Requiere `initData` firmado —ya está comprobado arriba—, así que hacen falta
+   * las dos cosas: una cuenta de Telegram y la clave.
+   */
+  const escrito = typeof crudo?.email === "string" ? crudo.email.trim() : "";
+  const pareceCorreo = z.string().email().max(254).safeParse(escrito).success;
+
+  if (!pareceCorreo) {
+    /*
+     * Lo enviado NO es un correo. O es la clave, o es alguien probando claves, o
+     * es un dedazo. Los tres pasan por el freno ANTES de comparar nada: si el
+     * freno viviera detrás de la comparación, solo contaría los aciertos y un
+     * ataque por fuerza bruta no tocaría el contador jamás.
+     *
+     * Y el freno va antes de mirar si la clave cuadra también por otra razón: así
+     * el tiempo de respuesta no distingue «no era la clave» de «estás cortado».
+     */
+    const cortado = await frenoDeClave(BigInt(usuario.id), ip(peticion));
+    if (cortado) return cortado;
+
+    if (esClaveDeOperador(escrito)) {
+      return entrarComoOperador(BigInt(usuario.id), ip(peticion));
+    }
+    // No era la clave: sigue al `safeParse` de abajo, que contestará el mismo
+    // «formato no válido» que le habría contestado a cualquiera. Nada en la
+    // respuesta delata que aquí hay una puerta.
+  }
+
+  const parseado = Cuerpo.safeParse(crudo);
   if (!parseado.success) {
     return NextResponse.json(
       { error: t.errFormatoCodigoCorreo, apoyo: t.errFormatoCodigoCorreoApoyo },

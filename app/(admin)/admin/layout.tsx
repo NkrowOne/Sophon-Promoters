@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 import { Isotipo } from "@/components/Isotipo";
+import { COOKIE_DESDE_TELEGRAM } from "@/lib/auth/admin";
 
 /**
  * Armazón del panel.
@@ -11,7 +13,20 @@ import { Isotipo } from "@/components/Isotipo";
  * añadiera otro mañana lo dejaría abierto sin darse cuenta—.
  */
 
-export default function LayoutAdmin({ children }: { children: React.ReactNode }) {
+export default async function LayoutAdmin({ children }: { children: React.ReactNode }) {
+  /*
+   * ¿Se ha entrado desde la Mini App?
+   *
+   * Si sí, el panel ocupa la pantalla entera DENTRO de Telegram y no hay ninguna
+   * puerta de vuelta: ni pestañas, ni barra de direcciones, ni botón atrás del
+   * navegador. Sin esta salida, el Operador que entra desde su móvil se queda
+   * encerrado en el panel y tiene que cerrar la Mini App entera para volver.
+   *
+   * La marca no es una credencial —no protege nada— así que se lee y ya: lo peor
+   * que puede hacer alguien falseándola es enseñarse a sí mismo un enlace de más.
+   */
+  const desdeTelegram = (await cookies()).get(COOKIE_DESDE_TELEGRAM)?.value === "1";
+
   return (
     <div className="panel">
       {/* El marco vive en `admin.css` y no aquí: tiene consulta de medios —en un
@@ -62,11 +77,21 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
               Bonos
             </Link>
           </nav>
-          <form action="/admin/salir" method="post">
-            <button type="submit" className="apoyo" style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}>
-              Cerrar sesión
-            </button>
-          </form>
+          <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
+            {desdeTelegram && (
+              /* `<a>` y no `<Link>`: la Mini App es OTRO grupo de rutas, con su
+                 propia raíz y su propia hoja. El enrutador intentaría montarla
+                 dentro del panel; aquí hace falta un documento nuevo. */
+              <a href="/" className="apoyo" style={{ textDecoration: "none" }}>
+                ← Mi Mini App
+              </a>
+            )}
+            <form action="/admin/salir" method="post">
+              <button type="submit" className="apoyo" style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}>
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
         </header>
         {children}
       </div>
