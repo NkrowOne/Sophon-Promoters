@@ -6,7 +6,13 @@ import {
   type DependenciasConcesion,
   type MotivoConcesion,
 } from "../lib/pro/conceder.ts";
-import { DIAS_AVISO_PRO, diasRestantesPro, proActivo, renovablePro } from "../lib/pro/vigencia.ts";
+import {
+  DIAS_AVISO_PRO,
+  diasRestantesPro,
+  finEfectivoDelPro,
+  proActivo,
+  renovablePro,
+} from "../lib/pro/vigencia.ts";
 import { SEGUNDOS_UN_ANIO, type ResultadoMembresia } from "../lib/sophon/tipos.ts";
 
 /**
@@ -80,6 +86,11 @@ function montar(estado: {
   /** Concesión ya existente con la misma clave, si la hay. */
   previa?: { id: string; estado: string; vigenteHasta: Date | null };
   /**
+   * La última concesión CONFIRMADA de este webmaster, mire lo que mire la
+   * anotación del webmaster. Es lo que ve el SEGUNDO guardián.
+   */
+  ultimaConcesion?: { creadoEn: Date; duracionSegundos: number; vigenteHasta: Date | null };
+  /**
    * Lo que contesta `setmembership`, cuando la prueba necesita otra forma.
    *
    * Estaba fijo, y por eso el fallo de producción no tenía prueba que lo
@@ -105,6 +116,7 @@ function montar(estado: {
   const tx = {
     concesionPro: {
       findUnique: async () => estado.previa ?? null,
+      findFirst: async () => estado.ultimaConcesion ?? null,
       delete: async () => {
         registro.concesionesBorradas += 1;
         return {};
@@ -442,9 +454,143 @@ describe("conceder PRO", () => {
     assert.deepEqual(registro.vigenteHastaEscrito, enDias(365));
   });
 
+  it("una concesión viva BLOQUEA aunque la anotación del webmaster esté vacía", async () => {
+    /*
+     * ESTE ES EL CASO QUE COSTÓ SEIS CONCESIONES.
+     *
+     * `Webmaster.proVigenteHasta` es NUESTRA anotación, y se quedó a nulo con la
+     * membresía viva: Sophon aceptó y devolvió un cuerpo sin fecha. El guardián
+     * leyó «no tiene nada» y dejó conceder otra vez. Y otra. Seis en un minuto.
+     *
+     * El PRO no acumula: cada una de esas llamadas TIRÓ lo que quedaba de la
+     * anterior. Por eso el guardián ya no se apoya en un solo dato — mira también
+     * lo que de verdad se pidió.
+     */
+    const { deps, registro } = montar({
+      proVigenteHasta: null, // la anotación, vacía
+      ultimaConcesion: {
+        creadoEn: enDias(-10),
+        duracionSegundos: SEGUNDOS_UN_ANIO,
+        vigenteHasta: null, // la concesión, TAMBIÉN sin fecha
+      },
+    });
+    const r = await concederAnio(peticion("RENOVACION"), deps);
+
+    assert.equal(registro.llamadasSophon.length, 0, "se volvió a conceder sobre un PRO vivo");
+    assert.equal(r.yaActivo, true);
+    assert.equal(registro.concesionesCreadas, 0);
+  });
+
+  it("y la fecha del rechazo se deduce del plazo cuando la concesión no la trae", async () => {
+    // Sin esto el rechazo diría «no se puede, vuelve el …» con la fecha en
+    // blanco, que es peor que no decir nada: parece un fallo.
+    const { deps } = montar({
+      proVigenteHasta: null,
+      ultimaConcesion: {
+        creadoEn: enDias(-10),
+        duracionSegundos: SEGUNDOS_UN_ANIO,
+        vigenteHasta: null,
+      },
+    });
+    const r = await concederAnio(peticion("RENOVACION"), deps);
+    assert.equal(r.vigenteHasta, isoDe(enDias(355)), "no dedujo la caducidad de la concesión");
+  });
+
+  it("una concesión ya CADUCADA no bloquea nada", async () => {
+    // El guardián nuevo no puede convertirse en un candado permanente: el PRO se
+    // vuelve a conceder cuando caduca, y esa es la mitad de la regla.
+    const { deps, registro } = montar({
+      proVigenteHasta: null,
+      ultimaConcesion: {
+        creadoEn: enDias(-400),
+        duracionSegundos: SEGUNDOS_UN_ANIO,
+        vigenteHasta: enDias(-35),
+      },
+    });
+    const r = await concederAnio(peticion("RENOVACION"), deps);
+
+    assert.equal(r.ok, true);
+    assert.equal(registro.llamadasSophon.length, 1, "un PRO caducado tiene que poder renovarse");
+  });
+
+  it("sin ninguna concesión previa se concede, que es el alta normal", async () => {
+    const { deps, registro } = montar({ proVigenteHasta: null });
+    const r = await concederAnio(peticion("ALTA"), deps);
+    assert.equal(r.ok, true);
+    assert.equal(registro.llamadasSophon.length, 1);
+  });
+
   it("el alta y la renovación se auditan como hechos distintos", async () => {
     const { deps, registro } = montar({ proVigenteHasta: null });
     await concederAnio(peticion("ALTA"), deps);
     assert.deepEqual(registro.auditorias, ["pro.concedido_en_alta"]);
+  });
+});
+
+describe("la caducidad efectiva, que leen las tres pantallas", () => {
+  const fecha = (iso: string) => new Date(`${iso}T00:00:00Z`);
+  const AYER = new Date(AHORA.getTime() - DIA);
+
+  it("sin nada, no hay PRO", () => {
+    assert.equal(finEfectivoDelPro(null, null), null);
+    assert.equal(finEfectivoDelPro(null, undefined), null);
+  });
+
+  it("con la anotación sola, manda la anotación", () => {
+    const d = fecha("2027-01-01");
+    assert.deepEqual(finEfectivoDelPro(d, null), d);
+  });
+
+  it("con la ANOTACIÓN VACÍA y una concesión viva, manda la concesión", () => {
+    /*
+     * El caso de producción, y el motivo de que esta función exista: Sophon
+     * aceptó, devolvió un cuerpo sin fecha, `proVigenteHasta` se guardó vacío y
+     * la Malla dijo «Sin PRO» de una cuenta con su año y sus 6 TB.
+     */
+    const fin = finEfectivoDelPro(null, {
+      creadoEn: AYER,
+      duracionSegundos: SEGUNDOS_UN_ANIO,
+      vigenteHasta: null,
+    });
+    assert.ok(fin, "una concesión de ayer por un año no puede leerse como «sin PRO»");
+    assert.equal(proActivo(fin, AHORA), true);
+  });
+
+  it("cuando las dos hablan, gana la que va MÁS LEJOS", () => {
+    // Nunca la más cercana: acortar por nuestra cuenta el PRO de alguien es
+    // exactamente el daño que toda esta regla existe para no hacer.
+    const lejos = fecha("2028-01-01");
+    const cerca = fecha("2027-01-01");
+    assert.deepEqual(
+      finEfectivoDelPro(cerca, { creadoEn: AYER, duracionSegundos: 0, vigenteHasta: lejos }),
+      lejos,
+    );
+    assert.deepEqual(
+      finEfectivoDelPro(lejos, { creadoEn: AYER, duracionSegundos: 0, vigenteHasta: cerca }),
+      lejos,
+    );
+  });
+
+  it("una concesión con fecha propia no se recalcula", () => {
+    // `creadoEn + duracionSegundos` es el respaldo, no la primera opción: si
+    // Sophon dijo hasta cuándo, esa es la verdad.
+    const dicha = fecha("2027-03-15");
+    assert.deepEqual(
+      finEfectivoDelPro(null, {
+        creadoEn: AYER,
+        duracionSegundos: SEGUNDOS_UN_ANIO,
+        vigenteHasta: dicha,
+      }),
+      dicha,
+    );
+  });
+
+  it("una concesión caducada no resucita nada", () => {
+    const fin = finEfectivoDelPro(null, {
+      creadoEn: new Date(AHORA.getTime() - 400 * DIA),
+      duracionSegundos: SEGUNDOS_UN_ANIO,
+      vigenteHasta: null,
+    });
+    assert.equal(renovablePro(fin, AHORA), true, "un PRO de hace 400 días tiene que ser renovable");
   });
 });

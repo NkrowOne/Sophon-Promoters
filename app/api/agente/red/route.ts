@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dinero, esRespuesta, exigirAgente, isoFecha } from "@/lib/api/agente";
 import { hoyContable } from "@/lib/sync/registros";
-import { diasRestantesPro, renovablePro } from "@/lib/pro/vigencia";
+import { diasRestantesPro, finEfectivoDelPro, renovablePro } from "@/lib/pro/vigencia";
 import { diasSinActividad } from "@/lib/red/inactividad";
 
 /**
@@ -40,6 +40,21 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       desaparecidoEn: true,
       proVigenteHasta: true,
       atribuidoEn: true,
+      /*
+       * La última concesión CONFIRMADA, para no volver a pintar «Sin PRO» sobre
+       * una cuenta que sí lo tiene.
+       *
+       * Es exactamente la chapa que apareció en producción: la respuesta de
+       * Sophon llegó sin fecha, `proVigenteHasta` se guardó vacío, y la Malla
+       * dijo «Sin PRO» de un webmaster con su año y sus 6 TB. La anotación puede
+       * fallar; lo que se pidió, no.
+       */
+      concesiones: {
+        where: { estado: "CONFIRMADA" },
+        orderBy: { creadoEn: "desc" },
+        take: 1,
+        select: { creadoEn: true, duracionSegundos: true, vigenteHasta: true },
+      },
       filasDiarias: {
         where: { fecha: { gte: desde } },
         select: {
@@ -79,6 +94,9 @@ export async function GET(peticion: Request): Promise<NextResponse> {
 
     const registrosVentana = serie.reduce((a, d) => a + d.registros, 0);
 
+    // La caducidad efectiva manda sobre la anotada: ver el `select` de arriba.
+    const finPro = finEfectivoDelPro(w.proVigenteHasta, w.concesiones[0] ?? null);
+
     return {
       email: w.emailOriginal,
       id: w.emailNormalizado,
@@ -91,10 +109,10 @@ export async function GET(peticion: Request): Promise<NextResponse> {
           ? "PENDIENTE_CONFIRMACION"
           : w.estadoSophon,
       activadoEn: w.atribuidoEn ? isoFecha(w.atribuidoEn) : null,
-      proVigenteHasta: w.proVigenteHasta ? isoFecha(w.proVigenteHasta) : null,
+      proVigenteHasta: finPro ? isoFecha(finPro) : null,
       // La Mecha: días hasta que caduque el PRO. Es el único dato temporal que
       // la API de Sophon no permite consultar, solo llega al concederlo.
-      diasHastaCaducidad: diasRestantesPro(w.proVigenteHasta),
+      diasHastaCaducidad: diasRestantesPro(finPro),
       /*
        * Y si se puede hacer algo al respecto, que no es lo mismo.
        *
@@ -105,7 +123,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
        * `concederAnio`. Tres lectores del mismo estado tienen que contar la
        * misma historia.
        */
-      proRenovable: renovablePro(w.proVigenteHasta),
+      proRenovable: renovablePro(finPro),
       ganadoTotal: dinero(ganado, idioma),
       registrosVentana,
       diasSinActividad: parado,

@@ -127,6 +127,12 @@ interface TransaccionConcesion {
       estado: string;
       vigenteHasta: Date | null;
     } | null>;
+    /** La última concesión CONFIRMADA de este webmaster, para el segundo guardián. */
+    findFirst: (a: unknown) => Promise<{
+      creadoEn: Date;
+      duracionSegundos: number;
+      vigenteHasta: Date | null;
+    } | null>;
     delete: (a: unknown) => Promise<unknown>;
     create: (a: unknown) => Promise<{ id: string }>;
   };
@@ -208,6 +214,42 @@ export async function concederAnio(
         throw new Error(`${YA_ACTIVO}${isoCorto(actual?.proVigenteHasta)}`);
       }
 
+      /*
+       * ── EL SEGUNDO GUARDIÁN: LO QUE SE CONCEDIÓ, NO LO QUE SE ANOTÓ ──
+       *
+       * El de arriba mira `Webmaster.proVigenteHasta`, que es NUESTRA anotación.
+       * Y ese campo se puede quedar a nulo con la membresía viva: pasó en
+       * producción —Sophon aceptó y devolvió un cuerpo sin fecha—, el campo se
+       * guardó vacío, el guardián leyó «no tiene nada» y se le concedió el PRO
+       * SEIS VECES a la misma cuenta en un minuto.
+       *
+       * Aquel agujero concreto está tapado en el otro extremo: hoy la fecha se
+       * deduce del plazo pedido y nunca se guarda un nulo. Pero el guardián
+       * seguía apoyado en un solo dato, y la regla que protege es la única de
+       * esta aplicación que puede QUITARLE algo a un webmaster.
+       *
+       * Así que se mira también la tabla de concesiones, que es el registro de lo
+       * que de verdad se pidió: si hay una CONFIRMADA cuyo plazo todavía no ha
+       * terminado, hay PRO, diga lo que diga la anotación. Sirve para cualquier
+       * futuro camino en que las dos se separen, no solo para el que ya se cerró.
+       *
+       * La vigencia se calcula desde `creadoEn + duracionSegundos` y no desde
+       * `vigenteHasta`, porque `vigenteHasta` es justo el campo que puede faltar.
+       */
+      const ultima = await tx.concesionPro.findFirst({
+        where: { webmasterId, estado: "CONFIRMADA" },
+        orderBy: { creadoEn: "desc" },
+        select: { creadoEn: true, duracionSegundos: true, vigenteHasta: true },
+      });
+      if (ultima) {
+        const fin =
+          ultima.vigenteHasta ??
+          new Date(ultima.creadoEn.getTime() + ultima.duracionSegundos * 1000);
+        if (proActivo(fin, ahora())) {
+          throw new Error(`${YA_ACTIVO}${isoCorto(fin)}`);
+        }
+      }
+
       const creada = await tx.concesionPro.create({
         data: {
           agenteId,
@@ -262,11 +304,18 @@ export async function concederAnio(
     const r = await sophon().concederMembresia(emailWebmaster, PLAN_UNICO, SEGUNDOS_UN_ANIO);
 
     /*
-     * El inicio se guarda aunque hoy nadie lo lea. Es la evidencia que falta
-     * para saber si Sophon SUMA o SUSTITUYE el plazo —si al conceder sobre algo
-     * vigente el inicio se mueve a hoy, sustituye— y no cuesta más que una
-     * columna. Sin esto, la primera vez que ocurra pasará sin dejar rastro, que
-     * es exactamente lo que ya pasó con los «30 días».
+     * El inicio se guarda aunque hoy nadie lo lea.
+     *
+     * Nació como la evidencia que faltaba para saber si Sophon suma o sustituye
+     * el plazo. **Ya no es una duda: el Operador lo ha confirmado — el PRO NO
+     * ACUMULA.** Conceder sobre una membresía viva no alarga nada: sustituye, y
+     * por tanto tira lo que quedaba.
+     *
+     * Se sigue guardando por lo mismo que se guardaba: es lo único que
+     * permitiría ver, mirando una fila, que una concesión empezó el día en que
+     * se pidió y no cuando debía. Sin ello, el día que algo se conceda de más
+     * pasará sin dejar rastro, que es exactamente lo que ya pasó con los
+     * «30 días».
      */
     const inicio = fechaDeMembresia(r, CLAVES_INICIO);
     const finDeSophon = fechaDeMembresia(r, CLAVES_FIN);
