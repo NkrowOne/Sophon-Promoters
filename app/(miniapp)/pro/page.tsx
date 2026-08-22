@@ -17,11 +17,12 @@ import type { Cadenas } from "@/lib/i18n";
  * que se puede contestar con un botón: **¿a quién PUEDO renovar hoy?**
  *
  * El motivo es la regla de `lib/pro/vigencia.ts`: **un PRO vigente no se
- * renueva**. No es solo negocio —no sabemos si Sophon suma el plazo o lo
- * sustituye, y no podemos comprobarlo—, y su consecuencia sobre esta pantalla es
- * total: «se apaga en 12 días» deja de ser accionable, así que ordenar por
- * urgencia deja de significar nada. Para casi todos, la respuesta es «a nadie,
- * todavía».
+ * renueva**. Y no es una cautela: el PRO **no acumula** —hay uno solo, de 365
+ * días desde la activación— así que renovar antes de tiempo no suma un año,
+ * sustituye el que hay y tira lo que quedaba. Su consecuencia sobre esta
+ * pantalla es total: «se apaga en 12 días» deja de ser accionable, así que
+ * ordenar por urgencia deja de significar nada. Para casi todos, la respuesta es
+ * «a nadie, todavía».
  *
  * De ahí la partición en dos grupos, que es lo que la pantalla hace ahora:
  *
