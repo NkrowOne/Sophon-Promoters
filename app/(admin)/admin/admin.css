@@ -30,6 +30,20 @@
   --p-campo-tinta: #1a1206;
   --p-campo-canto: #a8850b;
 
+  /*
+   * UN SOLO RADIO, y pequeño.
+   *
+   * Había tres —4 px en las tarjetas, 12 px en los controles, 999 px en las
+   * chapas de estado— y tres radios no son un sistema, son tres decisiones
+   * distintas tomadas en tres momentos distintos. El de 12 px venía de la Mini
+   * App, donde es correcto: allí se toca con el dedo y la forma blanda invita.
+   * Aquí se comparan cincuenta filas de datos, y una esquina blanda en una
+   * herramienta de trabajo la disfraza de aplicación de consumo.
+   *
+   * 3 px: lo justo para que un borde no corte, y nada más.
+   */
+  --p-radio: 3px;
+
   /* `.vivo` marca fallos de sincronización y retiros rechazados. Eso NO es la
      marca, es un problema, así que va del rojo de peligro y no del amarillo.
      Confundir «esto hay que mirarlo» con «esto es Sophon» era lo que hacía que
@@ -121,9 +135,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* 40 px se quedan: en el móvil esto se toca con el pulgar, y por debajo de 44
+     el dedo falla. La densidad la dan las tablas, no encoger los botones. */
   min-height: 40px;
   border: 1px solid var(--p-borde);
-  border-radius: 12px;
+  border-radius: var(--p-radio);
   padding: 0 1rem;
   font-size: 0.9375rem;
   font-weight: 500;
@@ -162,7 +178,7 @@
 .panel input,
 .panel select {
   border: 1px solid var(--p-borde);
-  border-radius: 12px;
+  border-radius: var(--p-radio);
   background: var(--p-fondo);
   color: inherit;
   padding: 0.55rem 0.75rem;
@@ -280,15 +296,9 @@
 .panel select:focus-visible {
   outline: 2px solid var(--p-tinta);
   outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Los controles que ya tienen radio conservan el suyo: un anillo de 4 px
-   alrededor de una caja de 12 px se lee como un segundo borde mal puesto. */
-.panel .boton:focus-visible,
-.panel input:focus-visible,
-.panel select:focus-visible {
-  border-radius: 12px;
+  /* Con un solo radio en todo el panel, el anillo ya no necesita su propia
+     excepción: sigue la forma de lo que rodea sin que haya que repetirla. */
+  border-radius: var(--p-radio);
 }
 
 /*
@@ -309,27 +319,41 @@
   }
 }
 
-/* ═══════════════════════ EL CONTROL DE MANDO ═══════════════════════
+/* ══════════════════════════ EL CONTROL DE MANDO ══════════════════════════
  *
- * Piezas que el panel no tenía porque hasta ahora no había ninguna pantalla que
- * comparara cincuenta filas de golpe. Todas salen de lo que YA existe aquí
- * —mismos tokens, mismo radio, mismas cifras tabulares— y ninguna inventa un
- * color: el amarillo sigue siendo la acción y el rojo sigue siendo el problema.
- * Un tercer color habría hecho que ninguno de los tres significara nada.
+ * Las piezas de las tres pantallas densas —plantilla de agentes, ficha y tabla
+ * de webmasters—, escritas de una pieza y no acumuladas.
+ *
+ * ── LA TESIS, EN UNA FRASE ──
+ *
+ * **El estado es un dato, no un objeto.** La primera versión lo metía en
+ * píldoras: borde, relleno y esquina de 999 px alrededor de cada «activo»,
+ * «bloqueado», «sin PRO». En una tabla de quince columnas eso son cuarenta
+ * cajas por pantalla, y cuarenta cajas no jerarquizan nada — solo suben el
+ * ruido de fondo hasta que ninguna destaca.
+ *
+ * Aquí el estado se dice con TIPOGRAFÍA: peso y color. Lo normal se apaga en
+ * gris, lo que hay que mirar va en rojo, lo que conviene mirar en el marrón de
+ * la casa. Cero contenedores. El ojo encuentra el rojo en una tabla llena de
+ * gris mucho antes que una píldora entre cuarenta píldoras.
+ *
+ * Y en lo estructural, filetes en vez de cajas: una tabla de datos ya está
+ * dividida por su propia retícula, y meterle bordes alrededor es dibujar dos
+ * veces la misma separación.
  */
 
 /*
  * La tabla densa.
  *
  * La normal respira 0,6rem por celda, que está bien para ocho filas de barridos
- * y es una página y media de desplazamiento para una red de sesenta webmasters.
- * Aquí se comparan números entre filas, y para eso lo que importa es cuántas
- * caben a la vez en el ojo.
+ * y es página y media de desplazamiento para una red de sesenta webmasters.
+ * Aquí se comparan números entre filas, y para eso importa cuántas caben a la
+ * vez en el ojo.
  */
 .panel .tabla-marco {
   overflow-x: auto;
-  /* El filete de abajo cierra la tabla cuando desborda: sin él, una tabla
-     cortada por la derecha no se distingue de una tabla que se acaba ahí. */
+  /* Cierra la tabla cuando desborda: sin él, una tabla cortada por la derecha
+     no se distingue de una tabla que se acaba ahí. */
   border-bottom: 1px solid var(--p-borde);
 }
 
@@ -340,24 +364,59 @@
 
 .panel table.densa th {
   padding: 0 0.7rem 0.4rem 0;
-  /* La cabecera se queda mientras se recorre la tabla. En una de veinte columnas
-     es la diferencia entre leer un número y adivinar de qué es. */
+  /* La cabecera se queda mientras se recorre la tabla. En una de veinte
+     columnas es la diferencia entre leer un número y adivinar de qué es. */
   position: sticky;
   top: 0;
   z-index: 1;
   background: var(--p-fondo);
 }
 
-/* La fila bajo el puntero, porque a lo ancho de veinte columnas el ojo se cae
-   de renglón. Es el mismo papel cálido de las superficies, no un azul de
-   selección: aquí no se selecciona nada, solo se sigue la línea. */
+/* La fila bajo el puntero: a lo ancho de veinte columnas el ojo se cae de
+   renglón. Papel cálido, no un azul de selección: aquí no se selecciona nada. */
 .panel table.densa tbody tr:hover {
   background: var(--p-superficie);
 }
 
-/* La primera columna ancla la fila, así que se queda quieta y con peso. */
 .panel table.densa td.ancla {
   font-weight: 550;
+}
+
+/*
+ * LA COLUMNA QUE ANCLA LA FILA SE QUEDA QUIETA.
+ *
+ * Desplazada tres columnas ya no se sabe de quién es la fila. El filete lo pinta
+ * la sombra y no un borde: un borde participaría en el ancho de la columna y
+ * descuadraría la cabecera con su cuerpo.
+ */
+.panel table.densa td.ancla,
+.panel table.densa thead th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--p-fondo);
+  box-shadow: 1px 0 0 var(--p-borde);
+  z-index: 2;
+}
+
+.panel table.densa thead th:first-child {
+  z-index: 3;
+}
+
+.panel table.densa tbody tr:hover td.ancla {
+  background: var(--p-superficie);
+}
+
+/*
+ * LAS CABECERAS NO VAN EN MONOESPACIADA.
+ *
+ * `.num` pone `ui-monospace` para comparar importes dígito sobre dígito, y eso
+ * se aplicaba también al `<th>`. Un encabezado es una etiqueta, no una medida:
+ * la mono ahí es disfraz. Las cifras tabulares se quedan, que esas sí alinean la
+ * columna con su cabecera.
+ */
+.panel th.num {
+  font-family: inherit;
+  font-size: 0.8125rem;
 }
 
 .panel td.mono,
@@ -366,56 +425,91 @@
   font-size: 0.8125rem;
 }
 
+/* Una fecha `2026-08-22` partida por el guion deja la columna al doble de alto
+   y el dato ilegible. Las que llevan `max-width` propio siguen recortando. */
+.panel td.mono {
+  white-space: nowrap;
+}
+
 /*
- * La chapa de estado.
+ * ── LA SEÑAL DE ESTADO ──
  *
- * Píldora y no cuadrado: es la misma pieza que la Mini App usa en la Malla para
- * decir «Sin PRO» o «bloqueado», y el Operador y el agente tienen que estar
- * mirando la misma etiqueta cuando hablan del mismo webmaster.
+ * Sustituye a la píldora. Sin borde, sin fondo, sin esquina: peso y color.
  *
- * En reposo NO lleva color. Un panel donde cada estado tiene su tono acaba
- * siendo un semáforo de catorce luces donde ninguna llama la atención; aquí solo
- * se tiñe lo que exige hacer algo.
+ * En reposo va en gris de apoyo, o sea que RETROCEDE. Un webmaster activo no
+ * tiene que competir por la mirada con uno bloqueado; ese es justo el trabajo
+ * que una píldora no puede hacer, porque una píldora siempre pesa lo mismo.
  */
-.panel .chapa {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border: 1px solid var(--p-borde);
-  border-radius: 999px;
-  padding: 0.05rem 0.5rem;
-  font-size: 0.75rem;
+.panel .senal {
   font-weight: 550;
-  line-height: 1.5;
   color: var(--p-apoyo);
   white-space: nowrap;
 }
 
 /* Hay que hacer algo, y pronto. El mismo rojo que marca un barrido caído. */
-.panel .chapa.problema {
+.panel .senal.problema {
   color: var(--p-vivo);
-  border-color: color-mix(in srgb, var(--p-vivo) 45%, transparent);
 }
 
-/* Conviene mirarlo, no corre prisa. Va del marrón de la casa, que ya es el color
+/* Conviene mirarlo, no corre prisa. El marrón de la casa, que ya es el color
    del dato en todo el producto. */
-.panel .chapa.atencion {
+.panel .senal.atencion {
   color: var(--p-tinta);
-  border-color: color-mix(in srgb, var(--p-tinta) 35%, transparent);
 }
 
-/* Está bien. Sin tinte: el estado normal no compite por la mirada. */
-.panel .chapa.bien {
-  color: var(--p-texto);
+/* Está bien. Se queda en el gris de apoyo: lo normal no se anuncia. */
+.panel .senal.bien {
+  color: var(--p-apoyo);
+}
+
+/*
+ * Varias señales seguidas: punto medio entre ellas, y ningún contenedor.
+ *
+ * `inline-flex` con `wrap` y no `inline`, y la diferencia no es de gusto.
+ * Cada señal lleva `nowrap` para que «6 concesiones» no se parta por la mitad, y
+ * el separador va en un `::before` DENTRO de la señal siguiente. Con `display:
+ * inline` eso deja una tirada de texto sin un solo punto por donde cortar —no
+ * hay espacios entre los elementos, los quita JSX— así que las cuatro señales
+ * del PRO formaban una línea indivisible de 400 px que en el móvil se salía por
+ * encima de la celda de al lado.
+ *
+ * Como caja flexible, cada señal es un elemento que puede saltar de línea por su
+ * cuenta sin romperse por dentro. En el escritorio la tabla le da su ancho y no
+ * salta ninguna; en el móvil la ficha la estrecha y saltan las que hagan falta.
+ */
+.panel .senales {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.3rem;
+}
+
+/*
+ * El punto va DETRÁS de cada señal, no delante de la siguiente.
+ *
+ * Con `::before` funcionaba igual en una línea, pero al envolver el punto se
+ * quedaba colgando al principio del renglón siguiente —«· fecha deducida»— como
+ * una viñeta de lista que nadie pidió. Detrás, el separador se va con la señal a
+ * la que pertenece y una línea nueva empieza siempre por su palabra.
+ */
+.panel .senales > .senal:not(:last-child)::after {
+  content: "·";
+  margin-left: 0.3rem;
+  color: var(--p-borde);
+  font-weight: 400;
 }
 
 /*
  * La serie de catorce días.
  *
- * Es el mismo gráfico que la Malla del agente y con la misma regla —una columna
- * por día, todas a la misma escala— para que el Operador vea la forma que ve el
- * agente. Aquí cabe en una celda porque lo que se lee no es el valor exacto sino
- * el hueco: dónde dejó de entrar tráfico.
+ * El mismo gráfico que la Malla del agente y con la misma regla —una columna por
+ * día, todas a la misma escala— para que el Operador vea la forma que ve el
+ * agente. Lo que se lee no es el valor exacto sino el hueco: dónde dejó de
+ * entrar tráfico.
+ *
+ * Barras rectas, sin redondear. Una barra de dos píxeles con las esquinas
+ * suavizadas pierde la mitad de su masa en el antialias y la serie se lee más
+ * clara de lo que es.
  */
 .panel .serie {
   display: flex;
@@ -428,10 +522,9 @@
 .panel .serie i {
   flex: 1;
   background: var(--p-tinta);
-  border-radius: 1px;
   /* Un día a cero deja un pelo visible en la base. Sin él, catorce días sin
-     tráfico son una celda vacía, que se lee como «no hay datos» y no como
-     «está parado», que es lo contrario. */
+     tráfico son una celda vacía, que se lee como «no hay datos» y no como «está
+     parado», que es lo contrario. */
   min-height: 1px;
   opacity: 0.85;
 }
@@ -442,44 +535,40 @@
 }
 
 /*
- * La barra de filtros.
+ * La barra de filtros: enlaces, no píldoras.
  *
- * Enlaces, no un desplegable con JavaScript: el estado del filtro vive en la URL
- * y por tanto se puede compartir, marcar y recargar. En un panel desde el que se
- * pega una fila en un chat, eso vale más que la animación de un `select`.
+ * El estado del filtro vive en la URL —se puede pegar en un chat, marcar y
+ * recargar— y el puesto se marca con un filete debajo, que es como se marca lo
+ * seleccionado en una herramienta. No con el amarillo: el amarillo es la ACCIÓN
+ * y un filtro activo no es una acción pendiente.
  */
 .panel .filtros {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem 1.1rem;
   align-items: center;
 }
 
 .panel .filtros a {
   text-decoration: none;
-  border: 1px solid var(--p-borde);
-  border-radius: 999px;
-  padding: 0.2rem 0.7rem;
-  font-size: 0.8125rem;
+  padding: 0.15rem 0;
+  font-size: 0.875rem;
   color: var(--p-apoyo);
-  transition:
-    background-color var(--p-t-toque) var(--p-curva),
-    border-color var(--p-t-toque) var(--p-curva);
+  border-bottom: 2px solid transparent;
+  transition: color var(--p-t-toque) var(--p-curva);
 }
 
 .panel .filtros a:hover {
-  background: var(--p-superficie);
+  color: var(--p-texto);
 }
 
-/* El filtro puesto se marca con tinta y peso, no con el amarillo: el amarillo es
-   la acción, y un filtro activo no es una acción pendiente. */
 .panel .filtros a[aria-current="page"] {
   color: var(--p-texto);
-  border-color: var(--p-tinta);
   font-weight: 600;
+  border-bottom-color: var(--p-tinta);
 }
 
-/* La rejilla de datos sueltos, que estaba escrita a mano en cada página. */
+/* La rejilla de datos sueltos. */
 .panel .rejilla {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
@@ -513,86 +602,38 @@
 }
 
 /*
- * LA MEDIDA DE LA PROSA, que el marco ancho dejó al descubierto.
+ * LA MEDIDA DE LA PROSA.
  *
- * El armazón pasó de 1080 a 1320 px para que quepan las tablas de la red, y un
- * párrafo de apoyo a 1320 px son unos 110 caracteres por línea: el ojo pierde el
- * renglón al volver. Se le pone medida a los párrafos y a los elementos de
- * lista, que son lo único que se lee de corrido en el panel.
- *
- * Las celdas quedan fuera. Dentro de una tabla `.apoyo` no es prosa, es un dato
- * secundario —un correo, una fecha, un motivo— y limitarlo a 68ch rompería la
- * alineación de la columna sin que nadie ganara nada.
+ * El armazón mide 1320 px para que quepan las tablas, y un párrafo a 1320 son
+ * unos 110 caracteres por línea: el ojo pierde el renglón al volver. Los
+ * rótulos NO —llevan el filete que abre la sección, y limitarlos lo cortaba a
+ * media página— y dentro de una celda `.apoyo` no es prosa sino un dato
+ * secundario.
  */
 .panel p.apoyo,
 .panel li {
   max-width: 68ch;
 }
 
-/*
- * Los rótulos NO. Aprendido mirando la pantalla: el rótulo de sección lleva el
- * filete que la abre, así que limitarlo a 68ch dejaba la línea cortada a media
- * página, como si la sección terminara ahí. Una regla de medida de prosa
- * aplicada a un elemento que no es prosa.
- */
-.panel .rotulo {
-  max-width: none;
-}
-
-/* Y dentro de una tabla `.apoyo` no es prosa: es un dato secundario —un motivo,
-   un navegador— y una medida ahí rompe la alineación de la columna. */
+.panel .rotulo,
 .panel td .apoyo,
 .panel td p,
 .panel th p {
   max-width: none;
 }
 
-/*
- * LAS CABECERAS NO VAN EN MONOESPACIADA.
- *
- * `.num` pone `ui-monospace` para que los importes se puedan comparar dígito
- * sobre dígito, y eso se estaba aplicando también al `<th>`. Con dos columnas
- * numéricas pasaba desapercibido; con ocho, media cabecera de la tabla salía en
- * una tipografía distinta del resto del panel. Un encabezado es una etiqueta, no
- * una medida: la mono ahí es disfraz. Las cifras tabulares se quedan, que esas
- * sí alinean la columna con su cabecera.
- */
-.panel th.num {
-  font-family: inherit;
-  font-size: 0.8125rem;
+.panel .marco {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
 }
-
-/*
- * Las celdas mono no parten.
- *
- * Una fecha `2026-08-22` cortada en dos líneas por el guion deja la columna con
- * el doble de alto y el dato ilegible; se vio en la tabla de webmasters, donde
- * hay tres columnas de fecha seguidas. Las que llevan `max-width` propio (el
- * correo, la wallet) siguen recortando con puntos suspensivos, que es lo suyo.
- */
-.panel td.mono {
-  white-space: nowrap;
-}
-
-/* ═══════════════════════ EL PANEL EN UN MÓVIL ═══════════════════════
- *
- * No estaba pensado para eso y se notaba: la página se salía por la derecha, el
- * fondo se quedaba a media pantalla —el `.panel` mide lo que el hueco, no lo que
- * el documento desbordado— y los botones de suspender quedaban cortados por el
- * borde. Se vio en un iPhone emulado, no leyendo el código.
- *
- * Y hay que arreglarlo aunque «el panel es de escritorio», porque quien lo abre
- * lo abre desde el enlace que le manda el bot AL TELÉFONO. La pantalla real no
- * es la que uno diseña, es la que se tiene en la mano.
- */
 
 /*
  * El fondo lo pinta también el `body`.
  *
  * `.panel` es un bloque: mide el ancho del hueco, no el del documento. En cuanto
- * algo desbordaba a lo ancho, el documento crecía y su color de fondo se quedaba
- * detrás, dejando una franja blanca a la derecha en modo oscuro. Con el `body`
- * pintado, el desbordamiento podrá ser un fallo pero nunca un agujero.
+ * algo desborde a lo ancho, su color se queda detrás y aparece una franja blanca
+ * a la derecha en modo oscuro.
  */
 body:has(> .panel) {
   background: #ffffff;
@@ -604,59 +645,40 @@ body:has(> .panel) {
   }
 }
 
-.panel .marco {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 4rem;
-}
-
-/*
- * LA COLUMNA QUE ANCLA LA FILA SE QUEDA QUIETA.
+/* ═══════════════════════════ EL PANEL EN UN MÓVIL ═══════════════════════════
  *
- * Una tabla de quince columnas en una pantalla de 390 px se lee desplazándola, y
- * desplazada tres columnas ya no se sabe de quién es la fila. Con el correo
- * fijo a la izquierda, el dato y su dueño no se separan nunca.
+ * No es una adaptación de cortesía: **es donde se usa**. El enlace del panel se
+ * lo manda el bot al Telegram del Operador, o sea al teléfono, y desde el propio
+ * Telegram se entra con un toque. La pantalla real no es la que uno diseña, es
+ * la que se tiene en la mano.
  *
- * Vale igual en el escritorio, así que no se encierra en una consulta de medios:
- * una tabla que se comporta distinto según el ancho es una tabla que hay que
- * aprender dos veces.
+ * ── POR QUÉ LAS TABLAS DEJAN DE SER TABLAS ──
+ *
+ * Quince columnas en 390 px no se leen. Se pueden desplazar —y se podían, con la
+ * columna del correo anclada— pero desplazar quince columnas para comparar dos
+ * números es leer con una pajita: en cada posición ves dos datos y tienes que
+ * recordar los trece de al lado.
+ *
+ * Debajo de 720 px cada fila se convierte en una FICHA: el correo arriba a todo
+ * lo ancho, y los datos debajo en dos columnas, cada uno con su etiqueta. Se
+ * lee de arriba abajo, que es como se lee un teléfono. La cabecera de la tabla
+ * sobra porque cada dato lleva la suya pegada.
+ *
+ * Es CSS puro sobre el mismo marcado: sin una segunda plantilla que mantener y
+ * sin que exista jamás una versión móvil que se olvide de una columna nueva.
  */
-.panel table.densa td.ancla,
-.panel table.densa thead th:first-child {
-  position: sticky;
-  left: 0;
-  background: var(--p-fondo);
-  /* El filete lo dibuja la sombra y no un borde: un borde participaría en el
-     ancho de la columna y descuadraría la cabecera con su cuerpo. */
-  box-shadow: 1px 0 0 var(--p-borde);
-  z-index: 2;
-}
-
-.panel table.densa thead th:first-child {
-  /* Fija por arriba y por la izquierda a la vez: tiene que ganar a las dos. */
-  z-index: 3;
-}
-
-/* La fila bajo el puntero también tiñe su ancla, o la columna fija se
-   despegaría del resto de la fila justo al seguirla con el ratón. */
-.panel table.densa tbody tr:hover td.ancla {
-  background: var(--p-superficie);
-}
-
 @media (max-width: 720px) {
   .panel .marco {
-    /* Menos margen: en 390 px, 1,25rem por lado son 40 px que le faltan a la
-       tabla. El aire se saca de donde no cuesta información. */
+    /* 1,25rem por lado son 40 px que le faltan al contenido en 390. */
     padding: 1rem 0.85rem 3rem;
   }
 
   /*
-   * Las rejillas de datos, a dos columnas en vez de a una.
+   * Las rejillas de datos, a dos columnas y no a una.
    *
-   * `auto-fit` con un mínimo de 10,5rem cae a UNA sola columna en un móvil, y
-   * entonces los doce datos de «Su red» son doce pantallazos de desplazamiento.
-   * Con `min()` el mínimo nunca supera la mitad del hueco, así que caben dos y
-   * se pueden comparar.
+   * `auto-fit` con un mínimo fijo cae a una sola, y entonces los doce datos de
+   * «Su red» son doce pantallazos de desplazamiento. Con `min()` el mínimo nunca
+   * supera la mitad del hueco, así que caben dos y se pueden comparar.
    */
   .panel .rejilla {
     grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 45%), 1fr));
@@ -671,13 +693,115 @@ body:has(> .panel) {
     font-size: 2.25rem;
   }
 
-  /* La cabecera fija de la tabla estorba en un móvil: se lleva un tercio de la
-     pantalla en cuanto se baja un poco. Se suelta. */
-  .panel table.densa th {
-    position: static;
+  /* Ya no hay nada que desplazar a lo ancho: el marco deja de ser un carril. */
+  .panel .tabla-marco {
+    overflow-x: visible;
+    border-bottom: 0;
   }
 
+  .panel table.densa,
+  .panel table.densa tbody,
+  .panel table.densa tr {
+    display: block;
+    width: 100%;
+  }
+
+  /* Cada dato lleva su etiqueta pegada, así que la cabecera sobra. */
+  .panel table.densa thead {
+    display: none;
+  }
+
+  .panel table.densa tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 1rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--p-borde);
+  }
+
+  .panel table.densa tbody tr:hover {
+    /* Sin puntero no hay `hover`; en táctil solo produce un resaltado que se
+       queda pegado después de tocar. */
+    background: none;
+  }
+
+  .panel table.densa td {
+    display: block;
+    border: 0;
+    padding: 0;
+    font-size: 0.875rem;
+    /* La columna anclada era para el desplazamiento horizontal, que aquí ya no
+       existe. Fijarla ahora la sacaría de su sitio en la ficha. */
+    position: static;
+    box-shadow: none;
+    background: none;
+    white-space: normal;
+  }
+
+  /*
+   * La columna anclada deja de estarlo. Hay que decirlo con el MISMO selector
+   * que la ancló: `td.ancla` pesa más que `td`, así que la regla genérica de
+   * arriba no la alcanzaba y el filete de la sombra seguía dibujado — una raya
+   * vertical suelta al lado del correo, sin nada que separar.
+   */
+  .panel table.densa td.ancla,
   .panel table.densa thead th:first-child {
-    position: sticky;
+    position: static;
+    box-shadow: none;
+    background: none;
+  }
+
+  /* El correo manda: ocupa las dos columnas y va primero. */
+  .panel table.densa td.ancla {
+    grid-column: 1 / -1;
+    max-width: none;
+    /* 0,875 y no 0,9375: en monoespaciada, quince píxeles hacen que un correo
+       normal no quepa en 360 y se parta por la mitad de la palabra. */
+    font-size: 0.875rem;
+    /* `break-word` y no `anywhere`: parte solo si de verdad no cabe, y prueba
+       antes por los puntos de corte naturales del correo. */
+    overflow-wrap: break-word;
+  }
+
+  .panel table.densa td.ancla span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  /*
+   * La etiqueta de cada dato, encima y pequeña.
+   *
+   * Sale del atributo, no de un segundo marcado: el mismo `<td>` sirve para la
+   * tabla del escritorio y para la ficha del móvil, y una columna nueva no puede
+   * quedarse sin etiqueta porque la etiqueta es la cabecera que ya tenía.
+   */
+  .panel table.densa td[data-etiqueta]::before {
+    content: attr(data-etiqueta);
+    display: block;
+    /* Nunca en monoespaciada, aunque la celda lo sea: es una etiqueta. */
+    font-family: var(--fuente), system-ui, -apple-system, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--p-apoyo);
+    margin-bottom: 0.05rem;
+  }
+
+  /* Alineados a la izquierda: en una ficha de dos columnas, un número pegado a
+     la derecha se separa de su propia etiqueta. */
+  .panel table.densa td.num {
+    text-align: left;
+  }
+
+  /*
+   * Lo terciario se cae.
+   *
+   * El UID de Sophon y la fecha de devengo no deciden nada en un teléfono: se
+   * miran cuando algo ya no cuadra, y eso se hace sentado. Siguen enteros en el
+   * escritorio; no se pierde ningún dato, se pospone.
+   */
+  .panel table.densa td.secundaria,
+  .panel table.densa th.secundaria {
+    display: none;
   }
 }

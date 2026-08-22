@@ -17,8 +17,34 @@ import Link from "next/link";
 /** El tono dice qué hacer, no qué es: teñir por teñir apaga los tres colores. */
 export type Tono = "neutro" | "bien" | "atencion" | "problema";
 
-export function Chapa({ tono = "neutro", children }: { tono?: Tono; children: React.ReactNode }) {
-  return <span className={tono === "neutro" ? "chapa" : `chapa ${tono}`}>{children}</span>;
+/**
+ * El estado de algo, dicho con tipografía.
+ *
+ * Se llamaba `Chapa` y pintaba una píldora: borde, relleno y esquina de 999 px
+ * alrededor de cada «activo» o «bloqueado». En una tabla de quince columnas eso
+ * eran cuarenta cajas por pantalla, y cuarenta cajas no jerarquizan — suben el
+ * ruido de fondo hasta que ninguna destaca.
+ *
+ * Ahora es peso y color, sin contenedor. Lo normal retrocede en gris; lo que hay
+ * que mirar salta en rojo. El ojo encuentra un rojo entre grises mucho antes que
+ * una píldora entre píldoras.
+ *
+ * El nombre cambió con la cosa: `Chapa` describía una forma que ya no existe, y
+ * un nombre que miente es peor que un nombre feo.
+ */
+export function Senal({ tono = "neutro", children }: { tono?: Tono; children: React.ReactNode }) {
+  return <span className={tono === "neutro" ? "senal" : `senal ${tono}`}>{children}</span>;
+}
+
+/**
+ * Varias señales seguidas, separadas por un punto medio.
+ *
+ * Sin esto se pegan y se leen como una sola frase. El separador lo pone el CSS
+ * entre hermanas, así que da igual cuántas haya y no hay que decidir dónde va la
+ * coma al pintarlas.
+ */
+export function Senales({ children }: { children: React.ReactNode }) {
+  return <span className="senales">{children}</span>;
 }
 
 /**
@@ -40,7 +66,7 @@ const ESTADOS_WEBMASTER: Record<string, { texto: string; tono: Tono }> = {
 
 export function EstadoWebmaster({ estado }: { estado: string }) {
   const e = ESTADOS_WEBMASTER[estado] ?? { texto: estado.toLowerCase(), tono: "atencion" as Tono };
-  return <Chapa tono={e.tono}>{e.texto}</Chapa>;
+  return <Senal tono={e.tono}>{e.texto}</Senal>;
 }
 
 const ESTADOS_AGENTE: Record<string, Tono> = {
@@ -51,29 +77,29 @@ const ESTADOS_AGENTE: Record<string, Tono> = {
 };
 
 export function EstadoAgente({ estado }: { estado: string }) {
-  return <Chapa tono={ESTADOS_AGENTE[estado] ?? "atencion"}>{estado.toLowerCase()}</Chapa>;
+  return <Senal tono={ESTADOS_AGENTE[estado] ?? "atencion"}>{estado.toLowerCase()}</Senal>;
 }
 
 /**
- * El PRO, en una chapa que dice lo ACCIONABLE.
+ * El PRO, en una señal que dice lo ACCIONABLE.
  *
  * «Caduca en 200 días» no es información para el Operador: no hay nada que hacer
  * con ella y ocuparía la misma celda que un «sin PRO», que sí lo es. La misma
  * regla que sigue la Malla del agente.
  */
-export function ChapaPro({
+export function SenalPro({
   diasDePro,
   proVigenteHasta,
 }: {
   diasDePro: number | null;
   proVigenteHasta: Date | null;
 }) {
-  if (proVigenteHasta === null) return <Chapa tono="problema">nunca tuvo</Chapa>;
-  if (diasDePro !== null && diasDePro <= 0) return <Chapa tono="problema">caducado</Chapa>;
+  if (proVigenteHasta === null) return <Senal tono="problema">nunca tuvo</Senal>;
+  if (diasDePro !== null && diasDePro <= 0) return <Senal tono="problema">caducado</Senal>;
   return (
-    <Chapa tono="bien">
-      {diasDePro} d<span className="apoyo" style={{ fontWeight: 400 }}> · {dia(proVigenteHasta)}</span>
-    </Chapa>
+    <Senal tono="bien">
+      {diasDePro} d<span style={{ fontWeight: 400, opacity: 0.75 }}> · {dia(proVigenteHasta)}</span>
+    </Senal>
   );
 }
 

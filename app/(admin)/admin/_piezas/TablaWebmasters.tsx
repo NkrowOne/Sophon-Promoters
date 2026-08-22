@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { FilaWebmaster } from "@/lib/admin/control";
 import { DIAS_VENTANA } from "@/lib/admin/control";
 import { Importe } from "./Importe";
-import { Chapa, ChapaPro, EstadoWebmaster, Num, Serie, dia } from "./Control";
+import { EstadoWebmaster, Num, Senal, Senales, SenalPro, Serie, dia } from "./Control";
 
 /**
  * El origen, en una palabra.
@@ -75,14 +75,14 @@ export function TablaWebmasters({
             <th>Actividad</th>
             <th className="num">{DIAS_VENTANA} d</th>
             <th className="num">Total</th>
-            <th className="num">Pago</th>
+            <th className="num secundaria">Pago</th>
             <th className="num">Parado</th>
             <th className="num">Ganado</th>
-            <th>Origen</th>
+            <th className="secundaria">Origen</th>
             <th>Alta</th>
-            <th>Devenga</th>
-            <th>Visto</th>
-            <th>UID</th>
+            <th className="secundaria">Devenga</th>
+            <th className="secundaria">Visto</th>
+            <th className="secundaria">UID</th>
           </tr>
         </thead>
         <tbody>
@@ -98,7 +98,7 @@ export function TablaWebmasters({
               </td>
 
               {conAgente && (
-                <td>
+                <td data-etiqueta="Agente">
                   {w.agenteId ? (
                     <Link href={`/admin/agentes/${w.agenteId}`} style={{ textDecoration: "none" }}>
                       {w.agenteNombre}
@@ -108,12 +108,12 @@ export function TablaWebmasters({
                        antes que la aplicación y no lo captó nadie. No es un
                        fallo, pero sí es lo que decide que no se pueda dar de
                        alta. */
-                    <Chapa tono="atencion">del Operador</Chapa>
+                    <Senal tono="atencion">del Operador</Senal>
                   )}
                 </td>
               )}
 
-              <td>
+              <td data-etiqueta="Estado">
                 <EstadoWebmaster estado={w.estado} />
               </td>
 
@@ -121,45 +121,35 @@ export function TablaWebmasters({
                   tabla ya se desplaza a lo ancho, así que apilar las chapas aquí
                   no ahorra nada y estira la fila. El webmaster con seis
                   concesiones abría tres renglones en blanco en la parte visible. */}
-              <td style={{ whiteSpace: "nowrap" }}>
-                <ChapaPro diasDePro={w.diasDePro} proVigenteHasta={w.proVigenteHasta} />
+              <td data-etiqueta="PRO">
+                <Senales>
+                  <SenalPro diasDePro={w.diasDePro} proVigenteHasta={w.proVigenteHasta} />
                 {/* Más de una concesión sobre el mismo webmaster es la huella de
                     haberle llamado a `setmembership` varias veces, que es la
                     llamada que la regla de vigencia existe para no repetir. */}
-                {(w.concesiones > 1 || w.concesionesDeducidas > 0) && (
-                  <>
-                    {" "}
-                    {/* Las dos van juntas y no en dos chapas: apiladas hacían de
-                        esta celda la más alta de la tabla y desalineaban la fila
-                        entera justo en el caso que hay que mirar. */}
-                    <Chapa tono="atencion">
-                      {w.concesiones > 1 && `${w.concesiones} concesiones`}
-                      {w.concesiones > 1 && w.concesionesDeducidas > 0 && " · "}
-                      {w.concesionesDeducidas > 0 && "fecha deducida"}
-                    </Chapa>
-                  </>
-                )}
-                {w.concesionesFallidas > 0 && (
-                  <>
-                    {" "}
-                    <Chapa tono="problema">{w.concesionesFallidas} fallidas</Chapa>
-                  </>
-                )}
+                  {w.concesiones > 1 && (
+                    <Senal tono="atencion">{w.concesiones} concesiones</Senal>
+                  )}
+                  {w.concesionesDeducidas > 0 && <Senal tono="atencion">fecha deducida</Senal>}
+                  {w.concesionesFallidas > 0 && (
+                    <Senal tono="problema">{w.concesionesFallidas} fallidas</Senal>
+                  )}
+                </Senales>
               </td>
 
-              <td>
+              <td data-etiqueta="Actividad">
                 <Serie valores={w.serie} maximo={maximo} />
               </td>
-              <td className="num">
+              <td className="num" data-etiqueta={`${DIAS_VENTANA} d`}>
                 <Num valor={w.registrosVentana} />
               </td>
-              <td className="num">
+              <td className="num" data-etiqueta="Total">
                 <Num valor={w.registrosTotales} />
               </td>
-              <td className="num">
+              <td className="num secundaria" data-etiqueta="Pago">
                 <Num valor={w.usuariosPagoVentana} />
               </td>
-              <td className="num">
+              <td className="num" data-etiqueta="Parado">
                 {w.diasSinActividad === null ? (
                   /* Nunca trajo un registro. No es lo mismo que llevar parado
                      cuarenta días, y contarlo igual haría que cada alta reciente
@@ -171,17 +161,32 @@ export function TablaWebmasters({
                   <span className={w.apagado ? "vivo" : undefined}>{w.diasSinActividad} d</span>
                 )}
               </td>
-              <td className="num">
+              <td className="num" data-etiqueta="Ganado">
                 <Importe micros={w.ganadoMicros} />
               </td>
 
-              <td className="apoyo" style={{ fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+              <td
+                className="apoyo secundaria"
+                data-etiqueta="Origen"
+                style={{ fontSize: "0.8125rem", whiteSpace: "nowrap" }}
+              >
                 {ORIGEN[w.origen] ?? w.origen.toLowerCase()}
               </td>
-              <td className="mono apoyo">{dia(w.atribuidoEn)}</td>
-              <td className="mono apoyo">{dia(w.devengaDesde)}</td>
-              <td className="mono apoyo">{dia(w.vistoPorUltimaVezEn)}</td>
-              <td className="mono apoyo" style={{ maxWidth: "12ch", overflow: "hidden", textOverflow: "ellipsis" }} title={w.uidSophon ?? ""}>
+              <td className="mono apoyo" data-etiqueta="Alta">
+                {dia(w.atribuidoEn)}
+              </td>
+              <td className="mono apoyo secundaria" data-etiqueta="Devenga">
+                {dia(w.devengaDesde)}
+              </td>
+              <td className="mono apoyo secundaria" data-etiqueta="Visto">
+                {dia(w.vistoPorUltimaVezEn)}
+              </td>
+              <td
+                className="mono apoyo secundaria"
+                data-etiqueta="UID"
+                style={{ maxWidth: "12ch", overflow: "hidden", textOverflow: "ellipsis" }}
+                title={w.uidSophon ?? ""}
+              >
                 {w.uidSophon ?? "—"}
               </td>
             </tr>

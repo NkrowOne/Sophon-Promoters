@@ -8,7 +8,8 @@ import { Cerrada } from "../../_piezas/Cerrada";
 import { Importe } from "../../_piezas/Importe";
 import { TablaWebmasters } from "../../_piezas/TablaWebmasters";
 import {
-  Chapa,
+  Senal,
+  Senales,
   Dato,
   EstadoAgente,
   Num,
@@ -109,12 +110,14 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
       {/* Lo que hay que mirar va arriba y en una línea. Enterrado bajo las
           cifras de dinero llegaría después de haber decidido. */}
       {avisos.length > 0 && (
-        <p style={{ marginTop: "1.25rem", display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
-          {avisos.map((t) => (
-            <Chapa key={t} tono="problema">
-              {t}
-            </Chapa>
-          ))}
+        <p style={{ marginTop: "1.25rem" }}>
+          <Senales>
+            {avisos.map((t) => (
+              <Senal key={t} tono="problema">
+                {t}
+              </Senal>
+            ))}
+          </Senales>
         </p>
       )}
 
@@ -279,7 +282,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
                       {s.wallet}
                     </td>
                     <td>
-                      <Chapa
+                      <Senal
                         tono={
                           s.estado === "PAGADO"
                             ? "bien"
@@ -289,7 +292,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
                         }
                       >
                         {s.estado.toLowerCase()}
-                      </Chapa>
+                      </Senal>
                     </td>
                     <td className="mono">{momento(s.resueltoEn)}</td>
                     <td className="apoyo">{s.motivo ?? s.referenciaPago ?? "—"}</td>
