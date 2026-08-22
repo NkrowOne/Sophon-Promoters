@@ -24,11 +24,17 @@ import { cookies } from "next/headers";
 import { db } from "../db.ts";
 import { generarTokenSesion, hashToken } from "../cripto.ts";
 
-export const COOKIE_ADMIN = "sp_admin";
-/** Vida de la sesión ya abierta. */
-export const HORAS_SESION_ADMIN = 12;
-/** Ventana para canjear el enlace que manda el bot. */
-export const MINUTOS_CANJE = 15;
+// La política de la cookie vive en `cookie-admin.ts`, sin dependencias, para que
+// se pueda probar con Node pelado. Se reexporta para no mover los llamantes.
+export {
+  COOKIE_ADMIN,
+  COOKIE_DESDE_TELEGRAM,
+  HORAS_SESION_ADMIN,
+  MINUTOS_CANJE,
+  opcionesCookieAdmin,
+  opcionesMarcaTelegram,
+} from "./cookie-admin.ts";
+import { COOKIE_ADMIN, HORAS_SESION_ADMIN, MINUTOS_CANJE } from "./cookie-admin.ts";
 
 // La comprobación vive en `lib/operador.ts`, que es quien acepta también el
 // nombre antiguo de la variable mientras los despliegues se actualizan. Se
@@ -110,6 +116,57 @@ export async function canjearEnlace(canje: string, ip?: string | null): Promise<
   return token;
 }
 
+/**
+ * Abre una sesión de Operador **desde dentro de Telegram**, sin enlace.
+ *
+ * ── POR QUÉ EXISTE, SI YA HABÍA UNA FORMA DE ENTRAR ──
+ *
+ * La de arriba manda un enlace al chat y ese enlace abre un NAVEGADOR. Funciona,
+ * y para el escritorio es lo suyo. Pero el Operador vive en el móvil y en
+ * Telegram: sacarlo a Brave para mirar una tabla y volver es la clase de fricción
+ * que hace que una pantalla no se mire nunca.
+ *
+ * Aquí no hace falta enlace porque **Telegram ya ha dicho quién es**: el
+ * `initData` viene firmado con el token del bot, así que el `telegramId` que trae
+ * es tan de fiar como el de un enlace de un solo uso —más, de hecho: un enlace se
+ * puede reenviar y una firma no—. Se comprueba contra `TELEGRAM_OPERADOR_ID` y se
+ * abre la sesión directamente.
+ *
+ * La fila se crea YA CANJEADA (`canjeadoEn`) porque no hay canje que hacer: no ha
+ * existido nunca un token intermedio que gastar. `sesionAdmin()` exige ese campo
+ * para no aceptar una fila a medio crear, y esta lo está del todo.
+ */
+export async function abrirSesionDeOperador(
+  telegramId: bigint,
+  ip?: string | null,
+): Promise<string> {
+  const { token, hash } = generarTokenSesion();
+  const ahora = new Date();
+
+  await db.sesionAdmin.create({
+    data: {
+      tokenHash: hash,
+      // Sin `canjeHash`: no hay enlace que canjear. Es lo que distingue una
+      // sesión abierta desde Telegram de una abierta desde el chat.
+      canjeadoEn: ahora,
+      telegramId,
+      expiraEn: new Date(ahora.getTime() + HORAS_SESION_ADMIN * 3_600_000),
+      ip: ip ?? null,
+    },
+  });
+
+  await db.auditoria.create({
+    data: {
+      actorTipo: "OPERADOR",
+      actorId: String(telegramId),
+      accion: "admin.sesion_abierta_en_telegram",
+      ip: ip ?? null,
+    },
+  });
+
+  return token;
+}
+
 export interface SesionAdmin {
   id: string;
   telegramId: bigint;
@@ -137,17 +194,4 @@ export async function sesionAdmin(): Promise<SesionAdmin | null> {
 /** Exige sesión de Operador. Devuelve `null` si no la hay. */
 export async function exigirAdmin(): Promise<SesionAdmin | null> {
   return sesionAdmin();
-}
-
-export function opcionesCookieAdmin() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    // El panel se abre en un navegador normal, NO dentro del iframe de
-    // Telegram, así que aquí sí vale `lax`: es más estricto que el `none` que
-    // la Mini App está obligada a usar.
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: HORAS_SESION_ADMIN * 3600,
-  };
 }

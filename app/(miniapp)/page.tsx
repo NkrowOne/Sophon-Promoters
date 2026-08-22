@@ -126,6 +126,20 @@ export default function Inicio() {
    */
   const { datos, error, recargar: cargar } = useRecurso<Resumen>("/api/agente/resumen");
 
+  /*
+   * ¿Es el Operador quien está mirando?
+   *
+   * Se pregunta al servidor y no se deduce en el cliente porque la respuesta
+   * depende de una variable de entorno que el navegador no ve —y no debe ver—.
+   * `GET /api/operador` solo LEE: no abre ninguna sesión, así que preguntarlo en
+   * cada carga de la portada no deja sesiones sueltas por ahí.
+   *
+   * Falla en silencio a `false`: un agente normal recibe `{operador:false}`, y si
+   * la llamada se cae la portada se queda exactamente como estaba.
+   */
+  const { datos: quien } = useRecurso<{ operador: boolean }>("/api/operador");
+  const esOperador = quien?.operador === true;
+
   // Los importes llegan como cadena porque JSON no admite BigInt: se reconstruyen
   // aquí, y nunca se pasan por coma flotante.
   const dias: DiaTestigo[] = useMemo(
@@ -362,6 +376,16 @@ export default function Inicio() {
                 cartera habría empujado el dinero un renglón hacia abajo para
                 adelantar una pantalla que solo se abre cuando algo no cuadra. */}
             <Fila href="/ayuda" icono="ayuda" etiqueta={t.ayuda} />
+            {/*
+              El panel del Operador, y SOLO para él.
+              Va la última y detrás de la ayuda a propósito: no es una sección de
+              la aplicación del agente, es otra aplicación a la que se salta. Y
+              va aquí y no en un menú aparte porque la única persona que la ve
+              entra por la misma portada que todos los demás.
+
+              Sin traducir, como el panel al que lleva: lo lee una persona.
+            */}
+            {esOperador && <Fila href="/panel" icono="panel" etiqueta="Panel de Operador" />}
           </ul>
         </Banda>
       </div>
