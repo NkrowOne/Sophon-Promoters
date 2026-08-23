@@ -22,6 +22,7 @@ export { hoyContable } from "../fechas.ts";
 export { tarifaVigente } from "../devengo/tarifa.ts";
 import { hoyContable } from "../fechas.ts";
 import { tarifaVigente } from "../devengo/tarifa.ts";
+import { tarifaParaAgente } from "../devengo/tarifa-agente.ts";
 import { repararDevengo } from "../devengo/sin-devengar.ts";
 import {
   DIAS_VENTANA_REVISION,
@@ -281,7 +282,18 @@ async function procesarFila(params: {
   return db.$transaction(async (tx) => {
     let webmasterNuevo = false;
 
-    let wm = await tx.webmaster.findUnique({ where: { emailNormalizado } });
+    /*
+     * Con el agente y SUS condiciones, no solo con el `agenteId`.
+     *
+     * La tarifa general se pide una vez fuera del bucle, pero un agente puede
+     * tener CPA o CPS propios —lo dice el esquema y lo enseña su ficha— y hasta
+     * ahora el motor los ignoraba: cobraba la general. Traerlos aquí es lo que
+     * hace que lo prometido y lo pagado sean lo mismo.
+     */
+    let wm = await tx.webmaster.findUnique({
+      where: { emailNormalizado },
+      include: { agente: { select: { cpaPorRegistroMicros: true, cpsBps: true } } },
+    });
     if (!wm) {
       // Aparece en Sophon pero nadie lo activó desde la app: entra huérfano.
       // Asignarlo a un agente más tarde será PROSPECTIVO (`devengaDesde`), o el
@@ -293,6 +305,7 @@ async function procesarFila(params: {
           origen: "HUERFANO",
           estadoSophon: "DESCONOCIDO",
         },
+        include: { agente: { select: { cpaPorRegistroMicros: true, cpsBps: true } } },
       });
       webmasterNuevo = true;
     }
@@ -322,6 +335,10 @@ async function procesarFila(params: {
     // decidir la frontera de atribución.
     if (!wm.agenteId || !tarifa) return { escrita: true, asientos: 0, webmasterNuevo };
 
+    // Lo pactado con ESTE agente, si tiene algo pactado.
+    const tarifaAplicada = tarifaParaAgente(tarifa, wm.agente);
+    if (!tarifaAplicada) return { escrita: true, asientos: 0, webmasterNuevo };
+
     const previo = await asentadoPrevio(tx, fila.id);
     const filaDominio: FilaDiaria = {
       webmasterId: wm.id,
@@ -338,7 +355,7 @@ async function procesarFila(params: {
 
     const planificados = planificarAsientos({
       fila: filaDominio,
-      tarifa,
+      tarifa: tarifaAplicada,
       previo,
       devengaDesde: wm.devengaDesde ? isoFecha(wm.devengaDesde) : null,
       fechaAjuste: hoy,
