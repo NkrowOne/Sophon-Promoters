@@ -16,6 +16,13 @@
 
 import { db, CERROJO, conCerrojo } from "../db.ts";
 import { formatearMicros, microsDesdeCadena, type Micros } from "../devengo/dinero.ts";
+// Reexportadas: vivían aquí, se fueron para romper el ciclo con `sin-devengar`,
+// y siguen saliendo por esta puerta para no tocar a media docena de llamantes.
+export { hoyContable } from "../fechas.ts";
+export { tarifaVigente } from "../devengo/tarifa.ts";
+import { hoyContable } from "../fechas.ts";
+import { tarifaVigente } from "../devengo/tarifa.ts";
+import { repararDevengo } from "../devengo/sin-devengar.ts";
 import {
   DIAS_VENTANA_REVISION,
   estaCerrado,
@@ -27,7 +34,6 @@ import {
 } from "../devengo/motor.ts";
 import { planificarBonos, siguienteEscalon, type Escalon } from "../devengo/bonos.ts";
 import {
-  ZONA_POR_DEFECTO,
   inicioDeMes,
   inicioDelMesSiguiente,
   mesAnterior,
@@ -54,6 +60,12 @@ export interface ResultadoBarrido {
    * será enorme: son todos los que llevaban desde el principio sin consolidar.
    */
   asientosConsolidados: number;
+  /**
+   * De los `asientosCreados`, los que no venían de la ventana sino del repaso de
+   * huecos. Distinto de cero significa que algo dejó de devengar en su día y el
+   * barrido lo ha recuperado ahora.
+   */
+  asientosRecuperados: number;
   /** Bonos por hito emitidos en esta vuelta. Alimenta el aviso al agente. */
   bonosEmitidos: BonoEmitido[];
   /**
@@ -76,11 +88,6 @@ function clave(email: string, fecha: string): string {
   return `${normalizarEmail(email)}|${fecha}`;
 }
 
-/** Fecha de hoy en la zona horaria contable, en `YYYY-MM-DD`. */
-export function hoyContable(zona = process.env["ZONA_HORARIA"] ?? ZONA_POR_DEFECTO): string {
-  // `en-CA` da directamente el formato ISO, que es lo que espera la API.
-  return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(new Date());
-}
 
 /**
  * Descarga todas las filas agrupadas por webmaster de un nivel, indexadas por
@@ -169,6 +176,31 @@ export async function barrerRegistros(
        * Y todo dentro del cerrojo `SYNC_REGISTROS`, que es lo que garantiza que
        * no hay otro barrido emitiendo asientos a la vez.
        */
+      /*
+       * ── Y SE RECUPERA LO QUE QUEDÓ FUERA DE LA VENTANA ──
+       *
+       * El bucle de arriba solo repasa `DIAS_VENTANA_REVISION` días, que es lo
+       * correcto para lo que se diseñó: Sophon solo revisa a la baja dentro de
+       * esa ventana. El efecto secundario era que cualquier hueco se volvía
+       * PERMANENTE — si el día que entraron los registros no se pudo devengar,
+       * cuando la causa se arreglaba ese día ya estaba fuera y nadie lo volvía a
+       * mirar—. El dinero no se perdía por un cálculo malo: se perdía porque
+       * nadie recalculaba.
+       *
+       * Eso costó una comisión entera: un webmaster con registros, con agente y
+       * con la tarifa correcta, a 0,00 $, mientras el Operador cobraba esas
+       * mismas filas. Y exigía que alguien se acordara de pulsar un botón, que
+       * es pedirle al Operador que vigile lo que la aplicación puede vigilar
+       * sola.
+       *
+       * Ahora el barrido se cura solo: cada vuelta repasa también las filas que
+       * TENÍAN que haber devengado y no devengaron, estén dentro de la ventana o
+       * fuera. Es barato y no puede duplicar nada — solo mira filas SIN NINGÚN
+       * asiento, que en un sistema sano son cero, y pasa por el mismo motor con
+       * la misma clave de idempotencia—.
+       */
+      const recuperados = await repararDevengo({ aplicar: true });
+
       const bonos = await devengarBonos(hasta);
 
       const asientosConsolidados = await consolidarVencidos(hasta, dias);
@@ -176,7 +208,8 @@ export async function barrerRegistros(
       const resultado: ResultadoBarrido = {
         filasLeidas: total.size,
         filasEscritas,
-        asientosCreados,
+        asientosCreados: asientosCreados + recuperados.asientos,
+        asientosRecuperados: recuperados.asientos,
         asientosConsolidados,
         bonosEmitidos: bonos,
         webmastersNuevos,
@@ -390,19 +423,6 @@ async function consolidarVencidos(hoy: string, dias: number): Promise<number> {
   return count;
 }
 
-/** Tarifa en vigor. Si no hay ninguna configurada, no se devenga nada. */
-export async function tarifaVigente(): Promise<Tarifa | null> {
-  const t = await db.tarifaVersion.findFirst({
-    where: { validaHasta: null },
-    orderBy: { validaDesde: "desc" },
-  });
-  if (!t) return null;
-  return {
-    id: t.id,
-    cpaPorRegistroMicros: t.cpaPorRegistroMicros,
-    cpsBps: BigInt(t.cpsBps),
-  };
-}
 
 function isoFecha(d: Date): string {
   return d.toISOString().slice(0, 10);

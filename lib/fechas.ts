@@ -162,3 +162,21 @@ export function diaDelMes(fecha: string): number {
 export function diasQueQuedanDelMes(fecha: string): number {
   return diasDelMes(mesDe(fecha)) - diaDelMes(fecha) + 1;
 }
+
+/**
+ * Fecha de hoy en la zona horaria contable, en `YYYY-MM-DD`.
+ *
+ * Vivía en `sync/registros.ts` y se importaba desde media aplicación —el bot, el
+ * panel, los avisos—, lo que convertía un módulo de sincronización en una
+ * dependencia de todos. Y desde que el barrido repasa también los huecos de
+ * devengo, cerraba un CICLO: `registros` → `sin-devengar` → `registros`. Los
+ * ciclos en ESM no siempre fallan, y cuando fallan lo hacen al arrancar y con un
+ * `undefined` que no dice de dónde viene. Este es el camino del dinero: no se
+ * deja un ciclo ahí.
+ *
+ * `registros.ts` la reexporta, así que ningún llamante cambia.
+ */
+export function hoyContable(zona = process.env["ZONA_HORARIA"] ?? ZONA_POR_DEFECTO): string {
+  // `en-CA` da directamente el formato ISO, que es lo que espera la API.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(new Date());
+}

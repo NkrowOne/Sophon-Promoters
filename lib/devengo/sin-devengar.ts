@@ -35,7 +35,8 @@
 
 import { db } from "../db.ts";
 import { estaCerrado, planificarAsientos, type FilaDiaria } from "./motor.ts";
-import { hoyContable, tarifaVigente } from "../sync/registros.ts";
+import { hoyContable } from "../fechas.ts";
+import { tarifaVigente } from "./tarifa.ts";
 
 /** Lo que se ha quedado sin devengar, en una línea. */
 export interface HuecoDeDevengo {

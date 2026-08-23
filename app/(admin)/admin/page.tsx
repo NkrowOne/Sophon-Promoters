@@ -9,6 +9,8 @@ import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
 import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
 import { repararDevengoPendiente } from "./acciones";
 import { Cerrada } from "./_piezas/Cerrada";
+import { Importe } from "./_piezas/Importe";
+import { Seccion } from "./_piezas/Control";
 
 /**
  * Panel: la contabilidad del Operador.
@@ -102,6 +104,34 @@ export default async function Panel() {
    *
    * Esto no busca lo reparable, busca lo que NO ESTÁ PAGANDO, y dice por qué.
    */
+  /*
+   * El reparto, por concepto.
+   *
+   * El margen de arriba es una resta y no explica nada: dice cuánto queda, no de
+   * dónde sale ni cuánto se lleva cada uno. Y esa es la pregunta que se hace
+   * cuando un agente reclama —«¿cuánto he ganado yo con este tráfico y cuánto
+   * tú?»—, que hasta ahora había que contestar abriendo la base de datos.
+   *
+   * Se desglosa lo que se PUEDE desglosar. Lo que devengan los agentes viene por
+   * tipo de asiento, así que el reparto es exacto. Lo que entra de Sophon NO:
+   * `myEarning` llega como una sola cifra por webmaster y día, sin decir qué
+   * parte es de registros y qué parte de compras. Inventar ese reparto sería
+   * peor que no darlo, así que el ingreso va entero y en su fila.
+   */
+  const porTipo = await db.asientoComision.groupBy({
+    by: ["tipo"],
+    where: { estado: { not: "ANULADO" }, tipo: { not: "RETIRO" } },
+    _sum: { importeMicros: true },
+  });
+  const deTipo = (t: string) =>
+    porTipo.find((x) => x.tipo === t)?._sum.importeMicros ?? 0n;
+  const reparto = {
+    registrosMicros: deTipo("CPA"),
+    proMicros: deTipo("CPS"),
+    bonosMicros: deTipo("BONO"),
+    ajustesMicros: deTipo("AJUSTE_REVERSO") + deTipo("AJUSTE_MANUAL"),
+  };
+
   const sinGanar = await webmastersSinGanar();
   const porAtribucion = sinGanar.filter((w) => w.motivo === "antes-del-alta");
   const sinAgente = sinGanar.filter((w) => w.motivo === "sin-agente");
@@ -297,6 +327,98 @@ export default async function Panel() {
           devengado por los agentes. No aparece en ninguna pantalla de agente.
         </p>
       </section>
+
+      <Seccion
+        titulo="El reparto"
+        apoyo={
+          tarifa ? (
+            <>
+              Con la tarifa en vigor: {formatearMicros(tarifa.cpaPorRegistroMicros)} por registro
+              y {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % de lo que los usuarios pagan por
+              el PRO. <Link href="/admin/tarifas">Cambiarla</Link>.
+            </>
+          ) : (
+            <>
+              Sin tarifa en vigor, así que los agentes no devengan nada y todo lo de Sophon se
+              queda arriba. <Link href="/admin/tarifas">Configurarla</Link>.
+            </>
+          )
+        }
+      >
+        <div className="tabla-marco">
+          <table className="densa">
+            <thead>
+              {/* Sin `data-etiqueta` en la celda del importe: en el móvil el
+                  rótulo se pinta delante del valor, y aquí repetiría la cabecera
+                  —«Registros · Para los agentes 1.441,80 $»— además de no caber
+                  en las 9rem de ancho fijo que tiene la celda de cabecera. El
+                  concepto ya está a la izquierda. */}
+              <tr>
+                <th>Concepto</th>
+                <th className="num">Para los agentes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="ancla">Registros</td>
+                <td className="num cabeza">
+                  <Importe micros={reparto.registrosMicros} />
+                </td>
+              </tr>
+              <tr>
+                <td className="ancla">Compras de PRO</td>
+                <td className="num cabeza">
+                  <Importe micros={reparto.proMicros} />
+                </td>
+              </tr>
+              <tr>
+                <td className="ancla">Bonos por hito</td>
+                <td className="num cabeza">
+                  <Importe micros={reparto.bonosMicros} />
+                </td>
+              </tr>
+              {reparto.ajustesMicros !== 0n && (
+                <tr>
+                  <td className="ancla">Ajustes y reversos</td>
+                  <td className="num cabeza">
+                    <Importe micros={reparto.ajustesMicros} />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* El ingreso NO se desglosa, y decirlo es parte del dato: Sophon manda
+            `myEarning` como una sola cifra por webmaster y día, sin separar
+            registros de compras. Un desglose inventado se leería con la misma
+            confianza que uno real. */}
+        <div className="rejilla" style={{ marginTop: "1.25rem" }}>
+          <Dato
+            etiqueta="Entra de Sophon"
+            valor={formatearMicros(entradasMicros)}
+            apoyo="sin desglosar: Sophon no lo separa"
+          />
+          <Dato
+            etiqueta="Se llevan los agentes"
+            valor={formatearMicros(devengadoMicros)}
+            apoyo={
+              entradasMicros > 0n
+                ? `${Math.round(Number((devengadoMicros * 100n) / entradasMicros))} % de lo que entra`
+                : undefined
+            }
+          />
+          <Dato
+            etiqueta="Te queda a ti"
+            valor={formatearMicros(margenMicros)}
+            apoyo={
+              entradasMicros > 0n
+                ? `${Math.round(Number((margenMicros * 100n) / entradasMicros))} % de lo que entra`
+                : undefined
+            }
+          />
+        </div>
+      </Seccion>
 
       <section style={{ marginBottom: "2.5rem" }}>
         <p className="rotulo" style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}>
