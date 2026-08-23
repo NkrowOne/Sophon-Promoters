@@ -1193,39 +1193,31 @@ body:has(> .panel) {
    * derecha se llevaba casi la mitad del ancho, así que el menú empezaba cortado
    * —«Webmas…»— con tres de sus seis enlaces fuera de la pantalla.
    */
+  /*
+   * EL MENÚ SE VE ENTERO. NO SE ARRASTRA.
+   *
+   * Esto era un carril horizontal con un degradado al final que decía «hay más,
+   * arrastra». No lo decía lo bastante: en un móvil caben cuatro de los seis
+   * enlaces, y el aviso que llegó fue «la pestaña Webmasters no aparece». Una
+   * pestaña que existe, responde y no se ve es, para quien la busca, una pestaña
+   * que no está.
+   *
+   * Un menú de seis destinos no es una galería: no hay nada que explorar
+   * deslizando, hay seis sitios a los que se va. Se envuelve en dos renglones y
+   * se acabó el problema. Cuesta un renglón de cabecera y devuelve dos enlaces
+   * que antes no existían para el usuario.
+   */
   .panel .cabecera .navegacion {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    /* Sin barra visible: es un carril de siete enlaces, no una región de
-       desplazamiento, y la barra le robaría un renglón a la cabecera. */
-    scrollbar-width: none;
-    /* El borde del carril no corta una palabra por la mitad. */
-    scroll-snap-type: x proximity;
+    flex-wrap: wrap;
+    row-gap: 0.6rem;
+    column-gap: 1.1rem;
     min-width: 0;
-    /* El último enlace se desvanece en vez de cortarse a hueso contra «Cerrar
-       sesión». Un corte limpio se lee como un fallo de maquetación; un degradado
-       se lee como «hay más, arrastra». */
-    mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
-    /* Y el mismo ancho de relleno al final, que si no el degradado se come el
-       último enlace también cuando ya no queda nada que arrastrar: «Cerrar
-       sesión» se leía a medio borrar en el tope del carril. Con el relleno, lo
-       que hay debajo del degradado es hueco. */
-    padding-right: 1.75rem;
-  }
-
-  .panel .cabecera .navegacion::-webkit-scrollbar {
-    display: none;
-  }
-
-  .panel .cabecera .navegacion > * {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
   }
 
   .panel .cabecera .salida {
-    /* Sin hueco libre que repartir en un carril que desborda, `margin-left: auto`
-       vale cero y el botón cae justo detrás de «Bonos». El filete es lo que dice
-       que ahí se acaba el menú y empieza otra cosa. */
+    /* Envuelto, `margin-left: auto` empujaría «Cerrar sesión» al canto derecho de
+       su renglón y dejaría un vacío raro en medio. Que fluya detrás del último
+       enlace, con el filete diciendo dónde acaba la navegación. */
     margin-left: 0.25rem;
     padding-left: 1rem;
     border-left: 1px solid var(--p-borde);

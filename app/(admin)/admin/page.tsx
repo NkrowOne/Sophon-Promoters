@@ -7,7 +7,7 @@ import { inicioDelDiaContable } from "@/lib/fechas";
 import { hoyContable } from "@/lib/sync/registros";
 import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
 import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
-import { repartoDelPanel } from "@/lib/admin/reparto";
+import { desgloseWebmasters, repartoDelPanel } from "@/lib/admin/reparto";
 import {
   CPA_SOPHON_MICROS,
   CPS_AL_OPERADOR_BPS,
@@ -17,7 +17,7 @@ import {
 import { repararDevengoPendiente } from "./acciones";
 import { Cerrada } from "./_piezas/Cerrada";
 import { Importe } from "./_piezas/Importe";
-import { Num, Seccion } from "./_piezas/Control";
+import { Correo, Num, Seccion } from "./_piezas/Control";
 
 /**
  * Panel: la contabilidad del Operador.
@@ -145,6 +145,7 @@ export default async function Panel() {
    * diferencia se enseña debajo de la tabla en vez de quedar tapada.
    */
   const rep = await repartoDelPanel();
+  const porWebmaster = await desgloseWebmasters();
   const tuyoMicros = totalParte(rep.totales.operador);
   const alAgenteMicros = totalParte(rep.totales.agente);
   const devengadoCpaCpsMicros = reparto.registrosMicros + reparto.proMicros;
@@ -620,6 +621,85 @@ export default async function Panel() {
         </div>
       </Seccion>
 
+      {/*
+        POR WEBMASTER.
+
+        El reparto de arriba dice cuánto cobran los webmasters EN CONJUNTO, y
+        con eso no se contesta la pregunta que se hace de verdad: «¿cuánto le
+        estamos pagando a ÉSTE?». Aquí está nombre a nombre, con lo que ese
+        mismo tráfico deja al agente que lo trajo y a ti.
+
+        Ordenado por lo que cobra el webmaster, no por registros: su 35 % sale de
+        las COMPRAS, así que quien más registra no es quien más cobra, y ésta es
+        la tabla del pago.
+      */}
+      <Seccion
+        titulo="Por webmaster"
+        apoyo={
+          <>
+            Lo que Sophon le paga a cada uno —el{" "}
+            {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % de lo que compran sus
+            usuarios— y lo que ese mismo tráfico deja a las otras dos partes.{" "}
+            <Link href="/admin/webmasters">Verlos todos</Link>.
+          </>
+        }
+      >
+        <div className="tabla-marco">
+          <table className="densa">
+            <thead>
+              <tr>
+                <th>Webmaster</th>
+                <th className="num">Registrados</th>
+                <th className="num">Cobra</th>
+                <th className="num">Agente</th>
+                <th className="num">Tú</th>
+              </tr>
+            </thead>
+            <tbody>
+              {porWebmaster.filas.map((w) => (
+                <tr key={w.webmasterId}>
+                  <td className="ancla correo">
+                    <Correo valor={w.email} />
+                    <span className="apoyo" style={{ display: "block" }}>
+                      {w.agente ?? "sin agente"}
+                    </span>
+                  </td>
+                  <td className="num" data-etiqueta="Registrados">
+                    <Num valor={w.registros} />
+                  </td>
+                  <td className="num" data-etiqueta="Cobra">
+                    <Importe micros={w.cobraMicros} />
+                  </td>
+                  <td className="num" data-etiqueta="Agente">
+                    <Importe micros={w.agenteMicros} />
+                  </td>
+                  <td className="num" data-etiqueta="Tú">
+                    <Importe micros={w.operadorMicros} />
+                  </td>
+                </tr>
+              ))}
+              {porWebmaster.filas.length === 0 && (
+                <tr>
+                  <td className="ancla sin-rotulo" colSpan={5}>
+                    <span className="nulo">Todavía no hay webmasters.</span>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Una tabla que corta en silencio se lee como «éstos son todos», y sobre
+            esa lectura se decide mal. Mismo criterio que la lista completa. */}
+        {porWebmaster.total > porWebmaster.filas.length && (
+          <p className="apoyo" style={{ marginTop: "0.9rem" }}>
+            Se enseñan los {porWebmaster.filas.length} que más cobran, de{" "}
+            <Num valor={porWebmaster.total} /> en total. Entre todos cobran{" "}
+            {formatearMicros(porWebmaster.cobranMicros)}.{" "}
+            <Link href="/admin/webmasters">Verlos todos</Link>.
+          </p>
+        )}
+      </Seccion>
       <section style={{ marginBottom: "2.5rem" }}>
         <p className="rotulo" style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}>
           Situación

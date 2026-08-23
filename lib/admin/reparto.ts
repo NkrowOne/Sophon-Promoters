@@ -25,6 +25,7 @@ import {
   PARTE_CERO,
   repartir,
   sumarPartes,
+  totalParte,
   type Parte,
   type Reparto,
   type TarifaAgente,
@@ -164,4 +165,120 @@ export async function repartoDelPanel(): Promise<RepartoDelPanel> {
   );
 
   return { filas, totales };
+}
+
+/** Una fila del desglose por webmaster. */
+export interface FilaWebmaster {
+  webmasterId: string;
+  email: string;
+  /** `null` si nadie lo trajo: es del árbol del Operador. */
+  agente: string | null;
+  registros: number;
+  pagadoPorUsuariosMicros: bigint;
+  /** Lo que Sophon le paga a él: su 35 % de lo que compran sus usuarios. */
+  cobraMicros: bigint;
+  /** Y lo que ese mismo tráfico deja a las otras dos partes. */
+  agenteMicros: bigint;
+  operadorMicros: bigint;
+}
+
+export interface DesgloseWebmasters {
+  filas: FilaWebmaster[];
+  /** Cuántos hay en total, para poder decir cuántos no se enseñan. */
+  total: number;
+  cobranMicros: bigint;
+}
+
+/*
+ * Cuántos webmasters caben en el panel antes de que la página deje de ser un
+ * resumen. Los demás están en `/admin/webmasters`, que es la pantalla que existe
+ * para verlos todos y buscarlos.
+ */
+export const TOPE_DESGLOSE = 25;
+
+/**
+ * El pago a cada webmaster, y lo que ese mismo tráfico deja a los demás.
+ *
+ * El reparto general dice cuánto cobran los webmasters EN CONJUNTO, y eso no
+ * sirve para contestar «¿cuánto le estamos pagando a éste?», que es la pregunta
+ * que se hace cuando uno reclama o cuando hay que decidir si compensa. Aquí está
+ * nombre a nombre.
+ *
+ * Ordenado por lo que cobra el webmaster y no por registros: quien más registra
+ * no es quien más cobra —el 35 % sale de las COMPRAS— y esta tabla es la del
+ * pago.
+ */
+export async function desgloseWebmasters(
+  limite = TOPE_DESGLOSE,
+): Promise<DesgloseWebmasters> {
+  const tarifaGlobal = await db.tarifaVersion.findFirst({
+    where: { validaHasta: null },
+    orderBy: { validaDesde: "desc" },
+    select: { cpaPorRegistroMicros: true, cpsBps: true },
+  });
+
+  const crudas = await db.$queryRaw<
+    {
+      webmasterId: string;
+      email: string;
+      agente: string | null;
+      tieneAgente: boolean;
+      cpa: bigint | null;
+      cps: number | null;
+      registros: number | null;
+      pagado: bigint | null;
+    }[]
+  >`
+    SELECT w.id                                 AS "webmasterId",
+           w."emailNormalizado"                 AS email,
+           a."nombreVisible"                    AS agente,
+           (w."agenteId" IS NOT NULL)           AS "tieneAgente",
+           a."cpaPorRegistroMicros"             AS cpa,
+           a."cpsBps"                           AS cps,
+           sum(f."countRegister")::int          AS registros,
+           sum(f."paymentAmountMicros")::bigint AS pagado
+      FROM "Webmaster" w
+      LEFT JOIN "Agente" a ON a.id = w."agenteId"
+      LEFT JOIN "FilaDiariaSophon" f
+             ON f."webmasterId" = w.id
+            AND (w."devengaDesde" IS NULL OR f.fecha >= w."devengaDesde")
+     GROUP BY w.id, w."emailNormalizado", a."nombreVisible", w."agenteId",
+              a."cpaPorRegistroMicros", a."cpsBps"
+  `;
+
+  const filas = crudas.map((c) => {
+    const volumen = {
+      registros: c.registros ?? 0,
+      pagadoPorUsuariosMicros: c.pagado ?? 0n,
+    };
+    const tarifa: TarifaAgente = c.tieneAgente
+      ? {
+          cpaPorRegistroMicros: c.cpa ?? tarifaGlobal?.cpaPorRegistroMicros ?? 0n,
+          cpsBps: c.cps ?? tarifaGlobal?.cpsBps ?? 0,
+        }
+      : { cpaPorRegistroMicros: 0n, cpsBps: 0 };
+    const r = repartir(volumen, tarifa);
+
+    return {
+      webmasterId: c.webmasterId,
+      email: c.email,
+      agente: c.agente,
+      registros: volumen.registros,
+      pagadoPorUsuariosMicros: volumen.pagadoPorUsuariosMicros,
+      cobraMicros: totalParte(r.webmaster),
+      agenteMicros: totalParte(r.agente),
+      operadorMicros: totalParte(r.operador),
+    };
+  });
+
+  const cobranMicros = filas.reduce((t, f) => t + f.cobraMicros, 0n);
+  filas.sort((x, y) =>
+    y.cobraMicros === x.cobraMicros
+      ? y.registros - x.registros
+      : y.cobraMicros > x.cobraMicros
+        ? 1
+        : -1,
+  );
+
+  return { filas: filas.slice(0, limite), total: filas.length, cobranMicros };
 }
