@@ -75,6 +75,8 @@ interface FilaCruda {
   webmasters: number;
   registros: number | null;
   pagado: bigint | null;
+  gananciaWebmaster: bigint | null;
+  gananciaOperador: bigint | null;
 }
 
 /**
@@ -106,8 +108,10 @@ export async function repartoDelPanel(): Promise<RepartoDelPanel> {
            a."cpaPorRegistroMicros"              AS cpa,
            a."cpsBps"                            AS cps,
            count(DISTINCT w.id)::int             AS webmasters,
-           sum(f."countRegister")::int           AS registros,
-           sum(f."paymentAmountMicros")::bigint  AS pagado
+           sum(f."countRegister")::int              AS registros,
+           sum(f."paymentAmountMicros")::bigint     AS pagado,
+           sum(f."gananciaWebmasterMicros")::bigint AS "gananciaWebmaster",
+           sum(f."gananciaOperadorMicros")::bigint  AS "gananciaOperador"
       FROM "Webmaster" w
       LEFT JOIN "Agente" a ON a.id = w."agenteId"
       LEFT JOIN "FilaDiariaSophon" f
@@ -131,6 +135,8 @@ export async function repartoDelPanel(): Promise<RepartoDelPanel> {
     const volumen = {
       registros: c.registros ?? 0,
       pagadoPorUsuariosMicros: c.pagado ?? 0n,
+      gananciaWebmasterMicros: c.gananciaWebmaster ?? 0n,
+      gananciaOperadorMicros: c.gananciaOperador ?? 0n,
     };
 
     return {
@@ -233,6 +239,8 @@ export async function desgloseWebmasters(
       cps: number | null;
       registros: number | null;
       pagado: bigint | null;
+      gananciaWebmaster: bigint | null;
+      gananciaOperador: bigint | null;
     }[]
   >`
     SELECT w.id                                 AS "webmasterId",
@@ -241,8 +249,10 @@ export async function desgloseWebmasters(
            (w."agenteId" IS NOT NULL)           AS "tieneAgente",
            a."cpaPorRegistroMicros"             AS cpa,
            a."cpsBps"                           AS cps,
-           sum(f."countRegister")::int          AS registros,
-           sum(f."paymentAmountMicros")::bigint AS pagado
+           sum(f."countRegister")::int              AS registros,
+           sum(f."paymentAmountMicros")::bigint     AS pagado,
+           sum(f."gananciaWebmasterMicros")::bigint AS "gananciaWebmaster",
+           sum(f."gananciaOperadorMicros")::bigint  AS "gananciaOperador"
       FROM "Webmaster" w
       LEFT JOIN "Agente" a ON a.id = w."agenteId"
       LEFT JOIN "FilaDiariaSophon" f
@@ -256,6 +266,8 @@ export async function desgloseWebmasters(
     const volumen = {
       registros: c.registros ?? 0,
       pagadoPorUsuariosMicros: c.pagado ?? 0n,
+      gananciaWebmasterMicros: c.gananciaWebmaster ?? 0n,
+      gananciaOperadorMicros: c.gananciaOperador ?? 0n,
     };
     const tarifa: TarifaAgente = c.tieneAgente
       ? {

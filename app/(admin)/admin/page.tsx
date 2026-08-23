@@ -9,7 +9,6 @@ import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
 import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
 import { desgloseWebmasters, repartoDelPanel } from "@/lib/admin/reparto";
 import {
-  CPA_SOPHON_MICROS,
   CPS_AL_OPERADOR_BPS,
   CPS_WEBMASTER_BPS,
   totalParte,
@@ -23,11 +22,10 @@ import { Correo, Num, Seccion } from "./_piezas/Control";
  *
  * Responde tres preguntas, en este orden:
  *
- *  1. **¿Cuánto cobro yo?** Mi parte del reparto —el fijo que me toca de cada
- *     registro más mis puntos de lo que los usuarios pagan por el PRO—, no lo
- *     que sobra tras pagar a nadie. Es la única cifra de toda la aplicación que
- *     nadie más puede ver, y va marcada como privada para que se sepa antes de
- *     compartir una captura.
+ *  1. **¿Cuánto cobra el Operador?** Su parte del reparto —lo que Sophon le
+ *     ingresa menos la comisión del agente—, no lo que sobra tras pagar a
+ *     nadie. Es la única cifra de toda la aplicación que nadie más puede ver, y
+ *     va marcada como privada para que se sepa antes de compartir una captura.
  *  2. **¿Tengo algo que pagar?** Los retiros no se resuelven solos.
  *  3. **¿Me puedo fiar de estos números?** Si el barrido falló o la
  *     conciliación no cuadra, el margen de arriba está mal y hay que decirlo
@@ -161,6 +159,23 @@ export default async function Panel() {
   const porWebmaster = await desgloseWebmasters();
   const tuyoMicros = totalParte(rep.totales.operador);
   const alAgenteMicros = totalParte(rep.totales.agente);
+  const alWebmasterMicros = totalParte(rep.totales.webmaster);
+
+  /*
+   * Lo que Sophon abona por cada registro, DESPEJADO de los datos.
+   *
+   * `CPA_SOPHON_MICROS` es el tope con el que se valida una tarifa, no lo que
+   * Sophon paga: el importe real depende del país del usuario. Afirmarlo como
+   * si fuera la tarifa de Sophon era decir un número que no es el suyo, y se
+   * notaba al compararlo con lo ingresado. Esto lo calcula de lo que hay.
+   */
+  const abonoRegistroMicros =
+    rep.totales.registros > 0
+      ? (rep.totales.webmaster.registrosMicros +
+          rep.totales.agente.registrosMicros +
+          rep.totales.operador.registrosMicros) /
+        BigInt(rep.totales.registros)
+      : null;
   const devengadoCpaCpsMicros = reparto.registrosMicros + reparto.proMicros;
   const desfaseMicros = alAgenteMicros - devengadoCpaCpsMicros;
 
@@ -169,17 +184,6 @@ export default async function Panel() {
   const sinAgente = sinGanar.filter((w) => w.motivo === "sin-agente");
 
   const entradasMicros = entradas._sum.gananciaOperadorMicros ?? 0n;
-  /*
-   * La comprobación contra la realidad.
-   *
-   * El reparto de arriba se calcula con las tarifas; esto es lo que Sophon ha
-   * ingresado DE VERDAD en la cuenta del Operador. Las dos cifras tienen que
-   * parecerse, y cuando no se parecen es que una de las dos premisas está mal
-   * —el fijo por registro no es el que creemos, o hay tráfico que no se está
-   * repartiendo—. Enseñarlas juntas es la única forma de que eso se vea; con la
-   * resta de antes, cualquier desajuste se disolvía dentro del margen.
-   */
-  const repartidoMicros = alAgenteMicros + tuyoMicros;
 
   const porEstado = (e: string) => retiros.find((r) => r.estado === e);
   const pendientes = porEstado("SOLICITADO");
@@ -339,9 +343,12 @@ export default async function Panel() {
                   .toLocaleString("es-ES")}{" "}
                 registros de {sinAgente.length}{" "}
                 {sinAgente.length === 1 ? "webmaster" : "webmasters"}{" "}
-                <strong>sin agente asignado</strong>: son cuentas propias del Operador y no
-                devengan comisión a nadie.{" "}
-                <Link href="/admin/webmasters?estado=sin-agente">Ver listado</Link>.
+                <strong>sin agente asignado</strong>: son cuentas propias del
+                Operador y no devengan comisión a nadie.{" "}
+                <Link href="/admin/webmasters?estado=sin-agente">
+                  Ver listado
+                </Link>
+                .
               </li>
             )}
             {sinLeerElCierre && (
@@ -427,12 +434,17 @@ export default async function Panel() {
         apoyo={
           tarifa ? (
             <>
-              Por cada usuario registrado Sophon abona{" "}
-              {formatearMicros(CPA_SOPHON_MICROS)}, que se reparten entre el
-              agente ({formatearMicros(tarifa.cpaPorRegistroMicros)}) y el
-              Operador (
-              {formatearMicros(CPA_SOPHON_MICROS - tarifa.cpaPorRegistroMicros)}
-              ). De cada compra de PRO corresponden{" "}
+              Por cada usuario registrado el agente percibe{" "}
+              {formatearMicros(tarifa.cpaPorRegistroMicros)}
+              {abonoRegistroMicros !== null && (
+                <>
+                  {" "}
+                  de los {formatearMicros(abonoRegistroMicros)} que Sophon abona
+                  de media por registro
+                </>
+              )}
+              ; el resto se reparte entre el webmaster y el Operador. De cada
+              compra de PRO corresponden{" "}
               {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % al
               webmaster, {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % al
               agente y{" "}
@@ -468,7 +480,9 @@ export default async function Panel() {
             <dl className="partes">
               <div className="parte">
                 <dt>Webmaster</dt>
-                <dd className="nulo">sin comisión</dd>
+                <dd>
+                  {formatearMicros(rep.totales.webmaster.registrosMicros)}
+                </dd>
               </div>
               <div className="parte">
                 <dt>Agente</dt>
@@ -568,7 +582,9 @@ export default async function Panel() {
                   —lo que suma el agente lo resta el Operador—, así que el total
                   repartido es la suma de las tres partes sin ellos. */}
               <span className="principal">
-                {formatearMicros(rep.totales.webmaster.proMicros + alAgenteMicros + tuyoMicros)}
+                {formatearMicros(
+                  alWebmasterMicros + alAgenteMicros + tuyoMicros,
+                )}
               </span>
             </div>
             <dl className="partes">
@@ -599,10 +615,11 @@ export default async function Panel() {
         </ul>
 
         <p className="apoyo" style={{ marginTop: "1.1rem" }}>
-          Sophon ha ingresado {formatearMicros(entradasMicros)} en la cuenta del
-          Operador por este tráfico. La suma de las partes del agente y del
-          Operador asciende a {formatearMicros(repartidoMicros)}. La parte del
-          webmaster no pasa por esta cuenta: la abona Sophon directamente.
+          Los importes del webmaster y del Operador son los que Sophon reporta
+          por este tráfico; solo la comisión del agente se calcula con la
+          tarifa. La parte del webmaster no pasa por la cuenta del Operador: la
+          abona Sophon directamente. Ingresos totales registrados en la cuenta
+          del Operador: {formatearMicros(entradasMicros)}.
         </p>
 
         {/* Lo que CORRESPONDE al agente y lo que tiene registrado en el libro
@@ -649,7 +666,7 @@ export default async function Panel() {
               <dl className="partes">
                 <div className="parte">
                   <dt>Webmaster</dt>
-                  <dd>{formatearMicros(f.reparto.webmaster.proMicros)}</dd>
+                  <dd>{formatearMicros(totalParte(f.reparto.webmaster))}</dd>
                 </div>
                 <div className="parte">
                   <dt>Agente</dt>
@@ -679,7 +696,7 @@ export default async function Panel() {
               <dl className="partes">
                 <div className="parte">
                   <dt>Webmaster</dt>
-                  <dd>{formatearMicros(rep.totales.webmaster.proMicros)}</dd>
+                  <dd>{formatearMicros(alWebmasterMicros)}</dd>
                 </div>
                 <div className="parte">
                   <dt>Agente</dt>
@@ -710,10 +727,9 @@ export default async function Panel() {
         titulo="Por webmaster"
         apoyo={
           <>
-            Ingresos de cada webmaster —{" "}
-            {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % de las compras
-            de sus usuarios— y comisión que ese mismo tráfico genera para el
-            agente y el Operador.{" "}
+            Lo que Sophon abona a cada webmaster —por sus usuarios registrados
+            y por las compras que hacen— y la comisión que ese mismo tráfico
+            genera para el agente y el Operador.{" "}
             <Link href="/admin/webmasters">Ver listado completo</Link>.
           </>
         }
@@ -741,7 +757,9 @@ export default async function Panel() {
                   <p className="concepto">Registros</p>
                   <div className="parte">
                     <dt>Webmaster</dt>
-                    <dd className="nulo">sin comisión</dd>
+                    <dd>
+                      {formatearMicros(w.reparto.webmaster.registrosMicros)}
+                    </dd>
                   </div>
                   <div className="parte">
                     <dt>Agente</dt>
