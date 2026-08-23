@@ -715,6 +715,238 @@
   font-size: 1.125rem;
 }
 
+/*
+ * ── LISTA DE REGISTROS ──
+ *
+ * Lo que sustituye a la tabla de cinco columnas monetarias.
+ *
+ * El problema no era el ancho: era que una tabla ancha, plegada a un móvil con
+ * la técnica de siempre —`display:flex` en la fila y el rótulo delante de cada
+ * celda—, deja de tener columnas. Cada fila salía como una ristra de pares
+ * «rótulo valor» envueltos donde cupieran, distinta en cada fila según lo largo
+ * que fuera el correo. Con datos de verdad no se entendía nada, y ése fue el
+ * aviso literal.
+ *
+ * Aquí cada registro es un BLOQUE con jerarquía propia, no una fila desmontada:
+ *
+ *   1. Un titular: quién, y su cifra principal a la derecha.
+ *   2. Una línea de contexto en gris.
+ *   3. El desglose, en rejilla fija de tres —una columna por parte— con el
+ *      rótulo encima del número.
+ *
+ * La rejilla es lo que devuelve las columnas: los tres importes de un bloque
+ * caen en las mismas tres verticales que los del bloque de arriba, así que se
+ * pueden comparar de un vistazo aunque el nombre de encima mida lo que mida.
+ * Es el patrón de tarjeta apilada de los cuadros de mando financieros, sin la
+ * caja: aquí separa un filete, que es lo que ya usa el resto del panel.
+ */
+.panel .registros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.panel .registros > li {
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--p-borde);
+}
+
+.panel .registros > li:first-child {
+  border-top: 0;
+  padding-top: 0.25rem;
+}
+
+/* El total de la lista. Mismo bloque, sin filete débil: el que lo cierra pesa. */
+.panel .registros > li.total {
+  border-top: 1px solid var(--p-texto);
+}
+
+.panel .registros .titular {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+}
+
+.panel .registros .nombre {
+  font-weight: 600;
+  /* Un correo largo parte por donde toca en vez de estirar el bloque. */
+  overflow-wrap: anywhere;
+}
+
+.panel .registros .principal {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.panel .registros .contexto {
+  margin: 0.2rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-apoyo);
+}
+
+/*
+ * El desglose: tres columnas fijas, una por parte.
+ *
+ * `1fr` y no `auto`: con columnas automáticas cada bloque se mide por su
+ * contenido y las verticales bailan de una fila a la siguiente, que es
+ * exactamente lo que hacía ilegible la tabla plegada.
+ */
+.panel .partes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem 0.9rem;
+  margin: 0.75rem 0 0;
+}
+
+/* Un concepto ocupa la fila entera y abre su propio grupo de tres. */
+.panel .concepto {
+  grid-column: 1 / -1;
+  margin: 0.35rem 0 -0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--p-texto);
+}
+
+.panel .concepto:first-child {
+  margin-top: 0;
+}
+
+.panel .parte > dt {
+  font-size: 0.75rem;
+  color: var(--p-apoyo);
+  margin: 0;
+}
+
+.panel .parte > dd {
+  margin: 0.1rem 0 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+}
+
+/*
+ * A partir de tablet el desglose se estira en una sola línea.
+ *
+ * Con sitio de sobra, tres columnas al tercio dejan un hueco enorme entre el
+ * rótulo y el número siguiente. Las columnas pasan a medirse por su contenido y
+ * el bloque se lee como una línea de datos, que es lo que es.
+ */
+@media (min-width: 721px) {
+  /*
+   * La lista plegable queda fuera: sus partes viven dentro de un `details` y
+   * no son hijas de la fila, así que no pueden ocupar una columna de su
+   * rejilla. Se despliegan debajo del titular, que es donde se esperan.
+   */
+  .panel .registros:not(.plegable) > li {
+    display: grid;
+    grid-template-columns: minmax(14rem, 1fr) auto;
+    align-items: start;
+    gap: 0.35rem 2rem;
+  }
+
+  .panel .registros:not(.plegable) .titular {
+    display: block;
+  }
+
+  /* El importe ya encabeza su columna en la rejilla: repetirlo arriba sería
+     el mismo número dos veces en la misma línea. */
+  .panel .registros:not(.plegable) .principal {
+    display: none;
+  }
+
+  .panel .registros:not(.plegable) .contexto {
+    grid-column: 1;
+  }
+
+  .panel .registros:not(.plegable) .partes {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    grid-template-columns: repeat(3, minmax(6.5rem, auto));
+    justify-items: end;
+    text-align: right;
+    margin-top: 0;
+  }
+
+  .panel .registros:not(.plegable) .concepto {
+    justify-self: start;
+    text-align: left;
+  }
+
+  /* Con sitio, el desglose plegado cabe en una sola línea de seis columnas. */
+  .panel .registros.plegable .partes {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .panel .registros.plegable .concepto {
+    grid-column: span 3;
+    margin-top: 0;
+  }
+}
+
+/*
+ * ── PRIORIDAD +: LO ESENCIAL A LA VISTA, EL DESGLOSE A UN TOQUE ──
+ *
+ * Con el desglose siempre abierto, veinticinco webmasters son ciento cincuenta
+ * importes seguidos y la página pasa de nueve mil píxeles. Nadie compara así:
+ * se busca un nombre, y solo de ése se quiere el detalle.
+ *
+ * `<details>` nativo, sin una línea de JavaScript. Cerrado, cada webmaster es
+ * un renglón legible —nombre, ingreso y contexto—; el desglose por concepto
+ * aparece debajo cuando se pide.
+ */
+.panel .registros details > summary {
+  display: block;
+  /* Sin el triángulo del navegador: cuelga en su propio renglón encima del
+     nombre y descoloca el titular entero. Hacen falta las dos reglas: Chromium
+     usa `::marker` desde hace tiempo, pero la otra sigue cubriendo motores
+     antiguos y no cuesta nada. */
+  list-style: none;
+  cursor: pointer;
+  position: relative;
+  /* Hueco para el ángulo, que si no se monta sobre el importe. */
+  padding-right: 1.5rem;
+}
+
+.panel .registros details > summary::marker,
+.panel .registros details > summary::-webkit-details-marker {
+  display: none;
+  content: "";
+}
+
+.panel .registros details > summary::after {
+  content: "";
+  position: absolute;
+  right: 0.35rem;
+  top: 0.4rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1.5px solid var(--p-apoyo);
+  border-bottom: 1.5px solid var(--p-apoyo);
+  transform: rotate(45deg);
+  transition: transform var(--p-t-toque) var(--p-curva);
+}
+
+.panel .registros details[open] > summary::after {
+  transform: rotate(-135deg);
+  top: 0.58rem;
+}
+
+.panel .registros details > summary:focus-visible {
+  outline: 2px solid var(--p-tinta);
+  outline-offset: 3px;
+  border-radius: var(--p-radio);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel .registros details > summary::after {
+    transition: none;
+  }
+}
+
 /* Un cero no es un dato: es la ausencia de uno. Se apaga para que las columnas
    con contenido salten solas en una tabla llena de ceros. */
 .panel .nulo {
@@ -734,6 +966,11 @@
 .panel p.apoyo,
 .panel li {
   max-width: 68ch;
+}
+
+/* Un registro no es prosa: es una línea de datos y ocupa el ancho que tenga. */
+.panel .registros > li {
+  max-width: none;
 }
 
 .panel .rotulo,

@@ -175,11 +175,17 @@ export interface FilaWebmaster {
   agente: string | null;
   registros: number;
   pagadoPorUsuariosMicros: bigint;
-  /** Lo que Sophon le paga a él: su 35 % de lo que compran sus usuarios. */
+  /**
+   * El reparto completo de su tráfico, por concepto y por parte.
+   *
+   * Antes esto eran tres totales sueltos, y con tres totales no se contesta
+   * «¿de dónde sale lo de éste?». El webmaster solo cobra del PRO; el agente y
+   * el Operador cobran de las dos cosas. Sin separar concepto de parte, esa
+   * asimetría —que es la regla de negocio entera— no se ve.
+   */
+  reparto: Reparto;
+  /** Su total: lo que Sophon le paga por sus usuarios. */
   cobraMicros: bigint;
-  /** Y lo que ese mismo tráfico deja a las otras dos partes. */
-  agenteMicros: bigint;
-  operadorMicros: bigint;
 }
 
 export interface DesgloseWebmasters {
@@ -265,9 +271,8 @@ export async function desgloseWebmasters(
       agente: c.agente,
       registros: volumen.registros,
       pagadoPorUsuariosMicros: volumen.pagadoPorUsuariosMicros,
+      reparto: r,
       cobraMicros: totalParte(r.webmaster),
-      agenteMicros: totalParte(r.agente),
-      operadorMicros: totalParte(r.operador),
     };
   });
 
