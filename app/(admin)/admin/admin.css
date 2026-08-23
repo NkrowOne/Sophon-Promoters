@@ -634,6 +634,62 @@
 }
 
 /* La rejilla de datos sueltos. */
+/*
+ * ── EL APARTADO ──
+ *
+ * Un rótulo con filete y lo que venga debajo. Es lo único que parte una página
+ * del panel, y por eso lo usan las tres: sin él, título, cifras, filtros y
+ * cincuenta filas quedaban separados por el mismo hueco y no había manera de ver
+ * dónde acaba una cosa y empieza otra.
+ *
+ * Más aire ARRIBA del rótulo que debajo —2,5rem contra 1— para que el filete se
+ * lea como el techo del apartado que abre y no como el suelo del anterior.
+ */
+.panel .seccion {
+  margin-top: 2.5rem;
+}
+
+/*
+ * El rótulo del apartado va en TINTA, no en el gris de apoyo.
+ *
+ * Con el gris no se distinguía de los rótulos de las cifras que tiene debajo ni
+ * del resto del gris de la página: había filete, pero el filete solo pesa lo
+ * mismo que la raya que separa dos filas de la tabla, así que el apartado no se
+ * leía como apartado. El color es lo que lo separa de todo lo demás que es
+ * pequeño y en versalita: aquí y solo aquí, pequeño es un encabezado.
+ */
+.panel .seccion > .rotulo {
+  color: var(--p-texto);
+  border-bottom: 1px solid var(--p-borde);
+  padding-bottom: 0.5rem;
+}
+
+.panel .seccion > .apoyo {
+  margin-top: 0.6rem;
+  max-width: 62ch;
+}
+
+.panel .seccion > .cuerpo {
+  margin-top: 1rem;
+}
+
+/*
+ * La barra de controles: los filtros de estado y el formulario.
+ *
+ * Vive DENTRO del apartado de la lista y no flotando entre las cifras y la
+ * tabla, que es donde estaba: un bloque de controles sin nada que lo ate se lee
+ * como una tercera sección, y filtrar no es una sección, es cómo se mira la que
+ * viene debajo.
+ */
+.panel .controles {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
 .panel .rejilla {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
@@ -772,9 +828,27 @@ body:has(> .panel) {
    * «Su red» son doce pantallazos de desplazamiento. Con `min()` el mínimo nunca
    * supera la mitad del hueco, así que caben dos y se pueden comparar.
    */
+  .panel .seccion {
+    margin-top: 2rem;
+  }
+
   .panel .rejilla {
     grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 45%), 1fr));
     gap: 1rem 1.25rem;
+  }
+
+  /* La coletilla de una cifra, un punto más pequeña. A 0,875rem, «bloqueado, con
+     baja programada o desaparecido» ocupaba tres renglones bajo un «3» y dejaba
+     la rejilla con agujeros: la fila entera crecía por la definición más larga y
+     las otras tres cifras quedaban colgando arriba. */
+  .panel .rejilla .apoyo {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .panel .controles {
+    gap: 0.85rem;
+    margin-bottom: 1rem;
   }
 
   .panel .cifra {

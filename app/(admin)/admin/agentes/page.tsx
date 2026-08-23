@@ -5,7 +5,7 @@ import { plantillaDeAgentes, problemasDeRed } from "@/lib/admin/control";
 import { cambiarEstadoAgente, cortarSesiones } from "../acciones";
 import { Cerrada } from "../_piezas/Cerrada";
 import { Importe } from "../_piezas/Importe";
-import { EstadoAgente, Num, Senal, Senales, dia } from "../_piezas/Control";
+import { EstadoAgente, Num, Seccion, Senal, Senales, dia } from "../_piezas/Control";
 
 /**
  * La plantilla: todos los agentes, en una sola tabla comparable.
@@ -77,7 +77,8 @@ export default async function Agentes() {
         </p>
       )}
 
-      <div className="tabla-marco" style={{ marginTop: "1.75rem" }}>
+      <Seccion titulo="La plantilla">
+      <div className="tabla-marco">
         <table className="densa">
           <thead>
             <tr>
@@ -171,6 +172,7 @@ export default async function Agentes() {
           </tbody>
         </table>
       </div>
+      </Seccion>
 
       {/*
         Las acciones se quedan FUERA de la tabla y agrupadas debajo.
@@ -178,16 +180,9 @@ export default async function Agentes() {
         es la forma más fácil de suspender al agente equivocado. Aquí cada
         bloque lleva el nombre pegado al botón.
       */}
-      <section style={{ marginTop: "2.5rem" }}>
-        <p
-          className="rotulo"
-          style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}
-        >
-          Acciones
-        </p>
+      <Seccion titulo="Acciones">
         <div
           style={{
-            marginTop: "1rem",
             display: "grid",
             /* `min(...)`: un mínimo de 25rem fijo son 400 px, y en una pantalla
                de 390 la columna no cabía —la página entera se salía por la
@@ -250,7 +245,7 @@ export default async function Agentes() {
             </div>
           ))}
         </div>
-      </section>
+      </Seccion>
     </>
   );
 }

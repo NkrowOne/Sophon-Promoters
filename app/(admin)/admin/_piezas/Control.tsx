@@ -237,30 +237,38 @@ export function Dato({
   );
 }
 
-/** Cabecera de sección: rótulo con filete, como el resto del panel. */
+/**
+ * Un apartado: rótulo con filete, apoyo opcional, y el cuerpo debajo.
+ *
+ * ── ES LA ÚNICA FORMA DE PARTIR UNA PÁGINA DEL PANEL ──
+ *
+ * La ficha del agente se leía como siete bloques porque los tenía; la plantilla
+ * y la tabla general se leían como una tirada continua porque no. Título,
+ * cuatro cifras, filtros, una frase gris y cincuenta filas, todo separado por el
+ * mismo hueco: sin un solo filete, no había forma de saber dónde acaba una cosa
+ * y empieza otra. Ahora las tres páginas usan esto, y son la misma página.
+ *
+ * `titulo` acepta un nodo y no solo texto porque el rótulo del apartado a veces
+ * ES el dato —«13 webmasters»—, y contar en la cabecera ahorra la frase suelta
+ * que antes flotaba entre los filtros y la tabla sin pertenecer a ninguno.
+ *
+ * Las medidas viven en `admin.css`: en un móvil el hueco de arriba baja, y un
+ * atributo `style` no admite consulta de medios.
+ */
 export function Seccion({
   titulo,
   apoyo,
   children,
 }: {
-  titulo: string;
+  titulo: React.ReactNode;
   apoyo?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section style={{ marginTop: "2.25rem" }}>
-      <p
-        className="rotulo"
-        style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}
-      >
-        {titulo}
-      </p>
-      {apoyo && (
-        <p className="apoyo" style={{ marginTop: "0.6rem" }}>
-          {apoyo}
-        </p>
-      )}
-      <div style={{ marginTop: "0.9rem" }}>{children}</div>
+    <section className="seccion">
+      <p className="rotulo">{titulo}</p>
+      {apoyo && <p className="apoyo">{apoyo}</p>}
+      <div className="cuerpo">{children}</div>
     </section>
   );
 }
