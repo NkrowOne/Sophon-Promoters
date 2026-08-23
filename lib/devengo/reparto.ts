@@ -43,9 +43,38 @@ export type Micros = bigint;
 export type Bps = number;
 
 /*
- * Lo que Sophon paga por cada usuario registrado, para repartir entre el agente
- * y el Operador. Es el mismo número que `CPA_MAXIMO_MICROS` del motor, y por eso
- * ese tope es lo que es: ceder al agente más de 0,06 $ sería pagar de tu bolsillo.
+ * ── EL ÚNICO SITIO DONDE VIVEN LAS DOS CIFRAS DEL PROGRAMA ──
+ *
+ * Estaban en tres módulos a la vez, cada uno con su nombre y su comentario:
+ *
+ *   0,06 $   `CPA_MAXIMO_MICROS` en el motor —el tope de la tarifa—,
+ *            `DESCUENTO_POR_USUARIO_MICROS` en la tabla de precios —lo que se
+ *            resta del precio del webmaster— y `CPA_SOPHON_MICROS` aquí.
+ *   35 %     `PORCENTAJE_WEBMASTER_BPS` en la tabla de precios y
+ *            `CPS_WEBMASTER_BPS` aquí.
+ *   15 %     `CPS_MAXIMO_BPS` en el motor y `CPS_AL_OPERADOR_BPS` aquí.
+ *
+ * Son el mismo número visto desde tres sitios, y tres definiciones del mismo
+ * número es una que se queda vieja sin que nadie lo note: el día que el
+ * programa cambie el descuento, el formulario de tarifas seguiría validando
+ * contra el viejo mientras la tabla de precios ya pintaría el nuevo, y las dos
+ * pantallas dirían cosas distintas con la misma cara de certeza.
+ *
+ * Aquí, y los otros módulos las reexportan con sus nombres para no tocar a
+ * ningún llamante. `test/constantes-programa.test.ts` fija que sigan siendo una.
+ */
+
+/**
+ * Lo que NO llega al webmaster de cada usuario registrado: seis céntimos.
+ *
+ * Sophon paga el precio global de su tabla —que depende del país y del nivel—
+ * y de ahí se descuenta esto. Es a la vez el descuento que ve el webmaster y el
+ * ingreso del Operador por ese registro, porque son la misma cosa mirada desde
+ * los dos lados, y de ahí sale la comisión del agente.
+ *
+ * NO es «lo que Sophon paga por registro»: lo que Sophon paga es mucho más y va
+ * casi entero al webmaster. Confundir las dos cosas puso en pantalla la frase
+ * «Sophon abona 0,06 $ por registro», que es falsa.
  */
 export const CPA_SOPHON_MICROS: Micros = 60_000n;
 
@@ -62,12 +91,28 @@ export const CPA_SOPHON_MICROS: Micros = 60_000n;
 export const CPS_WEBMASTER_BPS: Bps = 3_500;
 export const CPS_AL_OPERADOR_BPS: Bps = 1_500;
 
-/** Lo que ha producido un tramo de tráfico. */
+/** Los dos conceptos por los que cobra cada parte. Para rotular sin repetirse. */
+export const CONCEPTOS = ["registros", "pro"] as const;
+
+/**
+ * Lo que ha producido un tramo de tráfico.
+ *
+ * Las dos últimas cifras las REPORTA Sophon fila a fila. No se calculan aquí, y
+ * ésa es la corrección más importante de este módulo: antes la parte del
+ * webmaster se deducía aplicando el 35 % a las compras, lo que dejaba a cero a
+ * todo webmaster que registrara usuarios sin que ninguno comprara —y un
+ * webmaster con doce registros y ninguna compra SÍ cobra de Sophon—. El dato
+ * está en `FilaDiariaSophon`; inventarlo era el error.
+ */
 export interface Volumen {
   /** Usuarios registrados. */
   registros: number;
   /** Lo que esos usuarios han pagado por el PRO, en micros. */
   pagadoPorUsuariosMicros: Micros;
+  /** `myEarning` nivel 2: lo que Sophon abona al WEBMASTER por este tráfico. */
+  gananciaWebmasterMicros: Micros;
+  /** Lo que Sophon ingresa en la cuenta del OPERADOR por este tráfico. */
+  gananciaOperadorMicros: Micros;
 }
 
 /** La tarifa del agente: lo único que se pacta y lo único configurable. */
@@ -98,15 +143,31 @@ function porBps(base: Micros, bps: Bps): Micros {
 /**
  * Reparte un volumen entre webmaster, agente y Operador.
  *
- * La parte del Operador NO es lo que sobra: es su fijo por registro
- * —`CPA_SOPHON_MICROS` menos lo pactado con el agente— y sus puntos del PRO
- * —`CPS_AL_OPERADOR_BPS` menos los del agente—. Que la suma cuadre con lo que
- * entra es consecuencia, no definición.
+ * ── QUÉ ES DATO Y QUÉ ES CÁLCULO ──
  *
- * Si una tarifa se pasara del tope, la parte del Operador saldría NEGATIVA en
- * vez de quedarse en cero, y así se ve. Un `max(0, …)` aquí escondería que se
- * está pagando de más justo en la pantalla que existe para detectarlo; el sitio
- * de impedirlo es el formulario de tarifas, que ya lo hace.
+ * Solo hay UNA cosa que esta aplicación decide: lo que se le paga al agente.
+ * Es lo único pactado y lo único configurable, y por eso es lo único que se
+ * calcula con una tarifa.
+ *
+ * Lo que cobran el webmaster y el Operador lo decide Sophon y lo REPORTA fila
+ * a fila. Se toma de ahí. Deducirlo de un porcentaje —que es lo que se hacía—
+ * produce cifras que parecen buenas y no lo son: un webmaster con doce
+ * registros y ninguna compra salía a 0,00 $ cuando Sophon le está pagando.
+ *
+ * ── CÓMO SE SEPARAN LOS DOS CONCEPTOS ──
+ *
+ * Sophon manda una sola cifra por parte y día, sin decir qué trozo viene de los
+ * registros y cuál de las compras. La parte de las compras SÍ se conoce —es un
+ * porcentaje pactado del importe pagado— así que se calcula, y el resto es de
+ * los registros. Al restar en vez de sumar, el total de cada parte coincide
+ * SIEMPRE con lo que Sophon ha reportado, y cualquier desajuste entre el
+ * porcentaje declarado y la realidad aparece en la línea de registros en vez
+ * de desaparecer.
+ *
+ * Si una tarifa se pasara del tope, la parte del Operador sale NEGATIVA en vez
+ * de quedarse en cero, y así se ve. Un `max(0, …)` escondería que se está
+ * pagando de más justo en la pantalla que existe para detectarlo; el sitio de
+ * impedirlo es el formulario de tarifas, que ya lo hace.
  */
 export function repartir(volumen: Volumen, tarifa: TarifaAgente): Reparto {
   const registros = BigInt(volumen.registros);
@@ -117,17 +178,43 @@ export function repartir(volumen: Volumen, tarifa: TarifaAgente): Reparto {
     proMicros: porBps(pagado, tarifa.cpsBps),
   };
 
+  // Lo que de cada parte viene de las compras, según lo pactado.
+  const webmasterPro = porBps(pagado, CPS_WEBMASTER_BPS);
+  const alOperadorPro = porBps(pagado, CPS_AL_OPERADOR_BPS);
+
   return {
     webmaster: {
-      registrosMicros: 0n,
-      proMicros: porBps(pagado, CPS_WEBMASTER_BPS),
+      // Lo que Sophon le paga menos lo que viene de compras: el resto es de
+      // los registros, que es justamente lo que faltaba en pantalla.
+      registrosMicros: volumen.gananciaWebmasterMicros - webmasterPro,
+      proMicros: webmasterPro,
     },
     agente,
     operador: {
-      registrosMicros: (CPA_SOPHON_MICROS - tarifa.cpaPorRegistroMicros) * registros,
-      proMicros: porBps(pagado, CPS_AL_OPERADOR_BPS) - agente.proMicros,
+      registrosMicros:
+        volumen.gananciaOperadorMicros - alOperadorPro - agente.registrosMicros,
+      proMicros: alOperadorPro - agente.proMicros,
     },
   };
+}
+
+/**
+ * Lo que Sophon abona por cada usuario registrado, para este tráfico.
+ *
+ * `CPA_SOPHON_MICROS` es el TOPE con el que se valida una tarifa, no lo que
+ * Sophon paga: el importe real depende del país del usuario y solo se conoce
+ * mirando lo que ha ingresado. Esto lo despeja, para poder enseñarlo en vez de
+ * afirmar un número que puede no ser el suyo.
+ *
+ * Devuelve `null` sin registros: dividir entre cero no es «cero por registro».
+ */
+export function abonoPorRegistro(volumen: Volumen): Micros | null {
+  if (volumen.registros === 0) return null;
+  const deRegistros =
+    volumen.gananciaWebmasterMicros +
+    volumen.gananciaOperadorMicros -
+    porBps(volumen.pagadoPorUsuariosMicros, CPS_WEBMASTER_BPS + CPS_AL_OPERADOR_BPS);
+  return deRegistros / BigInt(volumen.registros);
 }
 
 /** Suma dos partes. Para acumular agente a agente. */

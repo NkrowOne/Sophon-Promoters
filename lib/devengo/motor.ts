@@ -18,6 +18,7 @@
  */
 
 import { aplicarBps, type Bps, type Micros, sumar } from "./dinero.ts";
+import { CPA_SOPHON_MICROS, CPS_AL_OPERADOR_BPS } from "./reparto.ts";
 
 export const TipoAsiento = {
   CPA: "CPA",
@@ -64,8 +65,16 @@ export interface Tarifa {
  * este dominio: la frontera en la que el margen se vuelve negativo es del motor
  * de devengo, no de la pantalla que resulta que la aplica hoy.
  */
-export const CPA_MAXIMO_MICROS: Micros = 60_000n;
-export const CPS_MAXIMO_BPS = 1_500;
+/*
+ * Se DEFINEN en `reparto.ts` y aquí solo se les pone el nombre del motor.
+ *
+ * Eran dos literales repetidos —también estaban en `precios/tabla.ts` con un
+ * tercer nombre—, y tres definiciones del mismo número es una que se queda
+ * vieja sin que nadie lo note. Los nombres se conservan porque son los que usa
+ * el formulario de tarifas y describen lo que aquí significan: un TOPE.
+ */
+export const CPA_MAXIMO_MICROS: Micros = CPA_SOPHON_MICROS;
+export const CPS_MAXIMO_BPS = CPS_AL_OPERADOR_BPS;
 
 /** Lo ya escrito en el ledger para esa fila, por tipo. */
 export interface AsentadoPrevio {

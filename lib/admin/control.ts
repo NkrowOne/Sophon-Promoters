@@ -133,8 +133,10 @@ export interface FilaWebmaster {
   usuariosPagoVentana: number;
   diasSinActividad: number | null;
   apagado: boolean;
-  /** Lo que este webmaster le ha hecho ganar a su agente. */
+  /** Lo que este webmaster le ha hecho ganar a su AGENTE en comisiones. */
   ganadoMicros: Micros;
+  /** Lo que Sophon le paga a ÉL: registros más su parte de las compras. */
+  cobraMicros: Micros;
   /** Un valor por día de la ventana, del más antiguo al más reciente. */
   serie: number[];
 }
@@ -532,12 +534,24 @@ export async function webmastersDetallados(
   // Los registros de TODA la vida se piden aparte: traer cada fila diaria de
   // cada webmaster para sumarlas en memoria sería descargar el histórico
   // completo del programa para pintar una columna.
+  /*
+   * Y de paso lo que Sophon le paga a ÉL, que es lo que faltaba en esta tabla.
+   *
+   * La columna «Ganado» de esta pantalla era la comisión del AGENTE por ese
+   * webmaster, sin decirlo: una cifra en la fila de alguien que no es su dinero.
+   * En una lista de webmasters eso se lee al revés —«este webmaster ha ganado
+   * 0,00 $»— y es exactamente lo que pasó. Ahora se traen las dos y cada una
+   * lleva su nombre.
+   */
   const totales = await db.filaDiariaSophon.groupBy({
     by: ["webmasterId"],
     where: { webmasterId: { in: filas.map((f) => f.id) } },
-    _sum: { countRegister: true },
+    _sum: { countRegister: true, gananciaWebmasterMicros: true },
   });
   const totalPorWebmaster = new Map(totales.map((t) => [t.webmasterId, t._sum.countRegister ?? 0]));
+  const cobraPorWebmaster = new Map(
+    totales.map((t) => [t.webmasterId, t._sum.gananciaWebmasterMicros ?? 0n]),
+  );
 
   const salida: FilaWebmaster[] = filas.map((w) => {
     const parado = diasSinActividad(w.filasDiarias, hoy);
@@ -576,6 +590,7 @@ export async function webmastersDetallados(
       diasSinActividad: parado,
       apagado: parado !== null && parado >= DIAS_PARA_AVISAR,
       ganadoMicros: w.asientos.reduce((s, a) => s + a.importeMicros, 0n),
+      cobraMicros: cobraPorWebmaster.get(w.id) ?? 0n,
       serie: serieDeVentana(w.filasDiarias, hoy),
     };
   });
