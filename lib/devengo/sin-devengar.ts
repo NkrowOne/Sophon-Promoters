@@ -77,6 +77,97 @@ export async function huecoDeDevengo(): Promise<HuecoDeDevengo> {
   };
 }
 
+/**
+ * Por qué un webmaster con registros no ha ganado nada.
+ *
+ * ── ESTO EXISTE PORQUE `huecoDeDevengo` NO BASTABA ──
+ *
+ * Aquel recuento excluye a propósito las filas anteriores a la atribución
+ * —`f.fecha >= w."devengaDesde"`—, porque devengar historia que el agente no
+ * trajo sería un error. Correcto, y ciego justo al caso más frecuente: un
+ * webmaster que se da de alta HOY y cuyos registros de Sophon están fechados
+ * ayer. Ahí no hay nada que reparar y tampoco hay nada que avisar, así que el
+ * panel se quedaba mudo mientras el agente veía 0,00 $ con doce registros
+ * delante. «No sale nada» es exactamente lo que pasó.
+ *
+ * Así que esto no busca lo reparable: busca **todo webmaster con registros y sin
+ * un céntimo**, y dice de cuál de las cuatro cosas se trata. Una de ellas —la
+ * atribución— no es un fallo, es una decisión, y por eso hace falta enseñarla en
+ * vez de callarla: solo el Operador puede decidir si esos días son del agente.
+ */
+export interface WebmasterSinGanar {
+  email: string;
+  registros: number;
+  /** El día más antiguo con registros. */
+  primerDia: string;
+  /** El más reciente. */
+  ultimoDia: string;
+  devengaDesde: string | null;
+  conAgente: boolean;
+  /**
+   * - `sin-agente`     — nadie lo captó; no hay a quién pagarle.
+   * - `antes-del-alta` — sus registros son anteriores a su fecha de devengo.
+   * - `sin-asiento`    — debía devengar y no devengó. Esto sí se repara solo.
+   */
+  motivo: "sin-agente" | "antes-del-alta" | "sin-asiento";
+}
+
+/**
+ * Los webmasters con registros que no han generado un céntimo, y por qué.
+ *
+ * Acotado a los que de verdad no tienen NADA: uno que devengó de menos es otra
+ * conversación —la del barrido y sus reversos— y mezclarlos aquí convertiría un
+ * diagnóstico en una lista de sospechas.
+ */
+export async function webmastersSinGanar(limite = 50): Promise<WebmasterSinGanar[]> {
+  const filas = await db.$queryRaw<
+    {
+      email: string;
+      registros: bigint;
+      primerDia: Date;
+      ultimoDia: Date;
+      devengaDesde: Date | null;
+      conAgente: boolean;
+    }[]
+  >`
+    SELECT w."emailNormalizado"        AS email,
+           sum(f."countRegister")      AS registros,
+           min(f.fecha)                AS "primerDia",
+           max(f.fecha)                AS "ultimoDia",
+           w."devengaDesde"            AS "devengaDesde",
+           (w."agenteId" IS NOT NULL)  AS "conAgente"
+      FROM "FilaDiariaSophon" f
+      JOIN "Webmaster" w ON w.id = f."webmasterId"
+     WHERE f."countRegister" > 0
+     GROUP BY w.id, w."emailNormalizado", w."devengaDesde", w."agenteId"
+    HAVING NOT EXISTS (
+             SELECT 1 FROM "AsientoComision" a WHERE a."webmasterId" = w.id
+           )
+     ORDER BY sum(f."countRegister") DESC
+     LIMIT ${limite}
+  `;
+
+  return filas.map((f) => {
+    const primerDia = f.primerDia.toISOString().slice(0, 10);
+    const ultimoDia = f.ultimoDia.toISOString().slice(0, 10);
+    const devengaDesde = f.devengaDesde ? f.devengaDesde.toISOString().slice(0, 10) : null;
+    const motivo = !f.conAgente
+      ? ("sin-agente" as const)
+      : devengaDesde !== null && ultimoDia < devengaDesde
+        ? ("antes-del-alta" as const)
+        : ("sin-asiento" as const);
+    return {
+      email: f.email,
+      registros: Number(f.registros),
+      primerDia,
+      ultimoDia,
+      devengaDesde,
+      conAgente: f.conAgente,
+      motivo,
+    };
+  });
+}
+
 /** Una fila concreta a reparar, con lo que el motor necesita para replanificarla. */
 export interface FilaSinDevengar {
   filaId: string;

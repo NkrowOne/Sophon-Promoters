@@ -6,7 +6,7 @@ import { formatearMicros } from "@/lib/devengo/dinero";
 import { inicioDelDiaContable } from "@/lib/fechas";
 import { hoyContable } from "@/lib/sync/registros";
 import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
-import { huecoDeDevengo } from "@/lib/devengo/sin-devengar";
+import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
 import { repararDevengoPendiente } from "./acciones";
 import { Cerrada } from "./_piezas/Cerrada";
 
@@ -91,6 +91,21 @@ export default async function Panel() {
    */
   const hueco = await huecoDeDevengo();
 
+  /*
+   * Y el diagnóstico, que es lo que el recuento de arriba no puede dar.
+   *
+   * `huecoDeDevengo` cuenta lo REPARABLE, y por eso excluye las filas anteriores
+   * a la atribución: devengar historia que el agente no trajo sería un error. Lo
+   * que deja fuera es justo el caso más frecuente —un webmaster de alta hoy con
+   * registros de ayer—, y ahí el panel se quedaba mudo mientras el agente veía
+   * 0,00 $ con doce registros delante.
+   *
+   * Esto no busca lo reparable, busca lo que NO ESTÁ PAGANDO, y dice por qué.
+   */
+  const sinGanar = await webmastersSinGanar();
+  const porAtribucion = sinGanar.filter((w) => w.motivo === "antes-del-alta");
+  const sinAgente = sinGanar.filter((w) => w.motivo === "sin-agente");
+
   const entradasMicros = entradas._sum.gananciaOperadorMicros ?? 0n;
   const devengadoMicros = devengado._sum.importeMicros ?? 0n;
   const margenMicros = entradasMicros - devengadoMicros;
@@ -135,6 +150,7 @@ export default async function Panel() {
         !hayTarifa ||
         tarifaACero ||
         hueco.filas > 0 ||
+        porAtribucion.length > 0 ||
         sinLeerElCierre ||
         (conciliacion && !conciliacion.cuadra)) && (
         <div className="privado" style={{ marginBottom: "1.75rem" }}>
@@ -184,6 +200,50 @@ export default async function Panel() {
                 ) : (
                   " Corrige antes la tarifa: sin ella no hay con qué devengar."
                 )}
+              </li>
+            )}
+            {/*
+              La atribución NO es un fallo, es una decisión, y por eso se enseña
+              en vez de repararse sola. Un webmaster que ya traía tráfico antes
+              de que lo captara un agente no devenga ese pasado: si lo devengara,
+              el agente cobraría lo que no trajo. Pero cuando el desfase es de un
+              día —alta hoy, registros de ayer— eso es dinero del agente que se
+              queda en el aire, y callarlo es lo que hace que se descubra por una
+              queja en vez de por la pantalla.
+            */}
+            {porAtribucion.length > 0 && (
+              <li>
+                <strong>
+                  {porAtribucion.reduce((n, w) => n + w.registros, 0).toLocaleString("es-ES")}{" "}
+                  registros anteriores a la fecha de devengo
+                </strong>{" "}
+                en {porAtribucion.length}{" "}
+                {porAtribucion.length === 1 ? "webmaster" : "webmasters"}: no se devengan porque
+                son de antes de que se le atribuyera al agente.{" "}
+                {porAtribucion.slice(0, 3).map((w, i) => (
+                  <span key={w.email}>
+                    {i > 0 && "; "}
+                    {w.email} tiene {w.registros} del {w.primerDia}
+                    {w.ultimoDia !== w.primerDia ? ` al ${w.ultimoDia}` : ""} y devenga desde el{" "}
+                    {w.devengaDesde}
+                  </span>
+                ))}
+                {porAtribucion.length > 3 ? `; y ${porAtribucion.length - 3} más` : ""}.{" "}
+                <strong>No es un fallo</strong>: la regla existe para que un agente no cobre el
+                tráfico que su webmaster ya traía antes de que lo captara. Si decides que esos
+                días sí son suyos, hay que mover su fecha de devengo — dilo y se añade el ajuste.
+              </li>
+            )}
+            {/* Sin agente no hay a quién pagarle. No es un fallo del devengo,
+                pero sí explica un «no gana nada» que si no se atribuye al
+                devengo. */}
+            {sinAgente.length > 0 && (
+              <li>
+                {sinAgente.reduce((n, w) => n + w.registros, 0).toLocaleString("es-ES")} registros
+                de {sinAgente.length}{" "}
+                {sinAgente.length === 1 ? "webmaster" : "webmasters"} <strong>sin agente</strong>:
+                son del árbol del Operador y no devengan comisión a nadie.{" "}
+                <Link href="/admin/webmasters?estado=sin-agente">Verlos</Link>.
               </li>
             )}
             {sinLeerElCierre && (
