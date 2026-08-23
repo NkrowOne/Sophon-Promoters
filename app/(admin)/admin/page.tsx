@@ -7,20 +7,28 @@ import { inicioDelDiaContable } from "@/lib/fechas";
 import { hoyContable } from "@/lib/sync/registros";
 import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
 import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
+import { repartoDelPanel } from "@/lib/admin/reparto";
+import {
+  CPA_SOPHON_MICROS,
+  CPS_AL_OPERADOR_BPS,
+  CPS_WEBMASTER_BPS,
+  totalParte,
+} from "@/lib/devengo/reparto";
 import { repararDevengoPendiente } from "./acciones";
 import { Cerrada } from "./_piezas/Cerrada";
 import { Importe } from "./_piezas/Importe";
-import { Seccion } from "./_piezas/Control";
+import { Num, Seccion } from "./_piezas/Control";
 
 /**
  * Panel: la contabilidad del Operador.
  *
  * Responde tres preguntas, en este orden:
  *
- *  1. **¿Cuánto me queda a mí?** Lo que entra de Sophon menos lo que devengan
- *     los agentes. Es la única cifra de toda la aplicación que nadie más puede
- *     ver, y va marcada como privada para que se sepa antes de compartir una
- *     captura.
+ *  1. **¿Cuánto cobro yo?** Mi parte del reparto —el fijo que me toca de cada
+ *     registro más mis puntos de lo que los usuarios pagan por el PRO—, no lo
+ *     que sobra tras pagar a nadie. Es la única cifra de toda la aplicación que
+ *     nadie más puede ver, y va marcada como privada para que se sepa antes de
+ *     compartir una captura.
  *  2. **¿Tengo algo que pagar?** Los retiros no se resuelven solos.
  *  3. **¿Me puedo fiar de estos números?** Si el barrido falló o la
  *     conciliación no cuadra, el margen de arriba está mal y hay que decirlo
@@ -32,14 +40,10 @@ export const dynamic = "force-dynamic";
 export default async function Panel() {
   if (!(await exigirAdmin())) return <Cerrada />;
 
-  const [entradas, devengado, retiros, agentes, webmasters, sincronizaciones, conciliacion] =
+  const [entradas, retiros, agentes, webmasters, sincronizaciones, conciliacion] =
     await Promise.all([
       db.filaDiariaSophon.aggregate({
         _sum: { gananciaOperadorMicros: true, gananciaTotalMicros: true },
-      }),
-      db.asientoComision.aggregate({
-        where: { estado: { not: "ANULADO" }, tipo: { not: "RETIRO" } },
-        _sum: { importeMicros: true },
       }),
       db.solicitudRetiro.groupBy({
         by: ["estado"],
@@ -132,13 +136,36 @@ export default async function Panel() {
     ajustesMicros: deTipo("AJUSTE_REVERSO") + deTipo("AJUSTE_MANUAL"),
   };
 
+  /*
+   * El reparto por partes, que es distinto de lo de arriba.
+   *
+   * Lo de arriba es lo DEVENGADO: lo que hay escrito en el libro. Esto es lo que
+   * a cada uno le CORRESPONDE por el volumen que hay, calculado con su tarifa.
+   * Cuando las dos cifras no coinciden hay un agujero de devengo, y esa
+   * diferencia se enseña debajo de la tabla en vez de quedar tapada.
+   */
+  const rep = await repartoDelPanel();
+  const tuyoMicros = totalParte(rep.totales.operador);
+  const alAgenteMicros = totalParte(rep.totales.agente);
+  const devengadoCpaCpsMicros = reparto.registrosMicros + reparto.proMicros;
+  const desfaseMicros = alAgenteMicros - devengadoCpaCpsMicros;
+
   const sinGanar = await webmastersSinGanar();
   const porAtribucion = sinGanar.filter((w) => w.motivo === "antes-del-alta");
   const sinAgente = sinGanar.filter((w) => w.motivo === "sin-agente");
 
   const entradasMicros = entradas._sum.gananciaOperadorMicros ?? 0n;
-  const devengadoMicros = devengado._sum.importeMicros ?? 0n;
-  const margenMicros = entradasMicros - devengadoMicros;
+  /*
+   * La comprobación contra la realidad.
+   *
+   * El reparto de arriba se calcula con las tarifas; esto es lo que Sophon ha
+   * ingresado DE VERDAD en la cuenta del Operador. Las dos cifras tienen que
+   * parecerse, y cuando no se parecen es que una de las dos premisas está mal
+   * —el fijo por registro no es el que creemos, o hay tráfico que no se está
+   * repartiendo—. Enseñarlas juntas es la única forma de que eso se vea; con la
+   * resta de antes, cualquier desajuste se disolvía dentro del margen.
+   */
+  const repartidoMicros = alAgenteMicros + tuyoMicros;
 
   const porEstado = (e: string) => retiros.find((r) => r.estado === e);
   const pendientes = porEstado("SOLICITADO");
@@ -309,8 +336,21 @@ export default async function Panel() {
         </div>
       )}
 
+      {/*
+        LO TUYO, Y NO «EL MARGEN».
+
+        Aquí ponía «Margen · privado» y debajo la resta: lo que entra de Sophon
+        menos lo que devengan los agentes. Estaba mal contado en el peor sentido
+        —el de hacer creer algo falso—: tu parte no es lo que sobra después de
+        pagar a nadie. Es tu tarifa, 0,03 $ por registro y el 10 % de lo que los
+        usuarios pagan por el PRO, igual de pactada que la del agente.
+
+        Y la diferencia importa el día que un agente reclama: con la resta,
+        cualquier cifra suya parece salir de tu bolsillo. Con la parte, cada uno
+        mira la suya.
+      */}
       <section className="privado" style={{ marginBottom: "2.5rem" }}>
-        <p className="rotulo">Margen · privado</p>
+        <p className="rotulo">Lo tuyo · privado</p>
         <p
           style={{
             fontSize: "3rem",
@@ -320,27 +360,55 @@ export default async function Panel() {
             margin: "0.25rem 0 0",
           }}
         >
-          {formatearMicros(margenMicros)}
+          {formatearMicros(tuyoMicros)}
         </p>
         <p className="apoyo" style={{ marginTop: "0.4rem" }}>
-          {formatearMicros(entradasMicros)} de Sophon − {formatearMicros(devengadoMicros)}{" "}
-          devengado por los agentes. No aparece en ninguna pantalla de agente.
+          {formatearMicros(rep.totales.operador.registrosMicros)} de{" "}
+          <Num valor={rep.totales.registros} /> registros y{" "}
+          {formatearMicros(rep.totales.operador.proMicros)} de las compras de PRO. No aparece
+          en ninguna pantalla de agente.
         </p>
       </section>
 
+      {/*
+        EL REPARTO, CON LAS TRES PARTES Y SIN RESTAS.
+
+        Antes esta tabla tenía una sola columna —«para los agentes»— y debajo
+        tres cifras: lo que entra, lo que se llevan y «te queda a ti». Contaba
+        una historia falsa: que hay un montón del que los agentes sacan y tú te
+        quedas el resto.
+
+        No es así. Son dos conceptos con repartos distintos, y cada parte cobra
+        lo suyo:
+
+          REGISTRO      Sophon paga un fijo. Se parte entre agente y tú. El
+                        webmaster no cobra por registrar.
+          COMPRA DE PRO Porcentaje sobre lo que el USUARIO paga. Webmaster 35 %,
+                        agente 5 %, tú 10 %. El resto se lo queda Sophon.
+
+        Por eso las columnas son las tres partes y no una, y por eso el
+        porcentaje solo aparece en la fila de las compras.
+      */}
       <Seccion
         titulo="El reparto"
         apoyo={
           tarifa ? (
             <>
-              Con la tarifa en vigor: {formatearMicros(tarifa.cpaPorRegistroMicros)} por registro
-              y {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % de lo que los usuarios pagan por
-              el PRO. <Link href="/admin/tarifas">Cambiarla</Link>.
+              Por cada registro Sophon paga {formatearMicros(CPA_SOPHON_MICROS)}:{" "}
+              {formatearMicros(tarifa.cpaPorRegistroMicros)} para el agente y{" "}
+              {formatearMicros(CPA_SOPHON_MICROS - tarifa.cpaPorRegistroMicros)} para ti. De lo
+              que los usuarios pagan por el PRO:{" "}
+              {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % para el webmaster,{" "}
+              {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % para el agente y{" "}
+              {((CPS_AL_OPERADOR_BPS - tarifa.cpsBps) / 100).toLocaleString("es-ES")} % para ti.{" "}
+              <Link href="/admin/tarifas">Cambiar la tarifa</Link>.
             </>
           ) : (
             <>
-              Sin tarifa en vigor, así que los agentes no devengan nada y todo lo de Sophon se
-              queda arriba. <Link href="/admin/tarifas">Configurarla</Link>.
+              Sin tarifa en vigor no hay nada pactado con los agentes, así que la columna del
+              agente sale a cero y el fijo del registro aparece entero del lado tuyo. No es lo
+              acordado: es lo que la aplicación está aplicando ahora mismo.{" "}
+              <Link href="/admin/tarifas">Configurarla</Link>.
             </>
           )
         }
@@ -348,75 +416,207 @@ export default async function Panel() {
         <div className="tabla-marco">
           <table className="densa">
             <thead>
-              {/* Sin `data-etiqueta` en la celda del importe: en el móvil el
-                  rótulo se pinta delante del valor, y aquí repetiría la cabecera
-                  —«Registros · Para los agentes 1.441,80 $»— además de no caber
-                  en las 9rem de ancho fijo que tiene la celda de cabecera. El
-                  concepto ya está a la izquierda. */}
               <tr>
                 <th>Concepto</th>
-                <th className="num">Para los agentes</th>
+                <th className="num">Webmaster</th>
+                <th className="num">Agente</th>
+                <th className="num">Tú</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="ancla">Registros</td>
-                <td className="num cabeza">
-                  <Importe micros={reparto.registrosMicros} />
+                <td className="ancla">
+                  Registros
+                  <span className="apoyo" style={{ display: "block" }}>
+                    <Num valor={rep.totales.registros} /> usuarios registrados
+                  </span>
+                </td>
+                {/* El webmaster no cobra por registrar: no es un cero
+                    calculado, es que ese concepto no le toca. */}
+                <td className="num" data-etiqueta="Webmaster">
+                  <span className="nulo">no cobra</span>
+                </td>
+                <td className="num" data-etiqueta="Agente">
+                  <Importe micros={rep.totales.agente.registrosMicros} />
+                </td>
+                <td className="num" data-etiqueta="Tú">
+                  <Importe micros={rep.totales.operador.registrosMicros} />
                 </td>
               </tr>
               <tr>
-                <td className="ancla">Compras de PRO</td>
-                <td className="num cabeza">
-                  <Importe micros={reparto.proMicros} />
+                <td className="ancla">
+                  Compras de PRO
+                  <span className="apoyo" style={{ display: "block" }}>
+                    {formatearMicros(rep.totales.pagadoPorUsuariosMicros)} pagados por los
+                    usuarios
+                  </span>
+                </td>
+                <td className="num" data-etiqueta="Webmaster">
+                  <Importe micros={rep.totales.webmaster.proMicros} />
+                </td>
+                <td className="num" data-etiqueta="Agente">
+                  <Importe micros={rep.totales.agente.proMicros} />
+                </td>
+                <td className="num" data-etiqueta="Tú">
+                  <Importe micros={rep.totales.operador.proMicros} />
                 </td>
               </tr>
-              <tr>
-                <td className="ancla">Bonos por hito</td>
-                <td className="num cabeza">
-                  <Importe micros={reparto.bonosMicros} />
-                </td>
-              </tr>
+              {/* Los bonos NO son un reparto: son un premio que sale entero de
+                  tu parte, así que van con signo en tu columna. */}
+              {reparto.bonosMicros !== 0n && (
+                <tr>
+                  <td className="ancla">
+                    Bonos por hito
+                    <span className="apoyo" style={{ display: "block" }}>
+                      salen de tu parte
+                    </span>
+                  </td>
+                  <td className="num" data-etiqueta="Webmaster">
+                    <span className="nulo">no cobra</span>
+                  </td>
+                  <td className="num" data-etiqueta="Agente">
+                    <Importe micros={reparto.bonosMicros} />
+                  </td>
+                  <td className="num" data-etiqueta="Tú">
+                    <Importe micros={-reparto.bonosMicros} />
+                  </td>
+                </tr>
+              )}
               {reparto.ajustesMicros !== 0n && (
                 <tr>
                   <td className="ancla">Ajustes y reversos</td>
-                  <td className="num cabeza">
+                  <td className="num" data-etiqueta="Webmaster">
+                    <span className="nulo">no cobra</span>
+                  </td>
+                  <td className="num" data-etiqueta="Agente">
                     <Importe micros={reparto.ajustesMicros} />
+                  </td>
+                  <td className="num" data-etiqueta="Tú">
+                    <Importe micros={-reparto.ajustesMicros} />
                   </td>
                 </tr>
               )}
             </tbody>
+            <tfoot>
+              <tr>
+                <td className="ancla">
+                  <strong>Total</strong>
+                </td>
+                <td className="num" data-etiqueta="Webmaster">
+                  <Importe micros={rep.totales.webmaster.proMicros} />
+                </td>
+                <td className="num" data-etiqueta="Agente">
+                  <Importe micros={alAgenteMicros + reparto.bonosMicros + reparto.ajustesMicros} />
+                </td>
+                <td className="num" data-etiqueta="Tú">
+                  <Importe micros={tuyoMicros - reparto.bonosMicros - reparto.ajustesMicros} />
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
 
-        {/* El ingreso NO se desglosa, y decirlo es parte del dato: Sophon manda
-            `myEarning` como una sola cifra por webmaster y día, sin separar
-            registros de compras. Un desglose inventado se leería con la misma
-            confianza que uno real. */}
-        <div className="rejilla" style={{ marginTop: "1.25rem" }}>
-          <Dato
-            etiqueta="Entra de Sophon"
-            valor={formatearMicros(entradasMicros)}
-            apoyo="sin desglosar: Sophon no lo separa"
-          />
-          <Dato
-            etiqueta="Se llevan los agentes"
-            valor={formatearMicros(devengadoMicros)}
-            apoyo={
-              entradasMicros > 0n
-                ? `${Math.round(Number((devengadoMicros * 100n) / entradasMicros))} % de lo que entra`
-                : undefined
-            }
-          />
-          <Dato
-            etiqueta="Te queda a ti"
-            valor={formatearMicros(margenMicros)}
-            apoyo={
-              entradasMicros > 0n
-                ? `${Math.round(Number((margenMicros * 100n) / entradasMicros))} % de lo que entra`
-                : undefined
-            }
-          />
+        {/* Lo que le TOCA al agente y lo que tiene ESCRITO en el libro son dos
+            cifras distintas, y cuando no coinciden es que algo no devengó. La
+            diferencia se dice aquí en vez de esconderse entre dos totales que
+            nadie compara a mano. */}
+        <p className="apoyo" style={{ marginTop: "0.9rem" }}>
+          Sophon ha ingresado {formatearMicros(entradasMicros)} en tu cuenta por este tráfico.
+          El reparto de arriba —tu parte más la del agente— suma{" "}
+          {formatearMicros(repartidoMicros)}. Lo del webmaster no pasa por aquí: se lo paga
+          Sophon directamente.
+        </p>
+        {desfaseMicros !== 0n && (
+          <p className="apoyo vivo" style={{ marginTop: "0.9rem" }}>
+            Faltan {formatearMicros(desfaseMicros)} por devengar: a los agentes les corresponden{" "}
+            {formatearMicros(alAgenteMicros)} por este volumen y en el libro hay{" "}
+            {formatearMicros(devengadoCpaCpsMicros)}. Es lo que arregla{" "}
+            <em>Devengar ahora</em>.
+          </p>
+        )}
+      </Seccion>
+
+      {/*
+        POR AGENTE.
+
+        Quién ha traído cuánto, que es lo primero que se pregunta al abrir esto
+        y hasta ahora había que sacarlo de la base de datos. Las mismas tres
+        partes de arriba, fila a fila, para poder contestar a un agente concreto
+        sin abrir nada.
+      */}
+      <Seccion
+        titulo="Por agente"
+        apoyo="Usuarios registrados y lo que corresponde a cada parte por ese tráfico."
+      >
+        <div className="tabla-marco">
+          <table className="densa">
+            <thead>
+              <tr>
+                <th>Agente</th>
+                <th className="num">Webmasters</th>
+                <th className="num">Registrados</th>
+                <th className="num">Agente</th>
+                <th className="num">Tú</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rep.filas.map((f) => (
+                <tr key={f.agenteId ?? "sin-agente"}>
+                  <td className="ancla">
+                    {f.nombre ?? "Sin agente"}
+                    {f.agenteId === null && (
+                      <span className="apoyo" style={{ display: "block" }}>
+                        cuentas de tu árbol: no hay nada pactado, es todo tuyo
+                      </span>
+                    )}
+                    {f.tarifaPropia && (
+                      <span className="apoyo" style={{ display: "block" }}>
+                        con condiciones propias
+                      </span>
+                    )}
+                  </td>
+                  <td className="num" data-etiqueta="Webmasters">
+                    <Num valor={f.webmasters} />
+                  </td>
+                  <td className="num" data-etiqueta="Registrados">
+                    <Num valor={f.registros} />
+                  </td>
+                  <td className="num" data-etiqueta="Agente">
+                    <Importe micros={totalParte(f.reparto.agente)} />
+                  </td>
+                  <td className="num" data-etiqueta="Tú">
+                    <Importe micros={totalParte(f.reparto.operador)} />
+                  </td>
+                </tr>
+              ))}
+              {rep.filas.length === 0 && (
+                <tr>
+                  <td className="ancla sin-rotulo" colSpan={5}>
+                    <span className="nulo">Todavía no hay webmasters.</span>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td className="ancla">
+                  <strong>Total</strong>
+                </td>
+                <td className="num" data-etiqueta="Webmasters">
+                  <Num valor={rep.totales.webmasters} />
+                </td>
+                <td className="num" data-etiqueta="Registrados">
+                  <Num valor={rep.totales.registros} />
+                </td>
+                <td className="num" data-etiqueta="Agente">
+                  <Importe micros={alAgenteMicros} />
+                </td>
+                <td className="num" data-etiqueta="Tú">
+                  <Importe micros={tuyoMicros} />
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </Seccion>
 

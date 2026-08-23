@@ -37,6 +37,7 @@ import { db } from "../db.ts";
 import { estaCerrado, planificarAsientos, type FilaDiaria } from "./motor.ts";
 import { hoyContable } from "../fechas.ts";
 import { tarifaVigente } from "./tarifa.ts";
+import { tarifaParaAgente } from "./tarifa-agente.ts";
 
 /** Lo que se ha quedado sin devengar, en una línea. */
 export interface HuecoDeDevengo {
@@ -185,6 +186,9 @@ export interface FilaSinDevengar {
   gananciaTotalMicros: bigint;
   gananciaWebmasterMicros: bigint;
   devengaDesde: string | null;
+  /** Lo que ese agente tenga pactado aparte. Nulo = la tarifa general. */
+  cpaPropiaMicros: bigint | null;
+  cpsPropiaBps: number | null;
 }
 
 /**
@@ -213,6 +217,8 @@ export async function filasSinDevengar(limite = 5_000): Promise<FilaSinDevengar[
       gananciaTotalMicros: bigint;
       gananciaWebmasterMicros: bigint;
       devengaDesde: Date | null;
+      cpaPropiaMicros: bigint | null;
+      cpsPropiaBps: number | null;
     }[]
   >`
     SELECT f.id                        AS "filaId",
@@ -228,9 +234,12 @@ export async function filasSinDevengar(limite = 5_000): Promise<FilaSinDevengar[
            f."paymentAmountMicros"     AS "paymentAmountMicros",
            f."gananciaTotalMicros"     AS "gananciaTotalMicros",
            f."gananciaWebmasterMicros" AS "gananciaWebmasterMicros",
-           w."devengaDesde"            AS "devengaDesde"
+           w."devengaDesde"            AS "devengaDesde",
+           ag."cpaPorRegistroMicros"   AS "cpaPropiaMicros",
+           ag."cpsBps"                 AS "cpsPropiaBps"
       FROM "FilaDiariaSophon" f
       JOIN "Webmaster" w ON w.id = f."webmasterId"
+      JOIN "Agente" ag ON ag.id = w."agenteId"
      WHERE f."countRegister" > 0
        AND w."agenteId" IS NOT NULL
        AND (w."devengaDesde" IS NULL OR f.fecha >= w."devengaDesde")
@@ -328,10 +337,24 @@ export async function repararDevengo(
       gananciaWebmasterMicros: f.gananciaWebmasterMicros,
     };
 
+    /*
+     * Con lo pactado con SU agente, no con la general a secas.
+     *
+     * Reparar con la tarifa general dejaría a un agente con condiciones propias
+     * cobrando de menos, y el asiento reparado no se vuelve a mirar: el barrido
+     * solo repasa siete días. El agujero se cerraría con la cifra equivocada
+     * dentro.
+     */
+    const tarifaAplicada = tarifaParaAgente(tarifa, {
+      cpaPorRegistroMicros: f.cpaPropiaMicros,
+      cpsBps: f.cpsPropiaBps,
+    });
+    if (!tarifaAplicada) continue;
+
     const cerrado = estaCerrado(f.fecha, hoy);
     const planificados = planificarAsientos({
       fila: filaDominio,
-      tarifa,
+      tarifa: tarifaAplicada,
       // Sin asientos previos: es la condición con la que se seleccionó la fila.
       previo: { cpaMicros: 0n, cpsMicros: 0n, secuencia: 0 },
       devengaDesde: f.devengaDesde,
