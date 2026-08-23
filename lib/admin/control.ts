@@ -428,6 +428,26 @@ export async function webmastersDetallados(
   const limite = filtro.limite ?? TOPE_WEBMASTERS;
 
   const where: Record<string, unknown> = {};
+  /*
+   * ── EL ÁRBOL DEL OPERADOR NO SALE POR DEFECTO ──
+   *
+   * Son webmasters que ya estaban en Sophon antes que esta aplicación y que no
+   * captó ningún agente: no devengan comisión, no tienen a quién reclamarle
+   * nada y no hay nada que decidir sobre ellos. En la lista general eran filas
+   * que solo se saltan, y en producción son la mitad de la tabla.
+   *
+   * No se pierden: `sin-agente` los enseña a los solos, y la página escribe
+   * cuántos se ha dejado fuera. Ocultarlos en silencio sería peor que
+   * enseñarlos, porque «15 webmasters» se leería como «estos son todos».
+   *
+   * Y BUSCAR los encuentra igual. La pregunta más frecuente de esta pantalla es
+   * «¿de quién es este correo que me acaban de pasar?», y la respuesta «de
+   * nadie, es del árbol viejo» es una respuesta: un buscador que no la da deja
+   * al Operador creyendo que la cuenta no existe.
+   */
+  if (filtro.estado !== "sin-agente" && !filtro.agenteId && !filtro.busca) {
+    where["agenteId"] = { not: null };
+  }
   if (filtro.agenteId) where["agenteId"] = filtro.agenteId;
   if (filtro.busca) {
     where["emailNormalizado"] = { contains: filtro.busca.toLowerCase() };

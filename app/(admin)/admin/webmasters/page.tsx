@@ -86,6 +86,7 @@ export default async function Webmasters({
 
   const [total, sinAgente, nuncaTuvoPro, conProblema] = resumen;
   const agenteActual = agentes.find((a) => a.id === q.agente);
+  const ocultosDelOperador = sinAgente;
 
   const enlace = (cambios: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -106,9 +107,8 @@ export default async function Webmasters({
         Webmasters
       </h1>
       <p className="apoyo" style={{ marginTop: "0.35rem", maxWidth: "62ch" }}>
-        Todo el árbol de Sophon que la aplicación conoce, tenga agente o no. Los registros y la
-        serie son de los últimos {DIAS_VENTANA} días, la misma ventana que ve el agente en su
-        Malla.
+        Los webmasters que lleva algún agente. Los registros y la serie son de los últimos{" "}
+        {DIAS_VENTANA} días, la misma ventana que ve el agente en su Malla.
       </p>
 
       <div className="rejilla" style={{ marginTop: "1.5rem" }}>
@@ -116,7 +116,8 @@ export default async function Webmasters({
         <Dato
           etiqueta="Sin agente"
           valor={sinAgente.toLocaleString("es-ES")}
-          apoyo="del árbol del Operador"
+          apoyo="fuera de la lista"
+          href="/admin/webmasters?estado=sin-agente"
         />
         <Dato
           etiqueta="Nunca tuvo PRO"
@@ -157,6 +158,7 @@ export default async function Webmasters({
             en una línea, y sin esto el formulario empujaba la página entera. */}
         <form
           method="get"
+          className="filtro-forma"
           style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
         >
           {estado !== "todos" && <input type="hidden" name="estado" value={estado} />}
@@ -174,10 +176,6 @@ export default async function Webmasters({
             defaultValue={busca}
             placeholder="Buscar correo"
             aria-label="Buscar por correo"
-            /* `0 1` y no `1 1`: creciendo, el buscador se comía el hueco y
-               empujaba «Filtrar» a un segundo renglón él solo. Encoge si hace
-               falta —en el móvil— pero no reclama el sitio de los demás. */
-            style={{ minWidth: "min(12rem, 100%)", flex: "0 1 18rem" }}
           />
           <button type="submit" className="boton">
             Filtrar
@@ -197,6 +195,17 @@ export default async function Webmasters({
             ? `Se muestran ${resultado.filas.length} de ${resultado.total}. Afina el filtro o busca por correo para ver el resto; el tope por consulta es de ${TOPE_WEBMASTERS}.`
             : `${resultado.total} ${resultado.total === 1 ? "webmaster" : "webmasters"}.`}
         {agenteActual && ` Filtrado por ${agenteActual.nombreVisible}.`}
+        {/* El recorte se DICE. Una lista que se deja fuera medio árbol en
+            silencio se lee como «estos son todos», y sobre esa lectura se
+            cuenta mal. El enlace es la vuelta, no una nota al pie. */}
+        {ocultosDelOperador > 0 && !busca && estado !== "sin-agente" && !q.agente && (
+          <>
+            {" "}
+            {ocultosDelOperador} del árbol del Operador quedan fuera:{" "}
+            <Link href={enlace({ estado: "sin-agente" })}>verlos</Link>. Buscar por correo los
+            encuentra igual.
+          </>
+        )}
       </p>
 
       <div style={{ marginTop: "1rem" }}>
