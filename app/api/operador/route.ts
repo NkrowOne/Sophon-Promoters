@@ -4,9 +4,7 @@ import { NextResponse } from "next/server";
 import {
   abrirSesionDeOperador,
   COOKIE_ADMIN,
-  COOKIE_DESDE_TELEGRAM,
   opcionesCookieAdmin,
-  opcionesMarcaTelegram,
 } from "@/lib/auth/admin";
 import { telegramDeLaPeticion } from "@/lib/auth/sesion";
 import { esOperador } from "@/lib/operador";
@@ -71,7 +69,6 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   // `desdeTelegram`: la Mini App corre en un iframe de terceros en el escritorio
   // y una cookie `lax` no sobrevive ahí. Ver `opcionesCookieAdmin`.
   almacen.set(COOKIE_ADMIN, token, opcionesCookieAdmin(true));
-  almacen.set(COOKIE_DESDE_TELEGRAM, "1", opcionesMarcaTelegram());
 
   return NextResponse.json({ ok: true, destino: "/admin" });
 }

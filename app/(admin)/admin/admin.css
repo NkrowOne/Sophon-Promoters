@@ -676,11 +676,6 @@
  * de tres renglones en la pantalla donde menos sitio hay.
  */
 .panel .cabecera {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
   border-bottom: 1px solid var(--p-borde);
   padding-bottom: 0.75rem;
   margin-bottom: 1.75rem;
@@ -693,10 +688,11 @@
   flex-wrap: wrap;
 }
 
+/* «Cerrar sesión» no es navegación: va la última y, donde sobra sitio, pegada al
+   canto opuesto. Antes vivía en un bloque aparte fijado a la derecha, y en un
+   móvil ese bloque se llevaba casi la mitad de la cabecera. */
 .panel .cabecera .salida {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
+  margin-left: auto;
 }
 
 /*
@@ -1022,12 +1018,11 @@ body:has(> .panel) {
    * solo en una— y la cabecera se comía el primer tercio de la pantalla antes de
    * enseñar un solo dato. Un carril que se arrastra es lo que hace cualquier
    * herramienta con más pestañas que ancho, y deja la cabecera en una línea.
+   *
+   * Y el carril es ahora la cabecera entera: el bloque que había fijado a la
+   * derecha se llevaba casi la mitad del ancho, así que el menú empezaba cortado
+   * —«Webmas…»— con tres de sus seis enlaces fuera de la pantalla.
    */
-  .panel .cabecera {
-    flex-wrap: nowrap;
-    gap: 0.75rem;
-  }
-
   .panel .cabecera .navegacion {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -1041,6 +1036,11 @@ body:has(> .panel) {
        sesión». Un corte limpio se lee como un fallo de maquetación; un degradado
        se lee como «hay más, arrastra». */
     mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+    /* Y el mismo ancho de relleno al final, que si no el degradado se come el
+       último enlace también cuando ya no queda nada que arrastrar: «Cerrar
+       sesión» se leía a medio borrar en el tope del carril. Con el relleno, lo
+       que hay debajo del degradado es hueco. */
+    padding-right: 1.75rem;
   }
 
   .panel .cabecera .navegacion::-webkit-scrollbar {
@@ -1053,6 +1053,11 @@ body:has(> .panel) {
   }
 
   .panel .cabecera .salida {
-    flex: 0 0 auto;
+    /* Sin hueco libre que repartir en un carril que desborda, `margin-left: auto`
+       vale cero y el botón cae justo detrás de «Bonos». El filete es lo que dice
+       que ahí se acaba el menú y empieza otra cosa. */
+    margin-left: 0.25rem;
+    padding-left: 1rem;
+    border-left: 1px solid var(--p-borde);
   }
 }

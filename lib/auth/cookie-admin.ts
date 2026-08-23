@@ -23,17 +23,6 @@ export const HORAS_SESION_ADMIN = 12;
 export const MINUTOS_CANJE = 15;
 
 /**
- * Marca, legible desde el servidor, de que la sesión se abrió DENTRO de Telegram.
- *
- * No es una credencial —no protege nada y se puede falsear— y por eso no es
- * `httpOnly`: lo único que decide es si el panel pinta la salida «volver a la
- * Mini App». Sin ella, el Operador que entra desde Telegram se queda en el panel
- * sin ninguna puerta de vuelta a su aplicación, que es un callejón sin salida
- * dentro de una pantalla que ocupa todo el móvil.
- */
-export const COOKIE_DESDE_TELEGRAM = "sp_admin_tg";
-
-/**
  * La cookie de la sesión, con el `SameSite` que exige CADA sitio.
  *
  * Había uno solo —`lax`— con este comentario: «el panel se abre en un navegador
@@ -62,16 +51,6 @@ export function opcionesCookieAdmin(desdeTelegram = false) {
     httpOnly: true,
     secure: desdeTelegram || process.env.NODE_ENV === "production",
     sameSite: desdeTelegram ? ("none" as const) : ("lax" as const),
-    path: "/",
-    maxAge: HORAS_SESION_ADMIN * 3600,
-  };
-}
-
-export function opcionesMarcaTelegram() {
-  return {
-    httpOnly: false,
-    secure: true,
-    sameSite: "none" as const,
     path: "/",
     maxAge: HORAS_SESION_ADMIN * 3600,
   };

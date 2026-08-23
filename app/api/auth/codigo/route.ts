@@ -13,9 +13,7 @@ import { esClaveDeOperador } from "@/lib/operador";
 import {
   abrirSesionDeOperador,
   COOKIE_ADMIN,
-  COOKIE_DESDE_TELEGRAM,
   opcionesCookieAdmin,
-  opcionesMarcaTelegram,
 } from "@/lib/auth/admin";
 
 /**
@@ -158,7 +156,6 @@ async function entrarComoOperador(
   const token = await abrirSesionDeOperador(telegramId, desdeIp, true);
   const almacen = await cookies();
   almacen.set(COOKIE_ADMIN, token, opcionesCookieAdmin(true));
-  almacen.set(COOKIE_DESDE_TELEGRAM, "1", opcionesMarcaTelegram());
 
   // `paso: "operador"` es lo único que la pantalla necesita saber para saltar al
   // panel. No lleva ni nombre ni nada del Operador: la respuesta viaja por la

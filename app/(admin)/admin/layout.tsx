@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 
 import { Isotipo } from "@/components/Isotipo";
-import { COOKIE_DESDE_TELEGRAM } from "@/lib/auth/admin";
 
 /**
  * Armazón del panel.
@@ -13,20 +11,7 @@ import { COOKIE_DESDE_TELEGRAM } from "@/lib/auth/admin";
  * añadiera otro mañana lo dejaría abierto sin darse cuenta—.
  */
 
-export default async function LayoutAdmin({ children }: { children: React.ReactNode }) {
-  /*
-   * ¿Se ha entrado desde la Mini App?
-   *
-   * Si sí, el panel ocupa la pantalla entera DENTRO de Telegram y no hay ninguna
-   * puerta de vuelta: ni pestañas, ni barra de direcciones, ni botón atrás del
-   * navegador. Sin esta salida, el Operador que entra desde su móvil se queda
-   * encerrado en el panel y tiene que cerrar la Mini App entera para volver.
-   *
-   * La marca no es una credencial —no protege nada— así que se lee y ya: lo peor
-   * que puede hacer alguien falseándola es enseñarse a sí mismo un enlace de más.
-   */
-  const desdeTelegram = (await cookies()).get(COOKIE_DESDE_TELEGRAM)?.value === "1";
-
+export default function LayoutAdmin({ children }: { children: React.ReactNode }) {
   return (
     <div className="panel">
       {/* El marco vive en `admin.css` y no aquí: tiene consulta de medios —en un
@@ -34,13 +19,25 @@ export default async function LayoutAdmin({ children }: { children: React.ReactN
           1080 porque desde que hay tablas de quince columnas el ancho anterior
           obligaba a desplazarse en horizontal para leer una fila. */}
       <div className="marco">
+        {/*
+          UNA SOLA FILA, Y ENTERA PARA EL MENÚ.
+
+          Aquí había un segundo bloque pegado a la derecha con «← Mi Mini App» y
+          «Cerrar sesión». En un escritorio sobraba sitio; en el móvil se comía
+          casi la mitad de la cabecera y dejaba el menú cortado en «Webmas…»
+          —tres de los seis enlaces no se veían sin arrastrar—.
+
+          El enlace de vuelta se ha ido del todo porque Telegram ya lo pone: la
+          Mini App se abre con su propia barra y su «‹ Atrás» nativo justo encima
+          de esta línea. Dos botones de volver, uno debajo del otro, no es una
+          salida de más: es dudar de cuál es la buena.
+
+          «Cerrar sesión» se queda, pero al final del carril y detrás de un
+          filete. Es lo que menos se usa de la cabecera y lo único que no es
+          navegación, así que ocupa el sitio que le toca: el último, y sin
+          quitarle ancho a lo que sí se pulsa todos los días.
+        */}
         <header className="cabecera">
-          {/* En el escritorio envuelve; en un móvil se convierte en un carril que
-              se arrastra. Envolviendo allí también, los seis enlaces y «Cerrar
-              sesión» ocupaban tres renglones —«Bonos» solo en uno— y la cabecera
-              se comía el primer tercio de la pantalla. La consulta de medios que
-              lo arregla está en `admin.css`: un atributo `style` no puede
-              tenerla, que es por lo que esto dejó de ir en línea. */}
           <nav className="navegacion">
             {/* El isotipo hace de inicio, y sustituye a la palabra «Panel».
                 Un rótulo de navegación que dice «Panel» dentro del panel no
@@ -69,22 +66,16 @@ export default async function LayoutAdmin({ children }: { children: React.ReactN
             <Link href="/admin/bonos" className="apoyo" style={{ textDecoration: "none" }}>
               Bonos
             </Link>
-          </nav>
-          <div className="salida">
-            {desdeTelegram && (
-              /* `<a>` y no `<Link>`: la Mini App es OTRO grupo de rutas, con su
-                 propia raíz y su propia hoja. El enrutador intentaría montarla
-                 dentro del panel; aquí hace falta un documento nuevo. */
-              <a href="/" className="apoyo" style={{ textDecoration: "none" }}>
-                ← Mi Mini App
-              </a>
-            )}
-            <form action="/admin/salir" method="post">
-              <button type="submit" className="apoyo" style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}>
+            <form action="/admin/salir" method="post" className="salida">
+              <button
+                type="submit"
+                className="apoyo"
+                style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}
+              >
                 Cerrar sesión
               </button>
             </form>
-          </div>
+          </nav>
         </header>
         {children}
       </div>
