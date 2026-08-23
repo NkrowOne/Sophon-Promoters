@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  COOKIE_ADMIN,
-  COOKIE_DESDE_TELEGRAM,
-  opcionesCookieAdmin,
-  opcionesMarcaTelegram,
-} from "../lib/auth/cookie-admin.ts";
+import { COOKIE_ADMIN, opcionesCookieAdmin } from "../lib/auth/cookie-admin.ts";
 
 /**
  * La cookie del panel, que ahora tiene DOS modos.
@@ -52,31 +47,5 @@ describe("la cookie de la sesión de Operador", () => {
     // contra el entorno en CADA petición.
     assert.equal(opcionesCookieAdmin(false).httpOnly, true);
     assert.equal(opcionesCookieAdmin(true).httpOnly, true);
-  });
-
-  it("la marca de «vengo de Telegram» NO es HttpOnly, y no es una credencial", () => {
-    /*
-     * Solo decide si el panel pinta la salida de vuelta a la Mini App. Si fuera
-     * `httpOnly` daría igual —la lee el servidor—, pero declararla como tal la
-     * disfrazaría de credencial y el siguiente que la lea creería que protege
-     * algo. Lo peor que consigue quien la falsee es enseñarse un enlace de más.
-     */
-    const m = opcionesMarcaTelegram();
-    assert.equal(m.httpOnly, false);
-    assert.equal(m.sameSite, "none");
-    assert.equal(m.secure, true);
-  });
-
-  it("las dos cookies tienen nombres distintos", () => {
-    // Con el mismo nombre, borrar la marca al cerrar sesión borraría la sesión
-    // —o al revés— y el fallo dependería del orden de los `Set-Cookie`.
-    assert.notEqual(COOKIE_ADMIN, COOKIE_DESDE_TELEGRAM);
-  });
-
-  it("las dos caducan a la vez que la sesión", () => {
-    // Una marca que sobreviva a la sesión deja el panel ofreciendo «volver a la
-    // Mini App» a quien entró desde un navegador, que es un enlace a una pantalla
-    // en blanco.
-    assert.equal(opcionesMarcaTelegram().maxAge, opcionesCookieAdmin(true).maxAge);
   });
 });

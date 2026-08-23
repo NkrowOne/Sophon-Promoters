@@ -55,17 +55,31 @@ export function Senales({ children }: { children: React.ReactNode }) {
  * traduce a cinco idiomas para los agentes. Mezclarlos obligaría a mantener en
  * árabe unas cadenas que nadie va a leer nunca.
  */
+/*
+ * ── EL MISMO NOMBRE QUE VE EL AGENTE ──
+ *
+ * El panel se había inventado su propio vocabulario, y era el de un chat:
+ * «desaparecido», «se borra», «nunca tuvo». La Mini App, para los mismos
+ * estados, ya decía «Ya no figura en Sophon» y «Baja programada». Dos nombres
+ * para lo mismo en dos caras del mismo producto, y el peor de los dos era el que
+ * mira el Operador para decidir.
+ *
+ * «Desaparecido» además no es lo que pasa. Nadie ha desaparecido: Sophon ha
+ * dejado de listar esa cuenta en el programa de socios. Puede ser que la
+ * borraran, que la desvincularan o que el barrido no la alcanzara — lo único que
+ * consta es que no figura, y eso es exactamente lo que dice.
+ *
+ * «Baja programada» es un plazo abierto por Sophon que todavía no ha vencido: la
+ * cuenta sigue viva y todavía se puede parar. Decía «se borra», que se lee como
+ * hecho consumado, que es la lectura que hace que nadie intente evitarlo.
+ */
 const ESTADOS_WEBMASTER: Record<string, { texto: string; tono: Tono }> = {
   ACTIVO: { texto: "activo", tono: "bien" },
   BLOQUEADO: { texto: "bloqueado", tono: "problema" },
-  // «Baja programada» y no «se borra»: es la misma palabra que ve el agente en
-  // su Mini App para este estado, y el panel no puede llamarle de otra forma a lo
-  // mismo. Además dice lo que es —un plazo abierto por Sophon, todavía
-  // reversible— y no lo que parece: que ya está borrado.
   PENDIENTE_BORRADO: { texto: "baja programada", tono: "problema" },
-  DESAPARECIDO: { texto: "desaparecido", tono: "problema" },
-  PENDIENTE_CONFIRMACION: { texto: "sin confirmar", tono: "atencion" },
-  DESCONOCIDO: { texto: "desconocido", tono: "atencion" },
+  DESAPARECIDO: { texto: "no figura en Sophon", tono: "problema" },
+  PENDIENTE_CONFIRMACION: { texto: "en confirmación", tono: "atencion" },
+  DESCONOCIDO: { texto: "sin determinar", tono: "atencion" },
 };
 
 export function EstadoWebmaster({ estado }: { estado: string }) {
@@ -73,15 +87,24 @@ export function EstadoWebmaster({ estado }: { estado: string }) {
   return <Senal tono={e.tono}>{e.texto}</Senal>;
 }
 
-const ESTADOS_AGENTE: Record<string, Tono> = {
-  ACTIVO: "bien",
-  PENDIENTE: "atencion",
-  SUSPENDIDO: "problema",
-  BAJA: "problema",
+/*
+ * El estado de un agente, con su texto escrito y no deducido del enum.
+ *
+ * Pintaba `estado.toLowerCase()`, o sea el nombre de la constante en minúsculas.
+ * Funciona mientras los nombres se parezcan a palabras y falla el día que
+ * alguien añada un `BAJA_VOLUNTARIA`: la pantalla lo enseñaría tal cual. Y «baja»
+ * a secas no dice si el agente se ha ido o si le hemos dado de baja nosotros.
+ */
+const ESTADOS_AGENTE: Record<string, { texto: string; tono: Tono }> = {
+  ACTIVO: { texto: "activo", tono: "bien" },
+  PENDIENTE: { texto: "pendiente de alta", tono: "atencion" },
+  SUSPENDIDO: { texto: "suspendido", tono: "problema" },
+  BAJA: { texto: "dado de baja", tono: "problema" },
 };
 
 export function EstadoAgente({ estado }: { estado: string }) {
-  return <Senal tono={ESTADOS_AGENTE[estado] ?? "atencion"}>{estado.toLowerCase()}</Senal>;
+  const e = ESTADOS_AGENTE[estado] ?? { texto: estado.toLowerCase(), tono: "atencion" as Tono };
+  return <Senal tono={e.tono}>{e.texto}</Senal>;
 }
 
 /**
@@ -110,7 +133,9 @@ export function SenalPro({
   diasDePro: number | null;
   proVigenteHasta: Date | null;
 }) {
-  if (proVigenteHasta === null) return <Senal tono="problema">nunca tuvo</Senal>;
+  // «Sin conceder» y no «nunca tuvo»: nombra el estado del expediente, que es lo
+  // que el Operador puede cambiar, y no una carencia del webmaster.
+  if (proVigenteHasta === null) return <Senal tono="problema">sin conceder</Senal>;
   if (diasDePro !== null && diasDePro <= 0) return <Senal tono="problema">caducado</Senal>;
   return (
     <Senal tono="bien">
@@ -237,30 +262,38 @@ export function Dato({
   );
 }
 
-/** Cabecera de sección: rótulo con filete, como el resto del panel. */
+/**
+ * Un apartado: rótulo con filete, apoyo opcional, y el cuerpo debajo.
+ *
+ * ── ES LA ÚNICA FORMA DE PARTIR UNA PÁGINA DEL PANEL ──
+ *
+ * La ficha del agente se leía como siete bloques porque los tenía; la plantilla
+ * y la tabla general se leían como una tirada continua porque no. Título,
+ * cuatro cifras, filtros, una frase gris y cincuenta filas, todo separado por el
+ * mismo hueco: sin un solo filete, no había forma de saber dónde acaba una cosa
+ * y empieza otra. Ahora las tres páginas usan esto, y son la misma página.
+ *
+ * `titulo` acepta un nodo y no solo texto porque el rótulo del apartado a veces
+ * ES el dato —«13 webmasters»—, y contar en la cabecera ahorra la frase suelta
+ * que antes flotaba entre los filtros y la tabla sin pertenecer a ninguno.
+ *
+ * Las medidas viven en `admin.css`: en un móvil el hueco de arriba baja, y un
+ * atributo `style` no admite consulta de medios.
+ */
 export function Seccion({
   titulo,
   apoyo,
   children,
 }: {
-  titulo: string;
+  titulo: React.ReactNode;
   apoyo?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section style={{ marginTop: "2.25rem" }}>
-      <p
-        className="rotulo"
-        style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}
-      >
-        {titulo}
-      </p>
-      {apoyo && (
-        <p className="apoyo" style={{ marginTop: "0.6rem" }}>
-          {apoyo}
-        </p>
-      )}
-      <div style={{ marginTop: "0.9rem" }}>{children}</div>
+    <section className="seccion">
+      <p className="rotulo">{titulo}</p>
+      {apoyo && <p className="apoyo">{apoyo}</p>}
+      <div className="cuerpo">{children}</div>
     </section>
   );
 }

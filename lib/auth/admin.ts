@@ -28,11 +28,9 @@ import { generarTokenSesion, hashToken } from "../cripto.ts";
 // se pueda probar con Node pelado. Se reexporta para no mover los llamantes.
 export {
   COOKIE_ADMIN,
-  COOKIE_DESDE_TELEGRAM,
   HORAS_SESION_ADMIN,
   MINUTOS_CANJE,
   opcionesCookieAdmin,
-  opcionesMarcaTelegram,
 } from "./cookie-admin.ts";
 import { COOKIE_ADMIN, HORAS_SESION_ADMIN, MINUTOS_CANJE } from "./cookie-admin.ts";
 

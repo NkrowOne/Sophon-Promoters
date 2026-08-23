@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { COOKIE_ADMIN, COOKIE_DESDE_TELEGRAM, sesionAdmin } from "@/lib/auth/admin";
+import { COOKIE_ADMIN, sesionAdmin } from "@/lib/auth/admin";
 
 /**
  * Cierra la sesión del panel.
@@ -23,8 +23,5 @@ export async function POST(peticion: Request): Promise<NextResponse> {
 
   const respuesta = NextResponse.redirect(new URL("/admin/cerrado", new URL(peticion.url).origin), 303);
   respuesta.cookies.set(COOKIE_ADMIN, "", { path: "/", maxAge: 0 });
-  // Y la marca de «se entró desde Telegram», o el panel seguiría enseñando la
-  // salida a la Mini App después de cerrar la sesión.
-  respuesta.cookies.set(COOKIE_DESDE_TELEGRAM, "", { path: "/", maxAge: 0 });
   return respuesta;
 }

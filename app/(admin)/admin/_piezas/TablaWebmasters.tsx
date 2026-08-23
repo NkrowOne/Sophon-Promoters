@@ -16,7 +16,9 @@ import { Correo, EstadoWebmaster, Num, Senal, Senales, SenalPro, Serie, dia } fr
 const ORIGEN: Record<string, string> = {
   VINCULADO_APP: "app",
   ASIGNADO_MANUAL: "manual",
-  HUERFANO: "huérfano",
+  // «Preexistente» y no «huérfano»: la cuenta estaba en el árbol antes que esta
+  // aplicación. No le falta nada, es que llegó primero.
+  HUERFANO: "preexistente",
 };
 
 /**
@@ -72,11 +74,11 @@ export function TablaWebmasters({
             {conAgente && <th>Agente</th>}
             <th>Estado</th>
             <th>PRO</th>
-            <th>Actividad</th>
+            <th className="secundaria">Actividad</th>
             <th className="num">{DIAS_VENTANA} d</th>
             <th className="num">Total</th>
             <th className="num secundaria">Pago</th>
-            <th className="num">Parado</th>
+            <th className="num">Inactivo</th>
             <th className="num">Ganado</th>
             <th className="secundaria">Origen</th>
             <th className="secundaria">Alta</th>
@@ -100,27 +102,23 @@ export function TablaWebmasters({
                   medios. Con el mínimo en línea, la fila del móvil pedía 365 px en
                   una pantalla de 347 y la cifra se caía al renglón de abajo. */}
               <td className="ancla correo">
-                {/* `nowrap` en el escritorio: si envuelve, TODAS las filas miden dos
-                    renglones por culpa de las tres direcciones largas y la tabla
-                    pierde la mitad de su densidad. Recortada, la dirección entera
-                    sigue en el `title` y la columna va fija a la izquierda. En el
-                    móvil la consulta de medios lo devuelve a `normal`, que es donde
-                    el `<wbr>` de `Correo` parte por la arroba. */}
-                <span
-                  style={{
-                    display: "block",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={w.email}
-                >
+                {/* Sin `style`: el recorte del escritorio y el envolver del móvil
+                    viven los dos en `admin.css`. Estaba aquí, y un `white-space`
+                    en línea NO se puede deshacer desde una consulta de medios —gana
+                    siempre—, así que en el móvil las direcciones largas seguían
+                    saliendo cortadas con puntos suspensivos en vez de partirse por
+                    la arroba, que es justo lo que el `<wbr>` de `Correo` existe para
+                    hacer. La dirección entera sigue en el `title`. */}
+                <span title={w.email}>
                   <Correo valor={w.email} />
                 </span>
               </td>
 
+              {/* `sin-rotulo`: en el móvil el rótulo desaparece. «Nkrow» no necesita
+                  que le pongan «Agente» delante, y quince rótulos repetidos que no
+                  informan son la mitad del gris de la pantalla. */}
               {conAgente && (
-                <td data-etiqueta="Agente">
+                <td className="sin-rotulo" data-etiqueta="Agente">
                   {w.agenteId ? (
                     <Link href={`/admin/agentes/${w.agenteId}`} style={{ textDecoration: "none" }}>
                       {w.agenteNombre}
@@ -135,7 +133,7 @@ export function TablaWebmasters({
                 </td>
               )}
 
-              <td data-etiqueta="Estado">
+              <td className="sin-rotulo" data-etiqueta="Estado">
                 <EstadoWebmaster estado={w.estado} />
               </td>
 
@@ -155,14 +153,25 @@ export function TablaWebmasters({
                       se pierde —está en `ConcesionPro`, y una concesión de más deja
                       su rastro en «fecha deducida» y en la auditoría—: lo que se va
                       es una cifra que en esta celda solo podía engañar. */}
-                  {w.concesionesDeducidas > 0 && <Senal tono="atencion">fecha deducida</Senal>}
+                  {w.concesionesDeducidas > 0 && (
+                    <Senal tono="atencion">caducidad estimada</Senal>
+                  )}
                   {w.concesionesFallidas > 0 && (
-                    <Senal tono="problema">{w.concesionesFallidas} fallidas</Senal>
+                    <Senal tono="problema">
+                      {w.concesionesFallidas} intentos fallidos
+                    </Senal>
                   )}
                 </Senales>
               </td>
 
-              <td data-etiqueta="Actividad">
+              {/* La serie es un instrumento de COMPARACIÓN: catorce barras a la
+                  misma escala que las de las otras cincuenta filas. En una lista de
+                  móvil no hay columna contra la que comparar —cada silueta queda a
+                  un renglón de distancia de la siguiente— y en una red recién
+                  activada son todas la misma raya gris, que se lee como un campo de
+                  formulario roto. Se queda entera en el escritorio, que es donde
+                  compara. */}
+              <td className="secundaria" data-etiqueta="Actividad">
                 <Serie valores={w.serie} maximo={maximo} />
               </td>
               <td className="num" data-etiqueta={`${DIAS_VENTANA} d`}>
@@ -174,7 +183,7 @@ export function TablaWebmasters({
               <td className="num secundaria" data-etiqueta="Pago">
                 <Num valor={w.usuariosPagoVentana} />
               </td>
-              <td className="num" data-etiqueta="Parado">
+              <td className="num" data-etiqueta="Inactivo">
                 {w.diasSinActividad === null ? (
                   /* Nunca trajo un registro. No es lo mismo que llevar parado
                      cuarenta días, y contarlo igual haría que cada alta reciente

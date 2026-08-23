@@ -397,6 +397,31 @@
 }
 
 /*
+ * El buscador de correo.
+ *
+ * `0 1` y no `1 1`: creciendo, se comía el hueco y empujaba «Filtrar» a un
+ * segundo renglón él solo. Encoge si hace falta pero no reclama el sitio de los
+ * demás. Vivía en el atributo `style` del campo, y desde ahí la consulta de
+ * medios no podía relajarlo: en un móvil los 12rem de mínimo dejaban al botón
+ * sin sitio y volvía a bajarse solo, que es justo lo que la regla evitaba en el
+ * escritorio.
+ */
+.panel .filtro-forma input[type="search"] {
+  min-width: min(12rem, 100%);
+  flex: 0 1 18rem;
+}
+
+/* Un renglón y puntos suspensivos: si envuelve, TODAS las filas miden el doble
+   por culpa de tres direcciones largas y la tabla pierde la mitad de su
+   densidad. La dirección entera está en el `title`. */
+.panel table.densa td.ancla.correo > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
  * LA COLUMNA QUE ANCLA LA FILA SE QUEDA QUIETA.
  *
  * Desplazada tres columnas ya no se sabe de quién es la fila. El filete lo pinta
@@ -609,6 +634,62 @@
 }
 
 /* La rejilla de datos sueltos. */
+/*
+ * ── EL APARTADO ──
+ *
+ * Un rótulo con filete y lo que venga debajo. Es lo único que parte una página
+ * del panel, y por eso lo usan las tres: sin él, título, cifras, filtros y
+ * cincuenta filas quedaban separados por el mismo hueco y no había manera de ver
+ * dónde acaba una cosa y empieza otra.
+ *
+ * Más aire ARRIBA del rótulo que debajo —2,5rem contra 1— para que el filete se
+ * lea como el techo del apartado que abre y no como el suelo del anterior.
+ */
+.panel .seccion {
+  margin-top: 2.5rem;
+}
+
+/*
+ * El rótulo del apartado va en TINTA, no en el gris de apoyo.
+ *
+ * Con el gris no se distinguía de los rótulos de las cifras que tiene debajo ni
+ * del resto del gris de la página: había filete, pero el filete solo pesa lo
+ * mismo que la raya que separa dos filas de la tabla, así que el apartado no se
+ * leía como apartado. El color es lo que lo separa de todo lo demás que es
+ * pequeño y en versalita: aquí y solo aquí, pequeño es un encabezado.
+ */
+.panel .seccion > .rotulo {
+  color: var(--p-texto);
+  border-bottom: 1px solid var(--p-borde);
+  padding-bottom: 0.5rem;
+}
+
+.panel .seccion > .apoyo {
+  margin-top: 0.6rem;
+  max-width: 62ch;
+}
+
+.panel .seccion > .cuerpo {
+  margin-top: 1rem;
+}
+
+/*
+ * La barra de controles: los filtros de estado y el formulario.
+ *
+ * Vive DENTRO del apartado de la lista y no flotando entre las cifras y la
+ * tabla, que es donde estaba: un bloque de controles sin nada que lo ate se lee
+ * como una tercera sección, y filtrar no es una sección, es cómo se mira la que
+ * viene debajo.
+ */
+.panel .controles {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
 .panel .rejilla {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
@@ -676,11 +757,6 @@
  * de tres renglones en la pantalla donde menos sitio hay.
  */
 .panel .cabecera {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
   border-bottom: 1px solid var(--p-borde);
   padding-bottom: 0.75rem;
   margin-bottom: 1.75rem;
@@ -693,10 +769,11 @@
   flex-wrap: wrap;
 }
 
+/* «Cerrar sesión» no es navegación: va la última y, donde sobra sitio, pegada al
+   canto opuesto. Antes vivía en un bloque aparte fijado a la derecha, y en un
+   móvil ese bloque se llevaba casi la mitad de la cabecera. */
 .panel .cabecera .salida {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
+  margin-left: auto;
 }
 
 /*
@@ -751,9 +828,27 @@ body:has(> .panel) {
    * «Su red» son doce pantallazos de desplazamiento. Con `min()` el mínimo nunca
    * supera la mitad del hueco, así que caben dos y se pueden comparar.
    */
+  .panel .seccion {
+    margin-top: 2rem;
+  }
+
   .panel .rejilla {
     grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 45%), 1fr));
     gap: 1rem 1.25rem;
+  }
+
+  /* La coletilla de una cifra, un punto más pequeña. A 0,875rem, «bloqueado, con
+     baja programada o desaparecido» ocupaba tres renglones bajo un «3» y dejaba
+     la rejilla con agujeros: la fila entera crecía por la definición más larga y
+     las otras tres cifras quedaban colgando arriba. */
+  .panel .rejilla .apoyo {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .panel .controles {
+    gap: 0.85rem;
+    margin-bottom: 1rem;
   }
 
   .panel .cifra {
@@ -824,9 +919,14 @@ body:has(> .panel) {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    column-gap: 0.9rem;
-    row-gap: 0.3rem;
-    padding: 0.85rem 0;
+    /* Tres intervalos, no uno. Dentro de un dato, el rótulo y su valor se tocan
+       (0,3rem, en la regla del rótulo); entre datos hay 1,1rem, casi cuatro
+       veces más; y entre filas, 0,95rem arriba y abajo. Con un único hueco
+       repetido —que es lo que había— nada agrupa con nada y la fila se lee como
+       una tirada de palabras sueltas. */
+    column-gap: 1.1rem;
+    row-gap: 0.35rem;
+    padding: 0.95rem 0;
     border-bottom: 1px solid var(--p-borde);
   }
 
@@ -901,7 +1001,8 @@ body:has(> .panel) {
     max-width: none;
   }
 
-  .panel table.densa td.ancla span {
+  .panel table.densa td.ancla.correo > span,
+  .panel table.densa td.ancla > span {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
@@ -994,9 +1095,74 @@ body:has(> .panel) {
 
   /* En una línea corrida, un número alineado a la derecha se separa de su propio
      rótulo. Y no se parte: «14 d» en dos renglones no es una medida. */
-  .panel table.densa td.num {
+  /*
+   * Los contadores son el TERCER escalón de la fila, y se ven como tal.
+   *
+   * Iban al mismo cuerpo y al mismo color que el estado y el agente, así que las
+   * dos líneas de apoyo pesaban lo mismo y la fila no tenía jerarquía: solo
+   * textura gris. Un punto más pequeños y en el gris de apoyo, la línea de
+   * quién-y-qué-pasa manda y los números acompañan.
+   *
+   * `.vivo` y `.senal` siguen ganando: van en el hijo, no en la celda, así que
+   * un «parado 40 d» en rojo sigue saltando por encima de todo esto.
+   */
+  .panel table.densa td.num:not(.cabeza) {
     text-align: left;
     white-space: nowrap;
+    font-size: 0.8125rem;
+    color: var(--p-apoyo);
+  }
+
+  .panel table.densa td.num.cabeza {
+    white-space: nowrap;
+  }
+
+  /*
+   * ── UN CERO NO SE IMPRIME ──
+   *
+   * En una red recién activada, catorce de cada quince filas decían «14 d 0 ·
+   * Total 0 · Parado —» y el Operador tenía que leerlo quince veces para
+   * encontrar la que no. Eso es exactamente al revés: la pregunta que trae a esta
+   * pantalla es cuál se sale de lo normal, así que lo normal no debe gastar
+   * tinta. Sin contadores, la fila mide dos líneas; con ellos, tres — y esa
+   * tercera línea es, por sí sola, la señal de que ahí pasa algo.
+   *
+   * El dato no se pierde: en el escritorio están los quince ceros, en columna y
+   * apagados, que es donde una columna de ceros sí se lee de un vistazo.
+   *
+   * `> .nulo` y no `.nulo` a secas: tiene que ser el contenido ENTERO de la
+   * celda. Una celda con un cero dentro de una frase sigue diciendo algo.
+   */
+  .panel table.densa tbody td:not(.cabeza):not(.ancla):has(> .nulo) {
+    display: none;
+  }
+
+  /* Y el rótulo sobra donde el valor es un nombre propio o una palabra del
+     oficio: «Nkrow», «activo», «bloqueado» no necesitan que les pongan delante
+     de qué columna vienen. */
+  .panel table.densa td.sin-rotulo::before {
+    content: none;
+  }
+
+  /*
+   * El filtro, en dos renglones y no en tres.
+   *
+   * El desplegable, el buscador y «Filtrar» caían cada uno en el suyo, y entre
+   * eso y las cuatro cifras de arriba había que bajar media pantalla antes de
+   * ver el primer webmaster. El desplegable se lleva su renglón —es el que
+   * necesita ancho para los nombres— y los otros dos comparten el siguiente.
+   */
+  .panel .filtro-forma {
+    width: 100%;
+  }
+
+  .panel .filtro-forma select {
+    flex: 1 1 100%;
+  }
+
+  .panel .filtro-forma input[type="search"] {
+    min-width: 0;
+    flex: 1 1 8rem;
   }
 
   .panel table.densa td.num.cabeza {
@@ -1022,12 +1188,11 @@ body:has(> .panel) {
    * solo en una— y la cabecera se comía el primer tercio de la pantalla antes de
    * enseñar un solo dato. Un carril que se arrastra es lo que hace cualquier
    * herramienta con más pestañas que ancho, y deja la cabecera en una línea.
+   *
+   * Y el carril es ahora la cabecera entera: el bloque que había fijado a la
+   * derecha se llevaba casi la mitad del ancho, así que el menú empezaba cortado
+   * —«Webmas…»— con tres de sus seis enlaces fuera de la pantalla.
    */
-  .panel .cabecera {
-    flex-wrap: nowrap;
-    gap: 0.75rem;
-  }
-
   .panel .cabecera .navegacion {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -1041,6 +1206,11 @@ body:has(> .panel) {
        sesión». Un corte limpio se lee como un fallo de maquetación; un degradado
        se lee como «hay más, arrastra». */
     mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+    /* Y el mismo ancho de relleno al final, que si no el degradado se come el
+       último enlace también cuando ya no queda nada que arrastrar: «Cerrar
+       sesión» se leía a medio borrar en el tope del carril. Con el relleno, lo
+       que hay debajo del degradado es hueco. */
+    padding-right: 1.75rem;
   }
 
   .panel .cabecera .navegacion::-webkit-scrollbar {
@@ -1053,6 +1223,11 @@ body:has(> .panel) {
   }
 
   .panel .cabecera .salida {
-    flex: 0 0 auto;
+    /* Sin hueco libre que repartir en un carril que desborda, `margin-left: auto`
+       vale cero y el botón cae justo detrás de «Bonos». El filete es lo que dice
+       que ahí se acaba el menú y empieza otra cosa. */
+    margin-left: 0.25rem;
+    padding-left: 1rem;
+    border-left: 1px solid var(--p-borde);
   }
 }

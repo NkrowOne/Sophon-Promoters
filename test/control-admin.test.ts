@@ -126,25 +126,37 @@ describe("qué cuenta como incidencia", () => {
   it("el PRO caducado y el que nunca existió se cuentan APARTE", () => {
     /*
      * No son el mismo problema y no se arreglan igual: «caducado» es una
-     * renovación normal, y «nunca tuvo» es un alta que se quedó a medias —el
-     * caso que dejó a un webmaster con sus 6 TB apareciendo como «Sin PRO»—.
-     * Sumarlos en un solo «4 sin PRO» escondería el segundo dentro del primero.
+     * concesión que se agotó, y «sin PRO concedido» es un alta que se quedó a
+     * medias —el caso que dejó a un webmaster con sus 6 TB apareciendo como sin
+     * PRO—. Sumarlos en un solo «4 sin PRO» escondería el segundo dentro del
+     * primero.
      */
     const avisos = problemasDeRed({ ...RED_LIMPIA, proCaducado: 2, nuncaTuvoPro: 1 });
-    assert.deepEqual(avisos, ["1 sin PRO", "2 con el PRO caducado"]);
+    assert.deepEqual(avisos, ["1 sin PRO concedido", "2 con el PRO caducado"]);
   });
 
-  it("lo urgente va primero: una cuenta bloqueada antes que una parada", () => {
+  it("lo urgente va primero: una cuenta bloqueada antes que una inactiva", () => {
     // El orden de la lista ES el orden de atención, y se pinta tal cual en la
-    // celda. Con «3 parados» delante de «1 bloqueado», lo que se lee primero es
-    // lo que menos corre.
+    // celda. Con «3 inactivos» delante de «1 bloqueado», lo que se lee primero
+    // es lo que menos corre.
     const avisos = problemasDeRed({ ...RED_LIMPIA, parados: 3, bloqueados: 1 });
-    assert.deepEqual(avisos, ["1 bloqueado", "3 parados"]);
+    assert.deepEqual(avisos, ["1 bloqueado", "3 inactivos"]);
   });
 
   it("singular y plural, que es lo que separa un panel de un volcado", () => {
-    assert.deepEqual(problemasDeRed({ ...RED_LIMPIA, desaparecidos: 1 }), ["1 desaparecido"]);
-    assert.deepEqual(problemasDeRed({ ...RED_LIMPIA, desaparecidos: 2 }), ["2 desaparecidos"]);
+    assert.deepEqual(problemasDeRed({ ...RED_LIMPIA, parados: 1 }), ["1 inactivo"]);
+    assert.deepEqual(problemasDeRed({ ...RED_LIMPIA, parados: 2 }), ["2 inactivos"]);
+  });
+
+  it("«no figura en Sophon» concuerda: el verbo lleva número", () => {
+    // Un aviso con la concordancia mal —«1 no figuran»— es lo que hace que una
+    // herramienta parezca una plantilla a medio rellenar.
+    assert.deepEqual(problemasDeRed({ ...RED_LIMPIA, desaparecidos: 1 }), [
+      "1 no figura en Sophon",
+    ]);
+    assert.deepEqual(problemasDeRed({ ...RED_LIMPIA, desaparecidos: 2 }), [
+      "2 no figuran en Sophon",
+    ]);
   });
 });
 
