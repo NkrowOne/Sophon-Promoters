@@ -9,6 +9,7 @@ import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
 import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
 import { desgloseWebmasters, repartoDelPanel } from "@/lib/admin/reparto";
 import {
+  CPA_SOPHON_MICROS,
   CPS_AL_OPERADOR_BPS,
   CPS_WEBMASTER_BPS,
   totalParte,
@@ -162,20 +163,28 @@ export default async function Panel() {
   const alWebmasterMicros = totalParte(rep.totales.webmaster);
 
   /*
-   * Lo que Sophon abona por cada registro, DESPEJADO de los datos.
+   * LA COMPROBACIÓN DE QUE EL PROGRAMA SIGUE SIENDO EL QUE CREEMOS.
    *
-   * `CPA_SOPHON_MICROS` es el tope con el que se valida una tarifa, no lo que
-   * Sophon paga: el importe real depende del país del usuario. Afirmarlo como
-   * si fuera la tarifa de Sophon era decir un número que no es el suyo, y se
-   * notaba al compararlo con lo ingresado. Esto lo calcula de lo que hay.
+   * Del precio que Sophon paga por cada usuario registrado se descuentan seis
+   * céntimos que no llegan al webmaster: son el ingreso del Operador y de ahí
+   * sale la comisión del agente. Eso es una condición del programa, no un
+   * cálculo, y toda la aplicación depende de ella —el tope del formulario de
+   * tarifas, la tabla de precios que el agente le enseña a su webmaster y el
+   * reparto de esta página—.
+   *
+   * Aquí se despeja de lo que Sophon ha ingresado DE VERDAD y se compara. Si
+   * deja de cuadrar, el programa ha cambiado y hay tres pantallas mintiendo a
+   * la vez; más vale que lo diga esta.
    */
-  const abonoRegistroMicros =
+  const porRegistroRealMicros =
     rep.totales.registros > 0
-      ? (rep.totales.webmaster.registrosMicros +
-          rep.totales.agente.registrosMicros +
+      ? (rep.totales.agente.registrosMicros +
           rep.totales.operador.registrosMicros) /
         BigInt(rep.totales.registros)
       : null;
+  const descuentoCuadra =
+    porRegistroRealMicros === null ||
+    porRegistroRealMicros === CPA_SOPHON_MICROS;
   const devengadoCpaCpsMicros = reparto.registrosMicros + reparto.proMicros;
   const desfaseMicros = alAgenteMicros - devengadoCpaCpsMicros;
 
@@ -434,17 +443,12 @@ export default async function Panel() {
         apoyo={
           tarifa ? (
             <>
-              Por cada usuario registrado el agente percibe{" "}
-              {formatearMicros(tarifa.cpaPorRegistroMicros)}
-              {abonoRegistroMicros !== null && (
-                <>
-                  {" "}
-                  de los {formatearMicros(abonoRegistroMicros)} que Sophon abona
-                  de media por registro
-                </>
-              )}
-              ; el resto se reparte entre el webmaster y el Operador. De cada
-              compra de PRO corresponden{" "}
+              Del precio que Sophon paga por cada usuario registrado se
+              descuentan {formatearMicros(CPA_SOPHON_MICROS)}, que no llegan al
+              webmaster: {formatearMicros(tarifa.cpaPorRegistroMicros)} para el
+              agente y{" "}
+              {formatearMicros(CPA_SOPHON_MICROS - tarifa.cpaPorRegistroMicros)}{" "}
+              para el Operador. De cada compra de PRO corresponden{" "}
               {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % al
               webmaster, {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % al
               agente y{" "}
@@ -622,6 +626,16 @@ export default async function Panel() {
           del Operador: {formatearMicros(entradasMicros)}.
         </p>
 
+        {!descuentoCuadra && porRegistroRealMicros !== null && (
+          <p className="apoyo vivo" style={{ marginTop: "0.6rem" }}>
+            El descuento por registro no cuadra: el programa establece{" "}
+            {formatearMicros(CPA_SOPHON_MICROS)} y de lo ingresado se despejan{" "}
+            {formatearMicros(porRegistroRealMicros)}. Con esa diferencia, el
+            tope del formulario de tarifas y la tabla de precios que ven los
+            agentes también están desactualizados.
+          </p>
+        )}
+
         {/* Lo que CORRESPONDE al agente y lo que tiene registrado en el libro
             son dos cifras distintas. Cuando no coinciden, algo no devengó. */}
         {desfaseMicros !== 0n && (
@@ -727,8 +741,8 @@ export default async function Panel() {
         titulo="Por webmaster"
         apoyo={
           <>
-            Lo que Sophon abona a cada webmaster —por sus usuarios registrados
-            y por las compras que hacen— y la comisión que ese mismo tráfico
+            Lo que Sophon abona a cada webmaster —por sus usuarios registrados y
+            por las compras que hacen— y la comisión que ese mismo tráfico
             genera para el agente y el Operador.{" "}
             <Link href="/admin/webmasters">Ver listado completo</Link>.
           </>

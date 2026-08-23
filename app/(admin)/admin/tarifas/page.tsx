@@ -77,8 +77,13 @@ export default async function Tarifas() {
           style={{ marginTop: "1.1rem", display: "grid", gap: "1.1rem", maxWidth: "30rem" }}
         >
           <div>
+            {/* «CPA por registro» a secas no decía DE QUIÉN era la cifra, y en
+                esta pantalla eso es media explicación: los seis céntimos que se
+                descuentan por registro se reparten entre el agente y el
+                Operador, así que lo que se escribe aquí es la mitad que se
+                cede, no el descuento entero. */}
             <label htmlFor="cpa" className="rotulo" style={{ display: "block" }}>
-              CPA por registro (USD)
+              Comisión del agente por registro (USD)
             </label>
             <input
               id="cpa"
@@ -92,13 +97,17 @@ export default async function Tarifas() {
               style={campo}
             />
             <p className="apoyo" style={{ marginTop: "0.3rem" }}>
-              Máximo {formatearMicros(CPA_MAXIMO_MICROS, 4)} por registro.
+              De cada usuario registrado se descuentan{" "}
+              {formatearMicros(CPA_MAXIMO_MICROS, 4)} del precio que Sophon paga
+              al webmaster. Lo que se escriba aquí sale de ahí; el resto queda
+              para el Operador. Por eso {formatearMicros(CPA_MAXIMO_MICROS, 4)}{" "}
+              es el máximo: por encima se pagaría de más.
             </p>
           </div>
 
           <div>
             <label htmlFor="cps" className="rotulo" style={{ display: "block" }}>
-              CPS sobre el pago de usuarios (%)
+              Comisión del agente sobre las compras de PRO (%)
             </label>
             <input
               id="cps"
@@ -110,7 +119,9 @@ export default async function Tarifas() {
               style={campo}
             />
             <p className="apoyo" style={{ marginTop: "0.3rem" }}>
-              Máximo {CPS_MAXIMO_BPS / 100} %.
+              De cada compra de PRO, {CPS_MAXIMO_BPS / 100} % entra en la cuenta
+              del Operador y de ahí sale esto; el resto queda para él. El
+              webmaster cobra su parte aparte, directamente de Sophon.
             </p>
           </div>
 
@@ -146,7 +157,7 @@ export default async function Tarifas() {
           </p>
         ) : (
           <div className="tabla-marco">
-            <table style={{ marginTop: "0.9rem" }}>
+            <table className="densa" style={{ marginTop: "0.9rem" }}>
               <thead>
                 <tr>
                   <th>Vigencia</th>
@@ -159,7 +170,7 @@ export default async function Tarifas() {
               <tbody>
                 {versiones.map((v) => (
                   <tr key={v.id}>
-                    <td>
+                    <td className="ancla">
                       {fecha(v.validaDesde)}
                       {v.validaHasta ? (
                         <span className="apoyo"> → {fecha(v.validaHasta)}</span>
@@ -169,12 +180,20 @@ export default async function Tarifas() {
                         </span>
                       )}
                     </td>
-                    <td className="num">{formatearMicros(v.cpaPorRegistroMicros, 4)}</td>
-                    <td className="num">{v.cpsBps / 100} %</td>
+                    <td className="num cabeza" data-etiqueta="CPA">
+                      {formatearMicros(v.cpaPorRegistroMicros, 4)}
+                    </td>
+                    <td className="num" data-etiqueta="CPS">
+                      {v.cpsBps / 100} %
+                    </td>
                     {/* Cuántos asientos explica esta versión: es la razón por la
                         que no se puede editar. */}
-                    <td className="num">{v._count.asientos}</td>
-                    <td className="apoyo">{v.nota ?? "—"}</td>
+                    <td className="num" data-etiqueta="Asientos">
+                      {v._count.asientos}
+                    </td>
+                    <td className="apoyo" data-etiqueta="Nota">
+                      {v.nota ?? "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

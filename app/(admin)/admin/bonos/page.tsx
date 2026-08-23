@@ -118,7 +118,7 @@ export default async function Bonos() {
                           style={campo}
                         />
                       </td>
-                      <td className="num apoyo">
+                      <td className="num apoyo" data-etiqueta="Asientos">
                         {e ? formatearMicros(e.recompensaMicros * BigInt(agentesActivos)) : "—"}
                       </td>
                     </tr>
@@ -156,7 +156,7 @@ export default async function Bonos() {
         </p>
         {vigente && vigente.escalones.length > 0 ? (
           <div className="tabla-marco">
-            <table style={{ marginTop: "0.9rem" }}>
+            <table className="densa" style={{ marginTop: "0.9rem" }}>
               <thead>
                 <tr>
                   <th className="num">Registros</th>
@@ -168,14 +168,18 @@ export default async function Bonos() {
               <tbody>
                 {vigente.escalones.map((e) => (
                   <tr key={e.id}>
-                    <td className="num">{e.usuarios.toLocaleString("es-ES")}</td>
-                    <td className="num">{formatearMicros(e.recompensaMicros)}</td>
+                    <td className="ancla num">{e.usuarios.toLocaleString("es-ES")} registros</td>
+                    <td className="num cabeza" data-etiqueta="Paga">
+                      {formatearMicros(e.recompensaMicros)}
+                    </td>
                     {/* Cero aquí en los tres escalones significa que están fuera
                         de alcance, no que los agentes no trabajen. */}
-                    <td className="num">
+                    <td className="num" data-etiqueta="Alcanzado por">
                       {alcanzado.get(e.usuarios) ?? 0} de {agentesActivos}
                     </td>
-                    <td className="num apoyo">{e._count.asientos}</td>
+                    <td className="num apoyo" data-etiqueta="Asientos">
+                      {e._count.asientos}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -201,7 +205,7 @@ export default async function Bonos() {
           </p>
         ) : (
           <div className="tabla-marco">
-            <table style={{ marginTop: "0.9rem" }}>
+            <table className="densa" style={{ marginTop: "0.9rem" }}>
               <thead>
                 <tr>
                   <th>Vigencia</th>
@@ -213,7 +217,7 @@ export default async function Bonos() {
               <tbody>
                 {versiones.map((v) => (
                   <tr key={v.id}>
-                    <td>
+                    <td className="ancla">
                       {fecha(v.validaDesde)}
                       {v.validaHasta ? (
                         <span className="apoyo"> → {fecha(v.validaHasta)}</span>
@@ -223,7 +227,7 @@ export default async function Bonos() {
                         </span>
                       )}
                     </td>
-                    <td className="apoyo">
+                    <td className="apoyo linea-propia" data-etiqueta="Escalera">
                       {v.escalones
                         .map(
                           (e) =>
@@ -234,7 +238,9 @@ export default async function Bonos() {
                     <td className="num apoyo">
                       {v.escalones.reduce((a, e) => a + e._count.asientos, 0)}
                     </td>
-                    <td className="apoyo">{v.nota ?? "—"}</td>
+                    <td className="apoyo linea-propia" data-etiqueta="Motivo">
+                      {v.nota ?? "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

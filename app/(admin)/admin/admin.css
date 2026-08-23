@@ -1097,7 +1097,19 @@ body:has(> .panel) {
   }
 
   /* Ya no hay nada que desplazar a lo ancho: el marco deja de ser un carril. */
-  .panel .tabla-marco {
+  /*
+   * El desplazamiento se quita SOLO donde la tabla se pliega.
+   *
+   * Estaba quitado para todas, y solo las `.densa` se convierten en lista en el
+   * móvil: las demás seguían siendo tablas de cinco columnas dentro de un
+   * contenedor al que se le acababa de retirar el `overflow`. Resultado, la
+   * página entera desbordando a lo ancho —19 px en Tarifas, y lo mismo en
+   * Bonos, Retiros y los barridos del panel—.
+   *
+   * Con el `:has`, una tabla que no se pliega conserva su carril horizontal, que
+   * es legible aunque haya que arrastrar. Una que sí se pliega no lo necesita.
+   */
+  .panel .tabla-marco:has(> table.densa) {
     overflow-x: visible;
     border-bottom: 0;
   }

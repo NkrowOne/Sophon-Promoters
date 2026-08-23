@@ -43,9 +43,38 @@ export type Micros = bigint;
 export type Bps = number;
 
 /*
- * Lo que Sophon paga por cada usuario registrado, para repartir entre el agente
- * y el Operador. Es el mismo número que `CPA_MAXIMO_MICROS` del motor, y por eso
- * ese tope es lo que es: ceder al agente más de 0,06 $ sería pagar de tu bolsillo.
+ * ── EL ÚNICO SITIO DONDE VIVEN LAS DOS CIFRAS DEL PROGRAMA ──
+ *
+ * Estaban en tres módulos a la vez, cada uno con su nombre y su comentario:
+ *
+ *   0,06 $   `CPA_MAXIMO_MICROS` en el motor —el tope de la tarifa—,
+ *            `DESCUENTO_POR_USUARIO_MICROS` en la tabla de precios —lo que se
+ *            resta del precio del webmaster— y `CPA_SOPHON_MICROS` aquí.
+ *   35 %     `PORCENTAJE_WEBMASTER_BPS` en la tabla de precios y
+ *            `CPS_WEBMASTER_BPS` aquí.
+ *   15 %     `CPS_MAXIMO_BPS` en el motor y `CPS_AL_OPERADOR_BPS` aquí.
+ *
+ * Son el mismo número visto desde tres sitios, y tres definiciones del mismo
+ * número es una que se queda vieja sin que nadie lo note: el día que el
+ * programa cambie el descuento, el formulario de tarifas seguiría validando
+ * contra el viejo mientras la tabla de precios ya pintaría el nuevo, y las dos
+ * pantallas dirían cosas distintas con la misma cara de certeza.
+ *
+ * Aquí, y los otros módulos las reexportan con sus nombres para no tocar a
+ * ningún llamante. `test/constantes-programa.test.ts` fija que sigan siendo una.
+ */
+
+/**
+ * Lo que NO llega al webmaster de cada usuario registrado: seis céntimos.
+ *
+ * Sophon paga el precio global de su tabla —que depende del país y del nivel—
+ * y de ahí se descuenta esto. Es a la vez el descuento que ve el webmaster y el
+ * ingreso del Operador por ese registro, porque son la misma cosa mirada desde
+ * los dos lados, y de ahí sale la comisión del agente.
+ *
+ * NO es «lo que Sophon paga por registro»: lo que Sophon paga es mucho más y va
+ * casi entero al webmaster. Confundir las dos cosas puso en pantalla la frase
+ * «Sophon abona 0,06 $ por registro», que es falsa.
  */
 export const CPA_SOPHON_MICROS: Micros = 60_000n;
 
@@ -61,6 +90,9 @@ export const CPA_SOPHON_MICROS: Micros = 60_000n;
  */
 export const CPS_WEBMASTER_BPS: Bps = 3_500;
 export const CPS_AL_OPERADOR_BPS: Bps = 1_500;
+
+/** Los dos conceptos por los que cobra cada parte. Para rotular sin repetirse. */
+export const CONCEPTOS = ["registros", "pro"] as const;
 
 /**
  * Lo que ha producido un tramo de tráfico.

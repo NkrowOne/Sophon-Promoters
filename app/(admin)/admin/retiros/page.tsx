@@ -184,7 +184,10 @@ export default async function Retiros() {
           <p className="apoyo" style={{ marginTop: "0.9rem" }}>Sin retiros resueltos.</p>
         ) : (
           <div className="tabla-marco">
-            <table style={{ marginTop: "0.9rem" }}>
+            {/* `densa` para que en el móvil se pliegue en lista en vez de
+                quedarse como una tabla de cinco columnas dentro de un carril
+                que hay que arrastrar para ver el importe. */}
+            <table className="densa" style={{ marginTop: "0.9rem" }}>
               <thead>
                 <tr>
                   <th>Agente</th>
@@ -197,17 +200,25 @@ export default async function Retiros() {
               <tbody>
                 {resueltas.map((s) => (
                   <tr key={s.id}>
-                    <td>{s.agente.nombreVisible}</td>
-                    <td className="num"><Importe micros={s.importeMicros} /></td>
-                    <td className={s.estado === "RECHAZADO" ? "vivo" : undefined}>
+                    <td className="ancla">{s.agente.nombreVisible}</td>
+                    <td className="num cabeza" data-etiqueta="Importe">
+                      <Importe micros={s.importeMicros} />
+                    </td>
+                    <td
+                      className={s.estado === "RECHAZADO" ? "vivo" : undefined}
+                      data-etiqueta="Estado"
+                    >
                       {ETIQUETA[s.estado]}
                       {s.motivo && (
                         <span className="apoyo" style={{ display: "block" }}>{s.motivo}</span>
                       )}
                     </td>
-                    <td className="apoyo">{fecha(s.resueltoEn ?? s.solicitadoEn)}</td>
+                    <td className="apoyo" data-etiqueta="Fecha">
+                      {fecha(s.resueltoEn ?? s.solicitadoEn)}
+                    </td>
                     <td
                       className="apoyo"
+                      data-etiqueta="Referencia"
                       style={{ fontFamily: "ui-monospace, monospace", userSelect: "all" }}
                       title={s.referenciaPago ?? ""}
                     >

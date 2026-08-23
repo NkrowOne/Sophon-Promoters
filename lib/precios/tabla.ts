@@ -37,6 +37,12 @@
  */
 
 import { microsDesdeCadena, type Micros } from "../devengo/dinero.ts";
+/*
+ * Las dos cifras del programa se DEFINEN en `devengo/reparto.ts` y aquí solo se
+ * les pone el nombre de esta pantalla. Estaban escritas otra vez, y dos
+ * literales del mismo número son uno que se queda viejo en silencio.
+ */
+import { CPA_SOPHON_MICROS, CPS_WEBMASTER_BPS } from "../devengo/reparto.ts";
 import { clienteSophon } from "../sophon/instancia.ts";
 
 /**
@@ -46,7 +52,7 @@ import { clienteSophon } from "../sophon/instancia.ts";
  * webmaster, y de ahí sale también la comisión del agente —que él ve en su
  * saldo, no aquí—.
  */
-export const DESCUENTO_POR_USUARIO_MICROS: Micros = 60_000n;
+export const DESCUENTO_POR_USUARIO_MICROS: Micros = CPA_SOPHON_MICROS;
 
 /** La tabla se anuncia por cada 100 usuarios, igual que la de Sophon. */
 export const USUARIOS_POR_BLOQUE = 100n;
@@ -72,7 +78,7 @@ export const USUARIOS_POR_BLOQUE = 100n;
  * también aquí sería un segundo sitio donde quedarse viejo, y el sitio que se
  * quedaría viejo es el que el agente lee.
  */
-export const PORCENTAJE_WEBMASTER_BPS = 3_500;
+export const PORCENTAJE_WEBMASTER_BPS = CPS_WEBMASTER_BPS;
 
 /**
  * Tope de cordura del precio por usuario.

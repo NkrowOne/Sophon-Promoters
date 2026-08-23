@@ -79,7 +79,12 @@ export function TablaWebmasters({
             <th className="num">Total</th>
             <th className="num secundaria">Pago</th>
             <th className="num">Inactivo</th>
-            <th className="num">Ganado</th>
+            {/* DOS columnas y no una: la de antes decía «Ganado» y era la
+                comisión del AGENTE, puesta en la fila del webmaster sin decir
+                de quién era. En una lista de webmasters eso se lee al revés
+                —«este webmaster ha ganado 0,00 $»— y así se leyó. */}
+            <th className="num">Cobra</th>
+            <th className="num">Comisión agente</th>
             <th className="secundaria">Origen</th>
             <th className="secundaria">Alta</th>
             <th className="secundaria">Devenga</th>
@@ -199,7 +204,10 @@ export function TablaWebmasters({
                   correo. Es la cifra que se recorre en vertical buscando la que
                   canta, y entre los otros ocho datos habría que ir fila por fila
                   leyendo rótulos para encontrarla. */}
-              <td className="num cabeza" data-etiqueta="Ganado">
+              <td className="num cabeza" data-etiqueta="Cobra">
+                <Importe micros={w.cobraMicros} />
+              </td>
+              <td className="num" data-etiqueta="Comisión agente">
                 <Importe micros={w.ganadoMicros} />
               </td>
 
