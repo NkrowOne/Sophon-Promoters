@@ -5,6 +5,8 @@ import { exigirAdmin } from "@/lib/auth/admin";
 import { formatearMicros } from "@/lib/devengo/dinero";
 import { inicioDelDiaContable } from "@/lib/fechas";
 import { hoyContable } from "@/lib/sync/registros";
+import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
+import { huecoDeDevengo } from "@/lib/devengo/sin-devengar";
 import { Cerrada } from "./_piezas/Cerrada";
 
 /**
@@ -60,6 +62,20 @@ export default async function Panel() {
   // está cobrando nada. Por eso se comprueba aquí y se avisa arriba del todo.
   const hayTarifa = (await db.tarifaVersion.count({ where: { validaHasta: null } })) > 0;
 
+  /*
+   * Y la alarma que cubre a la de arriba, porque la de arriba no basta.
+   *
+   * «Hay tarifa» solo comprueba que EXISTA una fila. Una `TarifaVersion` con el
+   * CPA a cero existe, así que no dispara nada y no paga nada. Y aunque la
+   * tarifa esté bien, los días que pasaron mientras faltaba se quedan sin
+   * devengar para siempre: el barrido solo repasa siete días hacia atrás.
+   *
+   * Esto no comprueba causas, comprueba el síntoma —filas con registros, con
+   * agente y sin un solo asiento— así que cubre también las que aparezcan
+   * mañana. Ver `lib/devengo/sin-devengar.ts`.
+   */
+  const hueco = await huecoDeDevengo();
+
   const entradasMicros = entradas._sum.gananciaOperadorMicros ?? 0n;
   const devengadoMicros = devengado._sum.importeMicros ?? 0n;
   const margenMicros = entradasMicros - devengadoMicros;
@@ -102,6 +118,7 @@ export default async function Panel() {
           llega tarde: para entonces ya se ha leído y creído. */}
       {(rotas.length > 0 ||
         !hayTarifa ||
+        hueco.filas > 0 ||
         sinLeerElCierre ||
         (conciliacion && !conciliacion.cuadra)) && (
         <div className="privado" style={{ marginBottom: "1.75rem" }}>
@@ -114,6 +131,22 @@ export default async function Panel() {
                 <strong>No hay tarifa en vigor</strong>: los barridos no devengan y los
                 agentes ven 0,00 $. El margen inferior aparece al 100 % por esa causa.{" "}
                 <Link href="/admin/tarifas">Configurar tarifa</Link>.
+              </li>
+            )}
+            {/* Detrás de la tarifa ausente, porque cuando faltan las dos la
+                tarifa es la causa y esto el efecto; y por delante de todo lo
+                demás, porque es dinero que un agente ha ganado y no tiene. */}
+            {hueco.filas > 0 && (
+              <li>
+                <strong>
+                  {hueco.registros.toLocaleString("es-ES")}{" "}
+                  {hueco.registros === 1 ? "registro" : "registros"} sin devengar
+                </strong>{" "}
+                en {hueco.filas} {hueco.filas === 1 ? "día" : "días"}
+                {hueco.desde ? ` desde el ${hueco.desde}` : ""}: hay agente y hay registros,
+                pero no se escribió ni un asiento. El barrido no los va a recuperar solo —solo
+                repasa {DIAS_VENTANA_REVISION} días—. Ejecuta{" "}
+                <code>npm run devengo:reparar</code>.
               </li>
             )}
             {sinLeerElCierre && (
