@@ -21,12 +21,13 @@
  *
  * ── EL DESCUENTO, QUE ES LA PARTE DELICADA ──
  *
- * Lo que Sophon paga es el precio GLOBAL. De ahí salen seis céntimos por
- * usuario que no llegan al webmaster: tres son la comisión del agente y tres se
- * quedan arriba. Así que lo que se pinta es el global MENOS esos seis céntimos,
- * porque es lo que el webmaster verá de verdad en su cuenta.
+ * Lo que Sophon paga es el precio GLOBAL. De ahí sale un descuento fijo por
+ * usuario que no llega al webmaster: de él salen la comisión del agente y la
+ * del Operador. Así que lo que se pinta es el global MENOS ese descuento,
+ * porque es lo que el webmaster verá de verdad en su cuenta. Verificado en
+ * vivo: sus 1,70 $ del 2026-08-22 son exactamente esta resta.
  *
- * **El reparto de esos seis céntimos no sale de este módulo.** No se expone «de
+ * **El reparto de ese descuento no sale de este módulo.** No se expone «de
  * los cuales 3 son tuyos», ni el total, ni la diferencia: `lib/i18n.ts` lo dice
  * en su regla dura —«ninguna cadena puede revelar el reparto del Operador»— y
  * aquí se cumple no calculándolo. Lo que el agente cobra ya se lo dice su propio
@@ -48,9 +49,9 @@ import { clienteSophon } from "../sophon/instancia.ts";
 /**
  * Lo que se descuenta del precio global por cada usuario, en micros.
  *
- * Seis céntimos. Es la diferencia entre lo que paga Sophon y lo que cobra el
- * webmaster, y de ahí sale también la comisión del agente —que él ve en su
- * saldo, no aquí—.
+ * La diferencia entre lo que paga Sophon y lo que cobra el webmaster, y de ahí
+ * sale también la comisión del agente —que él ve en su saldo, no aquí—. El
+ * valor vive en `devengo/reparto.ts`, verificado contra la cuenta real.
  */
 export const DESCUENTO_POR_USUARIO_MICROS: Micros = CPA_SOPHON_MICROS;
 
@@ -85,7 +86,7 @@ export const PORCENTAJE_WEBMASTER_BPS = CPS_WEBMASTER_BPS;
  *
  * Sophon devuelve el precio POR USUARIO (`0.3`), y la tabla del programa de
  * socios lo enseña por cada 100 (`$30`). Si algún día el campo pasara a venir ya
- * multiplicado, el descuento de seis céntimos se quedaría en nada y la pantalla
+ * multiplicado, el descuento por usuario se quedaría en nada y la pantalla
  * anunciaría precios cien veces mayores —con el agente repitiéndoselos a sus
  * webmasters—.
  *
@@ -167,7 +168,7 @@ export function olvidarTablaDePrecios(): void {
  * Aplica el descuento y lo lleva a bloques de 100.
  *
  * Devuelve `null` si el precio no es creíble o si el descuento se lo come
- * entero: un tier que pagara menos de seis céntimos por usuario no dejaría nada
+ * entero: un tier que pagara menos que el descuento por usuario no dejaría nada
  * para el webmaster, y pintar «$0 por cada 100» sería anunciar que no se cobra
  * cuando lo que pasa es que ese dato no cuadra.
  */
