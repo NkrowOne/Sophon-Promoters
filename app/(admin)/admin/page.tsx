@@ -7,7 +7,7 @@ import { inicioDelDiaContable } from "@/lib/fechas";
 import { hoyContable } from "@/lib/sync/registros";
 import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
 import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
-import { repartoDelPanel } from "@/lib/admin/reparto";
+import { desgloseWebmasters, repartoDelPanel } from "@/lib/admin/reparto";
 import {
   CPA_SOPHON_MICROS,
   CPS_AL_OPERADOR_BPS,
@@ -16,8 +16,7 @@ import {
 } from "@/lib/devengo/reparto";
 import { repararDevengoPendiente } from "./acciones";
 import { Cerrada } from "./_piezas/Cerrada";
-import { Importe } from "./_piezas/Importe";
-import { Num, Seccion } from "./_piezas/Control";
+import { Correo, Num, Seccion } from "./_piezas/Control";
 
 /**
  * Panel: la contabilidad del Operador.
@@ -40,27 +39,39 @@ export const dynamic = "force-dynamic";
 export default async function Panel() {
   if (!(await exigirAdmin())) return <Cerrada />;
 
-  const [entradas, retiros, agentes, webmasters, sincronizaciones, conciliacion] =
-    await Promise.all([
-      db.filaDiariaSophon.aggregate({
-        _sum: { gananciaOperadorMicros: true, gananciaTotalMicros: true },
-      }),
-      db.solicitudRetiro.groupBy({
-        by: ["estado"],
-        _sum: { importeMicros: true },
-        _count: true,
-      }),
-      db.agente.count({ where: { estado: "ACTIVO" } }),
-      db.webmaster.count({ where: { desaparecidoEn: null } }),
-      // La última ejecución de cada tipo: un barrido parado es la causa más
-      // probable de que una cifra de esta página esté vieja.
-      db.ejecucionSync.findMany({
-        orderBy: { iniciadaEn: "desc" },
-        take: 20,
-        select: { tipo: true, estado: true, iniciadaEn: true, terminadaEn: true, error: true },
-      }),
-      db.conciliacion.findFirst({ orderBy: { fecha: "desc" } }),
-    ]);
+  const [
+    entradas,
+    retiros,
+    agentes,
+    webmasters,
+    sincronizaciones,
+    conciliacion,
+  ] = await Promise.all([
+    db.filaDiariaSophon.aggregate({
+      _sum: { gananciaOperadorMicros: true, gananciaTotalMicros: true },
+    }),
+    db.solicitudRetiro.groupBy({
+      by: ["estado"],
+      _sum: { importeMicros: true },
+      _count: true,
+    }),
+    db.agente.count({ where: { estado: "ACTIVO" } }),
+    db.webmaster.count({ where: { desaparecidoEn: null } }),
+    // La última ejecución de cada tipo: un barrido parado es la causa más
+    // probable de que una cifra de esta página esté vieja.
+    db.ejecucionSync.findMany({
+      orderBy: { iniciadaEn: "desc" },
+      take: 20,
+      select: {
+        tipo: true,
+        estado: true,
+        iniciadaEn: true,
+        terminadaEn: true,
+        error: true,
+      },
+    }),
+    db.conciliacion.findFirst({ orderBy: { fecha: "desc" } }),
+  ]);
 
   // Sin tarifa en vigor el motor no emite un solo asiento, y eso NO se parece a
   // un fallo desde aquí: los barridos salen en verde, las filas diarias entran,
@@ -81,7 +92,9 @@ export default async function Panel() {
   });
   const hayTarifa = tarifa !== null;
   const tarifaACero =
-    tarifa !== null && tarifa.cpaPorRegistroMicros === 0n && tarifa.cpsBps === 0;
+    tarifa !== null &&
+    tarifa.cpaPorRegistroMicros === 0n &&
+    tarifa.cpsBps === 0;
 
   /*
    * Y la alarma que cubre a la de arriba, porque la de arriba no basta.
@@ -145,6 +158,7 @@ export default async function Panel() {
    * diferencia se enseña debajo de la tabla en vez de quedar tapada.
    */
   const rep = await repartoDelPanel();
+  const porWebmaster = await desgloseWebmasters();
   const tuyoMicros = totalParte(rep.totales.operador);
   const alAgenteMicros = totalParte(rep.totales.agente);
   const devengadoCpaCpsMicros = reparto.registrosMicros + reparto.proMicros;
@@ -172,12 +186,16 @@ export default async function Panel() {
   const aprobados = porEstado("APROBADO");
   const pagados = porEstado("PAGADO");
   const porPagarMicros =
-    (pendientes?._sum.importeMicros ?? 0n) + (aprobados?._sum.importeMicros ?? 0n);
+    (pendientes?._sum.importeMicros ?? 0n) +
+    (aprobados?._sum.importeMicros ?? 0n);
   const porPagarCuenta = (pendientes?._count ?? 0) + (aprobados?._count ?? 0);
 
   const ultimaPorTipo = new Map<string, (typeof sincronizaciones)[number]>();
-  for (const s of sincronizaciones) if (!ultimaPorTipo.has(s.tipo)) ultimaPorTipo.set(s.tipo, s);
-  const rotas = [...ultimaPorTipo.values()].filter((s) => s.estado === "FALLIDA");
+  for (const s of sincronizaciones)
+    if (!ultimaPorTipo.has(s.tipo)) ultimaPorTipo.set(s.tipo, s);
+  const rotas = [...ultimaPorTipo.values()].filter(
+    (s) => s.estado === "FALLIDA",
+  );
 
   /*
    * ¿Se ha leído lo que Sophon publicó en su último cierre?
@@ -212,13 +230,21 @@ export default async function Panel() {
         (conciliacion && !conciliacion.cuadra)) && (
         <div className="privado" style={{ marginBottom: "1.75rem" }}>
           <p className="rotulo vivo">Cifras no fiables</p>
-          <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem", fontSize: "0.875rem", lineHeight: 1.6 }}>
+          <ul
+            style={{
+              margin: "0.5rem 0 0",
+              paddingLeft: "1.1rem",
+              fontSize: "0.875rem",
+              lineHeight: 1.6,
+            }}
+          >
             {/* Primero, porque es el único de la lista que hace que el margen de
                 abajo sea entero mentira en vez de estar solo desactualizado. */}
             {!hayTarifa && (
               <li>
-                <strong>No hay tarifa en vigor</strong>: los barridos no devengan y los
-                agentes ven 0,00 $. El margen inferior aparece al 100 % por esa causa.{" "}
+                <strong>No hay tarifa en vigor</strong>: los barridos no
+                devengan y los agentes ven 0,00 $. El margen inferior aparece al
+                100 % por esa causa.{" "}
                 <Link href="/admin/tarifas">Configurar tarifa</Link>.
               </li>
             )}
@@ -227,8 +253,9 @@ export default async function Panel() {
                 dijera. */}
             {tarifaACero && (
               <li>
-                <strong>La tarifa en vigor está a cero</strong>: 0,00 $ por registro y 0 % de
-                las compras. Los barridos no devengan nada y los agentes ven 0,00 $.{" "}
+                <strong>La tarifa en vigor está a cero</strong>: 0,00 $ por
+                registro y 0 % de las compras. Los barridos no devengan nada y
+                los agentes ven 0,00 $.{" "}
                 <Link href="/admin/tarifas">Corregir la tarifa</Link>.
               </li>
             )}
@@ -239,17 +266,22 @@ export default async function Panel() {
               <li>
                 <strong>
                   {hueco.registros.toLocaleString("es-ES")}{" "}
-                  {hueco.registros === 1 ? "registro" : "registros"} sin devengar
+                  {hueco.registros === 1 ? "registro" : "registros"} sin
+                  devengar
                 </strong>{" "}
                 en {hueco.filas} {hueco.filas === 1 ? "día" : "días"}
-                {hueco.desde ? ` desde el ${hueco.desde}` : ""}: hay agente y hay registros,
-                pero no se escribió ni un asiento. El barrido no los va a recuperar solo —solo
-                repasa {DIAS_VENTANA_REVISION} días—.
+                {hueco.desde ? ` desde el ${hueco.desde}` : ""}: hay agente y
+                hay registros, pero no se escribió ni un asiento. El barrido no
+                los va a recuperar solo —solo repasa {DIAS_VENTANA_REVISION}{" "}
+                días—.
                 {hayTarifa && !tarifaACero ? (
                   /* El arreglo va DENTRO del aviso y no en otra pantalla: quien
                      lee esto es quien puede resolverlo, y mandarle a buscar el
                      botón a otro sitio es donde se pierde. */
-                  <form action={repararDevengoPendiente} style={{ marginTop: "0.5rem" }}>
+                  <form
+                    action={repararDevengoPendiente}
+                    style={{ marginTop: "0.5rem" }}
+                  >
                     <button type="submit" className="boton primario">
                       Devengar ahora
                     </button>
@@ -271,25 +303,30 @@ export default async function Panel() {
             {porAtribucion.length > 0 && (
               <li>
                 <strong>
-                  {porAtribucion.reduce((n, w) => n + w.registros, 0).toLocaleString("es-ES")}{" "}
+                  {porAtribucion
+                    .reduce((n, w) => n + w.registros, 0)
+                    .toLocaleString("es-ES")}{" "}
                   registros anteriores a la fecha de devengo
                 </strong>{" "}
                 en {porAtribucion.length}{" "}
-                {porAtribucion.length === 1 ? "webmaster" : "webmasters"}: no se devengan porque
-                son de antes de que se le atribuyera al agente.{" "}
+                {porAtribucion.length === 1 ? "webmaster" : "webmasters"}: no se
+                devengan porque son de antes de que se le atribuyera al agente.{" "}
                 {porAtribucion.slice(0, 3).map((w, i) => (
                   <span key={w.email}>
                     {i > 0 && "; "}
                     {w.email} tiene {w.registros} del {w.primerDia}
-                    {w.ultimoDia !== w.primerDia ? ` al ${w.ultimoDia}` : ""} y devenga desde el{" "}
-                    {w.devengaDesde}
+                    {w.ultimoDia !== w.primerDia ? ` al ${w.ultimoDia}` : ""} y
+                    devenga desde el {w.devengaDesde}
                   </span>
                 ))}
-                {porAtribucion.length > 3 ? `; y ${porAtribucion.length - 3} más` : ""}. Son
-                cuentas <strong>adoptadas</strong>, no captadas: ya estaban en el programa de
-                socios antes, y la regla existe para que el agente no cobre lo que no trajo. Las
-                que sí trajo él —las que se dieron de alta desde la aplicación— no llevan
-                frontera y devengan desde el primer registro.
+                {porAtribucion.length > 3
+                  ? `; y ${porAtribucion.length - 3} más`
+                  : ""}
+                . Son cuentas <strong>adoptadas</strong>, no captadas: ya
+                estaban en el programa de socios antes, y la regla existe para
+                que el agente no cobre lo que no trajo. Las que sí trajo él —las
+                que se dieron de alta desde la aplicación— no llevan frontera y
+                devengan desde el primer registro.
               </li>
             )}
             {/* Sin agente no hay a quién pagarle. No es un fallo del devengo,
@@ -297,18 +334,23 @@ export default async function Panel() {
                 devengo. */}
             {sinAgente.length > 0 && (
               <li>
-                {sinAgente.reduce((n, w) => n + w.registros, 0).toLocaleString("es-ES")} registros
-                de {sinAgente.length}{" "}
-                {sinAgente.length === 1 ? "webmaster" : "webmasters"} <strong>sin agente</strong>:
-                son del árbol del Operador y no devengan comisión a nadie.{" "}
-                <Link href="/admin/webmasters?estado=sin-agente">Verlos</Link>.
+                {sinAgente
+                  .reduce((n, w) => n + w.registros, 0)
+                  .toLocaleString("es-ES")}{" "}
+                registros de {sinAgente.length}{" "}
+                {sinAgente.length === 1 ? "webmaster" : "webmasters"}{" "}
+                <strong>sin agente asignado</strong>: son cuentas propias del Operador y no
+                devengan comisión a nadie.{" "}
+                <Link href="/admin/webmasters?estado=sin-agente">Ver listado</Link>.
               </li>
             )}
             {sinLeerElCierre && (
               <li>
-                <strong>Sin sincronizar desde el último cierre de Sophon</strong> (
-                {fecha(ultimoCierre)}): las cifras de esta página y las de los agentes son
-                anteriores a ese corte.{" "}
+                <strong>
+                  Sin sincronizar desde el último cierre de Sophon
+                </strong>{" "}
+                ({fecha(ultimoCierre)}): las cifras de esta página y las de los
+                agentes son anteriores a ese corte.{" "}
                 {ultimosRegistros
                   ? `Último barrido de registros: ${fecha(ultimosRegistros.iniciadaEn)}.`
                   : "Sin barridos de registros."}{" "}
@@ -317,7 +359,8 @@ export default async function Panel() {
             )}
             {rotas.map((s) => (
               <li key={s.tipo}>
-                Barrido de {s.tipo.toLowerCase()}: fallido el {fecha(s.iniciadaEn)}
+                Barrido de {s.tipo.toLowerCase()}: fallido el{" "}
+                {fecha(s.iniciadaEn)}
                 {s.error ? `: ${s.error.slice(0, 120)}` : ""}.
               </li>
             ))}
@@ -328,8 +371,8 @@ export default async function Panel() {
             {conciliacion && !conciliacion.cuadra && (
               <li>
                 Conciliación del {fecha(conciliacion.fecha)}: descuadre de{" "}
-                {formatearMicros(conciliacion.descuadreMicros)}. No se deben resolver retiros
-                hasta cuadrarla.
+                {formatearMicros(conciliacion.descuadreMicros)}. No se deben
+                resolver retiros hasta cuadrarla.
               </li>
             )}
           </ul>
@@ -337,201 +380,239 @@ export default async function Panel() {
       )}
 
       {/*
-        LO TUYO, Y NO «EL MARGEN».
+        EL RESULTADO DEL OPERADOR, Y NO «EL MARGEN».
 
-        Aquí ponía «Margen · privado» y debajo la resta: lo que entra de Sophon
-        menos lo que devengan los agentes. Estaba mal contado en el peor sentido
-        —el de hacer creer algo falso—: tu parte no es lo que sobra después de
-        pagar a nadie. Es tu tarifa, 0,03 $ por registro y el 10 % de lo que los
-        usuarios pagan por el PRO, igual de pactada que la del agente.
-
-        Y la diferencia importa el día que un agente reclama: con la resta,
-        cualquier cifra suya parece salir de tu bolsillo. Con la parte, cada uno
-        mira la suya.
+        Aquí ponía «Margen» y debajo una resta: lo que entra de Sophon menos lo
+        que devengan los agentes. Hacía creer algo falso —que la parte del
+        Operador es lo que sobra tras pagar a los demás— cuando es una tarifa
+        pactada igual que las otras dos.
       */}
       <section className="privado" style={{ marginBottom: "2.5rem" }}>
-        <p className="rotulo">Lo tuyo · privado</p>
-        <p
-          style={{
-            fontSize: "3rem",
-            fontWeight: 620,
-            letterSpacing: "-0.035em",
-            fontVariantNumeric: "tabular-nums",
-            margin: "0.25rem 0 0",
-          }}
+        <p className="rotulo">Resultado del Operador · privado</p>
+        <p className="cifra grande">{formatearMicros(tuyoMicros)}</p>
+        <dl
+          className="partes"
+          style={{ marginTop: "0.9rem", maxWidth: "26rem" }}
         >
-          {formatearMicros(tuyoMicros)}
-        </p>
-        <p className="apoyo" style={{ marginTop: "0.4rem" }}>
-          {formatearMicros(rep.totales.operador.registrosMicros)} de{" "}
-          <Num valor={rep.totales.registros} /> registros y{" "}
-          {formatearMicros(rep.totales.operador.proMicros)} de las compras de PRO. No aparece
-          en ninguna pantalla de agente.
+          <div className="parte">
+            <dt>Registros</dt>
+            <dd>{formatearMicros(rep.totales.operador.registrosMicros)}</dd>
+          </div>
+          <div className="parte">
+            <dt>Compras de PRO</dt>
+            <dd>{formatearMicros(rep.totales.operador.proMicros)}</dd>
+          </div>
+          <div className="parte">
+            <dt>Usuarios registrados</dt>
+            <dd>
+              <Num valor={rep.totales.registros} />
+            </dd>
+          </div>
+        </dl>
+        <p className="apoyo" style={{ marginTop: "0.9rem" }}>
+          Cifra privada: no aparece en ninguna pantalla de agente.
         </p>
       </section>
 
       {/*
-        EL REPARTO, CON LAS TRES PARTES Y SIN RESTAS.
+        EL REPARTO.
 
-        Antes esta tabla tenía una sola columna —«para los agentes»— y debajo
-        tres cifras: lo que entra, lo que se llevan y «te queda a ti». Contaba
-        una historia falsa: que hay un montón del que los agentes sacan y tú te
-        quedas el resto.
-
-        No es así. Son dos conceptos con repartos distintos, y cada parte cobra
-        lo suyo:
-
-          REGISTRO      Sophon paga un fijo. Se parte entre agente y tú. El
-                        webmaster no cobra por registrar.
-          COMPRA DE PRO Porcentaje sobre lo que el USUARIO paga. Webmaster 35 %,
-                        agente 5 %, tú 10 %. El resto se lo queda Sophon.
-
-        Por eso las columnas son las tres partes y no una, y por eso el
-        porcentaje solo aparece en la fila de las compras.
+        Tres partes, cada una con lo suyo. Antes era una tabla de cuatro
+        columnas monetarias que en un móvil se desmontaba en pares «rótulo
+        valor» sueltos. Ahora es un bloque por concepto, con las tres partes en
+        columnas fijas: se comparan en vertical aunque el móvil sea estrecho.
       */}
       <Seccion
         titulo="El reparto"
         apoyo={
           tarifa ? (
             <>
-              Por cada registro Sophon paga {formatearMicros(CPA_SOPHON_MICROS)}:{" "}
-              {formatearMicros(tarifa.cpaPorRegistroMicros)} para el agente y{" "}
-              {formatearMicros(CPA_SOPHON_MICROS - tarifa.cpaPorRegistroMicros)} para ti. De lo
-              que los usuarios pagan por el PRO:{" "}
-              {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % para el webmaster,{" "}
-              {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % para el agente y{" "}
-              {((CPS_AL_OPERADOR_BPS - tarifa.cpsBps) / 100).toLocaleString("es-ES")} % para ti.{" "}
-              <Link href="/admin/tarifas">Cambiar la tarifa</Link>.
+              Por cada usuario registrado Sophon abona{" "}
+              {formatearMicros(CPA_SOPHON_MICROS)}, que se reparten entre el
+              agente ({formatearMicros(tarifa.cpaPorRegistroMicros)}) y el
+              Operador (
+              {formatearMicros(CPA_SOPHON_MICROS - tarifa.cpaPorRegistroMicros)}
+              ). De cada compra de PRO corresponden{" "}
+              {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % al
+              webmaster, {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % al
+              agente y{" "}
+              {((CPS_AL_OPERADOR_BPS - tarifa.cpsBps) / 100).toLocaleString(
+                "es-ES",
+              )}{" "}
+              % al Operador. <Link href="/admin/tarifas">Modificar tarifa</Link>
+              .
             </>
           ) : (
             <>
-              Sin tarifa en vigor no hay nada pactado con los agentes, así que la columna del
-              agente sale a cero y el fijo del registro aparece entero del lado tuyo. No es lo
-              acordado: es lo que la aplicación está aplicando ahora mismo.{" "}
-              <Link href="/admin/tarifas">Configurarla</Link>.
+              No hay tarifa en vigor: los agentes no devengan comisión y el
+              importe íntegro del registro figura del lado del Operador.{" "}
+              <Link href="/admin/tarifas">Configurar tarifa</Link>.
             </>
           )
         }
       >
-        <div className="tabla-marco">
-          <table className="densa">
-            <thead>
-              <tr>
-                <th>Concepto</th>
-                <th className="num">Webmaster</th>
-                <th className="num">Agente</th>
-                <th className="num">Tú</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="ancla">
-                  Registros
-                  <span className="apoyo" style={{ display: "block" }}>
-                    <Num valor={rep.totales.registros} /> usuarios registrados
-                  </span>
-                </td>
-                {/* El webmaster no cobra por registrar: no es un cero
-                    calculado, es que ese concepto no le toca. */}
-                <td className="num" data-etiqueta="Webmaster">
-                  <span className="nulo">no cobra</span>
-                </td>
-                <td className="num" data-etiqueta="Agente">
-                  <Importe micros={rep.totales.agente.registrosMicros} />
-                </td>
-                <td className="num" data-etiqueta="Tú">
-                  <Importe micros={rep.totales.operador.registrosMicros} />
-                </td>
-              </tr>
-              <tr>
-                <td className="ancla">
-                  Compras de PRO
-                  <span className="apoyo" style={{ display: "block" }}>
-                    {formatearMicros(rep.totales.pagadoPorUsuariosMicros)} pagados por los
-                    usuarios
-                  </span>
-                </td>
-                <td className="num" data-etiqueta="Webmaster">
-                  <Importe micros={rep.totales.webmaster.proMicros} />
-                </td>
-                <td className="num" data-etiqueta="Agente">
-                  <Importe micros={rep.totales.agente.proMicros} />
-                </td>
-                <td className="num" data-etiqueta="Tú">
-                  <Importe micros={rep.totales.operador.proMicros} />
-                </td>
-              </tr>
-              {/* Los bonos NO son un reparto: son un premio que sale entero de
-                  tu parte, así que van con signo en tu columna. */}
-              {reparto.bonosMicros !== 0n && (
-                <tr>
-                  <td className="ancla">
-                    Bonos por hito
-                    <span className="apoyo" style={{ display: "block" }}>
-                      salen de tu parte
-                    </span>
-                  </td>
-                  <td className="num" data-etiqueta="Webmaster">
-                    <span className="nulo">no cobra</span>
-                  </td>
-                  <td className="num" data-etiqueta="Agente">
-                    <Importe micros={reparto.bonosMicros} />
-                  </td>
-                  <td className="num" data-etiqueta="Tú">
-                    <Importe micros={-reparto.bonosMicros} />
-                  </td>
-                </tr>
-              )}
-              {reparto.ajustesMicros !== 0n && (
-                <tr>
-                  <td className="ancla">Ajustes y reversos</td>
-                  <td className="num" data-etiqueta="Webmaster">
-                    <span className="nulo">no cobra</span>
-                  </td>
-                  <td className="num" data-etiqueta="Agente">
-                    <Importe micros={reparto.ajustesMicros} />
-                  </td>
-                  <td className="num" data-etiqueta="Tú">
-                    <Importe micros={-reparto.ajustesMicros} />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td className="ancla">
-                  <strong>Total</strong>
-                </td>
-                <td className="num" data-etiqueta="Webmaster">
-                  <Importe micros={rep.totales.webmaster.proMicros} />
-                </td>
-                <td className="num" data-etiqueta="Agente">
-                  <Importe micros={alAgenteMicros + reparto.bonosMicros + reparto.ajustesMicros} />
-                </td>
-                <td className="num" data-etiqueta="Tú">
-                  <Importe micros={tuyoMicros - reparto.bonosMicros - reparto.ajustesMicros} />
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <ul className="registros">
+          <li>
+            <div className="titular">
+              <span className="nombre">Registros</span>
+              <span className="principal">
+                {formatearMicros(
+                  rep.totales.agente.registrosMicros +
+                    rep.totales.operador.registrosMicros,
+                )}
+              </span>
+            </div>
+            <p className="contexto">
+              <Num valor={rep.totales.registros} /> usuarios registrados
+            </p>
+            <dl className="partes">
+              <div className="parte">
+                <dt>Webmaster</dt>
+                <dd className="nulo">sin comisión</dd>
+              </div>
+              <div className="parte">
+                <dt>Agente</dt>
+                <dd>{formatearMicros(rep.totales.agente.registrosMicros)}</dd>
+              </div>
+              <div className="parte">
+                <dt>Operador</dt>
+                <dd>{formatearMicros(rep.totales.operador.registrosMicros)}</dd>
+              </div>
+            </dl>
+          </li>
 
-        {/* Lo que le TOCA al agente y lo que tiene ESCRITO en el libro son dos
-            cifras distintas, y cuando no coinciden es que algo no devengó. La
-            diferencia se dice aquí en vez de esconderse entre dos totales que
-            nadie compara a mano. */}
-        <p className="apoyo" style={{ marginTop: "0.9rem" }}>
-          Sophon ha ingresado {formatearMicros(entradasMicros)} en tu cuenta por este tráfico.
-          El reparto de arriba —tu parte más la del agente— suma{" "}
-          {formatearMicros(repartidoMicros)}. Lo del webmaster no pasa por aquí: se lo paga
-          Sophon directamente.
+          <li>
+            <div className="titular">
+              <span className="nombre">Compras de PRO</span>
+              <span className="principal">
+                {formatearMicros(
+                  rep.totales.webmaster.proMicros +
+                    rep.totales.agente.proMicros +
+                    rep.totales.operador.proMicros,
+                )}
+              </span>
+            </div>
+            <p className="contexto">
+              {formatearMicros(rep.totales.pagadoPorUsuariosMicros)} abonados
+              por los usuarios
+            </p>
+            <dl className="partes">
+              <div className="parte">
+                <dt>Webmaster</dt>
+                <dd>{formatearMicros(rep.totales.webmaster.proMicros)}</dd>
+              </div>
+              <div className="parte">
+                <dt>Agente</dt>
+                <dd>{formatearMicros(rep.totales.agente.proMicros)}</dd>
+              </div>
+              <div className="parte">
+                <dt>Operador</dt>
+                <dd>{formatearMicros(rep.totales.operador.proMicros)}</dd>
+              </div>
+            </dl>
+          </li>
+
+          {/* Los bonos no son un reparto: los abona el Operador por entero. */}
+          {reparto.bonosMicros !== 0n && (
+            <li>
+              <div className="titular">
+                <span className="nombre">Bonos por hito</span>
+                <span className="principal">{formatearMicros(0n)}</span>
+              </div>
+              <p className="contexto">A cargo del Operador</p>
+              <dl className="partes">
+                <div className="parte">
+                  <dt>Webmaster</dt>
+                  <dd className="nulo">sin comisión</dd>
+                </div>
+                <div className="parte">
+                  <dt>Agente</dt>
+                  <dd>{formatearMicros(reparto.bonosMicros)}</dd>
+                </div>
+                <div className="parte">
+                  <dt>Operador</dt>
+                  <dd>{formatearMicros(-reparto.bonosMicros)}</dd>
+                </div>
+              </dl>
+            </li>
+          )}
+
+          {reparto.ajustesMicros !== 0n && (
+            <li>
+              <div className="titular">
+                <span className="nombre">Ajustes y reversos</span>
+                <span className="principal">{formatearMicros(0n)}</span>
+              </div>
+              <p className="contexto">A cargo del Operador</p>
+              <dl className="partes">
+                <div className="parte">
+                  <dt>Webmaster</dt>
+                  <dd className="nulo">sin comisión</dd>
+                </div>
+                <div className="parte">
+                  <dt>Agente</dt>
+                  <dd>{formatearMicros(reparto.ajustesMicros)}</dd>
+                </div>
+                <div className="parte">
+                  <dt>Operador</dt>
+                  <dd>{formatearMicros(-reparto.ajustesMicros)}</dd>
+                </div>
+              </dl>
+            </li>
+          )}
+
+          <li className="total">
+            <div className="titular">
+              <span className="nombre">Total</span>
+              {/* Los bonos y los ajustes se anulan entre las dos columnas
+                  —lo que suma el agente lo resta el Operador—, así que el total
+                  repartido es la suma de las tres partes sin ellos. */}
+              <span className="principal">
+                {formatearMicros(rep.totales.webmaster.proMicros + alAgenteMicros + tuyoMicros)}
+              </span>
+            </div>
+            <dl className="partes">
+              <div className="parte">
+                <dt>Webmaster</dt>
+                <dd>{formatearMicros(rep.totales.webmaster.proMicros)}</dd>
+              </div>
+              <div className="parte">
+                <dt>Agente</dt>
+                <dd>
+                  {formatearMicros(
+                    alAgenteMicros +
+                      reparto.bonosMicros +
+                      reparto.ajustesMicros,
+                  )}
+                </dd>
+              </div>
+              <div className="parte">
+                <dt>Operador</dt>
+                <dd>
+                  {formatearMicros(
+                    tuyoMicros - reparto.bonosMicros - reparto.ajustesMicros,
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </li>
+        </ul>
+
+        <p className="apoyo" style={{ marginTop: "1.1rem" }}>
+          Sophon ha ingresado {formatearMicros(entradasMicros)} en la cuenta del
+          Operador por este tráfico. La suma de las partes del agente y del
+          Operador asciende a {formatearMicros(repartidoMicros)}. La parte del
+          webmaster no pasa por esta cuenta: la abona Sophon directamente.
         </p>
+
+        {/* Lo que CORRESPONDE al agente y lo que tiene registrado en el libro
+            son dos cifras distintas. Cuando no coinciden, algo no devengó. */}
         {desfaseMicros !== 0n && (
-          <p className="apoyo vivo" style={{ marginTop: "0.9rem" }}>
-            Faltan {formatearMicros(desfaseMicros)} por devengar: a los agentes les corresponden{" "}
-            {formatearMicros(alAgenteMicros)} por este volumen y en el libro hay{" "}
-            {formatearMicros(devengadoCpaCpsMicros)}. Es lo que arregla{" "}
-            <em>Devengar ahora</em>.
+          <p className="apoyo vivo" style={{ marginTop: "0.6rem" }}>
+            Pendiente de devengo: {formatearMicros(desfaseMicros)}. A los
+            agentes les corresponden {formatearMicros(alAgenteMicros)} por este
+            volumen y el libro registra {formatearMicros(devengadoCpaCpsMicros)}
+            . Pulsa <em>Devengar ahora</em> para regularizarlo.
           </p>
         )}
       </Seccion>
@@ -539,89 +620,182 @@ export default async function Panel() {
       {/*
         POR AGENTE.
 
-        Quién ha traído cuánto, que es lo primero que se pregunta al abrir esto
-        y hasta ahora había que sacarlo de la base de datos. Las mismas tres
-        partes de arriba, fila a fila, para poder contestar a un agente concreto
-        sin abrir nada.
+        Quién ha traído cuánto. Mismo bloque que el reparto, así que las tres
+        columnas caen en las mismas verticales y la lectura no cambia de reglas
+        al bajar por la página.
       */}
       <Seccion
         titulo="Por agente"
-        apoyo="Usuarios registrados y lo que corresponde a cada parte por ese tráfico."
+        apoyo="Usuarios registrados por cada agente y comisión que corresponde a cada parte."
       >
-        <div className="tabla-marco">
-          <table className="densa">
-            <thead>
-              <tr>
-                <th>Agente</th>
-                <th className="num">Webmasters</th>
-                <th className="num">Registrados</th>
-                <th className="num">Agente</th>
-                <th className="num">Tú</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rep.filas.map((f) => (
-                <tr key={f.agenteId ?? "sin-agente"}>
-                  <td className="ancla">
-                    {f.nombre ?? "Sin agente"}
-                    {f.agenteId === null && (
-                      <span className="apoyo" style={{ display: "block" }}>
-                        cuentas de tu árbol: no hay nada pactado, es todo tuyo
-                      </span>
-                    )}
-                    {f.tarifaPropia && (
-                      <span className="apoyo" style={{ display: "block" }}>
-                        con condiciones propias
-                      </span>
-                    )}
-                  </td>
-                  <td className="num" data-etiqueta="Webmasters">
-                    <Num valor={f.webmasters} />
-                  </td>
-                  <td className="num" data-etiqueta="Registrados">
-                    <Num valor={f.registros} />
-                  </td>
-                  <td className="num" data-etiqueta="Agente">
-                    <Importe micros={totalParte(f.reparto.agente)} />
-                  </td>
-                  <td className="num" data-etiqueta="Tú">
-                    <Importe micros={totalParte(f.reparto.operador)} />
-                  </td>
-                </tr>
-              ))}
-              {rep.filas.length === 0 && (
-                <tr>
-                  <td className="ancla sin-rotulo" colSpan={5}>
-                    <span className="nulo">Todavía no hay webmasters.</span>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td className="ancla">
-                  <strong>Total</strong>
-                </td>
-                <td className="num" data-etiqueta="Webmasters">
-                  <Num valor={rep.totales.webmasters} />
-                </td>
-                <td className="num" data-etiqueta="Registrados">
-                  <Num valor={rep.totales.registros} />
-                </td>
-                <td className="num" data-etiqueta="Agente">
-                  <Importe micros={alAgenteMicros} />
-                </td>
-                <td className="num" data-etiqueta="Tú">
-                  <Importe micros={tuyoMicros} />
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <ul className="registros">
+          {rep.filas.map((f) => (
+            <li key={f.agenteId ?? "sin-agente"}>
+              <div className="titular">
+                <span className="nombre">
+                  {f.nombre ?? "Sin agente asignado"}
+                </span>
+                <span className="principal">
+                  {formatearMicros(totalParte(f.reparto.agente))}
+                </span>
+              </div>
+              <p className="contexto">
+                <Num valor={f.registros} /> registrados ·{" "}
+                <Num valor={f.webmasters} />{" "}
+                {f.webmasters === 1 ? "webmaster" : "webmasters"}
+                {f.agenteId === null && " · cuentas propias del Operador"}
+                {f.tarifaPropia && " · tarifa propia"}
+              </p>
+              <dl className="partes">
+                <div className="parte">
+                  <dt>Webmaster</dt>
+                  <dd>{formatearMicros(f.reparto.webmaster.proMicros)}</dd>
+                </div>
+                <div className="parte">
+                  <dt>Agente</dt>
+                  <dd>{formatearMicros(totalParte(f.reparto.agente))}</dd>
+                </div>
+                <div className="parte">
+                  <dt>Operador</dt>
+                  <dd>{formatearMicros(totalParte(f.reparto.operador))}</dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+          {rep.filas.length === 0 && (
+            <li>
+              <p className="contexto">Todavía no hay webmasters registrados.</p>
+            </li>
+          )}
+          {rep.filas.length > 0 && (
+            <li className="total">
+              <div className="titular">
+                <span className="nombre">Total</span>
+              </div>
+              <p className="contexto">
+                <Num valor={rep.totales.registros} /> registrados ·{" "}
+                <Num valor={rep.totales.webmasters} /> webmasters
+              </p>
+              <dl className="partes">
+                <div className="parte">
+                  <dt>Webmaster</dt>
+                  <dd>{formatearMicros(rep.totales.webmaster.proMicros)}</dd>
+                </div>
+                <div className="parte">
+                  <dt>Agente</dt>
+                  <dd>{formatearMicros(alAgenteMicros)}</dd>
+                </div>
+                <div className="parte">
+                  <dt>Operador</dt>
+                  <dd>{formatearMicros(tuyoMicros)}</dd>
+                </div>
+              </dl>
+            </li>
+          )}
+        </ul>
+      </Seccion>
+
+      {/*
+        POR WEBMASTER, DESGLOSADO POR CONCEPTO.
+
+        Aquí estaban los tres totales sueltos, y con tres totales no se contesta
+        «¿de dónde sale lo de éste?». El webmaster solo cobra de las compras de
+        PRO; el agente y el Operador cobran también del registro. Esa asimetría
+        es la regla de negocio entera y no se ve si no se separan los conceptos.
+
+        Dos grupos de tres, con el concepto rotulando cada grupo: seis importes
+        por bloque, ordenados en las mismas columnas que el resto de la página.
+      */}
+      <Seccion
+        titulo="Por webmaster"
+        apoyo={
+          <>
+            Ingresos de cada webmaster —{" "}
+            {(CPS_WEBMASTER_BPS / 100).toLocaleString("es-ES")} % de las compras
+            de sus usuarios— y comisión que ese mismo tráfico genera para el
+            agente y el Operador.{" "}
+            <Link href="/admin/webmasters">Ver listado completo</Link>.
+          </>
+        }
+      >
+        <ul className="registros plegable">
+          {porWebmaster.filas.map((w) => (
+            <li key={w.webmasterId}>
+              <details>
+                <summary>
+                  <div className="titular">
+                    <span className="nombre">
+                      <Correo valor={w.email} />
+                    </span>
+                    <span className="principal">
+                      {formatearMicros(w.cobraMicros)}
+                    </span>
+                  </div>
+                  <p className="contexto">
+                    {w.agente ?? "Sin agente asignado"} ·{" "}
+                    <Num valor={w.registros} /> registrados ·{" "}
+                    {formatearMicros(w.pagadoPorUsuariosMicros)} en compras
+                  </p>
+                </summary>
+                <dl className="partes">
+                  <p className="concepto">Registros</p>
+                  <div className="parte">
+                    <dt>Webmaster</dt>
+                    <dd className="nulo">sin comisión</dd>
+                  </div>
+                  <div className="parte">
+                    <dt>Agente</dt>
+                    <dd>{formatearMicros(w.reparto.agente.registrosMicros)}</dd>
+                  </div>
+                  <div className="parte">
+                    <dt>Operador</dt>
+                    <dd>
+                      {formatearMicros(w.reparto.operador.registrosMicros)}
+                    </dd>
+                  </div>
+                  <p className="concepto">Compras de PRO</p>
+                  <div className="parte">
+                    <dt>Webmaster</dt>
+                    <dd>{formatearMicros(w.reparto.webmaster.proMicros)}</dd>
+                  </div>
+                  <div className="parte">
+                    <dt>Agente</dt>
+                    <dd>{formatearMicros(w.reparto.agente.proMicros)}</dd>
+                  </div>
+                  <div className="parte">
+                    <dt>Operador</dt>
+                    <dd>{formatearMicros(w.reparto.operador.proMicros)}</dd>
+                  </div>
+                </dl>
+              </details>
+            </li>
+          ))}
+          {porWebmaster.filas.length === 0 && (
+            <li>
+              <p className="contexto">Todavía no hay webmasters registrados.</p>
+            </li>
+          )}
+        </ul>
+
+        {/* Una lista que corta en silencio se lee como «éstos son todos». */}
+        {porWebmaster.total > porWebmaster.filas.length && (
+          <p className="apoyo" style={{ marginTop: "1.1rem" }}>
+            Se muestran los {porWebmaster.filas.length} de mayor ingreso, de{" "}
+            <Num valor={porWebmaster.total} /> en total, que suman{" "}
+            {formatearMicros(porWebmaster.cobranMicros)}.{" "}
+            <Link href="/admin/webmasters">Ver listado completo</Link>.
+          </p>
+        )}
       </Seccion>
 
       <section style={{ marginBottom: "2.5rem" }}>
-        <p className="rotulo" style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}>
+        <p
+          className="rotulo"
+          style={{
+            borderBottom: "1px solid var(--p-borde)",
+            paddingBottom: "0.5rem",
+          }}
+        >
           Situación
         </p>
         <div
@@ -648,13 +822,27 @@ export default async function Panel() {
             valor={formatearMicros(pagados?._sum.importeMicros ?? 0n)}
             apoyo={`${pagados?._count ?? 0} en total`}
           />
-          <Dato etiqueta="Agentes activos" valor={String(agentes)} href="/admin/agentes" />
-          <Dato etiqueta="Webmasters" valor={String(webmasters)} apoyo="activos en Sophon" />
+          <Dato
+            etiqueta="Agentes activos"
+            valor={String(agentes)}
+            href="/admin/agentes"
+          />
+          <Dato
+            etiqueta="Webmasters"
+            valor={String(webmasters)}
+            apoyo="activos en Sophon"
+          />
         </div>
       </section>
 
       <section>
-        <p className="rotulo" style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}>
+        <p
+          className="rotulo"
+          style={{
+            borderBottom: "1px solid var(--p-borde)",
+            paddingBottom: "0.5rem",
+          }}
+        >
           Barridos
         </p>
         {ultimaPorTipo.size === 0 ? (
@@ -678,7 +866,9 @@ export default async function Panel() {
                     <td className={s.estado === "FALLIDA" ? "vivo" : undefined}>
                       {s.estado.toLowerCase()}
                     </td>
-                    <td className="apoyo">{fecha(s.terminadaEn ?? s.iniciadaEn)}</td>
+                    <td className="apoyo">
+                      {fecha(s.terminadaEn ?? s.iniciadaEn)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -717,7 +907,11 @@ function Dato({
       >
         {valor}
       </p>
-      {apoyo && <p className="apoyo" style={{ marginTop: "0.15rem" }}>{apoyo}</p>}
+      {apoyo && (
+        <p className="apoyo" style={{ marginTop: "0.15rem" }}>
+          {apoyo}
+        </p>
+      )}
     </>
   );
 
