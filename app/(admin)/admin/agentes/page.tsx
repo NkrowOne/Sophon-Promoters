@@ -62,7 +62,7 @@ export default async function Agentes() {
         {agentes.length} en total, {activos} activos, {webmasters} webmasters entre todos.{" "}
         {conProblemas > 0 ? (
           <span className="vivo">
-            {conProblemas} {conProblemas === 1 ? "tiene" : "tienen"} algo que mirar en su red.
+            {conProblemas} {conProblemas === 1 ? "tiene" : "tienen"} incidencias en su red.
           </span>
         ) : (
           "Ninguna red tiene incidencias."

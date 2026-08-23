@@ -194,7 +194,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
         <div className="rejilla">
           <Dato etiqueta="Activos" valor={<Num valor={r.activos} />} />
           <Dato
-            etiqueta="Sin confirmar"
+            etiqueta="En confirmación"
             valor={<Num valor={r.sinConfirmar} />}
             apoyo="Sophon aún no los publica"
             tono={r.sinConfirmar > 0 ? "problema" : undefined}
@@ -210,26 +210,26 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             tono={r.pendientesBorrado > 0 ? "problema" : undefined}
           />
           <Dato
-            etiqueta="Desaparecidos"
+            etiqueta="No figuran en Sophon"
             valor={<Num valor={r.desaparecidos} />}
-            apoyo="ya no están en el árbol"
+            apoyo="Sophon dejó de listarlos"
             tono={r.desaparecidos > 0 ? "problema" : undefined}
           />
           <Dato etiqueta="Con PRO vigente" valor={<Num valor={r.conPro} />} />
           <Dato
-            etiqueta="Nunca tuvo PRO"
+            etiqueta="Sin PRO concedido"
             valor={<Num valor={r.nuncaTuvoPro} />}
-            apoyo="alta a medias"
+            apoyo="el alta no llegó a concederlo"
             tono={r.nuncaTuvoPro > 0 ? "problema" : undefined}
           />
           <Dato
             etiqueta="PRO caducado"
             valor={<Num valor={r.proCaducado} />}
-            apoyo="renovable hoy"
+            apoyo="se les puede conceder hoy"
             tono={r.proCaducado > 0 ? "problema" : undefined}
           />
           <Dato
-            etiqueta="Parados"
+            etiqueta="Inactivos"
             valor={<Num valor={r.parados} />}
             apoyo={`sin registros en ${DIAS_VENTANA} días`}
           />

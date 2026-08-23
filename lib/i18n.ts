@@ -270,7 +270,11 @@ export const es = {
   // ── Estado de un webmaster ────────────────────────────────────────────────
   bloqueado: "Bloqueado",
   seVaABorrar: "Baja programada",
-  desaparecido: "Baja en Sophon",
+  // «Baja en Sophon» chocaba con «Baja programada», que es OTRO estado y el de
+  // al lado: uno es un plazo abierto y todavía reversible, y este es una cuenta
+  // que ya no aparece. Y la ficha del mismo webmaster lo llamaba «Ya no figura
+  // en Sophon». Tres nombres para dos cosas.
+  desaparecido: "No figura en Sophon",
   proCaducado: "PRO caducado",
   sinActividad: "Sin actividad",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "día" : "días"} sin actividad`,
@@ -783,7 +787,7 @@ const en: Cadenas = {
 
   bloqueado: "Blocked",
   seVaABorrar: "Removal scheduled",
-  desaparecido: "Removed from Sophon",
+  desaparecido: "Not listed on Sophon",
   proCaducado: "PRO expired",
   sinActividad: "No activity",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "day" : "days"} inactive`,
@@ -1188,7 +1192,7 @@ const it: Cadenas = {
 
   bloqueado: "Bloccato",
   seVaABorrar: "Rimozione programmata",
-  desaparecido: "Rimosso da Sophon",
+  desaparecido: "Non figura su Sophon",
   proCaducado: "PRO scaduto",
   sinActividad: "Nessuna attività",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "giorno" : "giorni"} senza attività`,
@@ -1600,7 +1604,7 @@ const pt: Cadenas = {
 
   bloqueado: "Bloqueado",
   seVaABorrar: "Baixa programada",
-  desaparecido: "Baixa na Sophon",
+  desaparecido: "Não consta na Sophon",
   proCaducado: "PRO expirado",
   sinActividad: "Sem atividade",
   diasParado: (dias: number) => `${dias} ${dias === 1 ? "dia" : "dias"} sem atividade`,
@@ -2011,7 +2015,7 @@ const ar: Cadenas = {
 
   bloqueado: "محظور",
   seVaABorrar: "إزالة مجدولة",
-  desaparecido: "مُزال من Sophon",
+  desaparecido: "لا يظهر في Sophon",
   proCaducado: "انتهى PRO",
   sinActividad: "بلا نشاط",
   diasParado: (dias: number) => `${dias} أيام بلا نشاط`,

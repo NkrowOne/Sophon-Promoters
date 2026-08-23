@@ -383,11 +383,12 @@ export function problemasDeRed(r: RecuentoWebmasters): string[] {
   // Invariable: «2 con baja programada» no necesita concordar, y evita el
   // «se borran» que sonaba a que ya había pasado.
   if (r.pendientesBorrado > 0) avisos.push(`${r.pendientesBorrado} con baja programada`);
-  if (r.desaparecidos > 0) avisos.push(`${r.desaparecidos} desaparecido${r.desaparecidos === 1 ? "" : "s"}`);
-  if (r.nuncaTuvoPro > 0) avisos.push(`${r.nuncaTuvoPro} sin PRO`);
+  if (r.desaparecidos > 0)
+    avisos.push(`${r.desaparecidos} ${r.desaparecidos === 1 ? "no figura" : "no figuran"} en Sophon`);
+  if (r.nuncaTuvoPro > 0) avisos.push(`${r.nuncaTuvoPro} sin PRO concedido`);
   if (r.proCaducado > 0) avisos.push(`${r.proCaducado} con el PRO caducado`);
-  if (r.sinConfirmar > 0) avisos.push(`${r.sinConfirmar} sin confirmar`);
-  if (r.parados > 0) avisos.push(`${r.parados} parado${r.parados === 1 ? "" : "s"}`);
+  if (r.sinConfirmar > 0) avisos.push(`${r.sinConfirmar} en confirmación`);
+  if (r.parados > 0) avisos.push(`${r.parados} inactivo${r.parados === 1 ? "" : "s"}`);
   return avisos;
 }
 

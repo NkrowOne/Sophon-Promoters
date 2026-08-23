@@ -40,7 +40,7 @@ export const dynamic = "force-dynamic";
 const FILTROS: { clave: NonNullable<FiltroWebmasters["estado"]>; texto: string }[] = [
   { clave: "todos", texto: "Todos" },
   { clave: "activos", texto: "Activos" },
-  { clave: "problema", texto: "Con problema" },
+  { clave: "problema", texto: "Con incidencias" },
   { clave: "sin-pro", texto: "Sin PRO vigente" },
   { clave: "sin-agente", texto: "Sin agente" },
 ];
@@ -164,15 +164,15 @@ export default async function Webmasters({
             href="/admin/webmasters?estado=sin-agente"
           />
           <Dato
-            etiqueta="Nunca tuvo PRO"
+            etiqueta="Sin PRO concedido"
             valor={nuncaTuvoPro.toLocaleString("es-ES")}
             apoyo="se les puede conceder hoy"
             tono={nuncaTuvoPro > 0 ? "problema" : undefined}
           />
           <Dato
-            etiqueta="Con problema"
+            etiqueta="Con incidencias"
             valor={conProblema.toLocaleString("es-ES")}
-            apoyo="bloqueado, baja o desaparecido"
+            apoyo="bloqueado, de baja o sin figurar"
             tono={conProblema > 0 ? "problema" : undefined}
           />
         </div>

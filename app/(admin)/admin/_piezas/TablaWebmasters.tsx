@@ -16,7 +16,9 @@ import { Correo, EstadoWebmaster, Num, Senal, Senales, SenalPro, Serie, dia } fr
 const ORIGEN: Record<string, string> = {
   VINCULADO_APP: "app",
   ASIGNADO_MANUAL: "manual",
-  HUERFANO: "huérfano",
+  // «Preexistente» y no «huérfano»: la cuenta estaba en el árbol antes que esta
+  // aplicación. No le falta nada, es que llegó primero.
+  HUERFANO: "preexistente",
 };
 
 /**
@@ -76,7 +78,7 @@ export function TablaWebmasters({
             <th className="num">{DIAS_VENTANA} d</th>
             <th className="num">Total</th>
             <th className="num secundaria">Pago</th>
-            <th className="num">Parado</th>
+            <th className="num">Inactivo</th>
             <th className="num">Ganado</th>
             <th className="secundaria">Origen</th>
             <th className="secundaria">Alta</th>
@@ -151,9 +153,13 @@ export function TablaWebmasters({
                       se pierde —está en `ConcesionPro`, y una concesión de más deja
                       su rastro en «fecha deducida» y en la auditoría—: lo que se va
                       es una cifra que en esta celda solo podía engañar. */}
-                  {w.concesionesDeducidas > 0 && <Senal tono="atencion">fecha deducida</Senal>}
+                  {w.concesionesDeducidas > 0 && (
+                    <Senal tono="atencion">caducidad estimada</Senal>
+                  )}
                   {w.concesionesFallidas > 0 && (
-                    <Senal tono="problema">{w.concesionesFallidas} fallidas</Senal>
+                    <Senal tono="problema">
+                      {w.concesionesFallidas} intentos fallidos
+                    </Senal>
                   )}
                 </Senales>
               </td>
@@ -177,7 +183,7 @@ export function TablaWebmasters({
               <td className="num secundaria" data-etiqueta="Pago">
                 <Num valor={w.usuariosPagoVentana} />
               </td>
-              <td className="num" data-etiqueta="Parado">
+              <td className="num" data-etiqueta="Inactivo">
                 {w.diasSinActividad === null ? (
                   /* Nunca trajo un registro. No es lo mismo que llevar parado
                      cuarenta días, y contarlo igual haría que cada alta reciente
