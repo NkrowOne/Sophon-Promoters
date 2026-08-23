@@ -58,7 +58,6 @@ export async function POST(peticion: Request): Promise<NextResponse> {
   return NextResponse.json({
     ok: true,
     email: resultado.email,
-    devengaDesde: resultado.devengaDesde,
     nuevo: true,
     pro: resultado.pro,
   });

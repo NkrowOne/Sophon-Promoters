@@ -228,10 +228,11 @@ export default async function Panel() {
                     {w.devengaDesde}
                   </span>
                 ))}
-                {porAtribucion.length > 3 ? `; y ${porAtribucion.length - 3} más` : ""}.{" "}
-                <strong>No es un fallo</strong>: la regla existe para que un agente no cobre el
-                tráfico que su webmaster ya traía antes de que lo captara. Si decides que esos
-                días sí son suyos, hay que mover su fecha de devengo — dilo y se añade el ajuste.
+                {porAtribucion.length > 3 ? `; y ${porAtribucion.length - 3} más` : ""}. Son
+                cuentas <strong>adoptadas</strong>, no captadas: ya estaban en el programa de
+                socios antes, y la regla existe para que el agente no cobre lo que no trajo. Las
+                que sí trajo él —las que se dieron de alta desde la aplicación— no llevan
+                frontera y devengan desde el primer registro.
               </li>
             )}
             {/* Sin agente no hay a quién pagarle. No es un fallo del devengo,
