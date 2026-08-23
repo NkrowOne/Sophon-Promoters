@@ -7,6 +7,7 @@ import { inicioDelDiaContable } from "@/lib/fechas";
 import { hoyContable } from "@/lib/sync/registros";
 import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
 import { huecoDeDevengo } from "@/lib/devengo/sin-devengar";
+import { repararDevengoPendiente } from "./acciones";
 import { Cerrada } from "./_piezas/Cerrada";
 
 /**
@@ -60,7 +61,21 @@ export default async function Panel() {
   // y el margen de abajo —que es entradas menos devengado— sale al 100 %. Es
   // decir, la página se lee como un mes excelente justo cuando ningún agente
   // está cobrando nada. Por eso se comprueba aquí y se avisa arriba del todo.
-  const hayTarifa = (await db.tarifaVersion.count({ where: { validaHasta: null } })) > 0;
+  /*
+   * La tarifa, con sus IMPORTES y no solo su existencia.
+   *
+   * Se contaba si había una fila, y eso deja pasar el caso que trajo aquí: una
+   * `TarifaVersion` con el CPA a cero existe —así que la alarma no saltaba— y no
+   * paga un céntimo. Existir y pagar son dos cosas, y las dos hay que mirarlas.
+   */
+  const tarifa = await db.tarifaVersion.findFirst({
+    where: { validaHasta: null },
+    orderBy: { validaDesde: "desc" },
+    select: { cpaPorRegistroMicros: true, cpsBps: true },
+  });
+  const hayTarifa = tarifa !== null;
+  const tarifaACero =
+    tarifa !== null && tarifa.cpaPorRegistroMicros === 0n && tarifa.cpsBps === 0;
 
   /*
    * Y la alarma que cubre a la de arriba, porque la de arriba no basta.
@@ -118,6 +133,7 @@ export default async function Panel() {
           llega tarde: para entonces ya se ha leído y creído. */}
       {(rotas.length > 0 ||
         !hayTarifa ||
+        tarifaACero ||
         hueco.filas > 0 ||
         sinLeerElCierre ||
         (conciliacion && !conciliacion.cuadra)) && (
@@ -133,9 +149,19 @@ export default async function Panel() {
                 <Link href="/admin/tarifas">Configurar tarifa</Link>.
               </li>
             )}
-            {/* Detrás de la tarifa ausente, porque cuando faltan las dos la
-                tarifa es la causa y esto el efecto; y por delante de todo lo
-                demás, porque es dinero que un agente ha ganado y no tiene. */}
+            {/* Existir no es pagar. Una tarifa a cero pasaba la comprobación de
+                arriba y dejaba a todos los agentes a 0,00 $ sin que nada lo
+                dijera. */}
+            {tarifaACero && (
+              <li>
+                <strong>La tarifa en vigor está a cero</strong>: 0,00 $ por registro y 0 % de
+                las compras. Los barridos no devengan nada y los agentes ven 0,00 $.{" "}
+                <Link href="/admin/tarifas">Corregir la tarifa</Link>.
+              </li>
+            )}
+            {/* Detrás de la tarifa, porque cuando fallan las dos la tarifa es la
+                causa y esto el efecto; y por delante de todo lo demás, porque es
+                dinero que un agente ha ganado y no tiene. */}
             {hueco.filas > 0 && (
               <li>
                 <strong>
@@ -145,8 +171,19 @@ export default async function Panel() {
                 en {hueco.filas} {hueco.filas === 1 ? "día" : "días"}
                 {hueco.desde ? ` desde el ${hueco.desde}` : ""}: hay agente y hay registros,
                 pero no se escribió ni un asiento. El barrido no los va a recuperar solo —solo
-                repasa {DIAS_VENTANA_REVISION} días—. Ejecuta{" "}
-                <code>npm run devengo:reparar</code>.
+                repasa {DIAS_VENTANA_REVISION} días—.
+                {hayTarifa && !tarifaACero ? (
+                  /* El arreglo va DENTRO del aviso y no en otra pantalla: quien
+                     lee esto es quien puede resolverlo, y mandarle a buscar el
+                     botón a otro sitio es donde se pierde. */
+                  <form action={repararDevengoPendiente} style={{ marginTop: "0.5rem" }}>
+                    <button type="submit" className="boton primario">
+                      Devengar ahora
+                    </button>
+                  </form>
+                ) : (
+                  " Corrige antes la tarifa: sin ella no hay con qué devengar."
+                )}
               </li>
             )}
             {sinLeerElCierre && (

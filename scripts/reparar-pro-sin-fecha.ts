@@ -31,6 +31,13 @@
  *
  * No escribe nada sobre un PRO que ya tenga fecha: si `proVigenteHasta` ya dice
  * algo más lejano, manda lo que hay.
+  *
+ * ── NO CORRE EN PRODUCCIÓN ──
+ *
+ * La imagen de despliegue es la salida autocontenida de Next: lleva el servidor
+ * y nada más —ni `scripts/`, ni las fuentes de `lib/`—, así que allí esto muere
+ * con `Cannot find module`. Se ejecuta desde el escritorio, con el repositorio
+ * delante y `DATABASE_URL` apuntando a la base de producción.
  */
 
 import { db } from "../lib/db.ts";

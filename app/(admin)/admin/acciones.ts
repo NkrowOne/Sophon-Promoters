@@ -8,6 +8,7 @@ import { avisarRetiroResueltoAlAgente } from "@/lib/bot/avisos";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
 import { CPA_MAXIMO_MICROS, CPS_MAXIMO_BPS } from "@/lib/devengo/motor";
 import { motivoEscaleraInvalida } from "@/lib/devengo/bonos";
+import { repararDevengo } from "@/lib/devengo/sin-devengar";
 import { revocarSesiones } from "@/lib/auth/sesion";
 import { leerWallet } from "@/lib/cripto";
 import { idiomaGuardado } from "@/lib/idiomas";
@@ -370,4 +371,38 @@ export async function resolverRetiro(
 
   revalidatePath("/admin/retiros");
   revalidatePath("/admin");
+}
+
+
+/**
+ * Devengar las filas que se quedaron sin devengar.
+ *
+ * ── POR QUÉ ES UN BOTÓN Y NO UN GUION ──
+ *
+ * Porque el guion no se puede ejecutar donde hace falta: la imagen de despliegue
+ * es la salida autocontenida de Next y no lleva `scripts/` ni las fuentes de
+ * `lib/`, así que `npm run devengo:reparar` en producción muere con
+ * `Cannot find module`. Y aunque se pudiera, exigir una terminal para recuperar
+ * comisiones que un agente ya ha ganado pone entre el problema y su arreglo a
+ * quien tenga acceso al servidor. Aquí lo arregla quien lo ve, desde el móvil.
+ *
+ * No lleva confirmación y no hace falta: solo escribe donde no había NADA
+ * escrito, el motor es el mismo que el del barrido, y la clave de idempotencia
+ * impide que dos toques seguidos devenguen dos veces. Lo peor que consigue un
+ * toque de más es no hacer nada.
+ */
+export async function repararDevengoPendiente(): Promise<void> {
+  const actor = await admin();
+  const r = await repararDevengo({ aplicar: true });
+
+  await anotar(actor, "devengo.reparado", "", {
+    ok: r.ok,
+    motivo: r.motivo ?? null,
+    filas: r.filas,
+    asientos: r.asientos,
+    importeMicros: r.importeMicros.toString(),
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/agentes");
 }
