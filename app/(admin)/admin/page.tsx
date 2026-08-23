@@ -6,8 +6,11 @@ import { formatearMicros } from "@/lib/devengo/dinero";
 import { inicioDelDiaContable } from "@/lib/fechas";
 import { hoyContable } from "@/lib/sync/registros";
 import { DIAS_VENTANA_REVISION } from "@/lib/devengo/motor";
-import { huecoDeDevengo } from "@/lib/devengo/sin-devengar";
+import { huecoDeDevengo, webmastersSinGanar } from "@/lib/devengo/sin-devengar";
+import { repararDevengoPendiente } from "./acciones";
 import { Cerrada } from "./_piezas/Cerrada";
+import { Importe } from "./_piezas/Importe";
+import { Seccion } from "./_piezas/Control";
 
 /**
  * Panel: la contabilidad del Operador.
@@ -60,7 +63,21 @@ export default async function Panel() {
   // y el margen de abajo —que es entradas menos devengado— sale al 100 %. Es
   // decir, la página se lee como un mes excelente justo cuando ningún agente
   // está cobrando nada. Por eso se comprueba aquí y se avisa arriba del todo.
-  const hayTarifa = (await db.tarifaVersion.count({ where: { validaHasta: null } })) > 0;
+  /*
+   * La tarifa, con sus IMPORTES y no solo su existencia.
+   *
+   * Se contaba si había una fila, y eso deja pasar el caso que trajo aquí: una
+   * `TarifaVersion` con el CPA a cero existe —así que la alarma no saltaba— y no
+   * paga un céntimo. Existir y pagar son dos cosas, y las dos hay que mirarlas.
+   */
+  const tarifa = await db.tarifaVersion.findFirst({
+    where: { validaHasta: null },
+    orderBy: { validaDesde: "desc" },
+    select: { cpaPorRegistroMicros: true, cpsBps: true },
+  });
+  const hayTarifa = tarifa !== null;
+  const tarifaACero =
+    tarifa !== null && tarifa.cpaPorRegistroMicros === 0n && tarifa.cpsBps === 0;
 
   /*
    * Y la alarma que cubre a la de arriba, porque la de arriba no basta.
@@ -75,6 +92,49 @@ export default async function Panel() {
    * mañana. Ver `lib/devengo/sin-devengar.ts`.
    */
   const hueco = await huecoDeDevengo();
+
+  /*
+   * Y el diagnóstico, que es lo que el recuento de arriba no puede dar.
+   *
+   * `huecoDeDevengo` cuenta lo REPARABLE, y por eso excluye las filas anteriores
+   * a la atribución: devengar historia que el agente no trajo sería un error. Lo
+   * que deja fuera es justo el caso más frecuente —un webmaster de alta hoy con
+   * registros de ayer—, y ahí el panel se quedaba mudo mientras el agente veía
+   * 0,00 $ con doce registros delante.
+   *
+   * Esto no busca lo reparable, busca lo que NO ESTÁ PAGANDO, y dice por qué.
+   */
+  /*
+   * El reparto, por concepto.
+   *
+   * El margen de arriba es una resta y no explica nada: dice cuánto queda, no de
+   * dónde sale ni cuánto se lleva cada uno. Y esa es la pregunta que se hace
+   * cuando un agente reclama —«¿cuánto he ganado yo con este tráfico y cuánto
+   * tú?»—, que hasta ahora había que contestar abriendo la base de datos.
+   *
+   * Se desglosa lo que se PUEDE desglosar. Lo que devengan los agentes viene por
+   * tipo de asiento, así que el reparto es exacto. Lo que entra de Sophon NO:
+   * `myEarning` llega como una sola cifra por webmaster y día, sin decir qué
+   * parte es de registros y qué parte de compras. Inventar ese reparto sería
+   * peor que no darlo, así que el ingreso va entero y en su fila.
+   */
+  const porTipo = await db.asientoComision.groupBy({
+    by: ["tipo"],
+    where: { estado: { not: "ANULADO" }, tipo: { not: "RETIRO" } },
+    _sum: { importeMicros: true },
+  });
+  const deTipo = (t: string) =>
+    porTipo.find((x) => x.tipo === t)?._sum.importeMicros ?? 0n;
+  const reparto = {
+    registrosMicros: deTipo("CPA"),
+    proMicros: deTipo("CPS"),
+    bonosMicros: deTipo("BONO"),
+    ajustesMicros: deTipo("AJUSTE_REVERSO") + deTipo("AJUSTE_MANUAL"),
+  };
+
+  const sinGanar = await webmastersSinGanar();
+  const porAtribucion = sinGanar.filter((w) => w.motivo === "antes-del-alta");
+  const sinAgente = sinGanar.filter((w) => w.motivo === "sin-agente");
 
   const entradasMicros = entradas._sum.gananciaOperadorMicros ?? 0n;
   const devengadoMicros = devengado._sum.importeMicros ?? 0n;
@@ -118,7 +178,9 @@ export default async function Panel() {
           llega tarde: para entonces ya se ha leído y creído. */}
       {(rotas.length > 0 ||
         !hayTarifa ||
+        tarifaACero ||
         hueco.filas > 0 ||
+        porAtribucion.length > 0 ||
         sinLeerElCierre ||
         (conciliacion && !conciliacion.cuadra)) && (
         <div className="privado" style={{ marginBottom: "1.75rem" }}>
@@ -133,9 +195,19 @@ export default async function Panel() {
                 <Link href="/admin/tarifas">Configurar tarifa</Link>.
               </li>
             )}
-            {/* Detrás de la tarifa ausente, porque cuando faltan las dos la
-                tarifa es la causa y esto el efecto; y por delante de todo lo
-                demás, porque es dinero que un agente ha ganado y no tiene. */}
+            {/* Existir no es pagar. Una tarifa a cero pasaba la comprobación de
+                arriba y dejaba a todos los agentes a 0,00 $ sin que nada lo
+                dijera. */}
+            {tarifaACero && (
+              <li>
+                <strong>La tarifa en vigor está a cero</strong>: 0,00 $ por registro y 0 % de
+                las compras. Los barridos no devengan nada y los agentes ven 0,00 $.{" "}
+                <Link href="/admin/tarifas">Corregir la tarifa</Link>.
+              </li>
+            )}
+            {/* Detrás de la tarifa, porque cuando fallan las dos la tarifa es la
+                causa y esto el efecto; y por delante de todo lo demás, porque es
+                dinero que un agente ha ganado y no tiene. */}
             {hueco.filas > 0 && (
               <li>
                 <strong>
@@ -145,8 +217,64 @@ export default async function Panel() {
                 en {hueco.filas} {hueco.filas === 1 ? "día" : "días"}
                 {hueco.desde ? ` desde el ${hueco.desde}` : ""}: hay agente y hay registros,
                 pero no se escribió ni un asiento. El barrido no los va a recuperar solo —solo
-                repasa {DIAS_VENTANA_REVISION} días—. Ejecuta{" "}
-                <code>npm run devengo:reparar</code>.
+                repasa {DIAS_VENTANA_REVISION} días—.
+                {hayTarifa && !tarifaACero ? (
+                  /* El arreglo va DENTRO del aviso y no en otra pantalla: quien
+                     lee esto es quien puede resolverlo, y mandarle a buscar el
+                     botón a otro sitio es donde se pierde. */
+                  <form action={repararDevengoPendiente} style={{ marginTop: "0.5rem" }}>
+                    <button type="submit" className="boton primario">
+                      Devengar ahora
+                    </button>
+                  </form>
+                ) : (
+                  " Corrige antes la tarifa: sin ella no hay con qué devengar."
+                )}
+              </li>
+            )}
+            {/*
+              La atribución NO es un fallo, es una decisión, y por eso se enseña
+              en vez de repararse sola. Un webmaster que ya traía tráfico antes
+              de que lo captara un agente no devenga ese pasado: si lo devengara,
+              el agente cobraría lo que no trajo. Pero cuando el desfase es de un
+              día —alta hoy, registros de ayer— eso es dinero del agente que se
+              queda en el aire, y callarlo es lo que hace que se descubra por una
+              queja en vez de por la pantalla.
+            */}
+            {porAtribucion.length > 0 && (
+              <li>
+                <strong>
+                  {porAtribucion.reduce((n, w) => n + w.registros, 0).toLocaleString("es-ES")}{" "}
+                  registros anteriores a la fecha de devengo
+                </strong>{" "}
+                en {porAtribucion.length}{" "}
+                {porAtribucion.length === 1 ? "webmaster" : "webmasters"}: no se devengan porque
+                son de antes de que se le atribuyera al agente.{" "}
+                {porAtribucion.slice(0, 3).map((w, i) => (
+                  <span key={w.email}>
+                    {i > 0 && "; "}
+                    {w.email} tiene {w.registros} del {w.primerDia}
+                    {w.ultimoDia !== w.primerDia ? ` al ${w.ultimoDia}` : ""} y devenga desde el{" "}
+                    {w.devengaDesde}
+                  </span>
+                ))}
+                {porAtribucion.length > 3 ? `; y ${porAtribucion.length - 3} más` : ""}. Son
+                cuentas <strong>adoptadas</strong>, no captadas: ya estaban en el programa de
+                socios antes, y la regla existe para que el agente no cobre lo que no trajo. Las
+                que sí trajo él —las que se dieron de alta desde la aplicación— no llevan
+                frontera y devengan desde el primer registro.
+              </li>
+            )}
+            {/* Sin agente no hay a quién pagarle. No es un fallo del devengo,
+                pero sí explica un «no gana nada» que si no se atribuye al
+                devengo. */}
+            {sinAgente.length > 0 && (
+              <li>
+                {sinAgente.reduce((n, w) => n + w.registros, 0).toLocaleString("es-ES")} registros
+                de {sinAgente.length}{" "}
+                {sinAgente.length === 1 ? "webmaster" : "webmasters"} <strong>sin agente</strong>:
+                son del árbol del Operador y no devengan comisión a nadie.{" "}
+                <Link href="/admin/webmasters?estado=sin-agente">Verlos</Link>.
               </li>
             )}
             {sinLeerElCierre && (
@@ -199,6 +327,98 @@ export default async function Panel() {
           devengado por los agentes. No aparece en ninguna pantalla de agente.
         </p>
       </section>
+
+      <Seccion
+        titulo="El reparto"
+        apoyo={
+          tarifa ? (
+            <>
+              Con la tarifa en vigor: {formatearMicros(tarifa.cpaPorRegistroMicros)} por registro
+              y {(tarifa.cpsBps / 100).toLocaleString("es-ES")} % de lo que los usuarios pagan por
+              el PRO. <Link href="/admin/tarifas">Cambiarla</Link>.
+            </>
+          ) : (
+            <>
+              Sin tarifa en vigor, así que los agentes no devengan nada y todo lo de Sophon se
+              queda arriba. <Link href="/admin/tarifas">Configurarla</Link>.
+            </>
+          )
+        }
+      >
+        <div className="tabla-marco">
+          <table className="densa">
+            <thead>
+              {/* Sin `data-etiqueta` en la celda del importe: en el móvil el
+                  rótulo se pinta delante del valor, y aquí repetiría la cabecera
+                  —«Registros · Para los agentes 1.441,80 $»— además de no caber
+                  en las 9rem de ancho fijo que tiene la celda de cabecera. El
+                  concepto ya está a la izquierda. */}
+              <tr>
+                <th>Concepto</th>
+                <th className="num">Para los agentes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="ancla">Registros</td>
+                <td className="num cabeza">
+                  <Importe micros={reparto.registrosMicros} />
+                </td>
+              </tr>
+              <tr>
+                <td className="ancla">Compras de PRO</td>
+                <td className="num cabeza">
+                  <Importe micros={reparto.proMicros} />
+                </td>
+              </tr>
+              <tr>
+                <td className="ancla">Bonos por hito</td>
+                <td className="num cabeza">
+                  <Importe micros={reparto.bonosMicros} />
+                </td>
+              </tr>
+              {reparto.ajustesMicros !== 0n && (
+                <tr>
+                  <td className="ancla">Ajustes y reversos</td>
+                  <td className="num cabeza">
+                    <Importe micros={reparto.ajustesMicros} />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* El ingreso NO se desglosa, y decirlo es parte del dato: Sophon manda
+            `myEarning` como una sola cifra por webmaster y día, sin separar
+            registros de compras. Un desglose inventado se leería con la misma
+            confianza que uno real. */}
+        <div className="rejilla" style={{ marginTop: "1.25rem" }}>
+          <Dato
+            etiqueta="Entra de Sophon"
+            valor={formatearMicros(entradasMicros)}
+            apoyo="sin desglosar: Sophon no lo separa"
+          />
+          <Dato
+            etiqueta="Se llevan los agentes"
+            valor={formatearMicros(devengadoMicros)}
+            apoyo={
+              entradasMicros > 0n
+                ? `${Math.round(Number((devengadoMicros * 100n) / entradasMicros))} % de lo que entra`
+                : undefined
+            }
+          />
+          <Dato
+            etiqueta="Te queda a ti"
+            valor={formatearMicros(margenMicros)}
+            apoyo={
+              entradasMicros > 0n
+                ? `${Math.round(Number((margenMicros * 100n) / entradasMicros))} % de lo que entra`
+                : undefined
+            }
+          />
+        </div>
+      </Seccion>
 
       <section style={{ marginBottom: "2.5rem" }}>
         <p className="rotulo" style={{ borderBottom: "1px solid var(--p-borde)", paddingBottom: "0.5rem" }}>

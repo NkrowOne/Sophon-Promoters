@@ -38,6 +38,7 @@ import { clasificarAlta, hayQueAvisarAlOperador } from "../sophon/errores.ts";
 import { avisarErrorSinClasificarAlOperador } from "../bot/avisos.ts";
 import { hoyContable } from "../sync/registros.ts";
 import { confirmarEnSophon } from "../sync/webmasters.ts";
+import { fronteraDeAtribucion } from "./atribucion.ts";
 
 /**
  * Claves del catálogo cuyo valor es texto plano.
@@ -62,7 +63,6 @@ export interface AltaHecha {
   ok: true;
   email: string;
   /** `AAAA-MM-DD` desde el que este webmaster devenga. */
-  devengaDesde: string;
   pro:
     | { concedido: true; renovado: boolean; vigenteHasta: Date | string | null }
     | { concedido: false; renovado: false; error: string | null; apoyo: string | null };
@@ -194,10 +194,13 @@ export async function altaDeWebmaster(params: {
           agenteId,
           origen: "VINCULADO_APP",
           atribuidoEn: new Date(),
-          // Se estampa siempre aunque a una cuenta nueva no le haga falta: es la
-          // garantía de que el agente no cobre nada anterior a su alta, y no
-          // depende de que Sophon nos haya dicho la verdad sobre su antigüedad.
-          devengaDesde: new Date(hoy),
+          /*
+           * Sin frontera de atribución, y es un arreglo. Aquí se estampaba
+           * `new Date(hoy)` «aunque a una cuenta nueva no le haga falta»: no es
+           * que no hiciera falta, es que hacía daño y se llevaba por delante la
+           * comisión del primer día. La regla y el porqué, en `atribucion.ts`.
+           */
+          devengaDesde: fronteraDeAtribucion("VINCULADO_APP", hoy),
         },
         select: { id: true },
       });
@@ -333,7 +336,6 @@ export async function altaDeWebmaster(params: {
   return {
     ok: true,
     email,
-    devengaDesde: hoy,
     /*
      * El alta está hecha pase lo que pase con el PRO. Se informa del resultado
      * en vez de fingir que todo fue bien o de fallar entera una operación que

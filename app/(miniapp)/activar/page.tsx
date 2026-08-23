@@ -58,7 +58,6 @@ import { useRecurso } from "@/lib/api/recurso";
  */
 interface Resultado {
   email: string;
-  devengaDesde: string;
   nuevo: boolean;
   pro: { concedido: boolean; vigenteHasta?: string | null } | null;
 }
