@@ -54,8 +54,8 @@ export interface Tarifa {
 /*
  * Lo máximo que se le puede ceder a un agente.
  *
- * Al Operador le entran 0,06 $ por registro y el 15 % del CPS (§2.2.1 del
- * plan, despejado de la propia API). Ceder por encima de eso no es una tarifa
+ * Al Operador le entra el descuento por registro y el 15 % del CPS —los dos
+ * verificados contra la API real; ver `reparto.ts`—. Ceder por encima no es una tarifa
  * generosa: es pagar de su bolsillo por cada registro que entra, y crece con el
  * volumen, así que cuanto mejor le va al agente más pierde el Operador.
  *

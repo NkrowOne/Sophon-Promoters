@@ -17,10 +17,11 @@
  *
  * Hay dos conceptos, y NO se reparten igual:
  *
- *   REGISTRO. Sophon paga un fijo por cada usuario registrado. Ese fijo se
- *   parte entre el agente y el Operador. El webmaster no cobra por registrar.
+ *   REGISTRO. Sophon paga a cada parte por cada usuario registrado. Al
+ *   webmaster, el precio de su tabla menos un descuento fijo; ese descuento
+ *   entra al Operador y de él sale la comisión del agente.
  *
- *     Sophon paga  0,06 $  →  agente 0,03 $  +  Operador 0,03 $
+ *     descuento 0,10 $  →  agente 0,03 $ (tarifa)  +  Operador 0,07 $
  *
  *   COMPRA DE PRO. Aquí sí hay porcentaje, y se aplica sobre `paymentAmount`:
  *   lo que el USUARIO le paga a Sophon por el PRO. De cada compra:
@@ -47,7 +48,7 @@ export type Bps = number;
  *
  * Estaban en tres módulos a la vez, cada uno con su nombre y su comentario:
  *
- *   0,06 $   `CPA_MAXIMO_MICROS` en el motor —el tope de la tarifa—,
+ *   0,10 $   `CPA_MAXIMO_MICROS` en el motor —el tope de la tarifa—,
  *            `DESCUENTO_POR_USUARIO_MICROS` en la tabla de precios —lo que se
  *            resta del precio del webmaster— y `CPA_SOPHON_MICROS` aquí.
  *   35 %     `PORCENTAJE_WEBMASTER_BPS` en la tabla de precios y
@@ -65,7 +66,7 @@ export type Bps = number;
  */
 
 /**
- * Lo que NO llega al webmaster de cada usuario registrado: seis céntimos.
+ * Lo que NO llega al webmaster de cada usuario registrado: diez céntimos.
  *
  * Sophon paga el precio global de su tabla —que depende del país y del nivel—
  * y de ahí se descuenta esto. Es a la vez el descuento que ve el webmaster y el
@@ -74,9 +75,24 @@ export type Bps = number;
  *
  * NO es «lo que Sophon paga por registro»: lo que Sophon paga es mucho más y va
  * casi entero al webmaster. Confundir las dos cosas puso en pantalla la frase
- * «Sophon abona 0,06 $ por registro», que es falsa.
+ * «Sophon abona 0,06 $ por registro», que es doblemente falsa.
+ *
+ * ── VERIFICADO EN VIVO EL 2026-08-23, Y NO ERA EL DEL PLAN ──
+ *
+ * El plan (§2.2.1) decía 0,06 $, y con 0,06 aquí ninguna cifra del día cuadraba.
+ * Contra la cuenta real, con `partnerLevel` 0:
+ *
+ *   12 registros (3 T1 + 4 T2 + 5 T3), sin compras
+ *   nivel 1 (total)      2,90 $  = 3×0,30 + 4×0,25 + 5×0,20 — clavado con
+ *                                  `region/reward` a nivel 0
+ *   nivel 2 (webmaster)  1,70 $  = lo mismo con 0,10 menos por registro
+ *   diferencia           1,20 $  = 12 × 0,10
+ *
+ * El descuento es PLANO por registro —no depende del tier— y vale 0,10 $. Si el
+ * programa vuelve a cambiarlo, el panel lo detecta: despeja el descuento real de
+ * lo ingresado y avisa cuando no cuadra con esta constante.
  */
-export const CPA_SOPHON_MICROS: Micros = 60_000n;
+export const CPA_SOPHON_MICROS: Micros = 100_000n;
 
 /*
  * De lo que un usuario paga por el PRO:

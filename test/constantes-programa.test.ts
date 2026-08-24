@@ -42,8 +42,14 @@ describe("los valores del programa, fijados", () => {
    * aquí a mano. Esta prueba existe para que ese cambio sea deliberado y no un
    * dedazo, y para que quede la fecha de la última comprobación.
    */
-  it("seis céntimos por usuario registrado no llegan al webmaster", () => {
-    assert.equal(CPA_SOPHON_MICROS, 60_000n);
+  it("diez céntimos por usuario registrado no llegan al webmaster", () => {
+    /*
+     * Verificado en vivo el 2026-08-23 contra la cuenta real: 12 registros sin
+     * compras dieron 2,90 $ en total (nivel 1) y 1,70 $ al webmaster (nivel 2),
+     * o sea 0,10 $ planos por registro de diferencia. El plan decía 0,06 y era
+     * mentira: con 0,06 aquí ninguna cifra del día cuadraba.
+     */
+    assert.equal(CPA_SOPHON_MICROS, 100_000n);
   });
 
   it("de cada compra de PRO: 35 % al webmaster y 15 % a la cuenta del Operador", () => {
