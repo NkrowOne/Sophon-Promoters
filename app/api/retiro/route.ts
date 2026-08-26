@@ -5,6 +5,7 @@ import { db, esChoqueDeSolicitudViva } from "@/lib/db";
 import { claveIdempotencia, guardarWallet, leerWallet, mascaraWallet } from "@/lib/cripto";
 import { cadenas } from "@/lib/i18n";
 import { dinero, esRespuesta, exigirAgente, saldos } from "@/lib/api/agente";
+import { progresoDelHito } from "@/lib/api/hito";
 import { bonosPorMes, desgloseDevengo } from "@/lib/devengo/saldos";
 import { minimoDeRetiroMicros } from "@/lib/devengo/minimo";
 import { formatearMicros, microsDesdeCadena } from "@/lib/devengo/dinero";
@@ -39,7 +40,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
   if (esRespuesta(ctx)) return ctx;
   const { agenteId, idioma } = ctx.sesion;
 
-  const [saldo, desglose, bonos, historial, minimo] = await Promise.all([
+  const [saldo, desglose, bonos, historial, minimo, hito] = await Promise.all([
     saldos(agenteId),
     // De qué está hecho lo devengado, y los bonos aparte. La Escalera dice DÓNDE
     // está el dinero; esto dice DE DÓNDE viene, que es la otra mitad de la
@@ -63,6 +64,19 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       },
     }),
     minimoDeRetiroMicros(),
+    /*
+     * EL BONO EN CURSO, y no solo los que ya se cobraron.
+     *
+     * Esta ruta contaba el pasado —cuánto llevas de bonos, de qué meses— y por
+     * eso la cartera enseñaba «Bonos 0,00 $» y «No hay bonos registrados» sin
+     * nada al lado: un agente nuevo entraba a cobrar y no veía ni el objetivo
+     * ni lo que lleva andado, aunque las dos cosas existieran en la portada.
+     *
+     * Es la misma función que alimenta la portada, así que las dos pantallas
+     * cuentan los mismos registros del mismo mes. Devuelve `null` si no hay
+     * escalera configurada, y entonces la banda no se pinta.
+     */
+    progresoDelHito(agenteId, idioma),
   ]);
 
   return NextResponse.json({
@@ -85,6 +99,7 @@ export async function GET(peticion: Request): Promise<NextResponse> {
       consolidado: b.consolidado,
     })),
     minimo: dinero(minimo, idioma),
+    hito,
     // La wallet se muestra recortada: el agente la reconoce sin exponerla entera
     // en una captura de pantalla que pueda compartir. Se descifra para
     // recortarla —en la base está cifrada— y el texto en claro no sale de aquí.
