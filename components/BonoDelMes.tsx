@@ -37,8 +37,8 @@
  * diciendo la verdad; lo que cambia es que ya no está sola diciéndola.
  */
 
-import { CifraProtagonista } from "./Animacion";
 import { Icono } from "./Icono";
+import { Importe } from "./Importe";
 import { MedidorObjetivos } from "./MedidorObjetivos";
 import { useCadenas } from "./TelegramProvider";
 
@@ -158,10 +158,29 @@ export function BonoDelMes({
       <div className={`tarjeta ${malla ? "campo-malla" : ""}`}>
         <p className="text-rotulo text-texto-apoyo">{t.bonoDelMes}</p>
 
-        {/* El premio, del tamaño que le corresponde. El estado va al lado y no
-            debajo: «ya es tuyo» es un predicado de esa cifra, no otro dato. */}
+        {/*
+          EL PREMIO, un escalón POR DEBAJO de la placa. El estado va al lado y
+          no debajo: «ya es tuyo» es un predicado de esa cifra, no otro dato.
+
+          Iba en `CifraProtagonista` —40 px de Archivo Black, la cara de display
+          de la casa— y eso lo empataba con la cifra de la placa. En la cartera
+          el empate se veía como lo que era: arriba «Disponible 0,00 $», que es
+          dinero que se puede pedir HOY, y 300 px más abajo «50,00 $» del mismo
+          tamaño y más pesado, que es dinero CONDICIONADO a llegar a diez mil
+          registros. Dos cosas que no valen lo mismo pintadas como si valieran
+          igual, y la que gritaba más era la que no se puede cobrar.
+
+          `text-cifra` es la medida de un importe DENTRO de una tarjeta —la
+          misma que usa la solicitud en curso—, así que sigue siendo lo más
+          grande de la tarjeta y ya no le discute nada a la placa. La cara de
+          display se queda donde marca la jerarquía: la cifra que preside una
+          pantalla, y solo esa.
+
+          Se pierde el contador que subía desde cero, y es coherente: eso narra
+          una cifra que ya es tuya, no una que depende de un umbral.
+        */}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <CifraProtagonista micros={BigInt(preside.micros)} />
+          <Importe texto={preside.texto} className="text-cifra" />
           {yaHaGanado && (
             /*
               Píldora NEUTRA, y las dos alternativas se descartaron por medida:

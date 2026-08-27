@@ -637,6 +637,14 @@ export const es = {
   paginaNoExisteApoyo: "El enlace puede pertenecer a una versión anterior de la aplicación.",
   // ── El medidor de objetivos del bono ──────────────────────────────────────
   objetivosDelBono: "Objetivos del bono",
+  /*
+   * La marca del nivel EN CURSO.
+   *
+   * Es texto para lector de pantalla y nada más: en pantalla el sitio lo dice
+   * la punta de flecha sobre el segmento. Sin esto, quien no ve el medidor
+   * oiría los cinco niveles iguales y no sabría cuál es el que está en juego.
+   */
+  elSiguienteNivel: "el siguiente",
   nivelesAlcanzados: (alcanzados: number, total: number) =>
     `${alcanzados} de ${total} ${total === 1 ? "nivel" : "niveles"}`,
   faltanRegistros: (n: number) =>
@@ -1059,6 +1067,7 @@ const en: Cadenas = {
   paginaNoExiste: "The page does not exist.",
   paginaNoExisteApoyo: "The link may belong to an earlier version of the application.",
   objetivosDelBono: "Bonus targets",
+  elSiguienteNivel: "next up",
   nivelesAlcanzados: (alcanzados: number, total: number) =>
     `${alcanzados} of ${total} ${total === 1 ? "level" : "levels"}`,
   faltanRegistros: (n: number) =>
@@ -1466,6 +1475,7 @@ const it: Cadenas = {
   paginaNoExiste: "La pagina non esiste.",
   paginaNoExisteApoyo: "Il link può appartenere a una versione precedente dell'applicazione.",
   objetivosDelBono: "Obiettivi del bonus",
+  elSiguienteNivel: "il prossimo",
   nivelesAlcanzados: (alcanzados: number, total: number) =>
     `${alcanzados} di ${total} ${total === 1 ? "livello" : "livelli"}`,
   faltanRegistros: (n: number) =>
@@ -1874,6 +1884,7 @@ const pt: Cadenas = {
   paginaNoExiste: "A página não existe.",
   paginaNoExisteApoyo: "O link pode pertencer a uma versão anterior da aplicação.",
   objetivosDelBono: "Objetivos do bónus",
+  elSiguienteNivel: "o seguinte",
   nivelesAlcanzados: (alcanzados: number, total: number) =>
     `${alcanzados} de ${total} ${total === 1 ? "nível" : "níveis"}`,
   faltanRegistros: (n: number) =>
@@ -2280,6 +2291,7 @@ const ar: Cadenas = {
   paginaNoExiste: "الصفحة غير موجودة.",
   paginaNoExisteApoyo: "قد يعود الرابط إلى إصدار سابق من التطبيق.",
   objetivosDelBono: "أهداف المكافأة",
+  elSiguienteNivel: "التالي",
   nivelesAlcanzados: (alcanzados: number, total: number) =>
     `${alcanzados} من ${total} مستوى`,
   faltanRegistros: (n: number) =>

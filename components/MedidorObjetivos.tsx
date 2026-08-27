@@ -121,6 +121,34 @@ export function MedidorObjetivos({
               tinta plena mientras las de los pendientes van en tinta de apoyo.
               Dos señales, ninguna de ellas encima del dato.
             */}
+            {/*
+              LA RAMA HACIA EL NIVEL EN CURSO.
+
+              El premio que preside la tarjeta es el del PRÓXIMO nivel, y no
+              había nada que dijera cuál de los cuatro es. Con el mes empezado
+              se intuye —el en curso es el único con la barra a medias—, pero el
+              día 1, o con un agente que aún no ha registrado a nadie, los
+              cuatro segmentos están vacíos y la única señal desaparece justo
+              cuando más falta hace: quien abre la pantalla ve «50,00 $» arriba
+              y cuatro niveles idénticos debajo.
+
+              Una punta sobre el segmento, alineada con sus etiquetas, cierra la
+              frase: la cifra de arriba es ESTA. No lleva color ni caja —el
+              estado de esta aplicación va por contraste y por peso—, y el hueco
+              de 12 px se reserva en los cuatro para que los raíles sigan
+              cayendo a la misma altura con o sin marca.
+            */}
+            <span className="mb-0.5 flex h-3 items-end">
+              {tr.enCurso && (
+                <Icono
+                  nombre="desplegar"
+                  tam={12}
+                  titulo={t.elSiguienteNivel}
+                  className="text-texto"
+                />
+              )}
+            </span>
+
             <span className="block h-2 overflow-hidden rounded-marca bg-borde">
               {/* `Math.max(…, 0)` y no un mínimo visible: un nivel que todavía
                   no ha empezado tiene que verse vacío. El mínimo de 1,5 % que
