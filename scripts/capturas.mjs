@@ -149,7 +149,27 @@ function hitoDe(registros) {
     registros,
     ganado,
     siguiente: siguiente
-      ? { usuarios: siguiente.usuarios, faltan: siguiente.usuarios - registros, premio: siguiente.premio }
+      ? {
+          usuarios: siguiente.usuarios,
+          faltan: siguiente.usuarios - registros,
+          premio: siguiente.premio,
+          /*
+           * Lo que se gana DE MÁS, que es lo que pinta la tarjeta cuando ya hay
+           * un nivel alcanzado. Faltaba, así que `CAPTURA_HITO=15000` —el caso
+           * «ya has ganado 50 $ y vas a por los 100»— reventaba contra la
+           * frontera de error y salía fotografiado como «Algo se ha roto». Con
+           * el valor por defecto no se notaba: a 720 registros no hay nada
+           * ganado todavía y esa rama no se pisa.
+           */
+          incremento: {
+            micros: String(
+              Number(siguiente.premio.micros) - Number(ganado.micros),
+            ),
+            texto: `${((Number(siguiente.premio.micros) - Number(ganado.micros)) / 1e6)
+              .toFixed(2)
+              .replace(".", ",")} $`,
+          },
+        }
       : null,
     escalones: escalera.map((e) => ({ ...e, alcanzado: registros >= e.usuarios })),
     ritmo,
@@ -165,15 +185,56 @@ function hitoDe(registros) {
   };
 }
 
+/*
+ * La CARTERA, que no se estaba mirando.
+ *
+ * Es la pantalla a la que se entra a cobrar, y hasta ahora no tenía captura: el
+ * defecto que la obligó —«Bonos 0,00 $» sin un objetivo ni un avance al lado—
+ * llevaba ahí desde que existe la pantalla y no lo vio nadie, porque nadie la
+ * miraba.
+ *
+ * Los bonos van VACÍOS y el hito en curso a 720 registros a propósito: es el
+ * caso del agente que todavía no ha cobrado ninguno, o sea el que enseña si la
+ * pantalla sabe decir algo cuando no hay nada que contar del pasado.
+ */
+const retiro = {
+  cartera: resumen.cartera,
+  desglose: {
+    registros: { micros: "104200000", texto: "104,20 $" },
+    pro: { micros: "24240000", texto: "24,24 $" },
+    bonos: { micros: "0", texto: "0,00 $" },
+    ajustes: { micros: "0", texto: "0,00 $" },
+  },
+  bonos: [],
+  minimo: { micros: "20000000", texto: "20,00 $" },
+  hito: resumen.hito,
+  historial: [
+    {
+      id: "r1",
+      importe: { micros: "32240000", texto: "32,24 $" },
+      red: "TRC20",
+      wallet: "TQn9Y2…dwVVR93ct",
+      estado: "PAGADO",
+      solicitadoEn: `${dia(38)}T09:12:00.000Z`,
+      resueltoEn: `${dia(36)}T11:40:00.000Z`,
+      motivo: null,
+      referenciaPago: "0x9f2c41ab77e3d5c8be1a04f6d29c7b3e5518aa20",
+    },
+  ],
+};
+
 const RUTAS = [
   [/\/api\/agente\/webmaster\/[^/]+\/enlaces/, enlaces],
   [/\/api\/agente\/webmaster\/[^/]+$/, ficha],
   [/\/api\/agente\/resumen/, resumen],
+  [/\/api\/retiro/, retiro],
 ];
 
 const PANTALLAS = [
   ["inicio", "/"],
   ["ficha", `/red/${encodeURIComponent(ficha.email)}`],
+  // Donde se cobra, y donde ahora se ve el bono en curso.
+  ["cartera", "/cartera"],
   // La primera pantalla, y la única que lleva el isotipo: es donde el agente
   // todavía no sabe en qué aplicación está.
   ["alta", "/alta"],

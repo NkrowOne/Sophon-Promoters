@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CifraProtagonista } from "@/components/Animacion";
+import { BonoDelMes, type Hito } from "@/components/BonoDelMes";
 import { Escalera, type Cartera } from "@/components/Escalera";
 import { Icono } from "@/components/Icono";
 import { Importe } from "@/components/Importe";
@@ -126,7 +127,7 @@ interface Desglose {
   ajustes: { micros: string; texto: string };
 }
 
-interface BonoDelMes {
+interface BonoCobrado {
   /** `AAAA-MM`. */
   mes: string;
   importe: { micros: string; texto: string };
@@ -138,8 +139,15 @@ interface BonoDelMes {
 interface Respuesta {
   cartera: Cartera;
   desglose: Desglose;
-  bonos: BonoDelMes[];
+  bonos: BonoCobrado[];
   minimo: { micros: string; texto: string };
+  /**
+   * El bono EN CURSO: el mes natural, sus niveles y lo que llevas andado.
+   *
+   * `null` cuando no hay escalera configurada, y entonces la banda no se pinta:
+   * un objetivo que no existe se enseña peor con una barra vacía que con nada.
+   */
+  hito: Hito | null;
   historial: Solicitud[];
 }
 
@@ -239,6 +247,17 @@ export default function CarteraPagina() {
       </Pantalla>
     );
   }
+
+  /*
+   * El puesto de cada banda en la secuencia de entrada.
+   *
+   * La del bono es CONDICIONAL —sin escalera configurada no hay objetivos que
+   * pintar—, así que el puesto de las de abajo se calcula en vez de escribirse a
+   * mano: escrito, esa rama abriría un hueco de 40 ms en el escalonado, que es
+   * exactamente el defecto que la portada ya tuvo cuando se le metió una banda
+   * nueva por en medio.
+   */
+  const trasElBono = datos.hito ? 1 : 0;
 
   return (
     <Pantalla
@@ -477,6 +496,38 @@ export default function CarteraPagina() {
       )}
 
       {/*
+        EL BONO DEL MES: el juego, en la pantalla donde se cobra.
+
+        Aquí no había ni objetivo ni avance. La pantalla contaba el PASADO —el
+        desglose del saldo y los bonos ya registrados— así que un agente que
+        entra a retirar veía «Bonos 0,00 $» y «No hay bonos registrados» y nada
+        que dijera qué hay que hacer para que esa línea deje de ser cero. El
+        avance existía, pero solo en la portada: dos pantallas de la misma
+        aplicación contando la mitad de la misma historia cada una.
+
+        Es la MISMA pieza que la portada —`components/BonoDelMes.tsx`— y no una
+        versión reducida: la escalera entera con el premio de cada nivel, el
+        relleno de cada tramo, el ritmo del mes y los días que quedan. Con el mes
+        a cero también se ve, que es justo el caso que la hizo falta: sin ningún
+        registro, el medidor enseña los cuatro niveles con lo que paga cada uno y
+        la línea de abajo dice cuánto falta para el primero.
+
+        Va DESPUÉS del formulario y antes del origen del saldo, que es el orden
+        de las preguntas: cuánto puedo pedir → lo pido → qué hay en juego este
+        mes → de qué está hecho el total. Delante del formulario habría empujado
+        la acción fuera de la primera pantalla de scroll.
+
+        La malla SOLO cuando no hay solicitud viva: cuando la hay, la tarjeta de
+        la solicitud ya se la queda, y el motivo de marca repetido dos veces en
+        la misma pantalla deja de ser una firma y pasa a ser un fondo.
+      */}
+      {datos.hito && (
+        <Banda orden={2} tono={2} etiqueta={t.bonoDelMes} className="py-6">
+          <BonoDelMes hito={datos.hito} malla={!viva} />
+        </Banda>
+      )}
+
+      {/*
         DE DÓNDE SALE: la otra mitad de la pregunta del dinero.
 
         La Escalera de arriba contesta a DÓNDE está —ganado, disponible, pedido,
@@ -491,7 +542,7 @@ export default function CarteraPagina() {
         habría empujado la acción fuera de la primera pantalla de scroll. Aquí
         contesta a la pregunta que nace DESPUÉS de mirar el saldo.
       */}
-      <Banda orden={2} tono={2} etiqueta={t.deDondeSale} className="py-6">
+      <Banda orden={2 + trasElBono} tono={2} etiqueta={t.deDondeSale} className="py-6">
         <p className="text-rotulo text-texto-apoyo">{t.deDondeSale}</p>
         <p className="mt-1 text-apoyo text-texto-apoyo">{t.deDondeSaleApoyo}</p>
 
@@ -553,7 +604,7 @@ export default function CarteraPagina() {
           apareciera dos veces en la misma pantalla hacía dudar de si eran dos
           solicitudes distintas, que es justo la confusión que este flujo —una
           sola viva a la vez— tiene que evitar. */}
-      <Banda orden={3} tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
+      <Banda orden={3 + trasElBono} tono={2} etiqueta={t.solicitudesAnteriores} className="py-6">
         {/* Sin filete bajo el rótulo: la raya existe para separarlo de un
             contenido suelto, y aquí lo que viene debajo es una tarjeta que ya
             trae su propio canto. Dos líneas horizontales a catorce píxeles una

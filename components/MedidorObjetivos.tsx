@@ -196,13 +196,22 @@ export function MedidorObjetivos({
         La línea que SIEMPRE se mueve.
 
         Es lo que hace que la pieza siga diciendo algo el día 2 del mes, cuando
-        los cuatro segmentos están casi vacíos: cuántos niveles llevas de cuántos
-        y cuánto falta para el siguiente. Las dos cifras cambian con el trabajo
-        de esta mañana aunque el primer umbral esté a nueve mil registros.
+        los cuatro segmentos están casi vacíos: cuántos llevas, cuántos niveles
+        de cuántos y cuánto falta para el siguiente. Las tres cifras cambian con
+        el trabajo de esta mañana aunque el primer umbral esté a nueve mil
+        registros.
+
+        EL RECUENTO ABRE LA LÍNEA, y se había perdido. Cuando esta pieza absorbió
+        la rejilla de escalones, el «21.840 registros este mes» se quedó fuera:
+        el medidor decía cuánto FALTA sin decir nunca cuánto LLEVAS, así que el
+        agente tenía que restarlo del umbral de cabeza. Y en la portada era peor
+        que un hueco: la placa de arriba lleva el recuento de la ventana de 30
+        días, que es otro número, así que el que estaba a la vista era el que no
+        toca.
       */}
       {!compacto && (
         <p className="mt-3 text-apoyo text-texto-apoyo tabular-nums">
-          {t.nivelesAlcanzados(alcanzados, tramos.length)}
+          {t.registrosEsteMes(registros)} · {t.nivelesAlcanzados(alcanzados, tramos.length)}
           {enCurso && ` · ${t.faltanRegistros(enCurso.escalon.usuarios - registros)}`}
         </p>
       )}
